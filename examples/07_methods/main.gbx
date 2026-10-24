@@ -1,0 +1,58 @@
+' ============================================================
+' METHOD with INLINE: GBX commands directly in the C++ block
+' Run: gbx examples/07_methods/methods.gbxproj
+'
+' INLINE steps may call the built-in GBX commands:
+' PRINT, DRAWTEXT, DRAWFILLEDCIRCLE, SETTEXTCOLOR ... They behave
+' as they do in BASIC. Parameters and fields arrive in lower case
+' (text$ -> text_str, x% -> x).
+' ============================================================
+
+SETSCREEN 640, 480, 0
+SETWINDOWTITLE "GameBasiX - METHOD with INLINE"
+LIMITFPS 60
+
+TYPE OUTPUT
+  METHOD MyPrint: text$, x%, y%
+    INLINE
+      PRINT(text_str, x, y);
+    ENDINLINE
+  ENDMETHOD
+
+  METHOD Dot: x%, y%, size%, color%
+    INLINE
+      DRAWFILLEDCIRCLE(x, y, size, color);
+    ENDINLINE
+  ENDMETHOD
+ENDTYPE
+
+GLOBAL m AS OUTPUT
+GLOBAL angle, px, py
+
+WHILE TRUE
+  CLEARSCREEN RGB(0, 0, 0)
+
+  ' Plain BASIC
+  SETTEXTCOLOR RGB(220, 230, 245)
+  PRINT "Ready.", 20, 20
+
+  ' The same command, this time from the METHOD's INLINE block
+  SETTEXTCOLOR RGB(130, 205, 255)
+  m.MyPrint("Hello inline", 20, 44)
+
+  ' Motion: the METHOD draws the dot, BASIC computes the position.
+  t = GETTIMERALL() / 1000.0
+  angle = t * 140
+  px = 320 + COS(angle) * 140
+  py = 240 + SIN(angle) * 90
+  m.Dot(px, py, 8, RGB(80, 200, 255))
+  m.Dot(320, 240, 3, RGB(255, 240, 180))
+
+  SETTEXTCOLOR RGB(140, 150, 168)
+  PRINT "ESC quits the example.", 20, 456
+
+  SHOWSCREEN
+  IF KEYHIT(KEY_ESC) THEN BREAK
+WEND
+
+END

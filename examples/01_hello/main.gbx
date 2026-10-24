@@ -1,0 +1,50 @@
+' ============================================================
+' Hello world - shapes, text and (optionally) a TTF font
+' Run: gbx examples/01_hello/hello.gbxproj
+' ============================================================
+
+SETSCREEN 800, 600, 0
+SETWINDOWTITLE "GameBasiX - Hello World"
+LIMITFPS 60
+CLEARSCREEN RGB(10, 14, 24)
+
+' TTF font from the Windows font folder, otherwise the bitmap font
+TRY
+  LOADFONT "segoeui.ttf", 1, 34
+  SETFONT 1
+CATCH err$
+  SETFONT 0, 2
+FINALLY
+
+WHILE TRUE
+  t = GETTIMERALL() / 1000.0
+
+  CLEARSCREEN RGB(10, 14, 24)
+
+  ' background grid
+  FOR x = 0 TO 800 STEP 40
+    DRAWLINE x, 0, x, 600, RGB(22, 30, 48)
+  NEXT
+  FOR y = 0 TO 600 STEP 40
+    DRAWLINE 0, y, 800, y, RGB(22, 30, 48)
+  NEXT
+
+  ' orbiting circles
+  FOR i = 0 TO 9
+    ang = t * 40 + i * 36
+    cx = 400 + COS(ang) * (140 + i * 16)
+    cy = 320 + SIN(ang) * (100 + i * 10)
+    DRAWFILLEDCIRCLE cx, cy, 24 - i, RGB(60 + i * 18, 120, 255 - i * 18)
+  NEXT
+
+  DRAWBORDER 40, 40, 720, 520, RGB(90, 140, 220)
+
+  SETTEXTCOLOR RGB(255, 255, 255)
+  PRINT "Hello world!", 80, 90
+  SETTEXTCOLOR RGB(150, 200, 255)
+  PRINT "GameBasiX on SDL3 - ESC or closing the window quits", 80, 150
+  SETTEXTCOLOR RGB(120, 140, 170)
+  PRINT "Frame time: " + FORMAT$(7, 2, GETTIMER()) + " ms", 80, 190
+
+  SHOWSCREEN
+WEND

@@ -1,0 +1,79 @@
+' ============================================================
+' GBXArray: dynamic lists written in C++
+' Run: gbx examples/04_gbxarray/gbxarray.gbxproj
+'
+' The INLINE block includes gbxarray.h. On startup gbx.exe compiles
+' the block once (g++) and registers the GBXARRAY_* commands - after
+' that they are ordinary GBX commands.
+' ============================================================
+
+INLINE
+#include "gbxarray.h"
+ENDINLINE
+
+SYSTEMPOINTER TRUE
+SETSCREEN 900, 600, 0
+SETWINDOWTITLE "GameBasiX - GBXArray"
+LIMITFPS 60
+SEEDRND 7
+
+GLOBAL Values = GBXARRAY_NEW()
+GLOBAL Names = GBXARRAY_NEW()
+
+GBXARRAY_ADD Names, "Anna"
+GBXARRAY_ADD Names, "Berta"
+GBXARRAY_ADD Names, "Cem"
+GBXARRAY_ADD Names, "Dana"
+
+FUNCTION FillValues()
+  LOCAL i
+  FOR i = 1 TO 8
+    GBXARRAY_ADD Values, RND(10) + 1
+  NEXT
+ENDFUNCTION
+
+FillValues()
+
+WHILE TRUE
+  ' ------------------------------------------------------------- Input
+  IF KEYHIT(KEY_SPACE) THEN GBXARRAY_ADD Values, RND(10) + 1
+  IF KEYHIT(KEY_BACKSPACE) THEN GBXARRAY_REMOVE Values, -1
+  IF KEYHIT(KEY_S) THEN GBXARRAY_SORT Values
+  IF KEYHIT(KEY_C)
+    GBXARRAY_CLEAR Values
+    FillValues()
+  ENDIF
+  IF KEYHIT(KEY_ESC) THEN END
+
+  CLEARSCREEN RGB(6, 8, 14)
+
+  SETTEXTCOLOR RGB(166, 226, 46)
+  PRINT "GBXArray - a std::vector from an INLINE block", 40, 30
+  SETTEXTCOLOR RGB(140, 150, 165)
+  PRINT "SPACE append   BACKSPACE remove   S sort   C refill   ESC quit", 40, 54
+
+  ' ------------------------------------------------------------- Bars
+  ' The width follows the count so everything fits into the window.
+  count = GBXARRAY_COUNT(Values)
+  barWidth = 48
+  IF count > 1 THEN barWidth = MIN(48, INTEGER(820 / count) - 8)
+  IF barWidth < 6 THEN barWidth = 6
+  FOR i = 0 TO count - 1
+    value = GBXARRAY_GET(Values, i)
+    barHeight = value * 26
+    x = 40 + i * (barWidth + 8)
+    DRAWRECT x, 470 - barHeight, barWidth, barHeight, RGB(60 + MOD(i * 14, 180), 200 - MOD(i * 8, 120), 90 + MOD(i * 12, 150))
+    SETTEXTCOLOR RGB(150, 160, 175)
+    IF barWidth >= 22 THEN PRINT STR$(value), x, 470 - barHeight - 22
+  NEXT
+  PRINT count + " values, last value: " + STR$(GBXARRAY_GET(Values, -1)), 40, 482
+
+  ' ------------------------------------------------------------- Text
+  SETTEXTCOLOR RGB(108, 182, 255)
+  PRINT "Names: " + GBXARRAY_JOIN$(Names, ", "), 40, 510
+  hit = GBXARRAY_FIND(Names, "Cem")
+  SETTEXTCOLOR RGB(200, 210, 225)
+  PRINT "GBXARRAY_FIND for ""Cem"" returns index " + STR$(hit) + " - GBXARRAY_COUNT(Names) = " + STR$(GBXARRAY_COUNT(Names)), 40, 532
+  PRINT "The typed list grows without REDIM: GBXARRAY_ADD simply appends.", 40, 554
+  SHOWSCREEN
+WEND

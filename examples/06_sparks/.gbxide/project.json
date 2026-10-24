@@ -1,0 +1,22 @@
+{
+  "name": "sparks",
+  "appName": "Sparks",
+  "title": "GameBasiX - Sparks",
+  "entry": "main.gbx",
+  "width": 960,
+  "height": 640,
+  "fullscreen": false,
+  "resizable": true,
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx"
+  ],
+  "createdAt": "2026-10-23T14:01:23.972Z"
+}

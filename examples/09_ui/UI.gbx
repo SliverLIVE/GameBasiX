@@ -1,0 +1,1366 @@
+' ============================================================
+' UI.gbx - a complete widget toolkit for GameBasiX
+'
+' Drop this file into a project, add one line and build a UI:
+'
+'   INCLUDE "UI.gbx"
+'   GLOBAL app AS UI
+'
+'   SETSCREEN 960, 640, 0
+'   app.init()
+'
+'   GLOBAL win   = app.window("Settings", 40, 40, 420, 360)
+'   GLOBAL nameF = app.field("Player", 20, 60, 260, "Player one")
+'   GLOBAL vol   = app.slider("Volume", 20, 120, 260, 0, 100, 1, 70)
+'   GLOBAL mute  = app.toggle("Mute", 20, 176)
+'   GLOBAL go    = app.button("Start", 20, 300, 120, 36, 1)
+'   app.endWindow()
+'
+'   WHILE TRUE
+'     CLEARSCREEN app.bg
+'     app.run()                       ' input + drawing, once per frame
+'     IF app.clicked(go) THEN STDOUT "start\n"
+'     IF KEYHIT(KEY_ESC) THEN END
+'     SHOWSCREEN
+'   WEND
+'
+' Rules
+'   * Create widgets once, before the loop (app.clear() starts a new screen).
+'   * Call app.run() once per frame, after your own background drawing.
+'   * A widget's x/y is relative to the client area of its window.
+'   * Clicking a window brings it (and its children) to the front.
+'   * One UI per program: the widget store is shared by all instances.
+'
+' Widgets
+'   window(title$, x, y, w, h)     draggable, close button, client origin
+'   panel(title$, x, y, w, h)      decorative group box (title may be "")
+'   label(text$, x, y, w = 0)      single line of text
+'   heading(text$, x, y, w = 0)    accent line with an underline
+'   separator(x, y, w)             one pixel divider
+'   button(text$, x, y, w, h, primary = 0)
+'   toggle(text$, x, y, checked = 0)
+'   slider(title$, x, y, w, lo, hi, step, value)
+'   progress(title$, x, y, w, value)        value is 0..1
+'   field(title$, x, y, w, text$ = "")      editable text
+'   dropdown(title$, x, y, w, options$, index = 0)   "a|b|c"
+'   listbox(title$, x, y, w, h, options$, index = 0)
+'
+' Reading state
+'   app.value(id)        number: slider value, list/dropdown index, toggle 0/1
+'   app.text$(id)        field text, selected option, or caption
+'   app.clicked(id)      1 in the frame the widget was activated
+'   app.changed(id)      1 in the frame its value changed (typing, dragging)
+'   app.isOpen(id)       window visibility (the X sets it to 0)
+'   app.optCount(id)     number of options in a dropdown/listbox
+'
+' Changing state
+'   app.setValue(id, v)  app.setText(id, s$)   app.setOptions(id, s$)
+'   app.enable(id, on)   app.openWin(id)       app.closeWin(id)
+'   app.focusOn(id)      app.clear()
+'
+' Keyboard
+'   TAB / SHIFT+TAB cycles the focus, RETURN or SPACE activates a button
+'   or toggle, arrow keys move sliders and select in lists, typing edits
+'   the focused field, RETURN leaves it. ESC is left to the program.
+'   INKEY$() is only drained while a field has the focus.
+'
+' Also
+'   app.isEnabled(id), app.raiseWin(id), app.focus%
+'   app.hover%, app.mx / app.my, app.clickId% / app.changeId%
+'   app.vmouse(x, y, down), app.vtext(s$), app.vkey(code)
+'     scripted input for demos and headless tests (app.vm% = 0 ends it)
+'
+' Look
+'   app.theme("dark") / app.theme("light"), or assign the palette fields
+'   (bg, surface, surface2, titleBar, line, ink, inkDim, accent, accentInk,
+'   danger, field) directly. Metrics: titleH, pad, rowH.
+' ============================================================
+
+' ---------------------------------------------------- widget kinds
+CONST UIK_WINDOW = 1
+CONST UIK_PANEL = 2
+CONST UIK_LABEL = 3
+CONST UIK_HEADING = 4
+CONST UIK_BUTTON = 5
+CONST UIK_TOGGLE = 6
+CONST UIK_SLIDER = 7
+CONST UIK_PROGRESS = 8
+CONST UIK_FIELD = 9
+CONST UIK_DROPDOWN = 10
+CONST UIK_LIST = 11
+CONST UIK_SEPARATOR = 12
+
+' One widget. Positions of children are relative to the window
+' client area (below the title bar); win% = -1 means screen space.
+TYPE UIWIDGET
+  kind% = 0
+  win% = -1
+  x = 0
+  y = 0
+  w = 0
+  h = 0
+  title$ = ""
+  text$ = ""
+  num = 0
+  lo = 0
+  hi = 1
+  step = 1
+  optStart% = 0
+  optCount% = 0
+  off% = 0
+  vis% = 1
+  flags% = 0        ' BAND 1 = disabled, BAND 2 = primary, BAND 4 = auto width
+  insetY = 0        ' window title bar height, used by children
+  z = 0             ' drawing order; the highest z is on top
+
+  ' --- absolute position on screen ---
+  METHOD ax
+    IF win% >= 0 THEN RETURN x + UI_WIDGETS[win%].x
+    RETURN x
+  ENDMETHOD
+
+  METHOD ay
+    IF win% >= 0 THEN RETURN y + UI_WIDGETS[win%].y + UI_WIDGETS[win%].insetY
+    RETURN y
+  ENDMETHOD
+
+  ' --- geometry test in screen coordinates ---
+  METHOD hit: mx, my
+    LOCAL px = ax()
+    LOCAL py = ay()
+    IF mx < px THEN RETURN 0
+    IF my < py THEN RETURN 0
+    IF mx >= px + w THEN RETURN 0
+    IF my >= py + h THEN RETURN 0
+    RETURN 1
+  ENDMETHOD
+
+  METHOD optAt$: i
+    LOCAL at = optStart% + i
+    IF i < 0 THEN RETURN ""
+    IF i >= optCount% THEN RETURN ""
+    RETURN UI_OPTS$[at]
+  ENDMETHOD
+ENDTYPE
+
+' The UI itself: palette, metrics, input state and all widget factories.
+TYPE UI
+  ' --- palette (dark by default, see theme()) ---
+  bg = RGB(13, 15, 19)
+  surface = RGB(24, 28, 36)
+  surface2 = RGB(33, 38, 48)
+  titleBar = RGB(29, 34, 43)
+  line = RGB(52, 59, 71)
+  ink = RGB(230, 235, 243)
+  inkDim = RGB(146, 156, 171)
+  accent = RGB(163, 230, 53)
+  accentInk = RGB(18, 26, 10)
+  danger = RGB(248, 113, 113)
+  field = RGB(10, 12, 16)
+
+  ' --- metrics ---
+  titleH = 28
+  pad = 14
+  rowH = 22
+
+  ' --- mouse / keyboard ---
+  mx = 0
+  my = 0
+  mdown% = 0
+  lastDown% = 0
+  vm% = 0            ' 1 = use the virtual mouse and key buffer
+  vmx = 0
+  vmy = 0
+  vdown% = 0
+  vkey% = 0
+  vtype$ = ""
+
+  ' --- per frame state ---
+  hover% = -1
+  pressed% = -1
+  focus% = -1
+  openDrop% = -1
+  dragWin% = -1
+  dragDX = 0
+  dragDY = 0
+  closeHot% = -1
+  clickId% = -1
+  changeId% = -1
+  curWin% = -1
+  wheel% = 0
+  blink% = 0
+  now = 0
+  screenW% = 0
+  screenH% = 0
+  zTop% = 0
+
+  ' ------------------------------------------------------ setup
+  METHOD init: w = 0, h = 0
+    IF w > 0 THEN screenW% = w ELSE screenW% = GETSCREENWIDTH()
+    IF h > 0 THEN screenH% = h ELSE screenH% = GETSCREENHEIGHT()
+    vm% = 0
+    vkey% = 0
+    vtype$ = ""
+  ENDMETHOD
+
+  METHOD theme: name$
+    IF LCASE$(name$) = "light" THEN
+      bg = RGB(242, 244, 248)
+      surface = RGB(255, 255, 255)
+      surface2 = RGB(237, 240, 245)
+      titleBar = RGB(229, 233, 240)
+      line = RGB(200, 207, 217)
+      ink = RGB(26, 30, 37)
+      inkDim = RGB(99, 108, 122)
+      accent = RGB(77, 148, 20)
+      accentInk = RGB(255, 255, 255)
+      danger = RGB(200, 50, 50)
+      field = RGB(250, 251, 253)
+    ELSE
+      bg = RGB(13, 15, 19)
+      surface = RGB(24, 28, 36)
+      surface2 = RGB(33, 38, 48)
+      titleBar = RGB(29, 34, 43)
+      line = RGB(52, 59, 71)
+      ink = RGB(230, 235, 243)
+      inkDim = RGB(146, 156, 171)
+      accent = RGB(163, 230, 53)
+      accentInk = RGB(18, 26, 10)
+      danger = RGB(248, 113, 113)
+      field = RGB(10, 12, 16)
+    ENDIF
+  ENDMETHOD
+
+  ' Remove every widget and start a new screen.
+  METHOD clear
+    REDIM UI_WIDGETS[0] AS UIWIDGET
+    REDIM UI_OPTS$[0]
+    curWin% = -1
+    hover% = -1
+    pressed% = -1
+    focus% = -1
+    openDrop% = -1
+    dragWin% = -1
+    closeHot% = -1
+    clickId% = -1
+    changeId% = -1
+    zTop% = 0
+  ENDMETHOD
+
+  ' ------------------------------------------------------ factories
+  METHOD add: kind%, x, y, w, h
+    LOCAL t AS UIWIDGET
+    t.kind% = kind%
+    t.x = x
+    t.y = y
+    t.w = w
+    t.h = h
+    t.win% = curWin%
+    zTop% = zTop% + 1
+    t.z = zTop%
+    DIMPUSH UI_WIDGETS[], t
+    RETURN LEN(UI_WIDGETS[]) - 1
+  ENDMETHOD
+
+  METHOD loadOptions: id, options$
+    LOCAL n = 0
+    DIM parts$[0]
+    IF TRIM$(options$) = "" THEN
+      UI_WIDGETS[id].optStart% = LEN(UI_OPTS$)
+      UI_WIDGETS[id].optCount% = 0
+      UI_WIDGETS[id].num = 0
+      RETURN
+    ENDIF
+    SPLITSTR options$, parts$, "|"
+    UI_WIDGETS[id].optStart% = LEN(UI_OPTS$)
+    UI_WIDGETS[id].optCount% = LEN(parts$)
+    FOR i = 0 TO LEN(parts$) - 1
+      DIMPUSH UI_OPTS$, TRIM$(parts$[i])
+    NEXT
+    IF UI_WIDGETS[id].num > UI_WIDGETS[id].optCount% - 1 THEN
+      UI_WIDGETS[id].num = UI_WIDGETS[id].optCount% - 1
+    ENDIF
+    IF UI_WIDGETS[id].num < 0 THEN UI_WIDGETS[id].num = 0
+    IF UI_WIDGETS[id].off% > UI_WIDGETS[id].optCount% - 1 THEN
+      UI_WIDGETS[id].off% = UI_WIDGETS[id].optCount% - 1
+    ENDIF
+    IF UI_WIDGETS[id].off% < 0 THEN UI_WIDGETS[id].off% = 0
+  ENDMETHOD
+
+  METHOD window: title$, x, y, w, h
+    LOCAL id = add(UIK_WINDOW, x, y, w, h)
+    UI_WIDGETS[id].win% = -1
+    UI_WIDGETS[id].title$ = title$
+    UI_WIDGETS[id].insetY = titleH
+    curWin% = id
+    RETURN id
+  ENDMETHOD
+
+  METHOD endWindow
+    curWin% = -1
+  ENDMETHOD
+
+  METHOD panel: title$, x, y, w, h
+    LOCAL id = add(UIK_PANEL, x, y, w, h)
+    UI_WIDGETS[id].title$ = title$
+    RETURN id
+  ENDMETHOD
+
+  METHOD label: text$, x, y, w = 0
+    LOCAL id = add(UIK_LABEL, x, y, w, 18)
+    UI_WIDGETS[id].title$ = text$
+    IF w <= 0 THEN
+      UI_WIDGETS[id].w = LEN(text$, 1) + 2
+      UI_WIDGETS[id].flags% = BOR(UI_WIDGETS[id].flags%, 4)
+    ENDIF
+    RETURN id
+  ENDMETHOD
+
+  METHOD heading: text$, x, y, w = 0
+    LOCAL id = add(UIK_HEADING, x, y, w, 20)
+    UI_WIDGETS[id].title$ = text$
+    IF w <= 0 THEN
+      UI_WIDGETS[id].w = LEN(text$, 1) + 2
+      UI_WIDGETS[id].flags% = BOR(UI_WIDGETS[id].flags%, 4)
+    ENDIF
+    RETURN id
+  ENDMETHOD
+
+  METHOD separator: x, y, w
+    RETURN add(UIK_SEPARATOR, x, y, w, 1)
+  ENDMETHOD
+
+  METHOD button: text$, x, y, w, h, primary = 0
+    LOCAL id = add(UIK_BUTTON, x, y, w, h)
+    UI_WIDGETS[id].title$ = text$
+    IF primary <> 0 THEN UI_WIDGETS[id].flags% = 2
+    RETURN id
+  ENDMETHOD
+
+  METHOD toggle: text$, x, y, checked = 0
+    LOCAL id = add(UIK_TOGGLE, x, y, LEN(text$, 1) + 30, 22)
+    UI_WIDGETS[id].title$ = text$
+    UI_WIDGETS[id].flags% = BOR(UI_WIDGETS[id].flags%, 4)
+    IF checked <> 0 THEN UI_WIDGETS[id].num = 1 ELSE UI_WIDGETS[id].num = 0
+    RETURN id
+  ENDMETHOD
+
+  METHOD slider: title$, x, y, w, lo, hi, step, value
+    LOCAL id = add(UIK_SLIDER, x, y, w, 46)
+    UI_WIDGETS[id].title$ = title$
+    UI_WIDGETS[id].lo = lo
+    UI_WIDGETS[id].hi = hi
+    UI_WIDGETS[id].step = step
+    setValue(id, value)
+    RETURN id
+  ENDMETHOD
+
+  METHOD progress: title$, x, y, w, value
+    LOCAL id = add(UIK_PROGRESS, x, y, w, 38)
+    UI_WIDGETS[id].title$ = title$
+    setValue(id, value)
+    RETURN id
+  ENDMETHOD
+
+  METHOD field: title$, x, y, w, text$ = ""
+    LOCAL id = add(UIK_FIELD, x, y, w, 50)
+    UI_WIDGETS[id].title$ = title$
+    UI_WIDGETS[id].text$ = text$
+    RETURN id
+  ENDMETHOD
+
+  METHOD dropdown: title$, x, y, w, options$, index = 0
+    LOCAL id = add(UIK_DROPDOWN, x, y, w, 50)
+    UI_WIDGETS[id].title$ = title$
+    loadOptions(id, options$)
+    setValue(id, index)
+    RETURN id
+  ENDMETHOD
+
+  METHOD listbox: title$, x, y, w, h, options$, index = 0
+    LOCAL id = add(UIK_LIST, x, y, w, h)
+    IF h < 60 THEN UI_WIDGETS[id].h = 60
+    UI_WIDGETS[id].title$ = title$
+    loadOptions(id, options$)
+    setValue(id, index)
+    RETURN id
+  ENDMETHOD
+
+  ' ------------------------------------------------------ state
+  METHOD setValue: id, v
+    LOCAL k = 0
+    LOCAL v2 = v
+    IF id < 0 THEN RETURN
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN
+    k = UI_WIDGETS[id].kind%
+    IF k = UIK_SLIDER THEN
+      IF UI_WIDGETS[id].step > 0 THEN
+        v2 = UI_WIDGETS[id].lo + FLOOR((v2 - UI_WIDGETS[id].lo) / UI_WIDGETS[id].step + 0.5) * UI_WIDGETS[id].step
+      ENDIF
+      IF v2 < UI_WIDGETS[id].lo THEN v2 = UI_WIDGETS[id].lo
+      IF v2 > UI_WIDGETS[id].hi THEN v2 = UI_WIDGETS[id].hi
+    ELSEIF k = UIK_LIST OR k = UIK_DROPDOWN THEN
+      v2 = FLOOR(v2 + 0.5)
+      IF v2 < 0 THEN v2 = 0
+      IF v2 > UI_WIDGETS[id].optCount% - 1 THEN v2 = UI_WIDGETS[id].optCount% - 1
+      IF v2 < 0 THEN v2 = 0
+    ELSEIF k = UIK_TOGGLE THEN
+      IF v2 <> 0 THEN v2 = 1 ELSE v2 = 0
+    ELSEIF k = UIK_PROGRESS THEN
+      IF v2 < 0 THEN v2 = 0
+      IF v2 > 1 THEN v2 = 1
+    ENDIF
+    UI_WIDGETS[id].num = v2
+    IF k = UIK_LIST THEN scrollToVisible(id)
+  ENDMETHOD
+
+  METHOD setText: id, s$
+    IF id < 0 THEN RETURN
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN
+    IF UI_WIDGETS[id].kind% = UIK_FIELD THEN
+      IF LEN(s$) > 120 THEN s$ = LEFT$(s$, 120)
+      UI_WIDGETS[id].text$ = s$
+    ELSE
+      UI_WIDGETS[id].title$ = s$
+      IF BAND(UI_WIDGETS[id].flags%, 4) <> 0 THEN
+        IF UI_WIDGETS[id].kind% = UIK_TOGGLE THEN
+          UI_WIDGETS[id].w = LEN(s$, 1) + 30
+        ELSE
+          UI_WIDGETS[id].w = LEN(s$, 1) + 2
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDMETHOD
+
+  METHOD setOptions: id, options$
+    IF id < 0 THEN RETURN
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN
+    loadOptions(id, options$)
+  ENDMETHOD
+
+  METHOD enable: id, on = 1
+    IF id < 0 THEN RETURN
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN
+    IF on <> 0 THEN
+      UI_WIDGETS[id].flags% = BAND(UI_WIDGETS[id].flags%, 255 - 1)
+    ELSE
+      UI_WIDGETS[id].flags% = BOR(UI_WIDGETS[id].flags%, 1)
+    ENDIF
+  ENDMETHOD
+
+  METHOD openWin: id
+    IF id < 0 THEN RETURN
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN
+    UI_WIDGETS[id].vis% = 1
+  ENDMETHOD
+
+  METHOD closeWin: id
+    IF id < 0 THEN RETURN
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN
+    UI_WIDGETS[id].vis% = 0
+    FOR i = 0 TO LEN(UI_WIDGETS[]) - 1
+      IF UI_WIDGETS[i].win% = id THEN
+        IF focus% = i THEN focus% = -1
+        IF openDrop% = i THEN openDrop% = -1
+        IF pressed% = i THEN pressed% = -1
+      ENDIF
+    NEXT
+    IF dragWin% = id THEN dragWin% = -1
+  ENDMETHOD
+
+  ' Bring a window (and its children) to the front.
+  METHOD raiseWin: id
+    IF id < 0 THEN RETURN
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN
+    IF UI_WIDGETS[id].kind% <> UIK_WINDOW THEN RETURN
+    zTop% = zTop% + 1
+    UI_WIDGETS[id].z = zTop%
+    FOR i = 0 TO LEN(UI_WIDGETS[]) - 1
+      IF UI_WIDGETS[i].win% = id THEN
+        zTop% = zTop% + 1
+        UI_WIDGETS[i].z = zTop%
+      ENDIF
+    NEXT
+  ENDMETHOD
+
+  METHOD focusOn: id
+    IF id < 0 THEN RETURN
+    focus% = id
+    flushKeys()
+  ENDMETHOD
+
+  METHOD value: id
+    IF id < 0 THEN RETURN 0
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN 0
+    RETURN UI_WIDGETS[id].num
+  ENDMETHOD
+
+  METHOD text$: id
+    LOCAL k = 0
+    LOCAL i = 0
+    IF id < 0 THEN RETURN ""
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN ""
+    k = UI_WIDGETS[id].kind%
+    IF k = UIK_FIELD THEN RETURN UI_WIDGETS[id].text$
+    IF k = UIK_DROPDOWN OR k = UIK_LIST THEN
+      i = UI_WIDGETS[id].num
+      IF i < 0 THEN RETURN ""
+      IF i >= UI_WIDGETS[id].optCount% THEN RETURN ""
+      RETURN UI_OPTS$[UI_WIDGETS[id].optStart% + i]
+    ENDIF
+    RETURN UI_WIDGETS[id].title$
+  ENDMETHOD
+
+  METHOD clicked: id
+    IF id < 0 THEN RETURN 0
+    IF clickId% = id THEN RETURN 1
+    RETURN 0
+  ENDMETHOD
+
+  METHOD changed: id
+    IF id < 0 THEN RETURN 0
+    IF changeId% = id THEN RETURN 1
+    RETURN 0
+  ENDMETHOD
+
+  METHOD isOpen: id
+    IF id < 0 THEN RETURN 0
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN 0
+    RETURN UI_WIDGETS[id].vis%
+  ENDMETHOD
+
+  METHOD optCount: id
+    IF id < 0 THEN RETURN 0
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN 0
+    RETURN UI_WIDGETS[id].optCount%
+  ENDMETHOD
+
+  METHOD isEnabled: id
+    IF id < 0 THEN RETURN 0
+    IF id >= LEN(UI_WIDGETS[]) THEN RETURN 0
+    IF BAND(UI_WIDGETS[id].flags%, 1) <> 0 THEN RETURN 0
+    RETURN 1
+  ENDMETHOD
+
+  ' ------------------------------------------------------ input hooks
+  ' Virtual input: for scripted demos and headless tests. vm% stays on
+  ' until you set app.vm% = 0 again.
+  METHOD vmouse: x, y, down
+    vm% = 1
+    vmx = x
+    vmy = y
+    vdown% = down
+  ENDMETHOD
+
+  METHOD vkey: code
+    vm% = 1
+    vkey% = code
+  ENDMETHOD
+
+  METHOD vtext: s$
+    vm% = 1
+    vtype$ = vtype$ + s$
+  ENDMETHOD
+
+  METHOD flushKeys
+    LOCAL c$ = ""
+    IF vm% = 1 THEN
+      vtype$ = ""
+      RETURN
+    ENDIF
+    c$ = INKEY$()
+    WHILE c$ <> ""
+      c$ = INKEY$()
+    WEND
+  ENDMETHOD
+
+  METHOD takeText$
+    LOCAL s$ = ""
+    LOCAL out$ = ""
+    LOCAL c$ = ""
+    IF vm% = 1 THEN
+      s$ = vtype$
+      vtype$ = ""
+      RETURN s$
+    ENDIF
+    c$ = INKEY$()
+    WHILE c$ <> ""
+      out$ = out$ + c$
+      c$ = INKEY$()
+    WEND
+    RETURN out$
+  ENDMETHOD
+
+  METHOD readKey: code
+    IF vm% = 1 THEN
+      IF vkey% = code THEN
+        vkey% = 0
+        RETURN 1
+      ENDIF
+      RETURN 0
+    ENDIF
+    RETURN KEYHIT(code)
+  ENDMETHOD
+
+  METHOD cycleFocus: delta
+    LOCAL n = LEN(UI_WIDGETS[])
+    LOCAL i = 0
+    LOCAL c = 0
+    LOCAL k = 0
+    IF n = 0 THEN RETURN
+    i = focus%
+    FOR c = 1 TO n
+      i = i + delta
+      IF i >= n THEN i = 0
+      IF i < 0 THEN i = n - 1
+      k = UI_WIDGETS[i].kind%
+      IF k = UIK_BUTTON OR k = UIK_TOGGLE OR k = UIK_SLIDER THEN
+        IF uiVis(i) = 1 THEN
+          focus% = i
+          flushKeys()
+          RETURN
+        ENDIF
+      ENDIF
+      IF k = UIK_FIELD OR k = UIK_DROPDOWN OR k = UIK_LIST THEN
+        IF uiVis(i) = 1 THEN
+          focus% = i
+          flushKeys()
+          RETURN
+        ENDIF
+      ENDIF
+    NEXT
+  ENDMETHOD
+
+  ' ------------------------------------------------------ keyboard
+  METHOD handleKeys
+    LOCAL tab = 0
+    LOCAL enter = 0
+    LOCAL space = 0
+    LOCAL upk = 0
+    LOCAL downk = 0
+    LOCAL leftk = 0
+    LOCAL rightk = 0
+    LOCAL homek = 0
+    LOCAL endk = 0
+    LOCAL shift = 0
+    LOCAL k = 0
+    LOCAL s$ = ""
+    LOCAL c$ = ""
+    LOCAL t$ = ""
+    LOCAL step2 = 1
+    LOCAL i = 0
+
+    tab = readKey(KEY_TAB)
+    enter = readKey(KEY_RETURN) + readKey(KEY_ENTER)
+    space = readKey(KEY_SPACE)
+    upk = readKey(KEY_UP)
+    downk = readKey(KEY_DOWN)
+    leftk = readKey(KEY_LEFT)
+    rightk = readKey(KEY_RIGHT)
+    homek = readKey(KEY_HOME)
+    endk = readKey(KEY_END)
+    shift = KEY(KEY_LSHIFT) + KEY(KEY_RSHIFT)
+
+    IF tab = 1 THEN
+      IF shift > 0 THEN cycleFocus(-1) ELSE cycleFocus(1)
+    ENDIF
+    IF focus% < 0 THEN RETURN
+    IF uiVis(focus%) = 0 THEN
+      focus% = -1
+      RETURN
+    ENDIF
+
+    k = UI_WIDGETS[focus%].kind%
+    IF k = UIK_FIELD THEN
+      s$ = takeText$()
+      t$ = UI_WIDGETS[focus%].text$
+      FOR i = 0 TO LEN(s$) - 1
+        c$ = MID$(s$, i, 1)
+        IF ASC(c$) = 10 THEN
+          focus% = -1
+          RETURN
+        ELSEIF ASC(c$) = 8 THEN
+          IF LEN(t$) > 1 THEN
+            t$ = LEFT$(t$, LEN(t$) - 1)
+          ELSE
+            t$ = ""
+          ENDIF
+        ELSEIF ASC(c$) >= 32 THEN
+          IF ASC(c$) < 127 THEN
+            IF LEN(t$) < 120 THEN t$ = t$ + c$
+          ENDIF
+        ENDIF
+      NEXT
+      IF t$ <> UI_WIDGETS[focus%].text$ THEN
+        UI_WIDGETS[focus%].text$ = t$
+        changeId% = focus%
+      ENDIF
+      IF enter > 0 THEN focus% = -1
+    ELSEIF k = UIK_SLIDER THEN
+      step2 = UI_WIDGETS[focus%].step
+      IF step2 <= 0 THEN step2 = 1
+      IF leftk = 1 OR downk = 1 THEN setValue(focus%, UI_WIDGETS[focus%].num - step2)
+      IF rightk = 1 OR upk = 1 THEN setValue(focus%, UI_WIDGETS[focus%].num + step2)
+      IF homek = 1 THEN setValue(focus%, UI_WIDGETS[focus%].lo)
+      IF endk = 1 THEN setValue(focus%, UI_WIDGETS[focus%].hi)
+      IF leftk = 1 OR downk = 1 OR rightk = 1 OR upk = 1 OR homek = 1 OR endk = 1 THEN
+        changeId% = focus%
+      ENDIF
+    ELSEIF k = UIK_LIST OR k = UIK_DROPDOWN THEN
+      IF upk = 1 THEN setValue(focus%, UI_WIDGETS[focus%].num - 1)
+      IF downk = 1 THEN setValue(focus%, UI_WIDGETS[focus%].num + 1)
+      IF homek = 1 THEN setValue(focus%, 0)
+      IF endk = 1 THEN setValue(focus%, UI_WIDGETS[focus%].optCount% - 1)
+      IF upk = 1 OR downk = 1 OR homek = 1 OR endk = 1 THEN
+        changeId% = focus%
+        IF k = UIK_LIST THEN scrollToVisible(focus%)
+      ENDIF
+    ELSEIF k = UIK_BUTTON THEN
+      IF enter > 0 OR space > 0 THEN clickId% = focus%
+    ELSEIF k = UIK_TOGGLE THEN
+      IF enter > 0 OR space > 0 THEN
+        IF UI_WIDGETS[focus%].num = 0 THEN UI_WIDGETS[focus%].num = 1 ELSE UI_WIDGETS[focus%].num = 0
+        changeId% = focus%
+        clickId% = focus%
+      ENDIF
+    ENDIF
+  ENDMETHOD
+
+  ' ------------------------------------------------------ mouse helpers
+  METHOD mouseInClose: id
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL px = w0.ax()
+    LOCAL py = w0.ay()
+    LOCAL cx = px + w0.w - 26
+    IF mx < cx THEN RETURN 0
+    IF my < py + 3 THEN RETURN 0
+    IF my > py + w0.insetY - 3 THEN RETURN 0
+    RETURN 1
+  ENDMETHOD
+
+  METHOD dropRowAt: id, px, py
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL x0 = w0.ax()
+    LOCAL y0 = w0.ay() + 50
+    LOCAL row = 0
+    IF w0.optCount% = 0 THEN RETURN -1
+    IF px < x0 THEN RETURN -1
+    IF px > x0 + w0.w THEN RETURN -1
+    IF py < y0 THEN RETURN -1
+    row = FLOOR((py - y0) / 24)
+    IF row < 0 THEN RETURN -1
+    IF row >= w0.optCount% THEN RETURN -1
+    RETURN row
+  ENDMETHOD
+
+  METHOD listRowAt: id, px, py
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL x0 = w0.ax()
+    LOCAL y0 = w0.ay() + 20 + 4
+    LOCAL row = 0
+    IF px < x0 THEN RETURN -1
+    IF px > x0 + w0.w THEN RETURN -1
+    IF py < y0 THEN RETURN -1
+    IF py > y0 + visibleRows(id) * rowH THEN RETURN -1
+    row = FLOOR((py - y0) / rowH) + w0.off%
+    IF row < 0 THEN RETURN -1
+    IF row >= w0.optCount% THEN RETURN -1
+    RETURN row
+  ENDMETHOD
+
+  METHOD visibleRows: id
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL boxh = w0.h - 20
+    LOCAL n = FLOOR((boxh - 8) / rowH)
+    IF n < 1 THEN n = 1
+    RETURN n
+  ENDMETHOD
+
+  METHOD scrollList: id, delta
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL maxOff = w0.optCount% - visibleRows(id)
+    IF maxOff < 0 THEN maxOff = 0
+    LOCAL off = w0.off% + delta
+    IF off < 0 THEN off = 0
+    IF off > maxOff THEN off = maxOff
+    UI_WIDGETS[id].off% = off
+  ENDMETHOD
+
+  METHOD scrollToVisible: id
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL vis = visibleRows(id)
+    IF w0.num < w0.off% THEN UI_WIDGETS[id].off% = w0.num
+    IF w0.num >= w0.off% + vis THEN UI_WIDGETS[id].off% = w0.num - vis + 1
+  ENDMETHOD
+
+  METHOD setSliderFromMouse: id
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL x0 = w0.ax()
+    LOCAL span = w0.hi - w0.lo
+    LOCAL v = 0
+    IF w0.w <= 12 THEN RETURN
+    IF span <= 0 THEN RETURN
+    v = w0.lo + (mx - x0 - 6) / (w0.w - 12) * span
+    setValue(id, v)
+  ENDMETHOD
+
+  ' Topmost widget under the mouse, windows included (a window body
+  ' blocks everything below it).
+  METHOD pick
+    LOCAL i = 0
+    LOCAL k = 0
+    LOCAL best = -1
+    IF LEN(UI_WIDGETS[]) = 0 THEN RETURN -1
+    FOR i = 0 TO LEN(UI_WIDGETS[]) - 1
+      IF uiVis(i) = 1 THEN
+        k = UI_WIDGETS[i].kind%
+        IF k = UIK_WINDOW OR k = UIK_BUTTON OR k = UIK_TOGGLE OR k = UIK_SLIDER THEN
+          IF UI_WIDGETS[i].hit(mx, my) = 1 THEN
+            IF best < 0 THEN best = i
+            IF UI_WIDGETS[i].z > UI_WIDGETS[best].z THEN best = i
+          ENDIF
+        ELSEIF k = UIK_FIELD OR k = UIK_DROPDOWN OR k = UIK_LIST THEN
+          IF UI_WIDGETS[i].hit(mx, my) = 1 THEN
+            IF best < 0 THEN best = i
+            IF UI_WIDGETS[i].z > UI_WIDGETS[best].z THEN best = i
+          ENDIF
+        ENDIF
+      ENDIF
+    NEXT
+    RETURN best
+  ENDMETHOD
+
+  ' ------------------------------------------------------ mouse
+  METHOD handleMouse
+    LOCAL fresh = 0
+    LOCAL up = 0
+    LOCAL skip = 0
+    LOCAL k = 0
+    LOCAL row = 0
+    LOCAL before = 0
+    LOCAL group% = -1
+
+    closeHot% = -1
+    IF mdown% = 1 AND lastDown% = 0 THEN fresh = 1
+    IF mdown% = 0 AND lastDown% = 1 THEN up = 1
+    hover% = pick()
+
+    ' An open dropdown eats the next click, wherever it lands.
+    IF fresh = 1 AND openDrop% >= 0 THEN
+      row = dropRowAt(openDrop%, mx, my)
+      IF row >= 0 THEN
+        UI_WIDGETS[openDrop%].num = row
+        changeId% = openDrop%
+        clickId% = openDrop%
+        openDrop% = -1
+        skip = 1
+      ELSEIF UI_WIDGETS[openDrop%].hit(mx, my) = 1 THEN
+        openDrop% = -1
+        skip = 1
+      ELSE
+        openDrop% = -1
+      ENDIF
+    ENDIF
+
+    IF skip = 0 THEN
+      IF hover% >= 0 THEN
+        IF UI_WIDGETS[hover%].kind% = UIK_WINDOW THEN
+          IF mouseInClose(hover%) = 1 THEN closeHot% = hover%
+        ENDIF
+      ENDIF
+
+      ' Drag a window by its title bar.
+      IF dragWin% >= 0 THEN
+        UI_WIDGETS[dragWin%].x = mx - dragDX
+        UI_WIDGETS[dragWin%].y = my - dragDY
+        IF screenW% > 0 THEN
+          IF UI_WIDGETS[dragWin%].x < 120 - UI_WIDGETS[dragWin%].w THEN
+            UI_WIDGETS[dragWin%].x = 120 - UI_WIDGETS[dragWin%].w
+          ENDIF
+          IF UI_WIDGETS[dragWin%].x > screenW% - 80 THEN
+            UI_WIDGETS[dragWin%].x = screenW% - 80
+          ENDIF
+          IF UI_WIDGETS[dragWin%].y < 0 THEN UI_WIDGETS[dragWin%].y = 0
+          IF screenH% > 0 THEN
+            IF UI_WIDGETS[dragWin%].y > screenH% - 40 THEN
+              UI_WIDGETS[dragWin%].y = screenH% - 40
+            ENDIF
+          ENDIF
+        ENDIF
+        IF mdown% = 0 THEN dragWin% = -1
+      ENDIF
+
+      IF fresh = 1 AND dragWin% < 0 THEN
+        IF hover% >= 0 THEN
+          ' Clicking a window brings it to the front.
+          group% = hover%
+          IF UI_WIDGETS[group%].win% >= 0 THEN group% = UI_WIDGETS[group%].win%
+          IF UI_WIDGETS[group%].kind% = UIK_WINDOW THEN raiseWin(group%)
+          k = UI_WIDGETS[hover%].kind%
+          IF k = UIK_WINDOW THEN
+            IF mouseInClose(hover%) = 1 THEN
+              closeWin(hover%)
+              clickId% = hover%
+            ELSEIF my < UI_WIDGETS[hover%].y + UI_WIDGETS[hover%].insetY THEN
+              dragWin% = hover%
+              dragDX = mx - UI_WIDGETS[hover%].x
+              dragDY = my - UI_WIDGETS[hover%].y
+            ELSE
+              focus% = -1
+            ENDIF
+          ELSEIF k = UIK_BUTTON THEN
+            IF isEnabled(hover%) = 1 THEN pressed% = hover%
+            focus% = -1
+          ELSEIF k = UIK_TOGGLE THEN
+            IF isEnabled(hover%) = 1 THEN
+              IF UI_WIDGETS[hover%].num = 0 THEN UI_WIDGETS[hover%].num = 1 ELSE UI_WIDGETS[hover%].num = 0
+              changeId% = hover%
+              clickId% = hover%
+            ENDIF
+            focus% = -1
+          ELSEIF k = UIK_SLIDER THEN
+            focus% = hover%
+            IF isEnabled(hover%) = 1 THEN
+              pressed% = hover%
+              setSliderFromMouse(hover%)
+              changeId% = hover%
+            ENDIF
+          ELSEIF k = UIK_FIELD THEN
+            focusOn(hover%)
+          ELSEIF k = UIK_DROPDOWN THEN
+            focus% = hover%
+            IF isEnabled(hover%) = 1 THEN
+              IF openDrop% = hover% THEN
+                openDrop% = -1
+              ELSE
+                openDrop% = hover%
+              ENDIF
+              clickId% = hover%
+            ENDIF
+          ELSEIF k = UIK_LIST THEN
+            focus% = hover%
+            IF isEnabled(hover%) = 1 THEN
+              row = listRowAt(hover%, mx, my)
+              IF row >= 0 THEN
+                UI_WIDGETS[hover%].num = row
+                changeId% = hover%
+                clickId% = hover%
+              ENDIF
+            ENDIF
+          ENDIF
+        ELSE
+          focus% = -1
+        ENDIF
+      ENDIF
+
+      IF mdown% = 1 AND pressed% >= 0 THEN
+        IF UI_WIDGETS[pressed%].kind% = UIK_SLIDER THEN
+          before = UI_WIDGETS[pressed%].num
+          setSliderFromMouse(pressed%)
+          IF UI_WIDGETS[pressed%].num <> before THEN changeId% = pressed%
+        ENDIF
+      ENDIF
+
+      IF up = 1 THEN
+        IF pressed% >= 0 THEN
+          IF UI_WIDGETS[pressed%].hit(mx, my) = 1 THEN clickId% = pressed%
+          pressed% = -1
+        ENDIF
+        IF dragWin% >= 0 THEN dragWin% = -1
+      ENDIF
+
+      IF wheel% <> 0 AND hover% >= 0 THEN
+        IF UI_WIDGETS[hover%].kind% = UIK_LIST THEN
+          scrollList(hover%, -wheel%)
+        ENDIF
+      ENDIF
+    ENDIF
+
+    lastDown% = mdown%
+  ENDMETHOD
+
+  ' ------------------------------------------------------ drawing
+  ' NOTE: palette fields are passed as SELF.name on purpose. A bare
+  ' field name in a builtin argument (DRAWRECT, DRAWTEXT, ...) would be
+  ' treated as a fresh local variable, so the color would come out black.
+  METHOD drawWidget: id
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL k = w0.kind%
+    LOCAL x = w0.ax()
+    LOCAL y = w0.ay()
+    LOCAL ww = w0.w
+    LOCAL hh = w0.h
+    LOCAL dis = 0
+    LOCAL bgc = surface
+    LOCAL fgc = ink
+    LOCAL bdc = line
+    LOCAL t$ = ""
+    LOCAL ch = 8
+    LOCAL cw = 8
+    LOCAL ty = 0
+    LOCAL px = 0
+    LOCAL bx = 0
+    LOCAL by = 0
+    LOCAL i = 0
+    LOCAL vis = 0
+    LOCAL row = 0
+    LOCAL v = 0
+    LOCAL trackH = 0
+    LOCAL thumbH = 0
+    LOCAL maxOff = 0
+
+    IF BAND(w0.flags%, 1) <> 0 THEN dis = 1
+    GETFONTSIZE cw, ch
+    IF ch < 8 THEN ch = 8
+
+    IF k = UIK_WINDOW THEN
+      ' Shadow, body, title bar, close button.
+      DRAWRECT x + 5, y + 7, ww, hh, uiMix(SELF.bg, RGB(0, 0, 0), 0.3)
+      DRAWRECT x, y, ww, hh, SELF.surface
+      DRAWRECT x, y, ww, w0.insetY, SELF.titleBar
+      DRAWRECT x, y + w0.insetY, ww, 1, uiMix(SELF.accent, SELF.titleBar, 0.75)
+      DRAWBORDER x, y, ww, hh, SELF.line
+      t$ = uiFit$(w0.title$, ww - 60)
+      DRAWTEXT t$, x + 12, y + (w0.insetY - ch) / 2, SELF.ink
+      bx = x + ww - 26
+      by = y + 3
+      IF closeHot% = id THEN
+        DRAWRECT bx, by, 22, w0.insetY - 6, SELF.danger
+        fgc = RGB(255, 255, 255)
+      ELSE
+        fgc = inkDim
+      ENDIF
+      DRAWLINE bx + 8, by + 8, bx + 15, by + 15, fgc
+      DRAWLINE bx + 15, by + 8, bx + 8, by + 15, fgc
+
+    ELSEIF k = UIK_PANEL THEN
+      DRAWRECT x, y, ww, hh, SELF.surface2
+      DRAWBORDER x, y, ww, hh, SELF.line
+      IF w0.title$ <> "" THEN
+        DRAWTEXT uiFit$(w0.title$, ww - 24), x + 12, y + 8, SELF.inkDim
+      ENDIF
+
+    ELSEIF k = UIK_SEPARATOR THEN
+      DRAWRECT x, y, ww, 1, SELF.line
+
+    ELSEIF k = UIK_LABEL THEN
+      IF dis = 1 THEN fgc = inkDim ELSE fgc = ink
+      DRAWTEXT uiFit$(w0.title$, ww), x, y + (18 - ch) / 2, fgc
+
+    ELSEIF k = UIK_HEADING THEN
+      IF dis = 1 THEN fgc = inkDim ELSE fgc = accent
+      t$ = uiFit$(w0.title$, ww)
+      DRAWTEXT t$, x, y + 2, fgc
+      DRAWRECT x, y + 16, LEN(t$, 1), 2, fgc
+
+    ELSEIF k = UIK_BUTTON THEN
+      bgc = surface2
+      fgc = ink
+      bdc = line
+      IF BAND(w0.flags%, 2) <> 0 THEN
+        bgc = accent
+        fgc = accentInk
+        bdc = uiMix(accent, 0, 0.3)
+      ENDIF
+      IF dis = 1 THEN
+        bgc = uiMix(surface, bgc, 0.5)
+        fgc = inkDim
+        bdc = line
+      ELSEIF pressed% = id THEN
+        bgc = uiMix(bgc, 0, 0.18)
+      ELSEIF hover% = id THEN
+        bgc = uiMix(bgc, ink, 0.10)
+      ENDIF
+      DRAWRECT x, y + 2, ww, hh, uiMix(bgc, 0, 0.45)
+      DRAWRECT x, y, ww, hh, bgc
+      DRAWBORDER x, y, ww, hh, bdc
+      IF focus% = id THEN DRAWBORDER x - 2, y - 2, ww + 4, hh + 4, SELF.accent
+      t$ = uiFit$(w0.title$, ww - 12)
+      DRAWTEXT t$, x + (ww - LEN(t$, 1)) / 2, y + (hh - ch) / 2, fgc
+
+    ELSEIF k = UIK_TOGGLE THEN
+      fgc = ink
+      IF dis = 1 THEN fgc = inkDim
+      DRAWRECT x, y + 2, 18, 18, SELF.field
+      IF w0.num <> 0 THEN
+        DRAWRECT x, y + 2, 18, 18, SELF.accent
+        DRAWBORDER x, y + 2, 18, 18, SELF.accent
+        DRAWLINE x + 4, y + 10, x + 8, y + 14, SELF.accentInk
+        DRAWLINE x + 8, y + 14, x + 14, y + 6, SELF.accentInk
+      ELSE
+        DRAWBORDER x, y + 2, 18, 18, uiMix(SELF.line, SELF.ink, 0.1)
+      ENDIF
+      IF focus% = id THEN DRAWBORDER x - 2, y, 22, 22, SELF.accent
+      DRAWTEXT uiFit$(w0.title$, ww - 28), x + 26, y + (hh - ch) / 2, fgc
+
+    ELSEIF k = UIK_SLIDER THEN
+      v = w0.num
+      t$ = uiNum$(v, uiDec(w0.step))
+      fgc = accent
+      IF dis = 1 THEN fgc = inkDim
+      DRAWTEXT uiFit$(w0.title$, ww - 40), x, y + 3, SELF.inkDim
+      DRAWTEXT t$, x + ww - LEN(t$, 1), y + 3, fgc
+      ty = y + 28
+      DRAWRECT x, ty, ww, 4, uiMix(SELF.surface2, SELF.line, 0.55)
+      IF w0.hi > w0.lo THEN
+        px = x + 6 + (v - w0.lo) / (w0.hi - w0.lo) * (ww - 12)
+      ELSE
+        px = x + 6
+      ENDIF
+      DRAWRECT x, ty, px - x, 4, fgc
+      bgc = surface2
+      IF hover% = id OR focus% = id THEN bgc = uiMix(surface2, accent, 0.25)
+      DRAWRECT px - 6, ty - 6, 12, 16, bgc
+      DRAWBORDER px - 6, ty - 6, 12, 16, fgc
+
+    ELSEIF k = UIK_PROGRESS THEN
+      DRAWTEXT uiFit$(w0.title$, ww - 46), x, y + 3, SELF.inkDim
+      t$ = uiNum$(w0.num * 100, 0) + "%"
+      DRAWTEXT t$, x + ww - LEN(t$, 1), y + 3, SELF.inkDim
+      DRAWRECT x, y + 24, ww, 8, SELF.field
+      bgc = accent
+      IF dis = 1 THEN bgc = inkDim
+      DRAWRECT x + 1, y + 25, (ww - 2) * w0.num, 6, bgc
+      DRAWBORDER x, y + 24, ww, 8, SELF.line
+
+    ELSEIF k = UIK_FIELD THEN
+      DRAWTEXT uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
+      by = y + 20
+      DRAWRECT x, by, ww, 30, SELF.field
+      IF focus% = id THEN
+        bdc = accent
+      ELSEIF hover% = id THEN
+        bdc = uiMix(line, ink, 0.2)
+      ELSE
+        bdc = line
+      ENDIF
+      DRAWBORDER x, by, ww, 30, bdc
+      IF dis = 1 THEN
+        bdc = inkDim
+      ELSE
+        bdc = ink
+      ENDIF
+      t$ = w0.text$
+      WHILE LEN(t$, 1) > ww - 28 AND LEN(t$) > 1
+        t$ = RIGHT$(t$, LEN(t$) - 1)
+      WEND
+      DRAWTEXT t$, x + 10, by + (30 - ch) / 2, bdc
+      IF focus% = id THEN
+        IF blink% = 0 THEN
+          px = x + 10 + LEN(t$, 1)
+          DRAWRECT px + 1, by + 7, 2, 16, SELF.accent
+        ENDIF
+      ENDIF
+
+    ELSEIF k = UIK_DROPDOWN THEN
+      DRAWTEXT uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
+      by = y + 20
+      DRAWRECT x, by, ww, 30, SELF.surface2
+      IF focus% = id OR openDrop% = id THEN
+        bdc = accent
+      ELSEIF hover% = id THEN
+        bdc = uiMix(line, ink, 0.25)
+      ELSE
+        bdc = line
+      ENDIF
+      DRAWBORDER x, by, ww, 30, bdc
+      t$ = uiFit$(w0.optAt$(w0.num), ww - 44)
+      fgc = ink
+      IF dis = 1 THEN fgc = inkDim
+      DRAWTEXT t$, x + 10, by + (30 - ch) / 2, fgc
+      ' chevron
+      px = x + ww - 18
+      DRAWLINE px, by + 12, px + 5, by + 18, fgc
+      DRAWLINE px + 5, by + 18, px + 10, by + 12, fgc
+
+    ELSEIF k = UIK_LIST THEN
+      DRAWTEXT uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
+      by = y + 20
+      DRAWRECT x, by, ww, hh - 20, SELF.field
+      DRAWBORDER x, by, ww, hh - 20, uiMix(SELF.line, SELF.surface, 0.3)
+      vis = visibleRows(id)
+      maxOff = w0.optCount% - vis
+      IF maxOff < 0 THEN maxOff = 0
+      row = -1
+      IF hover% = id THEN row = listRowAt(id, mx, my)
+      FOR i = 0 TO vis - 1
+        IF i + w0.off% < w0.optCount% THEN
+          ty = by + 4 + i * rowH
+          IF i + w0.off% = w0.num THEN
+            DRAWRECT x + 1, ty, ww - 2, SELF.rowH, uiMix(SELF.accent, SELF.surface2, 0.55)
+            DRAWRECT x + 1, ty, 3, SELF.rowH, SELF.accent
+            fgc = ink
+          ELSEIF i + w0.off% = row THEN
+            DRAWRECT x + 1, ty, ww - 2, SELF.rowH, uiMix(SELF.field, SELF.ink, 0.08)
+            fgc = ink
+          ELSE
+            fgc = ink
+          ENDIF
+          IF dis = 1 THEN fgc = inkDim
+          t$ = uiFit$(w0.optAt$(i + w0.off%), ww - 20)
+          DRAWTEXT t$, x + 12, ty + (rowH - ch) / 2, fgc
+        ENDIF
+      NEXT
+      IF w0.optCount% > vis THEN
+        trackH = hh - 20 - 12
+        thumbH = trackH * vis / w0.optCount%
+        IF thumbH < 20 THEN thumbH = 20
+        px = x + ww - 6
+        DRAWRECT px, by + 6, 3, trackH, uiMix(SELF.line, SELF.field, 0.4)
+        DRAWRECT px, by + 6 + (trackH - thumbH) * w0.off% / maxOff, 3, thumbH, SELF.inkDim
+      ENDIF
+    ENDIF
+  ENDMETHOD
+
+  ' The open dropdown list is an overlay: drawn last, above all windows.
+  METHOD drawDropList: id
+    LOCAL w0 = UI_WIDGETS[id]
+    LOCAL x = w0.ax()
+    LOCAL y = w0.ay() + 50
+    LOCAL i = 0
+    LOCAL t$ = ""
+    LOCAL ch = 8
+    LOCAL cw = 8
+    GETFONTSIZE cw, ch
+    DRAWRECT x + 4, y + 5, w0.w, w0.optCount% * 24 + 2, uiMix(SELF.bg, RGB(0, 0, 0), 0.3)
+    DRAWRECT x, y, w0.w, w0.optCount% * 24 + 2, SELF.titleBar
+    DRAWBORDER x, y, w0.w, w0.optCount% * 24 + 2, SELF.accent
+    FOR i = 0 TO w0.optCount% - 1
+      IF i = w0.num THEN
+        DRAWRECT x + 1, y + 1 + i * 24, w0.w - 2, 24, SELF.accent
+        DRAWTEXT uiFit$(w0.optAt$(i), w0.w - 20), x + 10, y + 1 + i * 24 + (24 - ch) / 2, SELF.accentInk
+      ELSE
+        t$ = uiFit$(w0.optAt$(i), w0.w - 20)
+        DRAWTEXT t$, x + 10, y + 1 + i * 24 + (24 - ch) / 2, SELF.ink
+      ENDIF
+    NEXT
+  ENDMETHOD
+
+  METHOD drawAll
+    LOCAL i = 0
+    LOCAL pass = 0
+    LOCAL best = 0
+    LOCAL last = -1
+    LOCAL n = LEN(UI_WIDGETS[])
+    ' Widgets are drawn from the lowest z upwards; raising a window
+    ' gives it and its children the newest z values.
+    IF n = 0 THEN RETURN
+    FOR pass = 0 TO n - 1
+      best = -1
+      FOR i = 0 TO n - 1
+        IF UI_WIDGETS[i].z > last THEN
+          IF best < 0 THEN
+            best = i
+          ELSEIF UI_WIDGETS[i].z < UI_WIDGETS[best].z THEN
+            best = i
+          ENDIF
+        ENDIF
+      NEXT
+      IF best < 0 THEN
+        last = 1000000
+      ELSE
+        IF uiVis(best) = 1 THEN drawWidget(best)
+        last = UI_WIDGETS[best].z
+      ENDIF
+    NEXT
+    ' The open dropdown list floats above every window.
+    IF openDrop% >= 0 THEN
+      IF uiVis(openDrop%) = 1 THEN drawDropList(openDrop%)
+    ENDIF
+  ENDMETHOD
+
+  ' ------------------------------------------------------ frame
+  METHOD run
+    LOCAL px = 0
+    LOCAL py = 0
+    LOCAL l = 0
+    LOCAL r = 0
+    LOCAL m = 0
+    IF vm% = 1 THEN
+      mx = vmx
+      my = vmy
+      mdown% = vdown%
+      wheel% = 0
+    ELSE
+      MOUSESTATE px, py, l, r
+      mx = px
+      my = py
+      IF l <> 0 THEN mdown% = 1 ELSE mdown% = 0
+      wheel% = MOUSEAXIS(2)
+    ENDIF
+    IF screenW% = 0 THEN screenW% = GETSCREENWIDTH()
+    IF screenH% = 0 THEN screenH% = GETSCREENHEIGHT()
+    clickId% = -1
+    changeId% = -1
+    curWin% = -1
+    now = GETTIMERALL()
+    blink% = MOD(FLOOR(now / 500), 2)
+    handleMouse()
+    handleKeys()
+    drawAll()
+  ENDMETHOD
+ENDTYPE
+
+' ---------------------------------------------------- widget store
+DIM UI_WIDGETS[0] AS UIWIDGET
+DIM UI_OPTS$[0]
+
+' ------------------------------------------------------ helpers
+' Blend two RGB colors: t = 0 keeps c1, t = 1 returns c2.
+FUNCTION uiMix: c1, c2, t
+  LOCAL r1 = FLOOR(c1 / 65536)
+  LOCAL g1 = FLOOR(FMOD(c1, 65536) / 256)
+  LOCAL b1 = FMOD(c1, 256)
+  LOCAL r2 = FLOOR(c2 / 65536)
+  LOCAL g2 = FLOOR(FMOD(c2, 65536) / 256)
+  LOCAL b2 = FMOD(c2, 256)
+  LOCAL r = FLOOR(r1 + (r2 - r1) * t + 0.5)
+  LOCAL g = FLOOR(g1 + (g2 - g1) * t + 0.5)
+  LOCAL b = FLOOR(b1 + (b2 - b1) * t + 0.5)
+  IF r < 0 THEN r = 0
+  IF g < 0 THEN g = 0
+  IF b < 0 THEN b = 0
+  IF r > 255 THEN r = 255
+  IF g > 255 THEN g = 255
+  IF b > 255 THEN b = 255
+  RETURN r * 65536 + g * 256 + b
+ENDFUNCTION
+
+FUNCTION uiNum$: v, dec
+  RETURN FORMAT$(0, dec, v)
+ENDFUNCTION
+
+' Decimal places needed for a slider step.
+FUNCTION uiDec: step
+  IF step >= 1 THEN RETURN 0
+  IF step >= 0.1 THEN RETURN 1
+  RETURN 2
+ENDFUNCTION
+
+' Cut a string so that it fits into maxw pixels.
+FUNCTION uiFit$: s$, maxw
+  LOCAL cw = 8
+  LOCAL ch = 8
+  LOCAL n = 0
+  IF maxw <= 0 THEN RETURN ""
+  IF s$ = "" THEN RETURN ""
+  GETFONTSIZE cw, ch
+  IF cw < 1 THEN cw = 8
+  IF LEN(s$, 1) <= maxw THEN RETURN s$
+  n = FLOOR(maxw / cw)
+  IF n < 4 THEN RETURN ""
+  RETURN LEFT$(s$, n - 1) + "."
+ENDFUNCTION
+
+' A widget is visible when it and its window are open.
+FUNCTION uiVis: i
+  LOCAL p = 0
+  IF i < 0 THEN RETURN 0
+  IF i >= LEN(UI_WIDGETS[]) THEN RETURN 0
+  IF UI_WIDGETS[i].vis% = 0 THEN RETURN 0
+  p = UI_WIDGETS[i].win%
+  IF p >= 0 THEN
+    IF UI_WIDGETS[p].vis% = 0 THEN RETURN 0
+  ENDIF
+  RETURN 1
+ENDFUNCTION

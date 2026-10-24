@@ -1,0 +1,19 @@
+; GameBasiX project file
+; Written by the IDE, but you can also edit it by hand.
+
+[project]
+name = "Breakout"
+main = "main.gbx"
+
+[window]
+title = "GameBasiX - Breakout"
+width = 900
+height = 640
+resizable = 0
+
+[graphics]
+fps = 60
+vsync = 1
+
+[audio]
+enabled = 1

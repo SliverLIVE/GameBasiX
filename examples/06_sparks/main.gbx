@@ -1,0 +1,152 @@
+' ============================================================
+' SPARKS: C++ steps work directly on BASIC data
+' Run: gbx examples/06_sparks/sparks.gbxproj
+'
+' The top INLINE block is a definition: sparks.h is compiled once on
+' startup, GLOWCOLOR is an ordinary command afterwards.
+'
+' The steps in launch() and update() run in place and read/write
+' sparks[i].x, .y, .vx, .vy and .life of the 900 TYPE elements
+' directly - without a copy and without return values.
+' ============================================================
+
+INLINE
+#include "sparks.h"
+ENDINLINE
+
+SETSCREEN 960, 640, 0
+SETWINDOWTITLE "GameBasiX - Sparks"
+LIMITFPS 60
+
+CONSTANT MAXSPARKS = 900
+
+TYPE SPARK
+  x AS FLOAT
+  y AS FLOAT
+  vx AS FLOAT
+  vy AS FLOAT
+  life AS FLOAT          ' remaining time in seconds, 0 = slot is free
+  total AS FLOAT         ' initial value of life (for the brightness)
+  hue AS FLOAT           ' 0 … 1
+  kind AS INTEGER        ' 0 = rocket, 1 = spark
+ENDTYPE
+
+DIM sparks[MAXSPARKS] AS SPARK
+
+GLOBAL Active = 0
+GLOBAL Explosions = 0
+GLOBAL Interval = 0
+
+' A rocket launches at the bottom at point x. The step finds a free slot
+' in the TYPE array itself; x comes in as a parameter. SUBs have no
+' parameters in GBX, so this is a FUNCTION - the return value stays unused.
+FUNCTION fire: x
+  INLINE
+    gbxsparks::launch(sparks, x);
+  ENDINLINE
+  RETURN 0
+ENDFUNCTION
+
+' Physics: gravity, air drag and fuse time. Rockets explode at the
+' highest point or when the fuse runs out; sparks get their initial
+' velocity in all directions.
+FUNCTION update: dt
+  INLINE
+    const double gravity = 330.0;
+    int alive = 0;
+    for (int i = 0; i < sparks.size(); ++i) {
+        auto s = sparks[i];              // resolve the fields once
+        double life = s.life;
+        if (life <= 0.0) continue;       // slot is free
+
+        const int kind = static_cast<int>(s.kind);
+        double x = s.x;
+        double y = s.y;
+        double vx = s.vx;
+        double vy = s.vy;
+        life -= dt;
+
+        if (kind == 0) {
+            vy += gravity * dt;
+            if (life <= 0.0 || vy >= -10.0) {
+                explosions = explosions + 1;
+                gbxsparks::explode(sparks, x, y, s.hue);
+                s.life = 0.0;            // rocket is used up
+                continue;
+            }
+            gbxsparks::glow(sparks, x, y + 3.0, 0.09);
+        } else {
+            vy += gravity * 0.5 * dt;
+            const double drag = std::pow(0.32, dt);
+            vx *= drag;
+            vy *= drag;
+        }
+
+        x += vx * dt;
+        y += vy * dt;
+        if (x < -40.0 || x > 1000.0 || y > 700.0) {
+            s.life = 0.0;
+            continue;
+        }
+        s.x = x;
+        s.y = y;
+        s.vx = vx;
+        s.vy = vy;
+        s.life = life;
+        ++alive;
+    }
+    active = alive;
+  ENDINLINE
+  RETURN 0
+ENDFUNCTION
+
+WHILE TRUE
+  ' dt in seconds; GETTIMER returns milliseconds since SHOWSCREEN.
+  dt = MIN(GETTIMER() / 1000.0, 0.05)
+  IF dt <= 0 THEN dt = 1.0 / 60.0
+
+  IF KEYHIT(KEY_ESC) THEN END
+  IF MOUSEHIT(1) THEN fire(MOUSEAXIS(0))
+  IF KEYHIT(KEY_SPACE) THEN fire(480)
+
+  ' A firework every 0.6 seconds.
+  Interval = Interval + dt
+  IF Interval >= 0.6
+    Interval = 0
+    fire(120 + RND(720))
+  ENDIF
+
+  update(dt)
+
+  CLEARSCREEN RGB(5, 6, 12)
+  DRAWLINE 0, 632, 959, 632, RGB(26, 33, 50)
+
+  ' ---------------------------------------------------------- drawing
+  ' Read only: the steps above already wrote the values.
+  FOR i = 0 TO MAXSPARKS - 1
+    remaining = sparks[i].life
+    IF remaining > 0
+      brightness = 0.35 + 0.65 * MIN(1, remaining / sparks[i].total * 1.5)
+      IF sparks[i].kind = 0
+        ' Rocket: bright head, flame as a line trailing behind
+        DRAWLINE sparks[i].x, sparks[i].y, sparks[i].x - sparks[i].vx * 0.035, sparks[i].y - sparks[i].vy * 0.035, RGB(255, 214, 140)
+        DRAWFILLEDCIRCLE sparks[i].x, sparks[i].y, 2, RGB(255, 250, 225)
+      ELSE
+        ' Spark: line in the direction of motion, colour comes from the step
+        DRAWLINE sparks[i].x - sparks[i].vx * 0.05, sparks[i].y - sparks[i].vy * 0.05, sparks[i].x, sparks[i].y, GLOWCOLOR(sparks[i].hue, 0.8, brightness)
+        DRAWFILLEDCIRCLE sparks[i].x, sparks[i].y, 1, GLOWCOLOR(sparks[i].hue, 0.35, MIN(1, brightness + 0.15))
+      ENDIF
+    ENDIF
+  NEXT
+
+  ' ------------------------------------------------------------- Text
+  SETTEXTCOLOR RGB(130, 205, 255)
+  PRINT "SPARKS", 24, 18
+  SETTEXTCOLOR RGB(140, 150, 168)
+  PRINT "C++ steps move " + STR$(MAXSPARKS) + " BASIC TYPE elements directly", 24, 40
+  PRINT "Click or SPACE: rocket      ESC: quit", 24, 62
+  SETTEXTCOLOR RGB(205, 216, 232)
+  PRINT "active " + STR$(Active) + "     explosions " + STR$(Explosions), 24, 600
+
+  SHOWSCREEN
+WEND

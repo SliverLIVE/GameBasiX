@@ -1,0 +1,854 @@
+{
+  "ALPHAMODE": {
+    "de": "Bestimmt, wie Transparenz beim Zeichnen verrechnet wird: 0 normal, positive Werte additiv, negative Werte als Alpha mit 1+Wert.",
+    "en": "Decides how transparency is blended while drawing: 0 normal, positive values additive, negative values as alpha with 1+value."
+  },
+  "ALPHATESTING": {
+    "de": "Legt die Schwelle fest, unter der Pixel beim Laden von Bildern ganz durchsichtig werden. Gilt für neu geladene Bilder, nicht rückwirkend.",
+    "en": "Sets the threshold below which pixels become fully transparent when images are loaded. Applies to newly loaded images, not retroactively."
+  },
+  "BLACKSCREEN": {
+    "de": "Malt den Bildschirm sofort schwarz, ohne die gemerkte Hintergrundfarbe zu ändern.",
+    "en": "Paints the screen black right away without changing the remembered background colour."
+  },
+  "CLEARSCREEN": {
+    "de": "Löscht den Bildschirm in der angegebenen Farbe und merkt sie sich für die folgenden Bilder. Ohne Argument wird Schwarz benutzt, mit -1 hört das automatische Löschen auf.",
+    "en": "Clears the screen in the given colour and remembers it for the following frames. Without an argument black is used, -1 turns the automatic clearing off."
+  },
+  "GETDESKTOPSIZE": {
+    "de": "Schreibt Breite und Höhe des Monitors in Pixeln in die beiden Variablen.",
+    "en": "Writes the monitor width and height in pixels into the two variables."
+  },
+  "GETSCREENHEIGHT": {
+    "de": "Liefert die Höhe des Zeichenbereichs in Pixeln.",
+    "en": "Returns the height of the drawing area in pixels."
+  },
+  "GETSCREENSIZE": {
+    "de": "Schreibt Breite und Höhe des aktuellen Fensters in die beiden Variablen.",
+    "en": "Writes the width and height of the current window into the two variables."
+  },
+  "GETSCREENWIDTH": {
+    "de": "Liefert die Breite des Zeichenbereichs in Pixeln.",
+    "en": "Returns the width of the drawing area in pixels."
+  },
+  "GETVIEWPORT": {
+    "de": "Liest den gerade gesetzten Ausschnitt in die vier Variablen.",
+    "en": "Reads the current viewport into the four variables."
+  },
+  "ISFULLSCREEN": {
+    "de": "Liefert 1, wenn das Fenster im Vollbild läuft, sonst 0.",
+    "en": "Returns 1 while the window runs fullscreen, otherwise 0."
+  },
+  "LIMITFPS": {
+    "de": "Bremst die Hauptschleife auf die angegebene Bildrate. Das zweite Argument schaltet zusätzlich VSYNC ein oder aus; 0 hebt die Begrenzung auf.",
+    "en": "Throttles the main loop to the given frame rate. The second argument also turns VSYNC on or off; 0 removes the limit."
+  },
+  "PRESCALER": {
+    "de": "Zeichnet intern in einer festen Auflösung und zieht das Bild auf die Fenstergröße hoch. Ohne Argumente ist der Effekt aus; VIEWPORT rechnet dann in Fensterkoordinaten.",
+    "en": "Draws internally at a fixed resolution and stretches the result to the window. Without arguments the effect is off; VIEWPORT then uses window coordinates."
+  },
+  "SETSCREEN": {
+    "de": "Öffnet das Spielfenster mit Breite und Höhe in Pixeln. Das dritte Argument erzwingt Vollbild (1) oder Fenster (0); ohne Angabe bleibt der aktuelle Modus.",
+    "en": "Opens the game window with a width and height in pixels. The third argument forces fullscreen (1) or windowed (0); without it the current mode stays."
+  },
+  "SETTRANSPARENCY": {
+    "de": "Merkt sich eine Farbe, die beim nächsten Laden von Bildern durchsichtig wird. Bereits geladene Sprites bleiben, wie sie sind.",
+    "en": "Remembers a colour that becomes transparent the next time images are loaded. Sprites already loaded stay as they are."
+  },
+  "SETWINDOWTITLE": {
+    "de": "Ändert den Fenstertitel, während das Programm läuft.",
+    "en": "Changes the window title while the program is running."
+  },
+  "SHOWSCREEN": {
+    "de": "Zeigt den fertigen Frame an und beginnt den nächsten. Steht üblicherweise am Ende der Hauptschleife.",
+    "en": "Shows the finished frame and starts the next one. Usually the last statement of the main loop."
+  },
+  "SMOOTHSHADING": {
+    "de": "Schaltet weiche Farbübergänge ein oder aus: bei 1 werden Polygone und skalierte Sprites geglättet statt scharf gerechnet.",
+    "en": "Turns smooth shading on or off: with 1, polygons and scaled sprites are filtered instead of sampled sharply."
+  },
+  "VIEWPORT": {
+    "de": "Legt den Bereich fest, in dem gezeichnet wird. Alles, was darüber hinausgeht, wird abgeschnitten.",
+    "en": "Sets the region that is drawn into. Everything outside it is clipped."
+  },
+  "DRAWBORDER": {
+    "de": "Zeichnet nur den Rand eines Rechtecks, innen bleibt das Bild unberührt.",
+    "en": "Draws only the outline of a rectangle and leaves the inside untouched."
+  },
+  "DRAWCIRCLE": {
+    "de": "Zeichnet den Umriss eines Kreises. Mittelpunkt und Radius werden in Pixeln angegeben.",
+    "en": "Draws a circle outline. Centre and radius are given in pixels."
+  },
+  "DRAWFILLEDCIRCLE": {
+    "de": "Zeichnet einen vollständig gefüllten Kreis.",
+    "en": "Draws a completely filled circle."
+  },
+  "DRAWLINE": {
+    "de": "Zieht eine gerade Linie vom ersten zum zweiten Punkt.",
+    "en": "Draws a straight line from the first point to the second."
+  },
+  "DRAWRECT": {
+    "de": "Füllt ein Rechteck, das an der linken oberen Ecke beginnt.",
+    "en": "Fills a rectangle starting at its top left corner."
+  },
+  "ENDPOLY": {
+    "de": "Schließt das Polygon, das mit STARTPOLY begonnen wurde, und zeichnet es.",
+    "en": "Closes and draws the polygon started with STARTPOLY."
+  },
+  "GETPIXEL": {
+    "de": "Liest die Farbe eines Pixels aus dem aktuellen Bildschirm.",
+    "en": "Reads the colour of one pixel from the current screen."
+  },
+  "POLYNEWSTRIP": {
+    "de": "Beginnt innerhalb eines Polygons einen neuen Streifen: Die folgenden Ecken schließen nicht mehr an die vorherigen an.",
+    "en": "Starts a new strip inside the current polygon: the following corners no longer join the previous ones."
+  },
+  "POLYVECTOR": {
+    "de": "Setzt einen Eckpunkt eines Polygons: Bildschirmposition, Texturkoordinate und Farbe.",
+    "en": "Adds one corner of a polygon: screen position, texture coordinate and colour."
+  },
+  "RGB": {
+    "de": "Baut aus Rot-, Grün- und Blauanteil (je 0 bis 255) eine Farbe für die Zeichenbefehle.",
+    "en": "Builds a colour for the drawing commands from red, green and blue parts (0 to 255 each)."
+  },
+  "SETPIXEL": {
+    "de": "Färbt genau einen Pixel an der angegebenen Stelle.",
+    "en": "Colours exactly one pixel at the given position."
+  },
+  "STARTPOLY": {
+    "de": "Beginnt ein Polygon, wahlweise mit einem Sprite als Textur. Die folgenden POLYVECTOR-Aufrufe liefern die Ecken, ENDPOLY schließt ab.",
+    "en": "Starts a polygon, optionally textured by a sprite. The following POLYVECTOR calls provide the corners, ENDPOLY finishes it."
+  },
+  "ANIMCOLL": {
+    "de": "Prüft zwei Animationsbilder auf Überlappung: je Seite Sprite-ID, Kachelnummer und Position.",
+    "en": "Checks two animation frames for overlap: sprite id, tile number and position for each side."
+  },
+  "BOXCOLL": {
+    "de": "Rechnet zwei Rechtecke gegeneinander und liefert 1, sobald sie sich überschneiden.",
+    "en": "Tests two rectangles against each other and returns 1 as soon as they overlap."
+  },
+  "DRAWANIM": {
+    "de": "Zeichnet eine einzelne Kachel einer Animation: Sprite-ID, Kachelnummer und Zielposition.",
+    "en": "Draws a single tile of an animation: sprite id, tile number and target position."
+  },
+  "DRAWSPRITE": {
+    "de": "Zeichnet ein geladenes Sprite an die angegebene Stelle; x und y sind die linke obere Ecke.",
+    "en": "Draws a loaded sprite at the given position; x and y are the top left corner."
+  },
+  "GENSPRITE": {
+    "de": "Vergibt die nächste freie Sprite-ID, ohne ein Bild zu laden.",
+    "en": "Hands out the next free sprite id without loading an image."
+  },
+  "GETSPRITESIZE": {
+    "de": "Schreibt Breite und Höhe eines geladenen Sprites in die beiden Variablen.",
+    "en": "Writes the width and height of a loaded sprite into the two variables."
+  },
+  "GRABSPRITE": {
+    "de": "Kopiert einen Ausschnitt des Bildschirms in ein Sprite. Braucht ein echtes Fenster und scheitert im Headless-Modus.",
+    "en": "Copies part of the screen into a sprite. Needs a real window and fails in headless mode."
+  },
+  "LOADANIM": {
+    "de": "Lädt ein Bild als Animation und zerlegt es dabei in Kacheln fester Größe.",
+    "en": "Loads an image as an animation and splits it into tiles of a fixed size."
+  },
+  "LOADSPRITE": {
+    "de": "Lädt ein Bild unter der angegebenen ID, damit die Zeichenbefehle es benutzen können.",
+    "en": "Loads an image under the given id so the drawing commands can use it."
+  },
+  "ROTOSPRITE": {
+    "de": "Zeichnet ein Sprite um seinen Mittelpunkt gedreht; der Winkel wird in Grad angegeben.",
+    "en": "Draws a sprite rotated around its centre; the angle is given in degrees."
+  },
+  "ROTOZOOMANIM": {
+    "de": "Zeichnet eine Kachel einer Animation gedreht und in Prozent skaliert.",
+    "en": "Draws one tile of an animation rotated and scaled by a percentage."
+  },
+  "ROTOZOOMSPRITE": {
+    "de": "Zeichnet ein Sprite gedreht und in Prozent skaliert.",
+    "en": "Draws a sprite rotated and scaled by a percentage."
+  },
+  "SAVESPRITE": {
+    "de": "Schreibt ein geladenes Sprite als PNG auf die Festplatte.",
+    "en": "Writes a loaded sprite to disk as a PNG file."
+  },
+  "SETSPRITEANIM": {
+    "de": "Teilt ein bereits geladenes Sprite nachträglich in Kacheln der angegebenen Größe.",
+    "en": "Splits an already loaded sprite into tiles of the given size."
+  },
+  "SPRCOLL": {
+    "de": "Prüft zwei Sprites an ihren Positionen auf Überlappung und liefert 1 bei einem Treffer.",
+    "en": "Checks two sprites at their positions for overlap and returns 1 on a hit."
+  },
+  "STRETCHANIM": {
+    "de": "Zeichnet eine Animationskachel auf eine frei gewählte Breite und Höhe gestreckt.",
+    "en": "Draws one animation tile stretched to a freely chosen width and height."
+  },
+  "STRETCHSPRITE": {
+    "de": "Zeichnet ein Sprite auf die angegebene Breite und Höhe gestreckt.",
+    "en": "Draws a sprite stretched to the given width and height."
+  },
+  "ZOOMSPRITE": {
+    "de": "Skaliert ein Sprite in X und Y getrennt; 100 bedeutet Originalgröße.",
+    "en": "Scales a sprite in X and Y separately; 100 means the original size."
+  },
+  "BLENDSCREEN": {
+    "de": "Blendet ein Bild über die angegebene Dauer ein, etwa als Übergang zwischen Szenen.",
+    "en": "Fades an image in over the given duration, for example as a transition between scenes."
+  },
+  "CREATESCREEN": {
+    "de": "Legt einen zusätzlichen Bildschirm an, dessen Inhalt in einem Sprite landet; USESCREEN schaltet dorthin um.",
+    "en": "Creates an extra screen whose content ends up in a sprite; USESCREEN switches to it."
+  },
+  "DRAWTEXT": {
+    "de": "Schreibt Text in der angegebenen Farbe, ohne die mit SETTEXTCOLOR gesetzte Farbe zu verändern.",
+    "en": "Writes text in the given colour without changing the colour set with SETTEXTCOLOR."
+  },
+  "GETCURRENTFONT": {
+    "de": "Liefert die ID der Schrift, die gerade für Text benutzt wird.",
+    "en": "Returns the id of the font currently used for text."
+  },
+  "GETFONTSIZE": {
+    "de": "Schreibt Zeichenbreite und Zeilenhöhe der aktuellen Schrift in die beiden Variablen.",
+    "en": "Writes the character width and line height of the current font into the two variables."
+  },
+  "INPUT": {
+    "de": "Liest eine Eingabezeile an der angegebenen Stelle. Text landet in einem String, eine Zahlvariable bekommt den Zahlenwert.",
+    "en": "Reads a line of input at the given position. Text goes into a string, a numeric variable receives the number."
+  },
+  "LEN": {
+    "de": "Liefert die Zeichenzahl eines Textes; mit zweitem Argument seine gezeichnete Breite in Pixeln. Bei einem Array kommt die Elementzahl zurück.",
+    "en": "Returns the number of characters in a string; with a second argument its drawn width in pixels. For an array it returns the element count."
+  },
+  "LOADBMP": {
+    "de": "Lädt ein Bild als Hintergrund, der hinter allen anderen Zeichnungen liegt.",
+    "en": "Loads an image as a background that sits behind everything else."
+  },
+  "LOADFONT": {
+    "de": "Lädt eine Bitmap-Schrift aus einem Rasterbild oder eine TrueType-Schrift (.ttf/.otf) in der angegebenen Punktgröße.",
+    "en": "Loads a bitmap font from a raster image or a TrueType font (.ttf/.otf) at the given point size."
+  },
+  "PRINT": {
+    "de": "Schreibt Text in der aktuellen Schrift und Textfarbe. Der vierte Parameter (Kerning) wird nicht ausgewertet.",
+    "en": "Writes text in the current font and text colour. The fourth argument (kerning) is ignored."
+  },
+  "SAVEBMP": {
+    "de": "Speichert den aktuellen Bildschirm als BMP-Datei. Braucht ein echtes Fenster und scheitert im Headless-Modus.",
+    "en": "Saves the current screen as a BMP file. Needs a real window and fails in headless mode."
+  },
+  "SETFONT": {
+    "de": "Wählt die Schrift für PRINT und DRAWTEXT, optional mit Skalierung und neuer Textfarbe.",
+    "en": "Selects the font for PRINT and DRAWTEXT, optionally with a scale factor and a new text colour."
+  },
+  "SETTEXTCOLOR": {
+    "de": "Setzt die Farbe, die PRINT und DRAWTEXT ohne eigenes Farbargument verwenden.",
+    "en": "Sets the colour PRINT and DRAWTEXT use when no colour argument is given."
+  },
+  "USEASBMP": {
+    "de": "Macht den aktuellen Bildschirminhalt zum Hintergrundbild.",
+    "en": "Turns the current screen content into the background image."
+  },
+  "USESCREEN": {
+    "de": "Schaltet auf einen mit CREATESCREEN angelegten Bildschirm um; 0 kehrt zum Fenster zurück.",
+    "en": "Switches to a screen created with CREATESCREEN; 0 returns to the window."
+  },
+  "ALLOWESCAPE": {
+    "de": "Legt fest, ob die Esc-Taste das Programm beenden darf.",
+    "en": "Decides whether the Esc key may close the program."
+  },
+  "GETMOUSECOUNT": {
+    "de": "Liefert die Zahl der Mäuse. GameBasiX arbeitet mit einer Maus und meldet deshalb immer 1.",
+    "en": "Returns the number of mice. GameBasiX works with one mouse and therefore always reports 1."
+  },
+  "INKEY$": {
+    "de": "Gibt die seit dem letzten Aufruf getippten Zeichen zurück und leert den Puffer; ohne Eingabe kommt ein leerer Text.",
+    "en": "Returns the characters typed since the last call and empties the buffer; with no input it returns an empty string."
+  },
+  "KEY": {
+    "de": "Liefert 1, solange die Taste gedrückt ist. Der Parameter ist ein SDL-Scancode, am angenehmsten über die KEY_*-Konstanten.",
+    "en": "Returns 1 while the key is held down. The parameter is an SDL scancode, most conveniently given as a KEY_* constant."
+  },
+  "KEYHIT": {
+    "de": "Liefert 1 nur in dem Frame, in dem die Taste gedrückt wurde.",
+    "en": "Returns 1 only in the frame in which the key was pressed."
+  },
+  "KEYWAIT": {
+    "de": "Hält das Programm an, bis eine Taste gedrückt oder losgelassen wird. Es kommt kein Wert zurück.",
+    "en": "Holds the program until a key is pressed or released. It returns no value."
+  },
+  "MOUSEAXIS": {
+    "de": "Liefert eine Größe der Maus: 0 = x, 1 = y, 2 = Mausrad, 3/4/5 = linke, rechte, mittlere Taste.",
+    "en": "Returns one mouse value: 0 = x, 1 = y, 2 = wheel, 3/4/5 = left, right, middle button."
+  },
+  "MOUSEHIT": {
+    "de": "Liefert 1 nur in dem Frame, in dem die Taste gedrückt wurde: 0 links, 1 rechts, 2 mittlere Taste.",
+    "en": "Returns 1 only in the frame the button was pressed: 0 left, 1 right, 2 middle."
+  },
+  "MOUSESTATE": {
+    "de": "Schreibt Position und Tastenzustand der Maus in vier Variablen: x, y, linke Taste, rechte Taste.",
+    "en": "Writes the mouse position and button state into four variables: x, y, left button, right button."
+  },
+  "MOUSEWAIT": {
+    "de": "Hält das Programm an, bis eine Maustaste gedrückt wird. Es kommt kein Wert zurück.",
+    "en": "Holds the program until a mouse button is pressed. It returns no value."
+  },
+  "SETMOUSE": {
+    "de": "Setzt den Mauszeiger auf die angegebene Stelle im Fenster.",
+    "en": "Moves the mouse pointer to the given position inside the window."
+  },
+  "SYSTEMPOINTER": {
+    "de": "Zeigt den Systemmauszeiger an (1) oder versteckt ihn (0).",
+    "en": "Shows the system mouse pointer (1) or hides it (0)."
+  },
+  "GENSOUND": {
+    "de": "Vergibt die nächste freie Sound-ID.",
+    "en": "Hands out the next free sound id."
+  },
+  "HUSH": {
+    "de": "Stoppt alle Klänge auf allen Kanälen sofort.",
+    "en": "Stops every sound on every channel immediately."
+  },
+  "ISMUSICPLAYING": {
+    "de": "Liefert 1, solange Musik läuft.",
+    "en": "Returns 1 while music is playing."
+  },
+  "LOADSOUND": {
+    "de": "Lädt einen WAV-Klang unter einer ID. Der optionale Puffer erlaubt, denselben Klang mehrfach gleichzeitig zu spielen.",
+    "en": "Loads a WAV sound under an id. The optional buffer count allows the same sound to play several times at once."
+  },
+  "MUSICVOLUME": {
+    "de": "Setzt die Lautstärke der Musik zwischen 0 und 1.",
+    "en": "Sets the music volume between 0 and 1."
+  },
+  "PAUSEMUSIC": {
+    "de": "Hält die Musik an (1) oder setzt sie an der Stelle fort (0).",
+    "en": "Pauses the music (1) or resumes it where it stopped (0)."
+  },
+  "PLAYMUSIC": {
+    "de": "Startet Musik im Hintergrund. Das zweite Argument legt fest, ob sie sich am Ende wiederholt.",
+    "en": "Starts background music. The second argument decides whether it repeats at the end."
+  },
+  "PLAYSOUND": {
+    "de": "Spielt einen geladenen Klang mit Panning und Lautstärke und liefert den Kanal zurück, über den er sich wieder stoppen lässt.",
+    "en": "Plays a loaded sound with panning and volume and returns the channel that can be used to stop it again."
+  },
+  "SOUNDPLAYING": {
+    "de": "Liefert 1, solange auf dem Kanal noch ein Klang läuft.",
+    "en": "Returns 1 while a sound is still playing on the channel."
+  },
+  "STOPMUSIC": {
+    "de": "Beendet die laufende Musik.",
+    "en": "Stops the running music."
+  },
+  "STOPSOUND": {
+    "de": "Stoppt den Klang auf dem angegebenen Kanal.",
+    "en": "Stops the sound on the given channel."
+  },
+  "ABS": {
+    "de": "Liefert den Betrag, also den Wert ohne Vorzeichen.",
+    "en": "Returns the magnitude of a number, that is the value without its sign."
+  },
+  "ACOS": {
+    "de": "Liefert den Winkel in Grad, dessen Kosinus der Wert ist.",
+    "en": "Returns the angle in degrees whose cosine is the given value."
+  },
+  "ASIN": {
+    "de": "Liefert den Winkel in Grad, dessen Sinus der Wert ist.",
+    "en": "Returns the angle in degrees whose sine is the given value."
+  },
+  "ASL": {
+    "de": "Verschiebt die Bits einer ganzen Zahl nach links; das entspricht einer Multiplikation mit Zweierpotenzen.",
+    "en": "Shifts the bits of an integer to the left, which multiplies it by powers of two."
+  },
+  "ASR": {
+    "de": "Verschiebt die Bits einer ganzen Zahl nach rechts; das entspricht einer Division durch Zweierpotenzen.",
+    "en": "Shifts the bits of an integer to the right, which divides it by powers of two."
+  },
+  "ATAN": {
+    "de": "Liefert den Winkel in Grad aus Gegenkathete und Ankathete. Ohne zweiten Wert gilt dx = 1, es wird also der Arcustangens gerechnet.",
+    "en": "Returns the angle in degrees from opposite and adjacent side. Without the second value dx = 1, which computes the arc tangent."
+  },
+  "BAND": {
+    "de": "Verknüpft zwei ganze Zahlen bitweise mit UND.",
+    "en": "Combines two integers bit by bit with AND."
+  },
+  "BNOT": {
+    "de": "Kehrt alle Bits einer ganzen Zahl um.",
+    "en": "Inverts every bit of an integer."
+  },
+  "BOR": {
+    "de": "Verknüpft zwei ganze Zahlen bitweise mit ODER.",
+    "en": "Combines two integers bit by bit with OR."
+  },
+  "BXOR": {
+    "de": "Verknüpft zwei ganze Zahlen bitweise mit exklusivem ODER.",
+    "en": "Combines two integers bit by bit with exclusive OR."
+  },
+  "CEIL": {
+    "de": "Rundet auf die nächste ganze Zahl auf und liefert sie als Kommazahl.",
+    "en": "Rounds up to the next whole number and returns it as a float."
+  },
+  "COS": {
+    "de": "Liefert den Kosinus eines Winkels in Grad.",
+    "en": "Returns the cosine of an angle given in degrees."
+  },
+  "FLOOR": {
+    "de": "Rundet auf die nächste ganze Zahl ab und liefert sie als Kommazahl.",
+    "en": "Rounds down to the previous whole number and returns it as a float."
+  },
+  "FMOD": {
+    "de": "Liefert den Rest einer Division mit Kommazahlen.",
+    "en": "Returns the remainder of a division with floating point numbers."
+  },
+  "IIF": {
+    "de": "Wählt anhand der Bedingung einen der beiden Werte. Der nicht gewählte Ausdruck wird nicht ausgewertet, eine Division durch Null im anderen Zweig schadet also nicht.",
+    "en": "Picks one of two values based on the condition. The value not chosen is never evaluated, so a division by zero in the other branch is harmless."
+  },
+  "INTEGER": {
+    "de": "Schneidet die Nachkommastellen ab und liefert eine ganze Zahl.",
+    "en": "Cuts off the decimals and returns a whole number."
+  },
+  "INTEGER64": {
+    "de": "Wie INTEGER, rechnet aber mit 64 Bit und trägt deshalb auch sehr große Zahlen.",
+    "en": "Like INTEGER but works with 64 bits and therefore carries very large numbers."
+  },
+  "LOGN": {
+    "de": "Liefert den natürlichen Logarithmus zur Basis e.",
+    "en": "Returns the natural logarithm to base e."
+  },
+  "MAX": {
+    "de": "Liefert den größeren der beiden Werte; auch zwei Texte lassen sich so vergleichen.",
+    "en": "Returns the larger of the two values; two strings can be compared the same way."
+  },
+  "MIN": {
+    "de": "Liefert den kleineren der beiden Werte; auch zwei Texte lassen sich so vergleichen.",
+    "en": "Returns the smaller of the two values; two strings can be compared the same way."
+  },
+  "MOD": {
+    "de": "Liefert den Rest einer ganzzahligen Division.",
+    "en": "Returns the remainder of an integer division."
+  },
+  "NUMBER": {
+    "de": "Macht aus Text eine Kommazahl; eine Zahl bleibt unverändert.",
+    "en": "Turns text into a float; a number is returned unchanged."
+  },
+  "POW": {
+    "de": "Rechnet die erste Zahl hoch die zweite.",
+    "en": "Raises the first number to the power of the second."
+  },
+  "RND": {
+    "de": "Liefert eine ganze Zufallszahl von 0 bis einschließlich der angegebenen Grenze.",
+    "en": "Returns a random integer from 0 up to and including the given limit."
+  },
+  "SEEDRND": {
+    "de": "Setzt den Startwert des Zufallsgenerators, damit eine Folge reproduzierbar wird.",
+    "en": "Sets the seed of the random generator so that a sequence becomes reproducible."
+  },
+  "SGN": {
+    "de": "Liefert -1 bei negativen, 1 bei positiven und 0 bei einem Wert von null.",
+    "en": "Returns -1 for negative values, 1 for positive ones and 0 for zero."
+  },
+  "SIN": {
+    "de": "Liefert den Sinus eines Winkels in Grad.",
+    "en": "Returns the sine of an angle given in degrees."
+  },
+  "SQR": {
+    "de": "Liefert die Quadratwurzel. Bei einer negativen Zahl meldet der Interpreter einen Laufzeitfehler.",
+    "en": "Returns the square root. For a negative number the interpreter raises a runtime error."
+  },
+  "TAN": {
+    "de": "Liefert den Tangens eines Winkels in Grad.",
+    "en": "Returns the tangent of an angle given in degrees."
+  },
+  "ASC": {
+    "de": "Liefert den Zeichencode an der angegebenen Stelle, ohne Index den des ersten Zeichens. Der Index beginnt bei 0.",
+    "en": "Returns the character code at the given position, or of the first character without an index. The index starts at 0."
+  },
+  "CHR$": {
+    "de": "Macht aus einem Zeichencode wieder ein Zeichen.",
+    "en": "Turns a character code back into a character."
+  },
+  "FORMAT$": {
+    "de": "Schreibt eine Zahl mit fester Gesamtbreite und fester Zahl an Nachkommastellen. Eine Breite von 0 lässt sie offen.",
+    "en": "Formats a number with a fixed total width and a fixed number of decimals. A width of 0 leaves the width open."
+  },
+  "HEX$": {
+    "de": "Schreibt eine ganze Zahl als Hexadezimaltext in Großbuchstaben, ohne Vorsilbe.",
+    "en": "Writes an integer as hexadecimal text in upper case without a prefix."
+  },
+  "INSTR": {
+    "de": "Sucht einen Text ab der Startstelle und liefert die Fundstelle, sonst -1. Der Index beginnt bei 0.",
+    "en": "Searches for a string from the start position and returns where it was found, otherwise -1. The index starts at 0."
+  },
+  "LCASE$": {
+    "de": "Macht aus Großbuchstaben Kleinbuchstaben.",
+    "en": "Turns upper case letters into lower case."
+  },
+  "LEFT$": {
+    "de": "Liefert die ersten Zeichen eines Textes.",
+    "en": "Returns the first characters of a string."
+  },
+  "LTRIM$": {
+    "de": "Entfernt die angegebenen Zeichen am Anfang; ohne Angabe Leerzeichen und Zeilenumbrüche.",
+    "en": "Removes the given characters at the start; without an argument spaces and line breaks."
+  },
+  "MID$": {
+    "de": "Schneidet einen Teil des Textes ab der Startstelle heraus, ohne Länge bis zum Ende. Der Start beginnt bei 0.",
+    "en": "Cuts a part of the string starting at the given position, without a length up to the end. The start is 0-based."
+  },
+  "REPLACE$": {
+    "de": "Ersetzt jedes Vorkommen eines Textes durch einen anderen.",
+    "en": "Replaces every occurrence of one string with another."
+  },
+  "REVINSTR": {
+    "de": "Sucht von hinten und liefert die letzte Fundstelle, sonst -1.",
+    "en": "Searches from the end and returns the last match, otherwise -1."
+  },
+  "RIGHT$": {
+    "de": "Liefert die letzten Zeichen eines Textes.",
+    "en": "Returns the last characters of a string."
+  },
+  "RTRIM$": {
+    "de": "Entfernt die angegebenen Zeichen am Ende; ohne Angabe Leerzeichen und Zeilenumbrüche.",
+    "en": "Removes the given characters at the end; without an argument spaces and line breaks."
+  },
+  "SPLITSTR": {
+    "de": "Zerlegt einen Text am Trennzeichen und legt die Teile als String-Array ab. Leere Teile fallen weg, sofern das letzte Argument nicht 0 ist.",
+    "en": "Splits a string at the separator and stores the parts in a string array. Empty parts are dropped unless the last argument is 0."
+  },
+  "STR$": {
+    "de": "Macht aus einem Wert einen Text, so wie ihn PRINT ausgeben würde.",
+    "en": "Turns a value into text the way PRINT would show it."
+  },
+  "TRIM$": {
+    "de": "Entfernt die angegebenen Zeichen an beiden Enden; ohne Angabe Leerzeichen und Zeilenumbrüche.",
+    "en": "Removes the given characters at both ends; without an argument spaces and line breaks."
+  },
+  "UCASE$": {
+    "de": "Macht aus Kleinbuchstaben Großbuchstaben.",
+    "en": "Turns lower case letters into upper case."
+  },
+  "VAL": {
+    "de": "Liest eine Zahl aus Text. Was keine Zahl ergibt, wird zu 0.",
+    "en": "Parses a number from text. Anything that is not a number becomes 0."
+  },
+  "ASSERT": {
+    "de": "Prüft eine Bedingung. Schlägt sie fehl, zählt der Testlauf einen Fehler, gibt die Meldung aus und das Programm endet mit Code 1.",
+    "en": "Checks a condition. If it fails, the test run counts an error, prints the message and the program exits with code 1."
+  },
+  "CODEFILE$": {
+    "de": "Liefert den Namen der Datei, in der der Aufruf steht.",
+    "en": "Returns the name of the file the call appears in."
+  },
+  "CODELINE": {
+    "de": "Liefert die Zeilennummer des Aufrufs.",
+    "en": "Returns the line number of the call."
+  },
+  "DEBUG": {
+    "de": "Schreibt Text ohne Zeilenumbruch auf die Fehlerausgabe; die IDE zeigt ihn in der Konsole.",
+    "en": "Writes text without a line break to the error output; the IDE shows it in the console."
+  },
+  "GETCOMMANDLINE$": {
+    "de": "Liefert die Argumente, mit denen das Programm gestartet wurde.",
+    "en": "Returns the arguments the program was started with."
+  },
+  "GETENV$": {
+    "de": "Liest eine Umgebungsvariable; ist sie nicht gesetzt, kommt ein leerer Text zurück.",
+    "en": "Reads an environment variable; if it is not set an empty string comes back."
+  },
+  "GETTIMER": {
+    "de": "Liefert die Zeit seit dem letzten SHOWSCREEN in Millisekunden, praktisch für gleichmäßige Bewegung.",
+    "en": "Returns the milliseconds since the last SHOWSCREEN, handy for smooth movement."
+  },
+  "GETTIMERALL": {
+    "de": "Liefert die Laufzeit seit dem Programmstart in Millisekunden.",
+    "en": "Returns the time since the program started in milliseconds."
+  },
+  "HIBERNATE": {
+    "de": "Wartet auf einen Tastendruck oder Mausklick, während das Fenster weiter gezeichnet wird.",
+    "en": "Waits for a key press or mouse click while the window keeps presenting frames."
+  },
+  "PLATFORMINFO$": {
+    "de": "Liefert Angaben zur Umgebung: mit „os“ den Systemnamen, mit „version“ die SDL-Version.",
+    "en": "Returns information about the platform: “os” gives the system name, “version” the SDL version."
+  },
+  "PUTENV": {
+    "de": "Setzt eine Umgebungsvariable für das laufende Programm.",
+    "en": "Sets an environment variable for the running program."
+  },
+  "SLEEP": {
+    "de": "Pausiert das Programm für die angegebene Zeit in Millisekunden.",
+    "en": "Pauses the program for the given time in milliseconds."
+  },
+  "STDERR": {
+    "de": "Schreibt Text ohne Zeilenumbruch auf die Fehlerausgabe.",
+    "en": "Writes text without a line break to the error output."
+  },
+  "STDIN$": {
+    "de": "Liest eine Zeile von der Standardeingabe.",
+    "en": "Reads one line from standard input."
+  },
+  "STDOUT": {
+    "de": "Schreibt Text ohne Zeilenumbruch auf die Standardausgabe.",
+    "en": "Writes text without a line break to standard output."
+  },
+  "BOUNDS": {
+    "de": "Liefert die Größe der angegebenen Dimension; 0 ist die erste.",
+    "en": "Returns the size of the given dimension; 0 is the first one."
+  },
+  "DIMDATA": {
+    "de": "Füllt ein Array aus einer Liste von Werten und liefert deren Anzahl.",
+    "en": "Fills an array from a list of values and returns how many there were."
+  },
+  "GENFONT": {
+    "de": "Vergibt die nächste freie Font-ID.",
+    "en": "Hands out the next free font id."
+  },
+  "GENSCREEN": {
+    "de": "Vergibt die nächste freie Bildschirm-ID für CREATESCREEN.",
+    "en": "Hands out the next free screen id for CREATESCREEN."
+  },
+  "AND": {
+    "de": "Logisches UND in Bedingungen. Es wird nur so weit geprüft, wie nötig, das Ergebnis ist 1 oder 0.",
+    "en": "Logical AND in conditions. It stops evaluating as soon as the result is clear and returns 1 or 0."
+  },
+  "AS": {
+    "de": "Gibt an, welchen Typ eine Variable, ein Parameter oder ein TYPE-Feld hat: LOCAL kiste AS KISTE.",
+    "en": "States the type of a variable, parameter or TYPE field: LOCAL box AS BOX."
+  },
+  "BREAK": {
+    "de": "Verlässt die innerste Schleife oder ein SELECT sofort.",
+    "en": "Leaves the innermost loop or a SELECT right away."
+  },
+  "BYREF": {
+    "de": "Übergibt einen Parameter als Verweis, sodass die Funktion den Originalwert ändern kann. Funktioniert auch mit Array-Elementen und TYPE-Feldern.",
+    "en": "Passes a parameter by reference so the function can change the original value. Works with array elements and TYPE fields too."
+  },
+  "CASE": {
+    "de": "Ein Zweig in SELECT mit einem oder mehreren Werten. Mehrere CASE-Blöcke stehen untereinander.",
+    "en": "One branch in SELECT with one or more values. Several CASE blocks follow each other."
+  },
+  "CATCH": {
+    "de": "Fängt einen Fehler aus dem TRY-Block. Die Meldung landet in der angegebenen String-Variable.",
+    "en": "Catches an error from the TRY block. The message ends up in the given string variable."
+  },
+  "CONST": {
+    "de": "Kurzschreibweise für CONSTANT.",
+    "en": "Short form of CONSTANT."
+  },
+  "CONSTANT": {
+    "de": "Definiert einen Namen mit festem Wert, der sich nicht ändern lässt.",
+    "en": "Defines a name with a fixed value that cannot be changed."
+  },
+  "CONTINUE": {
+    "de": "Springt sofort zum nächsten Durchlauf der innersten Schleife.",
+    "en": "Jumps straight to the next pass of the innermost loop."
+  },
+  "DEC": {
+    "de": "Verringert eine Variable, standardmäßig um 1, sonst um den angegebenen Schritt.",
+    "en": "Decreases a variable by 1, or by the given step."
+  },
+  "DEFAULT": {
+    "de": "Der Zweig in SELECT, der greift, wenn kein CASE passt.",
+    "en": "The branch in SELECT that runs when no CASE matches."
+  },
+  "DIM": {
+    "de": "Legt ein Array an. DIM a[10] ergibt die Plätze 0 bis 9; weitere Klammern geben mehr Dimensionen an, AS TYP macht daraus ein TYPE-Array.",
+    "en": "Creates an array. DIM a[10] gives the slots 0 to 9; extra brackets add dimensions and AS TYP makes it a TYPE array."
+  },
+  "DIMDEL": {
+    "de": "Entfernt einen Platz aus einem Array; alle folgenden rutschen eine Stelle nach.",
+    "en": "Removes one slot from an array; everything after it moves up one place."
+  },
+  "DIMPUSH": {
+    "de": "Hängt einen Wert hinten an ein Array an.",
+    "en": "Appends a value to the end of an array."
+  },
+  "ELSE": {
+    "de": "Der Zweig eines IF, der läuft, wenn die Bedingung falsch ist.",
+    "en": "The branch of an IF that runs when the condition is false."
+  },
+  "ELSEIF": {
+    "de": "Eine weitere Bedingung innerhalb desselben IF-Blocks.",
+    "en": "Another condition inside the same IF block."
+  },
+  "END": {
+    "de": "Beendet das Programm sofort.",
+    "en": "Ends the program immediately."
+  },
+  "ENDFUNCTION": {
+    "de": "Schließt eine FUNCTION ab.",
+    "en": "Closes a FUNCTION."
+  },
+  "ENDIF": {
+    "de": "Beendet einen mehrzeiligen IF-Block.",
+    "en": "Ends a multi-line IF block."
+  },
+  "ENDMETHOD": {
+    "de": "Schließt eine METHOD ab.",
+    "en": "Closes a METHOD."
+  },
+  "ENDSELECT": {
+    "de": "Beendet ein SELECT.",
+    "en": "Ends a SELECT."
+  },
+  "ENDSUB": {
+    "de": "Schließt ein SUB ab.",
+    "en": "Closes a SUB."
+  },
+  "ENDTRY": {
+    "de": "Beendet einen TRY-Block, wenn kein FINALLY verwendet wird.",
+    "en": "Ends a TRY block when FINALLY is not used."
+  },
+  "ENDTYPE": {
+    "de": "Schließt eine TYPE-Definition ab.",
+    "en": "Closes a TYPE definition."
+  },
+  "EXIT": {
+    "de": "Verlässt eine FUNCTION oder ein SUB vorzeitig.",
+    "en": "Leaves a FUNCTION or SUB early."
+  },
+  "FINALLY": {
+    "de": "Beendet den TRY-Block. FINALLY hat keinen eigenen Code; CATCH und FINALLY schließen den Block ab.",
+    "en": "Ends the TRY block. FINALLY has no code of its own; CATCH and FINALLY close the block."
+  },
+  "FOR": {
+    "de": "Zählschleife: FOR i = start TO ende [STEP schritt] … NEXT.",
+    "en": "Counting loop: FOR i = start TO end [STEP step] … NEXT."
+  },
+  "FOREACH": {
+    "de": "Läuft über alle Elemente eines Arrays oder TYPE-Arrays; die Laufvariable verweist direkt auf das Element.",
+    "en": "Walks over every element of an array or TYPE array; the loop variable refers to the element itself."
+  },
+  "FUNCTION": {
+    "de": "Definiert eine Funktion mit Rückgabewert: FUNCTION name: parameter … ENDFUNCTION, Rückgabe mit RETURN.",
+    "en": "Defines a function with a return value: FUNCTION name: parameter … ENDFUNCTION, return with RETURN."
+  },
+  "GLOBAL": {
+    "de": "Deklariert eine Variable, die im ganzen Programm gilt.",
+    "en": "Declares a variable that is valid throughout the program."
+  },
+  "GOSUB": {
+    "de": "Ruft ein SUB auf und fährt nach dessen ENDSUB an dieser Stelle fort.",
+    "en": "Calls a SUB and continues after its ENDSUB at this point."
+  },
+  "GOTO": {
+    "de": "Springt zu einer Marke im selben Abschnitt (Hauptprogramm, SUB oder FUNCTION).",
+    "en": "Jumps to a label inside the same section (main program, SUB or FUNCTION)."
+  },
+  "IF": {
+    "de": "Beginnt eine Bedingung. Einzeilig mit THEN, sonst als Block bis ENDIF.",
+    "en": "Starts a condition. One line with THEN, otherwise a block up to ENDIF."
+  },
+  "IN": {
+    "de": "Verbindet in FOREACH die Laufvariable mit dem Array.",
+    "en": "Joins the loop variable and the array in FOREACH."
+  },
+  "INC": {
+    "de": "Erhöht eine Variable, standardmäßig um 1, sonst um den angegebenen Schritt.",
+    "en": "Increases a variable by 1, or by the given step."
+  },
+  "INCLUDE": {
+    "de": "Bindet eine weitere Quelldatei ein. Der Pfad gilt relativ zur einbindenden Datei, doppelte Einbindungen werden ignoriert.",
+    "en": "Pulls in another source file. The path is relative to the including file, duplicate includes are ignored."
+  },
+  "INLINE": {
+    "de": "Beginnt einen Block mit C++-Code. Auf oberster Ebene (oder mit INLINE DEFINE) sind es Definitionen, die beim Start einmal übersetzt werden; im Code (FUNCTION, IF, Schleife, oder INLINE RUN) laufen die C++-Anweisungen an dieser Stelle und sehen die BASIC-Variablen (klein geschrieben, Texte mit _str, Arrays als a[i], TYPE-Felder als p.x). Arrays lassen sich dort mit push/insert/remove/clear/resize auch in der Größe ändern, und die eingebauten GBX-Befehle (PRINT, DRAWLINE, GETTIMER …) sind direkt aufrufbar. Der Block endet mit ENDINLINE.",
+    "en": "Starts a block of C++ code. At top level (or with INLINE DEFINE) it holds definitions compiled once at startup; inside code (FUNCTION, IF, loop, or INLINE RUN) the C++ statements run at that point and see the BASIC variables (lowercase, text with _str, arrays as a[i], TYPE fields as p.x). Arrays can also be resized there with push/insert/remove/clear/resize, and the built-in GBX commands (PRINT, DRAWLINE, GETTIMER …) can be called directly. The block ends with ENDINLINE."
+  },
+  "ENDINLINE": {
+    "de": "Beendet einen INLINE-Block. Alles dazwischen geht unverändert an den C++-Compiler.",
+    "en": "Ends an INLINE block. Everything in between goes to the C++ compiler unchanged."
+  },
+  "LET": {
+    "de": "Freiwilliger Anfang einer Zuweisung: LET x = 5 ist dasselbe wie x = 5.",
+    "en": "Optional start of an assignment: LET x = 5 is the same as x = 5."
+  },
+  "LOCAL": {
+    "de": "Deklariert eine Variable, die nur in der aktuellen FUNCTION oder dem SUB gilt.",
+    "en": "Declares a variable that only exists inside the current FUNCTION or SUB."
+  },
+  "METHOD": {
+    "de": "Definiert eine Methode eines TYPEs. Aufgerufen wird sie als objekt.name(...); ihre Felder sind im Rumpf wie Variablen sichtbar.",
+    "en": "Defines a method of a TYPE. It is called as object.name(...); its fields are visible in the body like variables."
+  },
+  "NEXT": {
+    "de": "Beendet den Rumpf einer FOR-Schleife und springt zum nächsten Lauf.",
+    "en": "Ends the body of a FOR loop and starts the next pass."
+  },
+  "NOT": {
+    "de": "Kehrt eine Bedingung um. NOT bindet schwächer als ein Vergleich.",
+    "en": "Inverts a condition. NOT binds weaker than a comparison."
+  },
+  "OR": {
+    "de": "Logisches ODER in Bedingungen. Es wird nur so weit geprüft, wie nötig, das Ergebnis ist 1 oder 0.",
+    "en": "Logical OR in conditions. It stops evaluating as soon as the result is clear and returns 1 or 0."
+  },
+  "REDIM": {
+    "de": "Ändert die Größe eines Arrays und behält dabei die vorhandenen Werte.",
+    "en": "Resizes an array and keeps the values already stored in it."
+  },
+  "REPEAT": {
+    "de": "Schleife, die mindestens einmal läuft und am Ende mit UNTIL geprüft wird.",
+    "en": "A loop that runs at least once and is tested at the end with UNTIL."
+  },
+  "RETURN": {
+    "de": "Verlässt eine FUNCTION und gibt den Wert dahinter zurück; in einem SUB beendet es den Aufruf ohne Wert.",
+    "en": "Leaves a FUNCTION and returns the value behind it; inside a SUB it ends the call without a value."
+  },
+  "SELECT": {
+    "de": "Mehrfachauswahl: prüft der Reihe nach die CASE-Blöcke, DEFAULT fängt den Rest.",
+    "en": "Multiple choice: checks the CASE blocks in turn, DEFAULT catches the rest."
+  },
+  "SELF": {
+    "de": "Das eigene Objekt in einer METHOD. self.x liest oder schreibt ein Feld, self.methode() ruft eine eigene Methode auf.",
+    "en": "The object itself inside a METHOD. self.x reads or writes a field, self.method() calls one of its own methods."
+  },
+  "STATIC": {
+    "de": "Deklariert eine lokale Variable, die ihren Wert zwischen den Aufrufen behält.",
+    "en": "Declares a local variable that keeps its value between calls."
+  },
+  "STEP": {
+    "de": "Schrittweite einer FOR-Schleife; negative Werte zählen rückwärts.",
+    "en": "Step size of a FOR loop; negative values count downwards."
+  },
+  "SUB": {
+    "de": "Definiert eine parameterlose Prozedur, die mit GOSUB aufgerufen wird.",
+    "en": "Defines a parameterless procedure called with GOSUB."
+  },
+  "SWAP": {
+    "de": "Tauscht die Werte zweier Variablen, Felder oder Array-Elemente.",
+    "en": "Swaps the values of two variables, fields or array elements."
+  },
+  "THEN": {
+    "de": "Trennt bei IF die Bedingung von der Anweisung, die bei wahr folgt.",
+    "en": "Separates the condition of an IF from the statement that follows when it is true."
+  },
+  "THROW": {
+    "de": "Löst selbst einen Fehler mit der angegebenen Meldung aus, der von TRY/CATCH gefangen werden kann.",
+    "en": "Raises an error with the given message that TRY/CATCH can catch."
+  },
+  "TO": {
+    "de": "Trennt Start und Ende einer FOR-Schleife.",
+    "en": "Separates the start and the end of a FOR loop."
+  },
+  "TRY": {
+    "de": "Beginnt einen Block, dessen Laufzeitfehler CATCH auffangen kann.",
+    "en": "Starts a block whose runtime errors can be caught by CATCH."
+  },
+  "TYPE": {
+    "de": "Definiert einen eigenen Datentyp mit Feldern und optionalen METHODen; Felder dürfen verschachtelte TYPEs sein.",
+    "en": "Defines a custom data type with fields and optional METHODs; fields may be nested TYPEs."
+  },
+  "UNTIL": {
+    "de": "Beendet eine REPEAT-Schleife, sobald die Bedingung wahr ist.",
+    "en": "Ends a REPEAT loop as soon as the condition is true."
+  },
+  "WEND": {
+    "de": "Schließt eine WHILE-Schleife ab.",
+    "en": "Closes a WHILE loop."
+  },
+  "WHILE": {
+    "de": "Schleife, die vor jedem Durchlauf ihre Bedingung prüft und bis WEND läuft.",
+    "en": "Loop that checks its condition before each pass and runs until WEND."
+  }
+}

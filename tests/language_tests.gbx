@@ -1,0 +1,489 @@
+' ============================================================
+' GameBasiX - Sprachtests
+' Aufruf: gbx --tests tests/language_tests.gbx
+' ============================================================
+
+' ---------------------------------------------------------- Zahlen
+ASSERT 2 + 3 = 5, "Addition"
+ASSERT 2 * 3 = 6, "Multiplikation"
+ASSERT 7 - 10 = -3, "Subtraktion"
+ASSERT ABS(7 / 2 - 3.5) < 0.0001, "Division ergibt Kommazahl"
+ASSERT 5 + 2 * 3 = 11, "Punkt vor Strich"
+ASSERT (5 + 2) * 3 = 21, "Klammern"
+ASSERT MOD(5, 3) = 2, "MOD"
+ASSERT ABS(FMOD(11.5, 10) - 1.5) < 0.0001, "FMOD"
+ASSERT POW(2, 10) = 1024, "POW"
+ASSERT SQR(9) = 3, "SQR"
+ASSERT INTEGER(-2.7) = -2, "INTEGER schneidet ab"
+ASSERT FLOOR(-2.2) = -3, "FLOOR"
+ASSERT CEIL(-2.2) = -2, "CEIL"
+ASSERT SGN(-5) = -1, "SGN"
+ASSERT ABS(SIN(30) - 0.5) < 0.0001, "SIN in Grad"
+ASSERT ABS(ATAN(1, 1) - 45) < 0.0001, "ATAN in Grad"
+ASSERT MIN(3, 7) = 3, "MIN"
+ASSERT MAX(3, 7) = 7, "MAX"
+ASSERT BAND(3, 6) = 2, "BAND"
+ASSERT BOR(8, 12) = 12, "BOR"
+ASSERT BXOR(3, 6) = 5, "BXOR"
+ASSERT ASL(1, 4) = 16, "ASL"
+ASSERT ASR(16, 4) = 1, "ASR"
+
+' RND ist inklusiv 0..max
+ok = TRUE
+FOR i = 0 TO 200
+  r = RND(10)
+  IF r < 0 OR r > 10 THEN ok = FALSE
+NEXT
+ASSERT ok, "RND-Bereich 0..10"
+
+' ---------------------------------------------------------- Strings
+s$ = "GameBasiX"
+ASSERT LEN(s$) = 9, "LEN"
+ASSERT LEFT$(s$, 3) = "Gam", "LEFT$"
+ASSERT RIGHT$(s$, 3) = "siX", "RIGHT$"
+ASSERT MID$(s$, 3, 2) = "eB", "MID$ ist 0-basiert"
+ASSERT MID$(s$, 2) = "meBasiX", "MID$ ohne Laenge"
+ASSERT INSTR("Dream Design", "sign") = 8, "INSTR 0-basiert"
+ASSERT INSTR("abc", "x") = -1, "INSTR nicht gefunden"
+ASSERT REVINSTR("a.b.c", ".") = 3, "REVINSTR"
+ASSERT UCASE$("abc") = "ABC", "UCASE$"
+ASSERT LCASE$("ABC") = "abc", "LCASE$"
+ASSERT TRIM$(("  hi  ")) = "hi", "TRIM$"
+ASSERT REPLACE$("a-b-c", "-", "+") = "a+b+c", "REPLACE$"
+ASSERT CHR$(65) = "A", "CHR$"
+ASSERT ASC("A") = 65, "ASC"
+ASSERT HEX$(255) = "FF", "HEX$"
+ASSERT FORMAT$(6, 2, 3.14159) = "  3.14", "FORMAT$"
+ASSERT "a" + 5 = "a5", "String + Zahl"
+ASSERT 1.5 + "x" = "1.5x", "Zahl + String"
+
+' ---------------------------------------------------------- Variablen
+x$ = 5
+ASSERT x$ = "5", "Typ-Suffix $ wandelt um"
+n% = 2.7
+ASSERT n% = 2, "Typ-Suffix % schneidet ab"
+f# = 3
+ASSERT ABS(f# - 3) < 0.0001, "Typ-Suffix #"
+unbenutzt = 12
+ASSERT unbenutzt * 2 = 24, "Implizite Variable"
+CONSTANT MAXN = 10
+ASSERT MAXN = 10, "CONSTANT"
+
+' ---------------------------------------------------------- Kontrollfluss
+v = 0
+IF 1 THEN v = 1 ELSE v = 2
+ASSERT v = 1, "Einzeiler IF/THEN"
+IF 0 THEN v = 3 ELSE v = 4
+ASSERT v = 4, "Einzeiler IF/ELSE"
+
+v = 0
+IF 0
+  v = 1
+ELSEIF 0
+  v = 2
+ELSEIF 1
+  v = 3
+ELSE
+  v = 4
+ENDIF
+ASSERT v = 3, "ELSEIF"
+
+sum = 0
+FOR i = 1 TO 5
+  sum = sum + i
+NEXT
+ASSERT sum = 15, "FOR"
+
+sum = 0
+FOR i = 10 TO 1 STEP -2
+  sum = sum + i
+NEXT
+ASSERT sum = 30, "FOR mit negativem STEP"
+
+cnt = 0
+j = 0
+WHILE j < 10
+  INC j
+  IF MOD(j, 2) = 0 THEN CONTINUE
+  INC cnt
+  IF j = 7 THEN BREAK
+WEND
+ASSERT cnt = 4, "WHILE mit CONTINUE/BREAK"
+
+r = 0
+REPEAT
+  INC r
+UNTIL r = 5
+ASSERT r = 5, "REPEAT/UNTIL"
+
+sel = 0
+SELECT 4
+CASE 1, 2
+  sel = 10
+CASE 3 TO 5
+  sel = 20
+CASE > 5
+  sel = 30
+DEFAULT
+  sel = 40
+ENDSELECT
+ASSERT sel = 20, "SELECT mit Bereich"
+
+sel = 0
+SELECT 99
+CASE 1
+  sel = 1
+DEFAULT
+  sel = 42
+ENDSELECT
+ASSERT sel = 42, "SELECT DEFAULT"
+
+' ---------------------------------------------------------- Felder
+DIM a[5]
+FOR i = 0 TO 4
+  a[i] = i * 2
+NEXT
+ASSERT a[0] = 0, "Array 0-basiert"
+ASSERT a[4] = 8, "Array letztes Element"
+ASSERT a[-1] = 8, "Negativer Index"
+ASSERT BOUNDS(a[], 0) = 5, "BOUNDS"
+ASSERT LEN(a[]) = 5, "LEN(Array)"
+
+DIM m[2][3]
+m[1][2] = 7
+ASSERT m[1][2] = 7, "Mehrdimensionales Array"
+ASSERT BOUNDS(m[], 1) = 3, "BOUNDS Dimension 1"
+
+REDIM a[8]
+ASSERT BOUNDS(a[], 0) = 8, "REDIM vergroessert"
+ASSERT a[2] = 4, "REDIM erhaelt Daten"
+
+DIMPUSH a[], 99
+ASSERT BOUNDS(a[], 0) = 9, "DIMPUSH"
+ASSERT a[8] = 99, "DIMPUSH Wert"
+DIMDEL a[], 8
+ASSERT BOUNDS(a[], 0) = 8, "DIMDEL"
+
+DIMDATA zahlen[], 3, 4, 5
+ASSERT BOUNDS(zahlen[], 0) = 3, "DIMDATA Laenge"
+ASSERT zahlen[2] = 5, "DIMDATA Wert"
+
+sum = 0
+FOREACH zahl IN zahlen[]
+  sum = sum + zahl
+NEXT
+ASSERT sum = 12, "FOREACH"
+
+FOREACH zahl IN zahlen[]
+  zahl = zahl * 10
+NEXT
+ASSERT zahlen[1] = 40, "FOREACH ist BYREF"
+
+' ---------------------------------------------------------- Strings-Array
+DIM namen$[2]
+namen$[0] = "Ada"
+namen$[1] = "Grace"
+ASSERT LEN(namen$[]) = 2, "String-Array"
+ASSERT namen$[1] = "Grace", "String-Array Inhalt"
+
+DIM teile$[0]
+cnt = SPLITSTR("a,b,c", teile$[], ",")
+ASSERT cnt = 3, "SPLITSTR Anzahl"
+ASSERT teile$[1] = "b", "SPLITSTR Inhalt"
+
+' ---------------------------------------------------------- TYPE
+TYPE POINT
+  x AS FLOAT
+  y AS FLOAT
+ENDTYPE
+
+TYPE RECT
+  a AS POINT
+  b AS POINT
+  name$
+ENDTYPE
+
+LOCAL p AS POINT
+p.x = 3
+p.y = 1.5
+ASSERT p.x = 3, "TYPE Feld x"
+ASSERT ABS(p.y - 1.5) < 0.0001, "TYPE Feld y"
+
+LOCAL rr AS RECT
+rr.a.x = 1
+rr.b.y = 9
+rr.name$ = "Kasten"
+ASSERT rr.b.y = 9, "Verschachtelter TYPE"
+ASSERT rr.name$ = "Kasten", "TYPE Stringfeld"
+
+DIM punkte[3] AS POINT
+punkte[1].x = 42
+ASSERT punkte[1].x = 42, "Array von TYPEs"
+ASSERT punkte[0].x = 0, "TYPE-Feld Standardwert"
+
+DIMPUSH punkte[], punkte[1]
+ASSERT BOUNDS(punkte[], 0) = 4, "DIMPUSH auf TYPE-Array"
+
+' Standardwerte direkt in der TYPE-Definition (x% = 0)
+TYPE ZAEHLER
+  stand% = 7
+  schritt% = 30
+  name$ = "neu"
+  f AS FLOAT = 2.5
+ENDTYPE
+
+LOCAL z AS ZAEHLER
+ASSERT z.stand% = 7, "TYPE-Standardwert Integer"
+ASSERT z.schritt% = 30, "TYPE-Standardwert zweites Feld"
+ASSERT z.name$ = "neu", "TYPE-Standardwert String"
+ASSERT ABS(z.f - 2.5) < 0.0001, "TYPE-Standardwert Float"
+
+DIM zaehler[2] AS ZAEHLER
+ASSERT zaehler[0].stand% = 7, "Standardwert im TYPE-Array"
+ASSERT zaehler[1].schritt% = 30, "Standardwert im TYPE-Array (2)"
+
+' Jede Instanz bekommt einen eigenen Wert
+zaehler[0].stand% = 99
+ASSERT zaehler[0].stand% = 99, "Instanz ändern"
+ASSERT zaehler[1].stand% = 7, "andere Instanz bleibt beim Standardwert"
+
+' Verschachtelter TYPE: Standardwerte greifen auch innen
+TYPE RAHMEN
+  pos AS POINT
+  beschriftung$ = "M"
+ENDTYPE
+
+LOCAL rahmen AS RAHMEN
+rahmen.pos.x = 4
+ASSERT rahmen.pos.x = 4, "Feld im verschachtelten TYPE"
+ASSERT rahmen.beschriftung$ = "M", "Standardwert neben verschachteltem TYPE"
+
+' Standardwert als Ausdruck wird pro Instanz ausgewertet
+TYPE SUMME
+  a% = 2
+  b% = 3
+  total% = 2 + 3
+ENDTYPE
+
+LOCAL summe AS SUMME
+ASSERT summe.total% = 5, "Standardwert als Ausdruck"
+
+' Standardwert darf eine Konstante sein
+CONSTANT BASISWERT% = 12
+TYPE KONSTANTE
+  wert% = BASISWERT%
+ENDTYPE
+
+LOCAL konst AS KONSTANTE
+ASSERT konst.wert% = 12, "Standardwert aus Konstante"
+
+' ---------------------------------------------------------- Funktionen
+FUNCTION add: a, b
+  RETURN a + b
+ENDFUNCTION
+
+FUNCTION greet: name$, punct$ = "!"
+  RETURN name$ + punct$
+ENDFUNCTION
+
+FUNCTION bump: BYREF wert, amount = 1
+  INC wert, amount
+ENDFUNCTION
+
+FUNCTION fib: n
+  IF n < 2 THEN RETURN n
+  RETURN fib(n - 1) + fib(n - 2)
+ENDFUNCTION
+
+FUNCTION early: v
+  IF v > 0 THEN EXIT
+  RETURN 99
+ENDFUNCTION
+
+FUNCTION counter
+  STATIC n
+  INC n
+  RETURN n
+ENDFUNCTION
+
+FUNCTION shadow: dummy
+  LOCAL globalVar
+  globalVar = 99
+  RETURN globalVar
+ENDFUNCTION
+
+FUNCTION setGlobal
+  GLOBAL globalVar = 42
+ENDFUNCTION
+
+ASSERT add(2, 3) = 5, "FUNCTION"
+ASSERT greet("Hi") = "Hi!", "Standardparameter"
+ASSERT greet("Hi", "?") = "Hi?", "Parameter ueberschrieben"
+ASSERT fib(10) = 55, "Rekursion"
+ASSERT early(1) = 0, "EXIT"
+ASSERT early(-1) = 99, "EXIT nur bei Abbruch"
+
+wert = 1
+bump(wert)
+ASSERT wert = 2, "BYREF"
+bump(wert, 5)
+ASSERT wert = 7, "BYREF mit Betrag"
+
+DIM feld[2]
+feld[0] = 10
+bump(feld[0], 3)
+ASSERT feld[0] = 13, "BYREF auf Array-Element"
+
+lok = 1
+ASSERT counter() = 1, "STATIC 1"
+ASSERT counter() = 2, "STATIC 2"
+ASSERT shadow(0) = 99, "LOCAL in Funktion"
+ASSERT lok = 1, "LOCAL verdeckt nichts"
+
+globalVar = 1
+setGlobal()
+ASSERT globalVar = 42, "GLOBAL in Funktion"
+
+' SUB + GOSUB
+GOSUB subSet
+
+' ---------------------------------------------------------- Sonstiges
+aa = 1
+bb = 2
+SWAP aa, bb
+ASSERT aa = 2 AND bb = 1, "SWAP"
+
+cc = 10
+INC cc, 5
+ASSERT cc = 15, "INC"
+DEC cc, 6
+ASSERT cc = 9, "DEC"
+
+' GOTO mit Marke
+gi = 0
+marke:
+INC gi
+IF gi < 3 THEN GOTO marke
+ASSERT gi = 3, "GOTO"
+
+' IIF wertet nur den gewaehlten Zweig aus
+sideHits = 0
+iifval = IIF(1, 10, sideEffect(sideHits))
+ASSERT iifval = 10, "IIF"
+ASSERT sideHits = 0, "IIF wertet nur einen Zweig aus"
+
+' TRY / THROW
+caught$ = ""
+TRY
+  THROW "Boom"
+CATCH e$
+  caught$ = e$
+FINALLY
+ASSERT caught$ = "Boom", "TRY/THROW/CATCH"
+
+' Laufzeitfehler werden von TRY gefangen
+outOfBounds = FALSE
+TRY
+  bad = feld[99]
+CATCH err$
+  outOfBounds = TRUE
+FINALLY
+ASSERT outOfBounds, "TRY faengt Array-Fehler"
+
+' BOXCOLL
+ASSERT BOXCOLL(0, 0, 10, 10, 5, 5, 10, 10) = 1, "BOXCOLL Treffer"
+ASSERT BOXCOLL(0, 0, 10, 10, 20, 20, 5, 5) = 0, "BOXCOLL kein Treffer"
+
+' Zeit
+ASSERT GETTIMERALL() >= 0, "GETTIMERALL"
+ASSERT GETTIMER() >= 0, "GETTIMER"
+
+' ---------------------------------------------------------- TYPE-Methoden
+TYPE METHODKISTE
+  w AS FLOAT
+  h AS FLOAT
+
+  METHOD flaeche
+    RETURN w * h
+  ENDMETHOD
+
+  METHOD skalieren: faktor
+    w = w * faktor
+    h = h * faktor
+  ENDMETHOD
+
+  METHOD doppelt
+    skalieren(2)
+    RETURN flaeche()
+  ENDMETHOD
+
+  METHOD mitLokal: w
+    RETURN w + 1
+  ENDMETHOD
+ENDTYPE
+
+TYPE METHODREGAL
+  fach AS METHODKISTE
+ENDTYPE
+
+LOCAL box AS METHODKISTE
+box.w = 4
+box.h = 2
+ASSERT box.flaeche() = 8, "METHOD mit RETURN"
+box.skalieren(3)
+ASSERT box.w = 12, "METHOD schreibt erstes Feld"
+ASSERT box.h = 6, "METHOD schreibt zweites Feld"
+ASSERT box.doppelt() = 288, "METHOD ruft eigene METHOD auf"
+ASSERT box.mitLokal(5) = 6, "Parameter verdeckt das Feld"
+ASSERT box.w = 24, "doppelt hat weiterskaliert"
+
+DIM kisten[2] AS METHODKISTE
+kisten[1].w = 3
+kisten[1].h = 3
+ASSERT kisten[1].flaeche() = 9, "METHOD auf Array-Element"
+kisten[1].skalieren(2)
+ASSERT kisten[1].h = 6, "Array-Element bleibt veraendert"
+
+LOCAL regal AS METHODREGAL
+regal.fach.w = 2
+regal.fach.h = 5
+ASSERT regal.fach.flaeche() = 10, "METHOD auf verschachteltem TYPE"
+regal.fach.skalieren(2)
+ASSERT regal.fach.w = 4, "verschachteltes Feld schreibt zurueck"
+
+' SELF als eigenes Objekt
+TYPE METHODPUNKT
+  x AS FLOAT
+  y AS FLOAT
+
+  METHOD summe
+    RETURN self.x + self.y
+  ENDMETHOD
+
+  METHOD verschieben: dx, dy
+    self.x = self.x + dx
+    self.y = self.y + dy
+  ENDMETHOD
+ENDTYPE
+
+LOCAL mp AS METHODPUNKT
+mp.x = 2
+mp.y = 3
+ASSERT mp.summe() = 5, "SELF liest Felder"
+mp.verschieben(1, 4)
+ASSERT mp.x = 3 AND mp.y = 7, "SELF schreibt Felder"
+
+' Konsole
+STDOUT "Sprachtests durchgelaufen." + CHR$(10)
+
+END
+
+' ---------------------------------------------------------- SUBs
+SUB subSet:
+  subWert = 123
+ENDSUB
+
+FUNCTION sideEffect: BYREF c
+  INC c
+  RETURN 1
+ENDFUNCTION

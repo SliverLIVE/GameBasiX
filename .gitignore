@@ -1,0 +1,25 @@
+# Build-Ausgaben
+build/
+build-static/
+build-wasm/
+dist/
+GBXStudio.exe
+*.exe
+*.log
+tests/out_render.bmp
+tests/out_commands.*
+
+# Emscripten-SDK und der daraus gebaute wasm-Player
+emsdk/
+html5/
+# HTML5-Exporte neben den Beispielen
+*-web/
+
+# Abhängigkeiten und Paketierung der IDE
+ide/node_modules/
+ide/dist/
+node_modules/
+
+# Werkzeuge und Editor
+.freebuff/
+.vscode/

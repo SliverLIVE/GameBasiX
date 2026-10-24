@@ -1,0 +1,24 @@
+; GameBasiX project file
+; Written by the IDE, but you can also edit it by hand.
+
+[project]
+name = Box2D-Lite
+main = main.gbx
+
+[window]
+title = GameBasiX - Box2D-Lite
+width = 960
+height = 640
+fullscreen = 0
+resizable = 1
+
+[graphics]
+fps = 60
+vsync = 1
+
+[audio]
+enabled = 0
+volume = 1
+
+[assets]
+root = assets

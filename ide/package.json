@@ -1,0 +1,56 @@
+{
+  "name": "gbx-studio",
+  "productName": "GBX Studio",
+  "version": "1.0.1",
+  "description": "IDE für GameBasiX: Editor, Befehlsreferenz, Syntaxprüfung und direkter Start des Interpreters.",
+  "private": true,
+  "type": "module",
+  "main": "src/main/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "web": "node src/server/cli.mjs",
+    "build:dataset": "node scripts/build-dataset.mjs",
+    "test": "node scripts/smoke-test.mjs"
+  },
+  "dependencies": {
+    "monaco-editor": "^0.52.2"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  },
+  "build": {
+    "appId": "de.gbxstudio.ide",
+    "productName": "GBX Studio",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/main/**/*",
+      "src/server/**/*",
+      "src/renderer/**/*",
+      "assets/**/*",
+      "data/**/*",
+      "package.json",
+      "!node_modules/monaco-editor/esm/**",
+      "!node_modules/monaco-editor/dev/**",
+      "!node_modules/monaco-editor/min-maps/**",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "portable": {
+      "artifactName": "GBXStudio-${version}.exe"
+    }
+  }
+}

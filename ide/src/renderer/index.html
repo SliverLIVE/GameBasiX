@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob: data:; connect-src 'self';">
+  <title>GBX Studio</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/assets/icon-256.png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><b>GBX</b>STUDIO<small>IDE</small></div>
+    <button class="tb-btn" id="btn-new-project" title="Neues Projekt anlegen" data-i18n-title="Neues Projekt anlegen"><span data-i18n="＋ Neues Projekt">＋ Neues Projekt</span></button>
+    <button class="tb-btn" id="btn-open" title="Projekt öffnen (Strg+O)" data-i18n-title="Projekt öffnen (Strg+O)"><span data-i18n="Öffnen">Öffnen</span></button>
+    <button class="tb-btn" id="btn-save" title="Speichern (Strg+S)" data-i18n-title="Speichern (Strg+S)"><span data-i18n="Speichern">Speichern</span></button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn primary" id="btn-build" title="Syntax prüfen (F7)" data-i18n-title="Syntax prüfen (F7)"><span id="build-icon">⚙</span> <span data-i18n="Prüfen">Prüfen</span> <kbd>F7</kbd></button>
+    <button class="tb-btn run" id="btn-run" title="Programm starten (F5)" data-i18n-title="Programm starten (F5)">▶ <span data-i18n="Starten">Starten</span> <kbd>F5</kbd></button>
+    <button class="tb-btn stop" id="btn-stop" hidden title="Laufendes Programm beenden" data-i18n-title="Laufendes Programm beenden">■ <span data-i18n="Stopp">Stopp</span></button>
+    <button class="tb-btn debug" id="btn-debug" title="Debugger starten (F6)" data-i18n-title="Debugger starten (F6)">🐞 <span data-i18n="Debuggen">Debuggen</span> <kbd>F6</kbd></button>
+    <button class="tb-btn export" id="btn-export" title="Spiel bauen (Strg+E)" data-i18n-title="Spiel bauen (Strg+E)">📦 <span data-i18n="Bauen">Bauen</span></button>
+    <select class="tb-select" id="target-platform" title="Zielplattform" data-i18n-title="Zielplattform">
+      <option value="exe" data-i18n="Windows-EXE">Windows-EXE</option>
+      <option value="html5" data-i18n="HTML5 (Browser)">HTML5 (Browser)</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="tb-btn" id="btn-tools" title="Werkzeuge" data-i18n-title="Werkzeuge">🔧 <span data-i18n="Tools">Tools</span> ▾</button>
+    <button class="tb-btn" id="btn-toggle-ref" title="GBX-Referenz ein-/ausblenden" data-i18n-title="GBX-Referenz ein-/ausblenden">📖 <span data-i18n="Referenz">Referenz</span></button>
+    <button class="tb-btn icon lang-btn" id="btn-lang" title="Sprache wechseln" data-i18n-title="Sprache wechseln">DE</button>
+    <button class="tb-btn icon" id="btn-settings" title="Einstellungen" data-i18n-title="Einstellungen">⚙</button>
+  </header>
+
+  <div class="workspace" id="workspace">
+    <aside class="dock-zone sidebar" id="sidebar" data-zone="left" aria-label="Linke Andockzone"></aside>
+
+    <div class="splitter split-left" id="split-left" role="separator" aria-orientation="vertical" title="Breite ziehen" data-i18n-title="Breite ziehen"></div>
+
+    <main class="main-area">
+      <div class="tabbar" id="tabbar"></div>
+      <div class="debug-bar" id="debug-bar" hidden>
+        <span class="debug-state" id="debug-state"></span>
+        <span class="debug-where" id="debug-where"></span>
+        <div class="debug-actions">
+          <button id="btn-debug-continue" title="Weiter bis zum nächsten Haltepunkt (F8)" data-i18n-title="Weiter bis zum nächsten Haltepunkt (F8)">▶ <span data-i18n="Weiter">Weiter</span> <kbd>F8</kbd></button>
+          <button id="btn-debug-pause" title="Beim nächsten Befehl anhalten" data-i18n-title="Beim nächsten Befehl anhalten">⏸ <span data-i18n="Pause">Pause</span></button>
+          <button id="btn-debug-over" title="Nächste Zeile ausführen (F10)" data-i18n-title="Nächste Zeile ausführen (F10)">↷ <span data-i18n="Nächste Zeile">Nächste Zeile</span> <kbd>F10</kbd></button>
+          <button id="btn-debug-into" title="In die nächste Funktion springen (F11)" data-i18n-title="In die nächste Funktion springen (F11)">↳ <span data-i18n="Hinein">Hinein</span> <kbd>F11</kbd></button>
+          <button id="btn-debug-out" title="Aus der Funktion heraus springen (Umschalt+F11)" data-i18n-title="Aus der Funktion heraus springen (Umschalt+F11)">↰ <span data-i18n="Heraus">Heraus</span> <kbd>⇧F11</kbd></button>
+          <button id="btn-debug-stop" class="danger" title="Debug-Sitzung beenden (Umschalt+F6)" data-i18n-title="Debug-Sitzung beenden (Umschalt+F6)">■ <span data-i18n="Beenden">Beenden</span> <kbd>⇧F6</kbd></button>
+        </div>
+      </div>
+      <div class="editor-wrap" id="editor-wrap">
+        <div id="editor"></div>
+        <section class="preview-pane" id="preview-pane" hidden></section>
+        <div class="sig-ghost" id="sig-ghost" hidden></div>
+        <div class="signature-bar" id="signature-bar" hidden>
+          <span class="sig-name" id="sig-name"></span>
+          <span class="sig-params" id="sig-params"></span>
+          <span class="sig-error" id="sig-error" hidden></span>
+        </div>
+        <section class="welcome" id="welcome">
+          <div class="welcome-inner">
+            <h1>GBX<span>STUDIO</span></h1>
+            <p data-i18n="Die IDE für GameBasiX – Editor, vollständige Befehlsreferenz und der Interpreter direkt daneben.">Die IDE für GameBasiX – Editor, vollständige Befehlsreferenz und der Interpreter direkt daneben.</p>
+            <div class="welcome-actions">
+              <button class="big-btn primary" id="welcome-new">
+                <span class="t" data-i18n="＋ Neues Projekt">＋ Neues Projekt</span>
+                <span class="s" data-i18n="Hello World, Formen oder Sprites">Hello World, Formen oder Sprites</span>
+              </button>
+              <button class="big-btn" id="welcome-open">
+                <span class="t" data-i18n="📂 Projekt öffnen">📂 Projekt öffnen</span>
+                <span class="s" data-i18n="Ordner, .gbxproj oder .gbx">Ordner, .gbxproj oder .gbx</span>
+              </button>
+            </div>
+            <div class="recent" id="recent-wrap" hidden>
+              <h3 data-i18n="Zuletzt geöffnet">Zuletzt geöffnet</h3>
+              <div id="recent-list"></div>
+            </div>
+            <p class="hint"><span data-i18n="Tipp:">Tipp:</span> <kbd>F7</kbd> <span data-i18n="prüfen">prüfen</span> · <kbd>F5</kbd> <span data-i18n="starten">starten</span> · <kbd data-i18n="Strg">Strg</kbd>+<kbd data-i18n="Leertaste">Leertaste</kbd> <span data-i18n="Vervollständigung">Vervollständigung</span></p>
+          </div>
+        </section>
+      </div>
+
+      <div class="splitter split-bottom" id="split-bottom" role="separator" aria-orientation="horizontal" title="Höhe ziehen" data-i18n-title="Höhe ziehen"></div>
+
+      <section class="bottom-panel" id="bottom-panel" data-zone="bottom">
+        <div class="panel-tabs">
+          <div class="panel-tab-list" id="panel-tabs" role="tablist"></div>
+          <div class="panel-tab-tools">
+                        <button class="icon-btn" id="btn-toggle-panel" title="Panel ein-/ausklappen" data-i18n-title="Panel ein-/ausklappen">▾</button>
+          </div>
+        </div>
+        <div class="panel-body" id="panel-body"></div>
+      </section>
+    </main>
+
+    <div class="splitter split-right" id="split-right" role="separator" aria-orientation="vertical" title="Breite ziehen" data-i18n-title="Breite ziehen"></div>
+
+    <aside class="dock-zone reference" id="reference" data-zone="right" aria-label="Rechte Andockzone"></aside>
+  </div>
+
+  <footer class="statusbar">
+    <span class="item"><span class="dot" id="sdk-dot"></span><span id="sdk-label" data-i18n="Interpreter wird geprüft …">Interpreter wird geprüft …</span></span>
+    <span class="item" id="status-platform">—</span>
+    <span class="item" id="status-build" data-i18n="Bereit">Bereit</span>
+    <span class="item" id="status-live" hidden></span>
+    <span class="spacer"></span>
+    <span class="item path" id="status-path"></span>
+    <span class="item" id="status-cursor">Ln 1, Sp 1</span>
+    <span class="item" id="status-dataset"></span>
+  </footer>
+</div>
+
+<!-- Inhalte der andockbaren Panels. Sie wandern beim Zeichnen in die Zonen. -->
+<div id="dock-sources" hidden>
+  <div class="dock-src" data-panel="files">
+    <div class="panel-head">
+      <span class="name" id="project-name" data-i18n="Kein Projekt geöffnet">Kein Projekt geöffnet</span>
+      <button class="icon-btn" id="btn-open-folder" title="Projektordner im Explorer öffnen" data-i18n-title="Projektordner im Explorer öffnen">📂</button>
+      <button class="icon-btn" id="btn-refresh" title="Dateibaum aktualisieren" data-i18n-title="Dateibaum aktualisieren">⟳</button>
+    </div>
+    <div class="file-tree" id="file-tree">
+      <div class="empty-hint" data-i18n="Noch kein Projekt geöffnet.">Noch kein Projekt geöffnet.</div>
+    </div>
+    <div class="sidebar-actions">
+      <button id="btn-new-file" data-i18n="＋ Datei">＋ Datei</button>
+      <button id="btn-new-folder" data-i18n="＋ Ordner">＋ Ordner</button>
+    </div>
+  </div>
+
+  <div class="dock-src" data-panel="outline">
+    <div class="outline-body" id="outline-body">
+      <div class="outline-empty" data-i18n="Keine Datei geöffnet.">Keine Datei geöffnet.</div>
+    </div>
+  </div>
+
+  <div class="dock-src" data-panel="reference">
+    <div class="ref-search-wrap">
+      <span class="mag">⌕</span>
+      <input id="ref-search" type="text" placeholder="Befehl, Schlüsselwort oder Beschreibung …" data-i18n-placeholder="Befehl, Schlüsselwort oder Beschreibung …" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="ref-filters">
+      <select id="ref-category"><option value="" data-i18n="Alle Kategorien">Alle Kategorien</option></select>
+      <select id="ref-kind">
+        <option value="" data-i18n="Alles">Alles</option>
+        <option value="command" data-i18n="Befehle">Befehle</option>
+        <option value="keyword" data-i18n="Schlüsselwörter">Schlüsselwörter</option>
+        <option value="operator" data-i18n="Operatoren">Operatoren</option>
+        <option value="type" data-i18n="Datentypen">Datentypen</option>
+        <option value="overview" data-i18n="Übersichten">Übersichten</option>
+      </select>
+    </div>
+    <div class="ref-list" id="ref-list"></div>
+    <div class="ref-detail" id="ref-detail">
+      <div class="empty-hint" data-i18n="Wähle links einen Eintrag. Der Datensatz enthält alle Befehle, Schlüsselwörter und Konstanten von GameBasiX.">Wähle links einen Eintrag. Der Datensatz enthält alle Befehle, Schlüsselwörter und Konstanten von GameBasiX.</div>
+    </div>
+  </div>
+
+  <div class="dock-src" data-panel="problems">
+    <div class="problems" id="problems-list"></div>
+    <div class="empty-hint" id="problems-empty" data-i18n="Keine Probleme. Prüfe das Projekt mit F7.">Keine Probleme. Prüfe das Projekt mit F7.</div>
+  </div>
+
+  <div class="dock-src" data-panel="output"><pre class="output" id="output"></pre></div>
+
+  <div class="dock-src" data-panel="console"><pre class="output" id="console"></pre></div>
+
+  <div class="dock-src" data-panel="debug">
+    <div class="debug-panel">
+      <div class="debug-head">
+        <span class="debug-title" id="debug-panel-state" data-i18n="Keine Debug-Sitzung.">Keine Debug-Sitzung.</span>
+        <button class="debug-start" id="btn-debug-start-panel" data-i18n="Debuggen (F6)">Debuggen (F6)</button>
+      </div>
+      <div class="debug-cols">
+        <section class="debug-group">
+          <h4><span data-i18n="Lokal">Lokal</span><span class="debug-func" id="debug-func"></span></h4>
+          <div class="debug-vars" id="debug-locals">
+            <div class="empty-hint" data-i18n="Keine lokalen Variablen.">Keine lokalen Variablen.</div>
+          </div>
+          <h4><span data-i18n="Global">Global</span><span class="debug-count" id="debug-global-count"></span></h4>
+          <div class="debug-vars" id="debug-globals"></div>
+        </section>
+        <section class="debug-group side">
+          <h4><span data-i18n="Aufrufe">Aufrufe</span></h4>
+          <div class="debug-stack" id="debug-stack"></div>
+          <h4><span data-i18n="Haltepunkte">Haltepunkte</span></h4>
+          <div class="debug-breakpoints" id="debug-breakpoints"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="modal-root"></div>
+<div id="toasts"></div>
+
+<script src="/monaco/vs/loader.js"></script>
+<script>
+  window.MonacoEnvironment = {
+    getWorkerUrl: function () {
+      const base = location.origin + '/monaco/vs/';
+      return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(
+        'self.MonacoEnvironment={baseUrl:"' + base + '"};importScripts("' + base + 'base/worker/workerMain.js");'
+      );
+    }
+  };
+  require.config({ paths: { vs: '/monaco/vs' } });
+</script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

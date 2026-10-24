@@ -1,0 +1,24 @@
+; GameBasiX project file
+; Written by the IDE, but you can also edit it by hand.
+
+[project]
+name = Hello
+main = main.gbx
+
+[window]
+title = Hello
+width = 640
+height = 480
+fullscreen = 0
+resizable = 1
+
+[graphics]
+fps = 0
+vsync = 1
+
+[audio]
+enabled = 1
+volume = 1
+
+[assets]
+root = assets

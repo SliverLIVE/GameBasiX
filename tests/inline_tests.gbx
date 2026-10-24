@@ -1,0 +1,519 @@
+' ============================================================
+' Tests fuer INLINE-Bloecke und die GBXArray-Bibliothek
+' Aufruf: gbx --headless --tests tests/inline_tests.gbx
+' ============================================================
+
+INLINE
+#include <gbx_inline.h>
+
+#include <string>
+
+static void dreifach(const GbxValue* args, int argc, GbxValue* ret) {
+    gbxinline::retNum(ret, gbxinline::argNum(args, argc, 0) * 3);
+}
+GBX_INLINE_FN("INLINE_DREIFACH", 1, 1, dreifach);
+
+static void aneinander(const GbxValue* args, int argc, GbxValue* ret) {
+    gbxinline::retText(ret, gbxinline::argText(args, argc, 0) + "-" + gbxinline::argText(args, argc, 1));
+}
+GBX_INLINE_FN("INLINE_PAAR", 2, 2, aneinander);
+
+static void hochzaehlen(const GbxValue* args, int argc, GbxValue* ret) {
+    static int calls = 0;
+    ++calls;
+    gbxinline::log("INLINE_LOG " + std::to_string(calls));
+    gbxinline::retNum(ret, gbxinline::argNum(args, argc, 0) + calls);
+}
+GBX_INLINE_FN("INLINE_ZAEHLER", 1, 1, hochzaehlen);
+
+static void textName(const GbxValue*, int, GbxValue* ret) {
+    gbxinline::retText(ret, "suffix ok");
+}
+GBX_INLINE_FN("INLINE_TEXT$", 0, 0, textName);
+ENDINLINE
+
+' Zweiter Block: darf nicht als erstes kommen, sondern danach
+INLINE
+#include <gbx_inline.h>
+
+static void quadrat(const GbxValue* args, int argc, GbxValue* ret) {
+    const double value = gbxinline::argNum(args, argc, 0);
+    gbxinline::retNum(ret, value * value);
+}
+GBX_INLINE_FN("INLINE_QUADRAT", 1, 1, quadrat);
+ENDINLINE
+
+' Die Bibliothek aus dem Beispiel bindet sich genauso ein (Pfad relativ zu
+' dieser Datei, weil der Block in einem anderen Ordner uebersetzt wird).
+INLINE
+#include "../examples/04_gbxarray/gbxarray.h"
+ENDINLINE
+
+' Definitionsbloecke duerfen auch mitten im Code stehen - hier mit INLINE
+' DEFINE. Sie werden beim Start uebersetzt, egal wo sie stehen.
+FUNCTION verdopple: wert
+  INLINE DEFINE
+#include <gbx_inline.h>
+
+static void zweifach(const GbxValue* args, int argc, GbxValue* ret) {
+    gbxinline::retNum(ret, gbxinline::argNum(args, argc, 0) * 2);
+}
+GBX_INLINE_FN("INLINE_ZWEIFACH", 1, 1, zweifach);
+  ENDINLINE
+  RETURN INLINE_ZWEIFACH(wert)
+ENDFUNCTION
+
+IF 1 = 1
+  INLINE DEFINE
+#include <gbx_inline.h>
+
+static void abziehen(const GbxValue* args, int argc, GbxValue* ret) {
+    gbxinline::retNum(ret, gbxinline::argNum(args, argc, 0) - gbxinline::argNum(args, argc, 1));
+}
+GBX_INLINE_FN("INLINE_ABZIEHEN", 2, 2, abziehen);
+  ENDINLINE
+ELSE
+  PRINT "unmoeglich", 0, 0
+ENDIF
+
+' ------------------------------------------------------ INLINE-Funktionen
+ASSERT INLINE_DREIFACH(14) = 42, "INLINE-Funktion mit Zahl"
+ASSERT INLINE_DREIFACH(1.5) = 4.5, "INLINE-Funktion mit Kommazahl"
+ASSERT INLINE_PAAR("rot", "blau") = "rot-blau", "INLINE-Funktion mit Texten"
+ASSERT INLINE_QUADRAT(7) = 49, "zweiter INLINE-Block"
+ASSERT INLINE_ZAEHLER(0) = 1, "Zustand im Block bleibt erhalten"
+ASSERT INLINE_ZAEHLER(0) = 2, "Zustand im Block zaehlt weiter"
+
+' ------------------------------------------------- Bloecke in FUNCTION/IF
+ASSERT INLINE_ZWEIFACH(4) = 8, "Block in einer FUNCTION ist von aussen nutzbar"
+ASSERT verdopple(21) = 42, "Funktion mit INLINE-Block"
+ASSERT INLINE_ABZIEHEN(50, 8) = 42, "Block in einem IF"
+
+' ------------------------------------------------------------ GBXArray
+liste = GBXARRAY_NEW()
+ASSERT liste > 0, "GBXARRAY_NEW liefert ein Handle"
+ASSERT GBXARRAY_COUNT(liste) = 0, "neues Array ist leer"
+
+ASSERT GBXARRAY_ADD(liste, 30) = 0, "ADD liefert den Index"
+ASSERT GBXARRAY_ADD(liste, 10) = 1, "ADD haengt an"
+ASSERT GBXARRAY_ADD(liste, 20) = 2, "ADD haengt weiter an"
+ASSERT GBXARRAY_COUNT(liste) = 3, "COUNT"
+ASSERT GBXARRAY_GET(liste, 1) = 10, "GET mit Index"
+ASSERT GBXARRAY_GET(liste, -1) = 20, "GET mit negativem Index"
+
+ASSERT GBXARRAY_FIND(liste, 20) = 2, "FIND findet den Wert"
+ASSERT GBXARRAY_FIND(liste, 99) = -1, "FIND meldet -1"
+
+ASSERT GBXARRAY_SORT(liste) = 1, "SORT"
+ASSERT GBXARRAY_JOIN$(liste, ",") = "10,20,30", "nach dem Sortieren aufsteigend"
+
+ASSERT GBXARRAY_INSERT(liste, 0, 5) = 1, "INSERT"
+ASSERT GBXARRAY_GET(liste, 0) = 5, "INSERT an den Anfang"
+ASSERT GBXARRAY_COUNT(liste) = 4, "INSERT vergroessert"
+
+ASSERT GBXARRAY_SET(liste, 1, 15) = 1, "SET"
+ASSERT GBXARRAY_GET(liste, 1) = 15, "SET schreibt den Wert"
+
+ASSERT GBXARRAY_REMOVE(liste, 0) = 1, "REMOVE"
+ASSERT GBXARRAY_COUNT(liste) = 3, "REMOVE verkleinert"
+ASSERT GBXARRAY_JOIN$(liste, " ") = "15 20 30", "Reihenfolge nach REMOVE"
+
+' Texte und Zahlen duerfen sich mischen; SORT legt Zahlen nach vorn.
+texte = GBXARRAY_NEW()
+ASSERT GBXARRAY_ADD(texte, "Zeder") = 0, "ADD Text"
+ASSERT GBXARRAY_ADD(texte, "Ahorn") = 1, "ADD Text"
+ASSERT GBXARRAY_ADD(texte, 7) = 2, "ADD Zahl in Textarray"
+ASSERT GBXARRAY_SORT(texte) = 1, "SORT mit Texten"
+ASSERT GBXARRAY_JOIN$(texte, "|") = "7|Ahorn|Zeder", "Zahlen zuerst, dann alphabetisch"
+ASSERT GBXARRAY_FIND(texte, "Ahorn") = 1, "FIND Text"
+
+ASSERT GBXARRAY_CLEAR(texte) = 1, "CLEAR"
+ASSERT GBXARRAY_COUNT(texte) = 0, "CLEAR leert"
+ASSERT GBXARRAY_FREE(texte) = 1, "FREE"
+ASSERT GBXARRAY_COUNT(texte) = 0, "freigegebenes Array ist leer"
+
+' Der Typ-Suffix gehoert zum Aufruf, nicht zum Namen: "INLINE_TEXT$" ist unter
+' INLINE_TEXT$() und INLINE_TEXT() erreichbar.
+ASSERT INLINE_TEXT$() = "suffix ok", "Name mit Dollar"
+ASSERT INLINE_TEXT() = INLINE_TEXT$(), "Name ohne Dollar"
+
+' ============================================================
+' Schritte: INLINE mitten im Code laeuft an dieser Stelle und
+' sieht die BASIC-Variablen als C++-Namen (klein geschrieben).
+' ============================================================
+
+GLOBAL laeufe
+laeufe = 0
+
+INLINE RUN
+  laeufe = laeufe + 1;
+ENDINLINE
+ASSERT laeufe = 1, "INLINE RUN im Hauptprogramm"
+
+FUNCTION schritt: wert
+  LOCAL ergebnis
+  ergebnis = 0
+  INLINE
+    ergebnis = wert * 2;
+  ENDINLINE
+  RETURN ergebnis
+ENDFUNCTION
+ASSERT schritt(21) = 42, "Schritt in einer FUNCTION"
+
+FUNCTION mehrfach
+  INLINE
+    laeufe = laeufe + 1;
+  ENDINLINE
+ENDFUNCTION
+mehrfach()
+mehrfach()
+ASSERT laeufe = 3, "jeder Aufruf fuehrt den Block aus"
+
+FUNCTION zaehle
+  LOCAL i, summe
+  summe = 0
+  FOR i = 1 TO 3
+    INLINE
+      summe = summe + i;
+    ENDINLINE
+  NEXT
+  RETURN summe
+ENDFUNCTION
+ASSERT zaehle() = 6, "Schritt in einer Schleife laeuft jedes Mal"
+
+text$ = "Welt"
+FUNCTION gruss
+  INLINE
+    text_str = std::string("Hallo ") + text_str;
+  ENDINLINE
+ENDFUNCTION
+gruss()
+ASSERT text$ = "Hallo Welt", "Text-Variable"
+
+DIM zahlen[4]
+zahlen[2] = 7
+FUNCTION rechnen
+  INLINE
+    zahlen[1] = zahlen[2] * 2;
+  ENDINLINE
+ENDFUNCTION
+rechnen()
+ASSERT zahlen[1] = 14, "Array im Schritt"
+
+' ------------------------------------------------------------- TYPEs
+TYPE TESTPUNKT
+  x AS FLOAT
+  name$
+ENDTYPE
+
+TYPE TESTLINIE
+  a AS TESTPUNKT
+ENDTYPE
+
+TYPE TESTKISTE
+  breite AS FLOAT
+
+  METHOD doppelt
+    INLINE
+      breite = breite * 2;
+    ENDINLINE
+  ENDMETHOD
+ENDTYPE
+
+GLOBAL tp AS TESTPUNKT
+GLOBAL tl AS TESTLINIE
+GLOBAL tk AS TESTKISTE
+DIM tpunkte[2] AS TESTPUNKT
+
+tp.x = 1
+tl.a.x = 5
+tk.breite = 3
+
+FUNCTION typen
+  INLINE
+    tp.x = tp.x + 1;
+    tp.name_str = "Punkt";
+    tl.a.x = tl.a.x + 10;
+    tpunkte[0].x = 3;
+  ENDINLINE
+ENDFUNCTION
+
+typen()
+ASSERT tp.x = 2, "TYPE-Feld im Schritt"
+ASSERT tp.name$ = "Punkt", "Text-Feld im Schritt"
+ASSERT tl.a.x = 15, "verschachteltes Feld"
+ASSERT tpunkte[0].x = 3, "TYPE-Array"
+
+tk.doppelt()
+ASSERT tk.breite = 6, "METHOD-Feld im Schritt"
+
+CONSTANT FAKTOR = 5
+FUNCTION mitKonstante
+  LOCAL wert
+  wert = 0
+  INLINE
+    wert = faktor * 2;
+  ENDINLINE
+  RETURN wert
+ENDFUNCTION
+ASSERT mitKonstante() = 10, "Konstante lesen"
+
+' Zuweisungen im Block kopieren Werte, sie haengen keine Namen um.
+FUNCTION kopieren
+  LOCAL a, b
+  a = 1
+  b = 2
+  INLINE
+    a = b;
+    a = a + 10;
+  ENDINLINE
+  RETURN a * 100 + b
+ENDFUNCTION
+ASSERT kopieren() = 1202, "Zahl-Zuweisung kopiert den Wert"
+
+text1$ = "A"
+text2$ = "B"
+FUNCTION texte
+  INLINE
+    text1_str = text2_str;
+    text2_str = "C";
+  ENDINLINE
+ENDFUNCTION
+texte()
+ASSERT text1$ = "B" AND text2$ = "C", "Text-Zuweisung kopiert den Wert"
+
+' ------------------------------------------------- Arrays im Schritt aendern
+' push/insert/remove/clear/resize arbeiten direkt auf dem BASIC-Array -
+' wie GBXArray, nur ohne Handle und ohne Kopie.
+DIM liste[3]
+liste[0] = 10 : liste[1] = 20 : liste[2] = 30
+
+FUNCTION listeWachsen
+  INLINE
+    liste.push(40);
+    liste.push(50);
+    liste.insert(0, 5);
+    liste.remove(3);            // die 30
+  ENDINLINE
+ENDFUNCTION
+
+listeWachsen()
+ASSERT BOUNDS(liste[], 0) = 5, "push/insert/remove aendern die Groesse"
+ASSERT liste[0] = 5 AND liste[1] = 10 AND liste[2] = 20 AND liste[3] = 40 AND liste[4] = 50, "Reihenfolge nach den Aenderungen"
+
+FUNCTION letztesWeg
+  INLINE
+    liste.remove(-1);
+  ENDINLINE
+ENDFUNCTION
+letztesWeg()
+ASSERT BOUNDS(liste[], 0) = 4 AND liste[-1] = 40, "remove mit negativem Index"
+
+FUNCTION hintenAnfuegen
+  INLINE
+    liste.insert(-1, 99);      // -1 haengt an
+  ENDINLINE
+ENDFUNCTION
+hintenAnfuegen()
+ASSERT BOUNDS(liste[], 0) = 5 AND liste[-1] = 99, "insert(-1) haengt an"
+
+' resize entspricht REDIM: bestehende Werte bleiben, neue Plaetze sind 0.
+DIM form[3]
+form[0] = 1 : form[1] = 2 : form[2] = 3
+FUNCTION formWachsen
+  INLINE
+    form.resize(6);
+    form[3] = form[2] + 2;
+  ENDINLINE
+ENDFUNCTION
+formWachsen()
+ASSERT BOUNDS(form[], 0) = 6, "resize vergroessert"
+ASSERT form[0] = 1 AND form[2] = 3 AND form[3] = 5, "resize behaelt die Werte"
+ASSERT form[5] = 0, "neue Plaetze sind 0"
+
+FUNCTION formSchrumpfen
+  INLINE
+    form.resize(2);
+  ENDINLINE
+ENDFUNCTION
+formSchrumpfen()
+ASSERT BOUNDS(form[], 0) = 2 AND form[1] = 2, "resize verkleinert"
+
+DIM woerter$[2]
+woerter$[0] = "Ada" : woerter$[1] = "Blaise"
+FUNCTION woerterWachsen
+  INLINE
+    woerter.push("Grace");
+    woerter.insert(0, "Zora");
+    woerter[1] = std::string("Ada ") + "L.";
+  ENDINLINE
+ENDFUNCTION
+woerterWachsen()
+ASSERT BOUNDS(woerter$[], 0) = 4, "Text-Array waechst"
+ASSERT woerter$[0] = "Zora" AND woerter$[1] = "Ada L." AND woerter$[3] = "Grace", "Text-Array Inhalt"
+
+' Ein Element aus demselben Array laesst sich kopieren (auch wenn es umzieht).
+FUNCTION wortKopie
+  INLINE
+    woerter.push(woerter[0]);
+  ENDINLINE
+ENDFUNCTION
+wortKopie()
+ASSERT woerter$[4] = "Zora", "Element in dasselbe Array kopieren"
+
+' TYPE-Arrays: push() legt einen Standard-Datensatz an, push(tp) kopiert.
+DIM neuPunkte[2] AS TESTPUNKT
+neuPunkte[0].x = 1
+FUNCTION punkteWachsen
+  INLINE
+    neupunkte.push();
+    neupunkte.push(tp);
+    neupunkte.push();
+    neupunkte[4].x = 9;
+    neupunkte.remove(0);
+    neupunkte.resize(6);
+  ENDINLINE
+ENDFUNCTION
+punkteWachsen()
+ASSERT BOUNDS(neuPunkte[], 0) = 6, "TYPE-Array waechst"
+ASSERT neuPunkte[0].x = 0 AND neuPunkte[2].x = 2 AND neuPunkte[3].x = 9 AND neuPunkte[5].x = 0, "Werte im TYPE-Array"
+
+FUNCTION punkteLeeren
+  INLINE
+    neupunkte.clear();
+  ENDINLINE
+ENDFUNCTION
+punkteLeeren()
+ASSERT BOUNDS(neuPunkte[], 0) = 0, "clear auf TYPE-Array"
+
+' Mehrdimensional: resize baut die neue Form, rank/size lesen sie.
+DIM raster[2][3]
+raster[1][2] = 8
+GLOBAL Dimensionen
+Dimensionen = 0
+FUNCTION rasterWachsen
+  INLINE
+    raster.resize(4, 5);
+    raster[3][4] = 7;
+    raster[1][2] = raster[1][2] + 1;
+    dimensionen = raster.rank();
+  ENDINLINE
+ENDFUNCTION
+rasterWachsen()
+ASSERT Dimensionen = 2, "rank liefert die Dimensionen"
+ASSERT BOUNDS(raster[], 0) = 4 AND BOUNDS(raster[], 1) = 5, "resize mehrdimensional"
+ASSERT raster[3][4] = 7 AND raster[1][2] = 9, "Werte bleiben beim Wachsen"
+
+' Eine einzelne Zeile ist selbst ein Array (Element::asArray).
+FUNCTION reiheWachsen
+  INLINE
+    raster[0].asArray().push(42);
+  ENDINLINE
+ENDFUNCTION
+reiheWachsen()
+ASSERT BOUNDS(raster[], 1) = 6 AND raster[0][5] = 42, "Zeile einzeln vergroessern"
+
+' ------------------------------------------- GBX-Befehle im Schritt aufrufen
+GLOBAL RufLaenge, RufFarbe
+GLOBAL RufText$
+GLOBAL Mx, My, Mlinks, Mrechts
+RufText$ = ""
+
+FUNCTION rufeBefehle
+  INLINE
+    mx = 0; my = 0; mlinks = 0; mrechts = 0;
+    MOUSESTATE(mx, my, mlinks, mrechts);
+    ruflaenge = LEN("Hallo");
+    ruffarbe = call("RGB", 1, 2, 3);
+    ruftext_str = call("LEFT$", "Hallo Welt", 5).text();
+  ENDINLINE
+ENDFUNCTION
+rufeBefehle()
+ASSERT RufLaenge = 5, "LEN aus dem Schritt"
+ASSERT RufFarbe = 66051, "RGB aus dem Schritt"
+ASSERT RufText$ = "Hallo", "Text-Rueckgabe eines Befehls"
+ASSERT Mx = 0 AND My = 0 AND Mlinks = 0 AND Mrechts = 0, "BYREF-Ausgaben landen in den Variablen"
+
+DIM teile$[0]
+FUNCTION teileText
+  INLINE
+    SPLITSTR("a,b,c", teile);
+  ENDINLINE
+ENDFUNCTION
+teileText()
+ASSERT LEN(teile$[]) = 3 AND teile$[1] = "b", "Array als BYREF-Ziel"
+
+' Fehler im Schritt nennen die Stelle im BASIC-Code.
+FUNCTION zuWeit
+  INLINE
+    zahlen[99] = 1;
+  ENDINLINE
+ENDFUNCTION
+TRY
+  zuWeit()
+  ASSERT FALSE, "Fehler im Schritt muss kommen"
+CATCH fehler$
+  ASSERT INSTR(fehler$, "Array-Index") >= 0, "Fehlermeldung nennt den Index"
+FINALLY
+
+' push/insert/remove pruefen ihre Grenzen und melden den Grund.
+FUNCTION falscherIndex
+  INLINE
+    liste.remove(99);
+  ENDINLINE
+ENDFUNCTION
+TRY
+  falscherIndex()
+  ASSERT FALSE, "remove mit falschem Index muss fehlschlagen"
+CATCH fehler$
+  ASSERT INSTR(fehler$, "ausserhalb") >= 0, "remove meldet den Index"
+FINALLY
+
+FUNCTION rasterPush
+  INLINE
+    raster.push(1.0);
+  ENDINLINE
+ENDFUNCTION
+TRY
+  rasterPush()
+  ASSERT FALSE, "push auf ein mehrdimensionales Array muss fehlschlagen"
+CATCH fehler$
+  ASSERT INSTR(fehler$, "eindimensional") >= 0, "Meldung erklaert mehrdimensionale Arrays"
+FINALLY
+
+' Auch GBX-Befehle pruefen ihre Argumente.
+FUNCTION rufeFalsch
+  INLINE
+    LEN();
+  ENDINLINE
+ENDFUNCTION
+TRY
+  rufeFalsch()
+  ASSERT FALSE, "LEN ohne Argument muss fehlschlagen"
+CATCH fehler$
+  ASSERT INSTR(fehler$, "Argumente") >= 0, "falsche Argumentzahl wird gemeldet"
+FINALLY
+
+FUNCTION rufeUnbekannt
+  INLINE
+    call("GIBTSNICHT");
+  ENDINLINE
+ENDFUNCTION
+TRY
+  rufeUnbekannt()
+  ASSERT FALSE, "unbekannter Befehl muss fehlschlagen"
+CATCH fehler$
+  ASSERT INSTR(fehler$, "Unbekannter GBX-Befehl") >= 0, "unbekannter Befehl wird gemeldet"
+FINALLY
+
+FUNCTION rufeLiteral
+  INLINE
+    MOUSESTATE(0, 0, 0, 0);
+  ENDINLINE
+ENDFUNCTION
+TRY
+  rufeLiteral()
+  ASSERT FALSE, "BYREF auf eine Zahl muss fehlschlagen"
+CATCH fehler$
+  ASSERT INSTR(fehler$, "Ausgabevariable") >= 0, "BYREF verlangt eine Variable"
+FINALLY

@@ -1,0 +1,22 @@
+{
+  "name": "methods",
+  "appName": "Methods",
+  "title": "GameBasiX - METHOD with INLINE",
+  "entry": "main.gbx",
+  "width": 640,
+  "height": 480,
+  "fullscreen": false,
+  "resizable": true,
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx"
+  ],
+  "createdAt": "2026-10-23T14:36:45.576Z"
+}

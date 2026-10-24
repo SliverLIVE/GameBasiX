@@ -1,0 +1,34 @@
+' Renderpruefung: zeichnet bekannte Formen und speichert den Bildschirm.
+' Aufruf: SDL_VIDEODRIVER=dummy gbx tests/render_check.gbx
+
+SETSCREEN 320, 240, 0
+CLEARSCREEN RGB(0, 0, 64)
+
+DRAWRECT 10, 10, 100, 50, RGB(255, 0, 0)
+DRAWLINE 0, 0, 319, 0, RGB(0, 255, 0)
+DRAWFILLEDCIRCLE 160, 130, 30, RGB(0, 128, 255)
+DRAWBORDER 200, 10, 100, 60, RGB(255, 255, 0)
+
+' Sprite laden und zeichnen (Pfad relativ zur Projektdatei)
+LOADSPRITE "../examples/03_sprites/assets/ball.png", 0
+DRAWSPRITE 0, 230, 150
+
+' TTF, falls vorhanden
+fontHeight = 0
+TRY
+  LOADFONT "arial.ttf", 2, 40
+  SETFONT 2
+  GETFONTSIZE fw, fh
+  fontHeight = fh
+CATCH err$
+  SETFONT 0, 2
+FINALLY
+
+SETTEXTCOLOR RGB(255, 255, 255)
+PRINT "GBX", 12, 200
+
+STDOUT "TEXTHOEHE " + fontHeight + CHR$(10)
+STDOUT "SCREEN " + GETSCREENWIDTH() + "x" + GETSCREENHEIGHT() + CHR$(10)
+
+SAVEBMP "out_render.bmp"
+END

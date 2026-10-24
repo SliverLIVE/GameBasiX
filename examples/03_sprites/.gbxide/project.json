@@ -1,0 +1,22 @@
+{
+  "name": "sprites",
+  "appName": "Sprites",
+  "title": "GameBasiX - Sprites",
+  "entry": "main.gbx",
+  "width": 900,
+  "height": 600,
+  "fullscreen": false,
+  "resizable": true,
+  "frameRate": 60,
+  "vsync": true,
+  "audio": true,
+  "volume": 1,
+  "assetDir": "assets",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx"
+  ],
+  "createdAt": "2026-10-23T09:30:24.340Z"
+}

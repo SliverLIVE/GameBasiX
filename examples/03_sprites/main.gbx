@@ -1,0 +1,43 @@
+' ============================================================
+' Sprites, rotation/scaling and animations
+' Run: gbx examples/03_sprites/sprites.gbxproj
+' ============================================================
+GLOBAL Ball = 0       
+GLOBAL Sparkle = 1
+
+SETSCREEN 900, 600, 0
+SETWINDOWTITLE "GameBasiX - Sprites"
+LIMITFPS 60
+CLEARSCREEN RGB(6, 8, 14)
+SMOOTHSHADING TRUE
+
+LOADSPRITE "assets/ball.png", Ball
+LOADANIM "assets/sparkle.png", Sparkle, 32, 32
+
+WHILE TRUE
+  t = GETTIMERALL() / 1000.0
+
+  CLEARSCREEN RGB(6, 8, 14)
+
+  ' ring of rotating, pulsing balls
+  FOR i = 0 TO 24
+    ang = t * 60 + i * 15
+    x = 450 + COS(ang) * (70 + i * 11) - 32
+    y = 290 + SIN(ang * 1.3) * (60 + i * 7) - 32
+    zoom = 35 + 65 * (0.5 + 0.5 * SIN(ang * 0.5))
+    ROTOZOOMSPRITE Ball, x, y, ang * 2, zoom
+  NEXT
+
+  ' animation strip along the bottom edge
+  FOR i = 0 TO 15
+    frame = MOD(INTEGER(t * 10)+i, 4)
+    DRAWANIM Sparkle, frame, 70 + i * 50, 520
+  NEXT
+
+  SETTEXTCOLOR RGB(255, 0, 0)
+  PRINT "LOADSPRITE + ROTOZOOMSPRITE and LOADANIM + DRAWANIM", 60, 40
+  SETTEXTCOLOR RGB(9, 93, 219)
+  PRINT "ESC quits the program", 60, 66
+  
+  SHOWSCREEN
+WEND

@@ -1,0 +1,479 @@
+{
+ "ABS": [
+  "n# = ABS(m#)"
+ ],
+ "ACOS": [
+  "v=ACOS(a#)"
+ ],
+ "ALLOWESCAPE": [
+  "ALLOWESCAPE a#"
+ ],
+ "ALPHAMODE": [
+  "ALPHAMODE alpha#"
+ ],
+ "ALPHATESTING": [
+  "ALPHATESTING grth#"
+ ],
+ "ANIMCOLL": [
+  "col% = ANIMCOLL(ani1%,tile1%, x1%,y1%,  ani2%,time2%, x2%,y2%)",
+  "col# = ANIMCOLL(ani1%,tile1%, x1%,y1%,  ani2%,time2%, x2%,y2%)"
+ ],
+ "ASC": [
+  "num% = ASC(string$, idnex%=0)",
+  "num% = ASC(wort$, index%=0)"
+ ],
+ "ASIN": [
+  "v=ASIN(a#)"
+ ],
+ "ASL": [
+  "res% = ASL(num%, shift%)",
+  "res% = ASL(num%, shift%)\n\nres% = ASR(num%, shift%)"
+ ],
+ "ASR": [
+  "res% = ASR(num%, shift%)"
+ ],
+ "ASSERT": [
+  "ASSERT(ok%)"
+ ],
+ "ATAN": [
+  "v=ATAN(dy#, dx#)"
+ ],
+ "BAND": [
+  "num% = bAND(num1%, num2%)",
+  "num% = bAND(num1%, num2%)\n\nnum% = bAND(num1%, num2%)\n\nnum% = bOR(num1%, num2%)\n\nnum% = bXOR(num1%, num2%)\n\nnum% = bNOT(num1%)"
+ ],
+ "BLACKSCREEN": [
+  "BLACKSCREEN"
+ ],
+ "BLENDSCREEN": [
+  "BLENDSCREEN bmp$ [, duration%]",
+  "BLENDSCREEN bmp$ [, dauer%]"
+ ],
+ "BNOT": [
+  "num% = bNOT(num1%)"
+ ],
+ "BOR": [
+  "num% = bOR(num1%, num2%)"
+ ],
+ "BOUNDS": [
+  "n% = BOUNDS(array#$[], ndim%)",
+  "n% = BOUNDS(feld#$[], ndim%)"
+ ],
+ "BOXCOLL": [
+  "col% = BOXCOLL(xa%, ya%, sxa%, sya%, xb%, yb%, sxb%, syb%)",
+  "col% = BOXCOLL(xa%, ya%, ba%, ha%, xb%, yb%, bb%, hb%)"
+ ],
+ "BXOR": [
+  "num% = bXOR(num1%, num2%)"
+ ],
+ "CHR$": [
+  "string$ = CHR$(num%)",
+  "wort$ = CHR$(num%)"
+ ],
+ "CLEARSCREEN": [
+  "CLEARSCREEN [color%]"
+ ],
+ "CODEFILE$": [
+  "file$ = CODEFILE$()"
+ ],
+ "CODELINE": [
+  "line% = CODELINE%()",
+  "line% = CODELINE()"
+ ],
+ "COS": [
+  "a=COS(angle#)"
+ ],
+ "CREATESCREEN": [
+  "CREATESCREEN id_screen%, id_sprite%, w%, h%"
+ ],
+ "DEBUG": [
+  "DEBUG text#$"
+ ],
+ "DIMDATA": [
+  "DIMDATA array#$[], data1#$, data2#$, ...",
+  "DIMDATA feld#$[], daten1#$, daten2#$, ..."
+ ],
+ "DRAWANIM": [
+  "DRAWANIM id%, anim%, x%, y%"
+ ],
+ "DRAWLINE": [
+  "DRAWLINE sx%, sy%, ex%, ey%, color%",
+  "DRAWLINE sx%, sy%, ex%, ey%, farbe%"
+ ],
+ "DRAWRECT": [
+  "DRAWRECT sx%, sy%, w%, h%, color%",
+  "DRAWRECT sx%, sy%, w%, h%, farbe%"
+ ],
+ "DRAWSPRITE": [
+  "DRAWSPRITE num%, x%, y%",
+  "DRAWSPRITE num%, x%, y%\n\nSTRETCHSPRITE num%, x%, y%, breite%, hoehe%\n\nROTOSPRITE num%, x%, y%, phi#\n\nROTOZOOMSPRITE num%, x%, y%, phi#, rel#\n\nZOOMSPRITE num%, x%, y%, relx#, rely#"
+ ],
+ "ENDPOLY": [
+  "ENDPOLY"
+ ],
+ "FMOD": [
+  "frac# = FMOD(num#$, div#$)"
+ ],
+ "FORMAT$": [
+  "fmt$ = FORMAT$(numLetters#, numAfterComma#, number#)",
+  "fmt$ = FORMAT$(numBuchstaben#, numNachKomma#, zahl#)"
+ ],
+ "GENFONT": [
+  "id% = GENFONT()",
+  "n% = GETFONT()\n\nLOADFONT \"test.png\", n%"
+ ],
+ "GENSCREEN": [
+  "id% = GENSCREEN( )"
+ ],
+ "GENSOUND": [
+  "id% = GENSOUND()"
+ ],
+ "GENSPRITE": [
+  "id% = GENSPRITE()",
+  "id% = GENSPRITE()\n\nid% = GENSOUND()\n\nid% = GENX_OBJ()\n\nid% = GENFILE()"
+ ],
+ "GETCOMMANDLINE$": [
+  "dat$ = GETCOMMANDLINE$()"
+ ],
+ "GETCURRENTFONT": [
+  "n% = GETCURRENTFONT()"
+ ],
+ "GETDESKTOPSIZE": [
+  "GETDESKTOPSIZE w#%, h#%"
+ ],
+ "GETENV$": [
+  "value$ = GETENV$( name$ )"
+ ],
+ "GETFONTSIZE": [
+  "GETFONTSIZE sx##, sy##"
+ ],
+ "GETMOUSECOUNT": [
+  "num% = GETMOUSECOUNT()"
+ ],
+ "GETPIXEL": [
+  "col% = GETPIXEL(x%, y%)"
+ ],
+ "GETSCREENSIZE": [
+  "GETSCREENSIZE sx##, sy##"
+ ],
+ "GETSPRITESIZE": [
+  "GETSPRITESIZE id#, sx##, sy##"
+ ],
+ "GETTIMER": [
+  "n#=GETTIMER()"
+ ],
+ "GETTIMERALL": [
+  "dtime# = GETTIMERALL()",
+  "zeit# = GETTIMERALL"
+ ],
+ "GETVIEWPORT": [
+  "GETVIEWPORT x%%, y%%, w%%, h%%"
+ ],
+ "GRABSPRITE": [
+  "GRABSPRITE no%, x%, y%, width%, height%",
+  "GRABSPRITE nr%, x%, y%, breite%, hoehe%"
+ ],
+ "HEX$": [
+  "str$ = HEX$(n%)"
+ ],
+ "HIBERNATE": [
+  "HIBERNATE"
+ ],
+ "HUSH": [
+  "HUSH"
+ ],
+ "IIF": [
+  "value = IIF(expression%, object_true, object_false)"
+ ],
+ "INKEY$": [
+  "a$=INKEY$( )"
+ ],
+ "INPUT": [
+  "INPUT in#$, x#, y#"
+ ],
+ "INSTR": [
+  "pos% = INSTR(word$, find$, start%=0)",
+  "pos% = INSTR(wort$, such$, start%=0)"
+ ],
+ "INTEGER": [
+  "a%=INTEGER(b#)"
+ ],
+ "ISFULLSCREEN": [
+  "fs#$ = ISFULLSCREEN()",
+  "vb#$ = ISFULLSCREEN()"
+ ],
+ "ISMUSICPLAYING": [
+  "ok% = ISMUSICPLAYING()"
+ ],
+ "KEY": [
+  "a%=KEY(code%)"
+ ],
+ "KEYWAIT": [
+  "KEYWAIT"
+ ],
+ "LCASE$": [
+  "down$ = LCASE$(text$)"
+ ],
+ "LEFT$": [
+  "a$ = LEFT$(text$, count%)"
+ ],
+ "LEN": [
+  "len%= LEN(word$)\n\nlen% = LEN(array[])\n\nlen% = LEN(word$, bKerning%)",
+  "len% = LEN(wort$)\n\nlen% = LEN(feld[])\n\nlen% = LEN(wort$, bKerning%)"
+ ],
+ "LIMITFPS": [
+  "LIMITFPS n#, vsync%",
+  "LIMITFPS n#, vsync% = FALSE"
+ ],
+ "LOADANIM": [
+  "LOADANIM filename$, id%, w%, h%",
+  "LOADANIM datei$, id%, w%, h%"
+ ],
+ "LOADBMP": [
+  "LOADBMP bmp$"
+ ],
+ "LOADFONT": [
+  "LOADFONT bmp$, num%",
+  "LOADFONT bmp$, num%\n\nSETFONT num%"
+ ],
+ "LOADSOUND": [
+  "LOADSOUND file$, num%, buffers%",
+  "LOADSOUND datei$, num%, buffer%"
+ ],
+ "LOADSPRITE": [
+  "LOADSPRITE bmp$, num%"
+ ],
+ "LOGN": [
+  "log_nat# = LOGN( n# )"
+ ],
+ "LTRIM$": [
+  "res$ = LTRIM$(text$, trim$=\" \\t\\r\\n\\v\\f\")"
+ ],
+ "MAX": [
+  "num#$ = MAX(a#$, b#$)"
+ ],
+ "MID$": [
+  "aim$=MID$(source$, start%, length%=-1)",
+  "ziel$=MID$(quelle$, start%, laenge%=-1)"
+ ],
+ "MIN": [
+  "num#$ = MIN(a#$, b#$)"
+ ],
+ "MOD": [
+  "a% = MOD(b%, c%)"
+ ],
+ "MOUSEAXIS": [
+  "v%=MOUSEAXIS(ax%)"
+ ],
+ "MOUSESTATE": [
+  "MOUSESTATE mx##, my##, mba##, mbb##\n\nSETMOUSE mx#, my#"
+ ],
+ "MOUSEWAIT": [
+  "MOUSEWAIT",
+  "MOUSEWAIT | KEYWAIT"
+ ],
+ "MUSICVOLUME": [
+  "MUSICVOLUME vol#$"
+ ],
+ "NUMBER": [
+  "flt# = NUMBER(str$)"
+ ],
+ "PAUSEMUSIC": [
+  "PAUSEMUSIC bPause%"
+ ],
+ "PLATFORMINFO$": [
+  "info$ = PLATFORMINFO$(what$)",
+  "what$ = \"\" (empty)",
+  "what$ = \"DOCUMENTS\"",
+  "what$ = \"APPDATA\"",
+  "what$ = \"ID\"",
+  "what$ = \"DEVICE\"",
+  "what$ = \"BATTERY\"",
+  "what$ = \"TIME\"",
+  "what$ = \"UTCTIME\"",
+  "what$ = \"GLEXT:xxxx\"",
+  "what$ = \"COMPILED\"",
+  "what$ = \"VERSION\"",
+  "what$ = \"HOSTID\"",
+  "what$ = \"LOCALE\"",
+  "what$ = \"TEMP\"",
+  "was$ = \"DPI\"",
+  "info$ = PLATFORMINFO$(was$)"
+ ],
+ "PLAYMUSIC": [
+  "PLAYMUSIC file$, bLoop%",
+  "PLAYMUSIC datei$, bLoop%\n\nSTOPMUSIC"
+ ],
+ "PLAYSOUND": [
+  "channel% = PLAYSOUND(num%, pan#, volume#)",
+  "kanal% = PLAYSOUND(num%, pan#, volume#)"
+ ],
+ "POLYNEWSTRIP": [
+  "STARTPOLY ...\n\nPOLYVECTOR ...\n\nPOLYNEWSTRIP\n\nPOLYVECTOR...\n\nENDPOLY"
+ ],
+ "POLYVECTOR": [
+  "POLYVECTOR x%, y%, tx%, ty%, col%",
+  "STARTPOLY spriteID%=-1, iMode% = 0\n\n  POLYVECTOR x%, y%, tx%, ty%, col%\n\n  POLYNEWSTRIP // new group\n\n  ...\n\nENDPOLY"
+ ],
+ "POW": [
+  "a#=POW(b#, c#)"
+ ],
+ "PRESCALER": [
+  "PRESCALER screenx%, screeny%"
+ ],
+ "PRINT": [
+  "PRINT text#$, x#, y# [,kernel%=FALSE]",
+  "PRINT ausgabe#$, x#, y# [, bKerning%]"
+ ],
+ "PUTENV": [
+  "PUTENV name$, value$",
+  "PUTENV name$, wert$"
+ ],
+ "REPLACE$": [
+  "new$ = REPLACE$(where$, find$, repl$)",
+  "neu$ = REPLACE$(worin$, suche$, ersetzen$)"
+ ],
+ "REVINSTR": [
+  "pos% = REVINSTR(haystack$, needle$, start%=-1)",
+  "pos% = REVINSTR(wort$, such$, start%=-1)"
+ ],
+ "RGB": [
+  "color%=RGB(red%, green%, blue%)",
+  "farbe%=RGB(rot%, gruen%, blau%)"
+ ],
+ "RIGHT$": [
+  "a$ = RIGHT$(text$, count%)"
+ ],
+ "RND": [
+  "a%=RND(max%)"
+ ],
+ "ROTOSPRITE": [
+  "ROTOSPRITE num%, x%, y%, phi#"
+ ],
+ "ROTOZOOMANIM": [
+  "ROTOZOOMANIM id#, anim#, x#, y#, phi#, scale#"
+ ],
+ "ROTOZOOMSPRITE": [
+  "ROTOZOOMSPRITE num%, x%, y%, phi#, rel#"
+ ],
+ "RTRIM$": [
+  "res$ = RTRIM$(text$, trim$=\" \\t\\r\\n\\v\\f\")"
+ ],
+ "SAVEBMP": [
+  "SAVEBMP bmp$"
+ ],
+ "SAVESPRITE": [
+  "SAVESPRITE file$, num%",
+  "SAVESPRITE datei$, num%"
+ ],
+ "SEEDRND": [
+  "SEEDRND start%"
+ ],
+ "SETFONT": [
+  "SETFONT num% [, scale#=1]"
+ ],
+ "SETMOUSE": [
+  "SETMOUSE mx#, my#",
+  "SETMOUSE x#, y#"
+ ],
+ "SETPIXEL": [
+  "SETPIXEL x%, y%, color%",
+  "SETPIXEL x%, y%, farbe%"
+ ],
+ "SETSCREEN": [
+  "SETSCREEN width#, height#, fullscreen#",
+  "SETSCREEN beite#, hoehe#, vollbild#"
+ ],
+ "SETSPRITEANIM": [
+  "SETSPRITEANIM id%, w%, h%"
+ ],
+ "SETTRANSPARENCY": [
+  "SETTRANSPARENCY color%",
+  "SETTRANSPARENCY farbe%"
+ ],
+ "SGN": [
+  "s#% = SGN(n#%)"
+ ],
+ "SHOWSCREEN": [
+  "SHOWSCREEN"
+ ],
+ "SIN": [
+  "a=SIN(angle#)",
+  "a=SIN(winkel#)\n\na=COS(winkel#)\n\na=TAN(winkel#)\n\nwinkel=ASIN(v#)\n\nwinkel=ACOS(v#)\n\nwinkel=ATAN(dy#, dx#)"
+ ],
+ "SLEEP": [
+  "SLEEP ms#"
+ ],
+ "SMOOTHSHADING": [
+  "SMOOTHSHADING mode%"
+ ],
+ "SOUNDPLAYING": [
+  "status% = SOUNDPLAYING(channel%)",
+  "status% = SOUNDPLAYING(kanal%)"
+ ],
+ "SPLITSTR": [
+  "countl% = SPLITSTR(text$, array$$[], split$, bDropEmpty%)",
+  "anzahl% = SPLITSTR(text$, feld$$[], split$, bDropEmtpy%=TRUE)"
+ ],
+ "SPRCOLL": [
+  "col%=SPRCOLL(id1%, x1%, y1%, id2%, x2%, y2%)"
+ ],
+ "SQR": [
+  "n# = SQR(number#)",
+  "n# = SQR(zahl#)"
+ ],
+ "STARTPOLY": [
+  "STARTPOLY spriteID%, bMode%=0",
+  "STARTPOLY spriteID%, iMode%=0"
+ ],
+ "STDERR": [
+  "STDERR text#$"
+ ],
+ "STDIN$": [
+  "text$ = STDIN$()"
+ ],
+ "STDOUT": [
+  "STDOUT text#$",
+  "STDOUT text#$\n\nSTDERR text#$\n\ntext$ = STDIN$()"
+ ],
+ "STOPMUSIC": [
+  "STOPMUSIC"
+ ],
+ "STOPSOUND": [
+  "STOPSOUND channel%",
+  "STOPSOUND kanal%"
+ ],
+ "STRETCHANIM": [
+  "STRETCHANIM id#, anim#, x#, y#, width#, height#",
+  "STRETCHANIM id#, anim#, x#, y#, breite#, hoehe#"
+ ],
+ "STRETCHSPRITE": [
+  "STRETCHSPRITE num%, x%, y%, width%, height%"
+ ],
+ "SYSTEMPOINTER": [
+  "SYSTEMPOINTER mode#",
+  "SYSTEMPOINTER modus#"
+ ],
+ "TAN": [
+  "a=TAN(angle#)"
+ ],
+ "TRIM$": [
+  "res$ = TRIM$(text$, trim$=\" \\t\\r\\n\\v\\f\")"
+ ],
+ "UCASE$": [
+  "up$ = UCASE$(text$)"
+ ],
+ "USEASBMP": [
+  "USEASBMP"
+ ],
+ "USESCREEN": [
+  "USESCREEN id%"
+ ],
+ "VIEWPORT": [
+  "VIEWPORT x%, y%, width%, height%",
+  "VIEWPORT x%, y%, breite%, hoehe%"
+ ],
+ "ZOOMSPRITE": [
+  "ZOOMSPRITE num%, x%, y%, relx#, rely#"
+ ]
+}

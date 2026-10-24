@@ -1,0 +1,217 @@
+' ============================================================
+' UI.G BX: windows, widgets, mouse and keyboard in pure BASIC
+' Run: gbx examples/09_ui/ui.gbxproj
+'
+' The whole interface comes from UI.gbx - no C++, no assets.
+' Everything here is ordinary BASIC: create the widgets once,
+' call app.run() every frame, ask app.clicked()/value()/text$().
+'
+' Try: drag the windows by their title bars, close them with the
+' X, TAB through the controls, type a name, change the theme.
+' ============================================================
+
+INCLUDE "UI.gbx"
+
+SYSTEMPOINTER TRUE
+SETSCREEN 1000, 680, 0
+SETWINDOWTITLE "GameBasiX - UI.gbx"
+LIMITFPS 60
+ALLOWESCAPE FALSE
+
+GLOBAL app AS UI
+app.init()
+
+' ---------------------------------------------------- top bar
+GLOBAL lblTitle = app.heading("UI.gbx", 40, 14)
+GLOBAL lblSub = app.label("windows, widgets, mouse and keyboard - all in BASIC", 40, 42)
+GLOBAL btnTheme = app.button("Theme: Dark", 740, 16, 220, 34)
+GLOBAL btnReopen = app.button("Reopen notes", 740, 58, 220, 32)
+
+' ---------------------------------------------------- settings window
+GLOBAL wSettings = app.window("Project settings", 40, 96, 440, 490)
+app.heading("Audio", 20, 14)
+GLOBAL sMaster = app.slider("Master volume", 20, 44, 300, 0, 100, 1, 70)
+GLOBAL sMusic = app.slider("Music", 20, 94, 300, 0, 100, 1, 45)
+GLOBAL tMute = app.toggle("Mute", 20, 146)
+app.separator(20, 176, 400)
+app.heading("Display", 20, 190)
+GLOBAL dQuality = app.dropdown("Quality", 20, 220, 240, "Low|Normal|High|Ultra", 1)
+GLOBAL tVsync = app.toggle("V-Sync", 20, 282, 1)
+GLOBAL fName = app.field("Player name", 20, 308, 300, "Player one")
+GLOBAL pBudget = app.progress("Frame budget", 20, 366, 300, 0.5)
+GLOBAL btnApply = app.button("Apply", 20, 414, 120, 38, 1)
+GLOBAL btnReset = app.button("Reset", 156, 414, 110, 38)
+GLOBAL btnQuit = app.button("Quit", 282, 414, 96, 38)
+app.endWindow()
+
+' ---------------------------------------------------- notes window
+GLOBAL wNotes = app.window("Presets", 520, 120, 420, 330)
+app.label("Pick a preset - it overwrites the settings.", 20, 6)
+GLOBAL lPresets = app.listbox("Preset", 20, 26, 220, 150, "Starter|Studio|Arcade|Minimal", 1)
+GLOBAL lInfo = app.label("Selected: Studio", 20, 184)
+GLOBAL dTheme = app.dropdown("Theme", 20, 208, 220, "Dark|Light|Ocean|Sunset", 0)
+GLOBAL tGrid = app.toggle("Show grid", 20, 268, 1)
+app.endWindow()
+
+' ---------------------------------------------------- tip window
+GLOBAL wTip = app.window("Tip", 520, 486, 420, 124)
+app.label("Drag me by the title bar - children follow.", 20, 8)
+app.label("TAB moves the focus, arrows change values.", 20, 30)
+app.label("RETURN activates, typing edits a field.", 20, 52)
+app.endWindow()
+
+' ---------------------------------------------------- status line
+app.separator(40, 620, 920)
+GLOBAL lblState = app.label("", 40, 630, 600)
+GLOBAL lblAction = app.label("Ready - drag a window or click a widget.", 40, 648, 900)
+
+GLOBAL action$ = "Ready - drag a window or click a widget."
+GLOBAL currentTheme = 0
+
+' ---------------------------------------------------- helpers
+FUNCTION themeName$
+  SELECT currentTheme
+    CASE 1
+      RETURN "Light"
+    CASE 2
+      RETURN "Ocean"
+    CASE 3
+      RETURN "Sunset"
+  ENDSELECT
+  RETURN "Dark"
+ENDFUNCTION
+
+FUNCTION applyTheme
+  app.theme("dark")
+  IF currentTheme = 1 THEN app.theme("light")
+  IF currentTheme = 2 THEN
+    app.accent = RGB(56, 189, 248)
+    app.accentInk = RGB(7, 20, 28)
+  ENDIF
+  IF currentTheme = 3 THEN
+    app.accent = RGB(251, 146, 60)
+    app.accentInk = RGB(32, 16, 6)
+  ENDIF
+  app.setText(btnTheme, "Theme: " + themeName$())
+ENDFUNCTION
+
+FUNCTION loadPreset: i
+  IF i = 0 THEN
+    app.setValue(sMaster, 70)
+    app.setValue(sMusic, 45)
+    app.setValue(dQuality, 1)
+    app.setValue(tVsync, 1)
+    app.setValue(tMute, 0)
+  ELSEIF i = 1 THEN
+    app.setValue(sMaster, 55)
+    app.setValue(sMusic, 70)
+    app.setValue(dQuality, 3)
+    app.setValue(tVsync, 1)
+    app.setValue(tMute, 0)
+  ELSEIF i = 2 THEN
+    app.setValue(sMaster, 90)
+    app.setValue(sMusic, 60)
+    app.setValue(dQuality, 0)
+    app.setValue(tVsync, 0)
+    app.setValue(tMute, 0)
+  ELSEIF i = 3 THEN
+    app.setValue(sMaster, 20)
+    app.setValue(sMusic, 0)
+    app.setValue(dQuality, 0)
+    app.setValue(tVsync, 0)
+    app.setValue(tMute, 1)
+  ENDIF
+  app.setText(lInfo, "Selected: " + app.text$(lPresets))
+ENDFUNCTION
+
+FUNCTION drawBackground
+  LOCAL sw = GETSCREENWIDTH()
+  LOCAL sh = GETSCREENHEIGHT()
+  LOCAL g = 0
+  LOCAL gc = uiMix(app.bg, app.ink, 0.045)
+  CLEARSCREEN app.bg
+  IF app.value(tGrid) <> 0 THEN
+    FOR g = 0 TO sh STEP 48
+      DRAWLINE 0, g, sw, g, gc
+    NEXT
+    FOR g = 0 TO sw STEP 48
+      DRAWLINE g, 0, g, sh, gc
+    NEXT
+  ENDIF
+  DRAWRECT 0, 0, sw, 72, uiMix(app.bg, app.surface, 0.6)
+  DRAWRECT 0, 72, sw, 1, app.line
+  DRAWRECT 0, 0, sw, 2, app.accent
+ENDFUNCTION
+
+' ---------------------------------------------------- frame loop
+WHILE TRUE
+  drawBackground()
+
+  ' Animated value: the progress bar is a plain number, 0..1.
+  app.setValue(pBudget, 0.5 + 0.45 * SIN(GETTIMERALL() / 18))
+
+  ' The reopen button is only usable while its window is closed.
+  IF app.isOpen(wNotes) = 1 THEN
+    app.enable(btnReopen, 0)
+  ELSE
+    app.enable(btnReopen, 1)
+  ENDIF
+
+  app.run()
+
+  IF app.clicked(btnReopen) THEN
+    app.openWin(wNotes)
+    action$ = "Notes reopened"
+  ENDIF
+  IF app.clicked(wNotes) THEN action$ = "Notes closed"
+  IF app.clicked(wTip) THEN action$ = "Tip closed"
+
+  IF app.changed(sMaster) THEN action$ = "Master volume: " + STR$(app.value(sMaster)) + "%"
+  IF app.changed(sMusic) THEN action$ = "Music: " + STR$(app.value(sMusic)) + "%"
+  IF app.changed(tMute) THEN
+    IF app.value(tMute) = 1 THEN action$ = "Muted" ELSE action$ = "Unmuted"
+  ENDIF
+  IF app.changed(tVsync) THEN
+    IF app.value(tVsync) = 1 THEN action$ = "V-Sync on" ELSE action$ = "V-Sync off"
+  ENDIF
+  IF app.changed(dQuality) THEN action$ = "Quality: " + app.text$(dQuality)
+  IF app.changed(fName) THEN action$ = "Player name: " + app.text$(fName)
+  IF app.changed(tGrid) THEN
+    IF app.value(tGrid) = 1 THEN action$ = "Grid on" ELSE action$ = "Grid off"
+  ENDIF
+
+  IF app.changed(lPresets) THEN
+    loadPreset(app.value(lPresets))
+    action$ = "Preset: " + app.text$(lPresets)
+  ENDIF
+
+  IF app.changed(dTheme) THEN
+    currentTheme = app.value(dTheme)
+    applyTheme()
+    action$ = "Theme: " + themeName$()
+  ENDIF
+
+  IF app.clicked(btnApply) THEN
+    action$ = "Applied: " + STR$(app.value(sMaster)) + "% volume, " + app.text$(dQuality) + " quality, " + app.text$(fName)
+  ENDIF
+  IF app.clicked(btnReset) THEN
+    loadPreset(1)
+    app.setValue(lPresets, 1)
+    app.setText(lInfo, "Selected: Studio")
+    action$ = "Settings reset"
+  ENDIF
+  IF app.clicked(btnQuit) THEN END
+
+  IF app.clicked(btnTheme) THEN
+    currentTheme = currentTheme + 1
+    IF currentTheme > 3 THEN currentTheme = 0
+    applyTheme()
+    action$ = "Theme: " + themeName$()
+  ENDIF
+
+  app.setText(lblAction, action$)
+  app.setText(lblState, "hover " + STR$(app.hover%) + "   focus " + STR$(app.focus%) + "   mouse " + STR$(app.mx) + "," + STR$(app.my) + "   theme " + themeName$())
+
+  IF KEYHIT(KEY_ESC) THEN END
+  SHOWSCREEN
+WEND

@@ -1,0 +1,96 @@
+' ============================================================
+' INLINE: C++ at any point in the program
+' Run: gbx examples/05_inline/inline.gbxproj
+'
+' Three blocks show the two kinds:
+'   - top block: definitions (curve.h with ROSE_X, ROSE_Y, WOBBLE, HUE);
+'     it is compiled once with g++ on startup and loaded as a DLL.
+'   - block in the FUNCTION glow(): runs there and writes the local
+'     variable value directly from C++.
+'   - block in the WHILE loop: counts frames and runs every time.
+' ============================================================
+
+INLINE
+#include "curve.h"
+ENDINLINE
+
+SETSCREEN 900, 600, 0
+SETWINDOWTITLE "GameBasiX - INLINE"
+LIMITFPS 60
+
+GLOBAL Petals = 5
+GLOBAL Radius = 130
+GLOBAL Frames = 0
+
+' A block inside a FUNCTION runs at that point. The parameter u and the
+' local variable value are visible in C++ (lower case).
+FUNCTION glow: u
+  value = 0
+  INLINE
+    value = (1.0 - u) * (1.0 - u);
+  ENDINLINE
+  RETURN value
+ENDFUNCTION
+
+WHILE TRUE
+  ' The block here runs on every pass and counts the frames.
+  INLINE
+    frames = frames + 1;
+  ENDINLINE
+
+  ' ------------------------------------------------------------- Input
+  IF KEYHIT(KEY_ESC) THEN END
+  IF KEYHIT(KEY_SPACE)
+    Petals = Petals + 1
+    IF Petals > 9 THEN Petals = 3
+  ENDIF
+  IF KEY(KEY_EQUALS) THEN Radius = MIN(200, Radius + 2)
+  IF KEY(KEY_MINUS) THEN Radius = MAX(60, Radius - 2)
+
+  t = GETTIMERALL() / 1000.0
+  radius = Radius + WOBBLE(t * 0.12, 18)
+
+  CLEARSCREEN RGB(6, 8, 14)
+
+  ' ------------------------------------------ outer rose curve
+  ' ROSE_X/ROSE_Y come from the top block, HUE provides the colour.
+  steps = 900
+  lastX = 450 + ROSE_X(0, radius, Petals)
+  lastY = 300 + ROSE_Y(0, radius, Petals)
+  FOR i = 1 TO steps
+    u = i / steps + t * 0.05
+    x = 450 + ROSE_X(u, radius, Petals)
+    y = 300 + ROSE_Y(u, radius, Petals)
+    DRAWLINE lastX, lastY, x, y, HUE(u, 1)
+    lastX = x
+    lastY = y
+  NEXT
+
+  ' ------------------------------------------ inner curve with gradient
+  ' The brightness comes from glow(): the block lives in that FUNCTION,
+  ' and the main program still calls it like an ordinary function.
+  inner = radius * 0.45
+  lastX = 450 + ROSE_X(0, inner, Petals + 1)
+  lastY = 300 + ROSE_Y(0, inner, Petals + 1)
+  FOR i = 1 TO steps
+    u = i / steps - t * 0.08
+    x = 450 + ROSE_X(u, inner, Petals + 1)
+    y = 300 + ROSE_Y(u, inner, Petals + 1)
+    DRAWLINE lastX, lastY, x, y, HUE(u + 0.5, glow(i / steps))
+    lastX = x
+    lastY = y
+  NEXT
+
+  ' Head point of the inner curve
+  DRAWFILLEDCIRCLE lastX, lastY, 6, HUE(t * 0.3, 1)
+
+  ' ------------------------------------------------------------- Text
+  SETTEXTCOLOR RGB(166, 226, 46)
+  PRINT "INLINE - C++ blocks anywhere in the program", 36, 24
+  SETTEXTCOLOR RGB(150, 160, 175)
+  PRINT "top block (definitions): ROSE_X, ROSE_Y, WOBBLE, HUE from curve.h", 36, 48
+  PRINT "steps in the code: glow() writes value, the loop counts frames (" + STR$(Frames) + ")", 36, 70
+  SETTEXTCOLOR RGB(108, 182, 255)
+  PRINT "SPACE petals " + STR$(Petals) + "   +/- radius " + STR$(Radius) + "   ESC quit", 36, 560
+  SHOWSCREEN
+WEND

@@ -1,0 +1,22 @@
+{
+  "name": "Hello",
+  "appName": "Hello",
+  "title": "Hello",
+  "entry": "main.gbx",
+  "width": 640,
+  "height": 480,
+  "fullscreen": false,
+  "resizable": true,
+  "frameRate": 0,
+  "vsync": true,
+  "audio": true,
+  "volume": 1,
+  "assetDir": "assets",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx"
+  ],
+  "createdAt": "2026-10-24T01:40:18.394Z"
+}

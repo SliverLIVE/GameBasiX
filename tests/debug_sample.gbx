@@ -1,0 +1,14 @@
+' Testprogramm fuer tools/check_debug.py
+x = 1
+y = 2
+
+FUNCTION add
+  total = x + y
+  RETURN total
+ENDFUNCTION
+
+z = add()
+FOR i = 1 TO 3
+  y = y + i
+NEXT
+PRINT "z=" + z, 0, 0

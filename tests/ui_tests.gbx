@@ -1,0 +1,266 @@
+' ============================================================
+' GameBasiX - UI.gbx tests
+' Run: gbx --headless --tests tests/ui_tests.gbx
+'
+' The UI reads mouse and keyboard through virtual input, so all
+' hit tests, drags, typing and focus handling run without a window.
+' ============================================================
+
+INCLUDE "../examples/09_ui/UI.gbx"
+
+GLOBAL app AS UI
+
+app.init(1000, 680)
+
+' ---------------------------------------------------- construction
+GLOBAL win = app.window("Test", 100, 100, 400, 320)
+GLOBAL btn = app.button("Go", 20, 40, 100, 30)
+GLOBAL tgl = app.toggle("Mute", 20, 80)
+GLOBAL sld = app.slider("Volume", 20, 110, 200, 0, 100, 1, 50)
+GLOBAL fld = app.field("Name", 20, 170, 200, "abc")
+GLOBAL dd = app.dropdown("Pick", 240, 40, 140, "One|Two|Three", 0)
+GLOBAL lst = app.listbox("Items", 240, 110, 140, 120, "A|B|C|D|E", 0)
+GLOBAL grow = app.label("ab", 20, 260)
+app.endWindow()
+
+ASSERT win = 0, "window is the first widget"
+ASSERT btn = 1, "button id"
+ASSERT app.optCount(dd) = 3, "dropdown options"
+ASSERT app.value(dd) = 0, "dropdown starts at 0"
+ASSERT app.text$(dd) = "One", "dropdown text"
+ASSERT app.value(sld) = 50, "slider start value"
+ASSERT app.text$(fld) = "abc", "field start text"
+ASSERT app.isOpen(win) = 1, "window open"
+
+' Geometry: window at 100,100 with a 28px title bar.
+ASSERT UI_WIDGETS[btn].ax() = 120, "button absolute x"
+ASSERT UI_WIDGETS[btn].ay() = 168, "button absolute y"
+
+' ---------------------------------------------------- first frame
+app.vmouse(0, 0, 0)
+app.run()
+ASSERT app.clicked(btn) = 0, "nothing clicked yet"
+
+' ---------------------------------------------------- click a button
+app.vmouse(170, 183, 1)
+app.run()
+app.vmouse(170, 183, 0)
+app.run()
+ASSERT app.clicked(btn) = 1, "button click"
+
+app.run()
+ASSERT app.clicked(btn) = 0, "click is cleared next frame"
+
+' ---------------------------------------------------- toggle
+app.vmouse(140, 216, 1)
+app.run()
+ASSERT app.value(tgl) = 1, "toggle on"
+ASSERT app.changed(tgl) = 1, "toggle changed"
+app.vmouse(140, 216, 0)
+app.run()
+app.vmouse(140, 216, 1)
+app.run()
+app.vmouse(140, 216, 0)
+app.run()
+ASSERT app.value(tgl) = 0, "toggle off"
+
+' ---------------------------------------------------- slider click + drag
+' Track runs from x=126 to x=314; a click at x=246 is the middle.
+app.vmouse(246, 266, 1)
+app.run()
+ASSERT app.value(sld) > 55, "slider jumps to click"
+ASSERT app.value(sld) < 65, "slider value near 60"
+app.vmouse(314, 266, 1)
+app.run()
+ASSERT app.value(sld) = 100, "slider drags to max"
+app.vmouse(314, 266, 0)
+app.run()
+
+' ---------------------------------------------------- text field
+app.vmouse(130, 333, 1)
+app.run()
+app.vmouse(130, 333, 0)
+app.run()
+ASSERT app.focus% = fld, "field focused"
+app.vtext("xy")
+app.run()
+ASSERT app.text$(fld) = "abcxy", "typing appends"
+app.vtext(CHR$(8))
+app.run()
+ASSERT app.text$(fld) = "abcx", "backspace deletes"
+app.vkey(KEY_RETURN)
+app.run()
+ASSERT app.focus% = -1, "return leaves the field"
+
+' ---------------------------------------------------- dropdown
+app.vmouse(360, 200, 1)
+app.run()
+app.vmouse(360, 200, 0)
+app.run()
+ASSERT app.openDrop% = dd, "dropdown opens"
+app.vmouse(360, 278, 1)
+app.run()
+ASSERT app.value(dd) = 2, "third option selected"
+ASSERT app.text$(dd) = "Three", "option text"
+ASSERT app.changed(dd) = 1, "dropdown changed"
+ASSERT app.openDrop% = -1, "dropdown closes"
+
+' ---------------------------------------------------- list
+app.vmouse(360, 278, 0)
+app.run()
+app.vmouse(360, 290, 1)
+app.run()
+app.vmouse(360, 290, 0)
+app.run()
+ASSERT app.value(lst) = 1, "second row selected"
+ASSERT app.text$(lst) = "B", "row text"
+
+' ---------------------------------------------------- window on top blocks
+GLOBAL win2 = app.window("Overlay", 60, 60, 320, 220)
+GLOBAL note = app.label("overlay", 20, 44)
+GLOBAL obtn = app.button("Hit", 20, 20, 80, 26)
+app.endWindow()
+
+' (170,192) lies over the covered button of the first window.
+app.vmouse(170, 192, 1)
+app.run()
+app.vmouse(170, 192, 0)
+app.run()
+ASSERT app.clicked(btn) = 0, "covered button does not fire"
+ASSERT app.hover% = win2, "overlay body is hovered"
+ASSERT app.clicked(obtn) = 0, "click beside the overlay button does nothing"
+ASSERT UI_WIDGETS[win2].z > UI_WIDGETS[win].z, "clicking raised the overlay"
+
+' Clicking the first window raises it above the overlay again.
+app.vmouse(450, 400, 1)
+app.run()
+app.vmouse(450, 400, 0)
+app.run()
+ASSERT UI_WIDGETS[win].z > UI_WIDGETS[win2].z, "first window raised"
+app.vmouse(170, 192, 0)
+app.run()
+ASSERT app.hover% = btn, "raised window receives the click"
+
+' ---------------------------------------------------- drag the window
+app.vmouse(100, 70, 1)
+app.run()
+ASSERT app.dragWin% = win2, "title bar starts a drag"
+app.vmouse(150, 120, 1)
+app.run()
+ASSERT UI_WIDGETS[win2].x = 110, "window follows the mouse in x"
+ASSERT UI_WIDGETS[win2].y = 110, "window follows the mouse in y"
+app.vmouse(150, 120, 0)
+app.run()
+ASSERT app.dragWin% = -1, "drag ends on release"
+
+' Children follow their window.
+app.vmouse(170, 171, 1)
+app.run()
+ASSERT app.hover% = obtn, "button moved with the window"
+app.vmouse(170, 171, 0)
+app.run()
+ASSERT app.clicked(obtn) = 1, "click uses the moved position"
+
+' ---------------------------------------------------- close and reopen
+app.vmouse(420, 123, 1)
+app.run()
+ASSERT app.isOpen(win2) = 0, "close button closes the window"
+ASSERT app.clicked(win2) = 1, "close counts as a click"
+app.vmouse(420, 123, 0)
+app.run()
+ASSERT app.hover% <> win2, "closed window is not hovered"
+app.openWin(win2)
+app.run()
+ASSERT app.isOpen(win2) = 1, "openWin reopens"
+
+' ---------------------------------------------------- keyboard focus
+app.closeWin(win2)
+app.focusOn(-1)
+app.vkey(KEY_TAB)
+app.run()
+ASSERT app.focus% = btn, "tab focuses the button"
+app.vkey(KEY_RETURN)
+app.run()
+ASSERT app.clicked(btn) = 1, "return activates the focused button"
+
+app.focusOn(sld)
+app.vkey(KEY_RIGHT)
+app.run()
+ASSERT app.value(sld) = 100, "right arrow raises the slider"
+app.vkey(KEY_LEFT)
+app.run()
+ASSERT app.value(sld) = 99, "left arrow lowers the slider"
+app.focusOn(lst)
+app.vkey(KEY_DOWN)
+app.run()
+ASSERT app.value(lst) = 2, "down arrow selects the next row"
+ASSERT app.changed(lst) = 1, "keyboard selection is a change"
+ASSERT UI_WIDGETS[lst].off% = 0, "list does not scroll without need"
+
+' ---------------------------------------------------- scrolling
+ASSERT app.visibleRows(lst) = 4, "four rows fit"
+app.scrollList(lst, 2)
+ASSERT UI_WIDGETS[lst].off% = 1, "scrollList moves the view and clamps"
+app.scrollList(lst, -9)
+ASSERT UI_WIDGETS[lst].off% = 0, "scroll is clamped at the top"
+app.scrollList(lst, 99)
+ASSERT UI_WIDGETS[lst].off% = 1, "scroll is clamped at the bottom"
+app.setValue(lst, 4)
+app.scrollToVisible(lst)
+ASSERT UI_WIDGETS[lst].off% = 1, "keyboard selection scrolls into view"
+
+' ---------------------------------------------------- theme
+app.theme("light")
+ASSERT app.bg = RGB(242, 244, 248), "light theme background"
+ASSERT app.ink = RGB(26, 30, 37), "light theme ink"
+app.theme("dark")
+ASSERT app.bg = RGB(13, 15, 19), "dark theme background"
+ASSERT app.accent = RGB(163, 230, 53), "dark theme accent"
+
+' ---------------------------------------------------- labels
+app.setText(note, "renamed")
+ASSERT app.text$(note) = "renamed", "setText renames a label"
+app.setText(grow, "abcdefghij")
+ASSERT UI_WIDGETS[grow].w = LEN("abcdefghij", 1) + 2, "auto width follows the text"
+
+' ---------------------------------------------------- closing a window drops focus
+app.focusOn(obtn)
+app.closeWin(win2)
+ASSERT app.focus% = -1, "focus leaves a closed window"
+app.openWin(win2)
+
+' ---------------------------------------------------- disabled widgets
+app.enable(btn, 0)
+app.vmouse(170, 183, 1)
+app.run()
+app.vmouse(170, 183, 0)
+app.run()
+ASSERT app.clicked(btn) = 0, "disabled button ignores clicks"
+ASSERT app.isEnabled(btn) = 0, "isEnabled reports disabled"
+app.enable(btn, 1)
+ASSERT app.isEnabled(btn) = 1, "enable turns the widget back on"
+
+' ---------------------------------------------------- programmatic state
+app.setValue(sld, 33.7)
+ASSERT app.value(sld) = 34, "setValue snaps to the step"
+app.setValue(sld, -5)
+ASSERT app.value(sld) = 0, "setValue clamps low"
+app.setValue(sld, 500)
+ASSERT app.value(sld) = 100, "setValue clamps high"
+app.setValue(dd, 9)
+ASSERT app.value(dd) = 2, "dropdown index clamps"
+app.setValue(tgl, 5)
+ASSERT app.value(tgl) = 1, "toggle normalizes to 0/1"
+app.setText(fld, "hello")
+ASSERT app.text$(fld) = "hello", "setText sets the field"
+app.setOptions(dd, "Red|Green")
+ASSERT app.optCount(dd) = 2, "setOptions replaces the list"
+ASSERT app.value(dd) = 1, "index survives when still valid"
+
+' ---------------------------------------------------- clear
+app.clear()
+ASSERT LEN(UI_WIDGETS[]) = 0, "clear removes the widgets"
+GLOBAL fresh = app.button("Again", 10, 10, 80, 30)
+ASSERT fresh = 0, "ids start at 0 after clear"
+app.run()
+ASSERT app.clicked(fresh) = 0, "no stale clicks after clear"
