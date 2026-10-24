@@ -1,7 +1,21 @@
 # GameBasiX
 
-A BASIC interpreter for 2D games, built on **SDL3**. Everything around 3D,
-networking, C++ inline code and file streams is deliberately left out.
+![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
+![Language](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)
+![Graphics](https://img.shields.io/badge/SDL3-renderer-2E8555)
+![Editor](https://img.shields.io/badge/editor-Electron-47848F?logo=electron&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-language%20%2B%20inline%20%2B%20ui-brightgreen)
+
+A BASIC interpreter for 2D games, built on **SDL3** – with direct C++ `INLINE`
+blocks, sprites, sound and a complete IDE. 3D, networking and file streams are
+deliberately out of scope; the 2D core is complete.
+
+![GBX Studio](docs/screenshots/ide.png)
+
+<sub>**GBX Studio** – live name checking, outline, 292-command reference and a
+runtime debugger right next to the code.</sub>
+
+## Highlights
 
 * Language: BASIC with `$`/`%`/`#` suffixes, `FUNCTION`/`SUB`, `TYPE` with
   `METHOD`s, arrays, `SELECT CASE`, `TRY`/`THROW`
@@ -11,7 +25,22 @@ networking, C++ inline code and file streams is deliberately left out.
 * Text: built-in 8×8 bitmap font, bitmap fonts on a 16×8 grid and
   **TrueType through FreeType** (optional)
 * Sound: a small software mixer for WAV sounds and music
-* Window, keyboard, mouse, timers, game loop
+* Inline C++: `INLINE` definitions and steps with direct access to BASIC
+  variables, compiled once and cached
+* Tooling: **GBX Studio** with live checks, a debugger, single-file EXE and
+  HTML5 export
+
+Ready to try it? `cmake -S . -B build -G Ninja && cmake --build build`, then
+`build/gbx.exe examples/09_ui/ui.gbxproj`.
+
+## Screenshots
+
+| | |
+|:--:|:--:|
+| <img src="docs/screenshots/ui.png" width="430" alt="UI demo with windows and widgets"> | <img src="docs/screenshots/box2d.png" width="430" alt="Box2D-Lite physics demo"> |
+| **UI toolkit** – windows, widgets and themes in pure BASIC (`examples/09_ui`) | **Physics** – Box2D-Lite through `INLINE` (`examples/08_box2d`) |
+| <img src="docs/screenshots/breakout.png" width="430" alt="Breakout game"> | <img src="docs/screenshots/sparks.png" width="430" alt="Sparks demo"> |
+| **Breakout** – a complete game in `examples/02_breakout` | **900 sparks** – C++ steps moving a `TYPE` array (`examples/06_sparks`) |
 
 ## Building
 
