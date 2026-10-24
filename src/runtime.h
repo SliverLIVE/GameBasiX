@@ -10,6 +10,7 @@
 
 #include "ast.h"
 #include "audio.h"
+#include "fileio.h"
 #include "graphics.h"
 #include "project.h"
 #include "value.h"
@@ -26,6 +27,7 @@ struct Runtime {
     ProjectConfig cfg;
     Gfx gfx;
     Audio audio;
+    FileSet files;
     Program* prog = nullptr;
     Debugger* dbg = nullptr;  // gesetzt bei --debug
 

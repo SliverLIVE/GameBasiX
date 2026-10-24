@@ -246,6 +246,49 @@ ASSERT STR$("42") = "42", "STR$"
 ASSERT VAL("42.5") = 42.5, "VAL"
 ASSERT LEN("abc", TRUE) > 0, "LEN mit Pixelbreite"
 
+' --------------------------------------------------------------- Dateien
+tmpdir$ = GETENV$("TEMP") + "/gbx-cmd-tests"
+MAKEDIR tmpdir$
+cf$ = "cmd_temp.bin"
+IF FILEEXISTS(cf$) THEN DELETEFILE cf$
+ASSERT OPENFILE(1, cf$, 0) = 1, "OPENFILE schreiben"
+WRITEBYTE 1, 1
+WRITEUBYTE 1, 2
+WRITEWORD 1, 3
+WRITEUWORD 1, 4
+WRITELONG 1, 5
+WRITEULONG 1, 6
+WRITEIEEE 1, 7.5
+WRITESHORTIEEE 1, 8.5
+WRITESTR 1, "x"
+WRITELINE 1, "y"
+CLOSEFILE 1
+ASSERT FILESIZE(cf$) = 30, "FILESIZE"
+ASSERT FILEEXISTS(cf$) = 1, "FILEEXISTS"
+ASSERT OPENFILE(1, cf$, 1) = 1, "OPENFILE lesen"
+READBYTE 1, r1
+READUBYTE 1, r2
+READWORD 1, r3
+READUWORD 1, r4
+READLONG 1, r5
+READULONG 1, r6
+READIEEE 1, r7
+READSHORTIEEE 1, r8
+READSTR 1, r9$, 1
+READLINE 1, r10$
+ASSERT r1 = 1 AND r2 = 2 AND r3 = 3 AND r4 = 4 AND r5 = 5 AND r6 = 6, "READ Ganzzahlen"
+ASSERT r7 = 7.5 AND r8 = 8.5 AND r9$ = "x" AND r10$ = "y", "READ Zahlen und Text"
+ASSERT FILEEOF(1) = 1, "FILEEOF"
+FILESEEK 1, 0, 0
+ASSERT FILEPOSITION(1) = 0, "FILEPOSITION"
+CLOSEFILE 1
+COPYFILE cf$, tmpdir$ + "/kopie.bin"
+ASSERT FILEEXISTS(tmpdir$ + "/kopie.bin") = 1, "COPYFILE"
+RENAMEFILE cf$, tmpdir$ + "/verschoben.bin"
+ASSERT FILEEXISTS(tmpdir$ + "/verschoben.bin") = 1, "RENAMEFILE"
+DELETEFILE tmpdir$ + "/kopie.bin"
+DELETEFILE tmpdir$ + "/verschoben.bin"
+
 ' --------------------------------------------------------------- Arrays
 DIM teile$[0]
 cnt = SPLITSTR("a,b,c", teile$[], ",")

@@ -112,6 +112,55 @@ std::string outputPath(Runtime& rt, const std::string& file) {
 
 #define ASSET(i) a.rt.resolveAsset(a.str(i))
 
+// --------------------------------------------------------------- Dateien
+
+int channelArg(BArgs& a, size_t i) {
+    int64_t ch = a.integer(i);
+    if (ch <= 0) a.fail("Kanal muss groesser als 0 sein");
+    return static_cast<int>(ch);
+}
+
+int readChannel(BArgs& a, size_t i) {
+    int ch = channelArg(a, i);
+    if (!a.rt.files.readable(ch))
+        a.fail("Kanal " + std::to_string(ch) + " ist nicht zum Lesen geoeffnet");
+    return ch;
+}
+
+int writeChannel(BArgs& a, size_t i) {
+    int ch = channelArg(a, i);
+    if (!a.rt.files.writable(ch))
+        a.fail("Kanal " + std::to_string(ch) + " ist nicht zum Schreiben geoeffnet");
+    return ch;
+}
+
+// Liest count Bytes als vorzeichenlose Zahl (kleine Endian-Reihenfolge).
+uint64_t readBits(BArgs& a, int ch, size_t count) {
+    unsigned char buf[8] = {0};
+    size_t got = 0;
+    a.rt.files.readBytes(ch, buf, count, got);
+    uint64_t value = 0;
+    for (size_t i = 0; i < count; ++i)
+        value |= static_cast<uint64_t>(buf[i]) << (8 * i);
+    return value;
+}
+
+void writeBits(BArgs& a, int ch, int64_t value, size_t count) {
+    unsigned char buf[8];
+    uint64_t bits = static_cast<uint64_t>(value);
+    for (size_t i = 0; i < count; ++i)
+        buf[i] = static_cast<unsigned char>((bits >> (8 * i)) & 0xFF);
+    if (!a.rt.files.writeBytes(ch, buf, count)) a.fail("Schreiben fehlgeschlagen");
+}
+
+std::string readText(BArgs& a, int ch, size_t count) {
+    std::string out(count, '\0');
+    size_t got = 0;
+    a.rt.files.readBytes(ch, out.data(), count, got);
+    out.resize(got);
+    return out;
+}
+
 }  // namespace
 
 std::unordered_map<std::string, Builtin>& builtins() {
@@ -942,6 +991,228 @@ std::unordered_map<std::string, Builtin>& builtins() {
         // Ergaenzungen, die die Sprache abrunden
         add("STR$", 1, 1, [](BArgs& a) { return Value::mkStr(a.vals[0].text()); });
         add("VAL", 1, 1, [](BArgs& a) { return Value::mkFloat(std::atof(a.str(0).c_str())); });
+
+        // ----------------------------------------------------------- Dateien
+        add("OPENFILE", 3, 3, [](BArgs& a) {
+            int ch = static_cast<int>(a.integer(0));
+            std::string file = a.str(1);
+            int mode = static_cast<int>(a.integer(2));
+            if (ch <= 0) a.fail("Kanal muss groesser als 0 sein");
+            if (mode != 1 && mode != 0 && mode != -1)
+                a.fail("Modus muss 1 (lesen), 0 (schreiben) oder -1 (anhaengen) sein");
+            std::string path = mode == 1 ? a.rt.resolveAsset(file) : outputPath(a.rt, file);
+            std::string err;
+            if (!a.rt.files.open(ch, path, mode, err)) {
+                a.rt.warnOnce("OPENFILE: " + err);
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(1);
+        });
+        add("CLOSEFILE", 1, 1, [](BArgs& a) {
+            int ch = channelArg(a, 0);
+            return Value::mkInt(a.rt.files.close(ch) ? 1 : 0);
+        });
+        add("FILESEEK", 3, 3, [](BArgs& a) {
+            int ch = channelArg(a, 0);
+            if (!a.rt.files.isOpen(ch))
+                a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
+            int origin = static_cast<int>(a.integer(2));
+            if (origin < -1 || origin > 1)
+                a.fail("Ursprung muss -1 (Ende), 0 (Anfang) oder 1 (Position) sein");
+            if (!a.rt.files.seek(ch, a.integer(1), origin)) a.fail("FILESEEK fehlgeschlagen");
+            return ok();
+        });
+        add("FILEPOSITION", 1, 1, [](BArgs& a) {
+            int ch = channelArg(a, 0);
+            if (!a.rt.files.isOpen(ch))
+                a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
+            return Value::mkInt(a.rt.files.position(ch));
+        });
+        add("FILEEOF", 1, 1, [](BArgs& a) {
+            int ch = channelArg(a, 0);
+            if (!a.rt.files.isOpen(ch))
+                a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
+            return Value::mkInt(a.rt.files.atEnd(ch) ? 1 : 0);
+        });
+
+        add("READBYTE", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            int8_t v = static_cast<int8_t>(readBits(a, ch, 1) & 0xFF);
+            a.setOut(1, Value::mkInt(v));
+            return ok();
+        });
+        add("READUBYTE", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            a.setOut(1, Value::mkInt(static_cast<int64_t>(readBits(a, ch, 1))));
+            return ok();
+        });
+        add("READWORD", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            int16_t v = static_cast<int16_t>(readBits(a, ch, 2));
+            a.setOut(1, Value::mkInt(v));
+            return ok();
+        });
+        add("READUWORD", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            a.setOut(1, Value::mkInt(static_cast<int64_t>(readBits(a, ch, 2))));
+            return ok();
+        });
+        add("READLONG", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            int32_t v = static_cast<int32_t>(readBits(a, ch, 4));
+            a.setOut(1, Value::mkInt(v));
+            return ok();
+        });
+        add("READULONG", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            a.setOut(1, Value::mkInt(static_cast<int64_t>(readBits(a, ch, 4))));
+            return ok();
+        });
+        add("READIEEE", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            unsigned char buf[8] = {0};
+            size_t got = 0;
+            a.rt.files.readBytes(ch, buf, sizeof(buf), got);
+            double v = 0.0;
+            std::memcpy(&v, buf, sizeof(buf));
+            a.setOut(1, Value::mkFloat(v));
+            return ok();
+        });
+        add("READSHORTIEEE", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            unsigned char buf[4] = {0};
+            size_t got = 0;
+            a.rt.files.readBytes(ch, buf, sizeof(buf), got);
+            float v = 0.0f;
+            std::memcpy(&v, buf, sizeof(buf));
+            a.setOut(1, Value::mkFloat(v));
+            return ok();
+        });
+        add("READSTR", 3, 3, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            int64_t count = a.integer(2);
+            if (count < 0) a.fail("Laenge muss 0 oder groesser sein");
+            if (count > 64 * 1024 * 1024) a.fail("Laenge ist zu gross");
+            a.setOut(1, Value::mkStr(readText(a, ch, static_cast<size_t>(count))));
+            return ok();
+        });
+        add("READLINE", 2, 2, [](BArgs& a) {
+            int ch = readChannel(a, 0);
+            std::string line;
+            a.rt.files.readLine(ch, line);
+            a.setOut(1, Value::mkStr(line));
+            return ok();
+        });
+
+        add("WRITEBYTE", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            writeBits(a, ch, a.integer(1), 1);
+            return ok();
+        });
+        add("WRITEUBYTE", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            writeBits(a, ch, a.integer(1), 1);
+            return ok();
+        });
+        add("WRITEWORD", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            writeBits(a, ch, a.integer(1), 2);
+            return ok();
+        });
+        add("WRITEUWORD", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            writeBits(a, ch, a.integer(1), 2);
+            return ok();
+        });
+        add("WRITELONG", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            writeBits(a, ch, a.integer(1), 4);
+            return ok();
+        });
+        add("WRITEULONG", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            writeBits(a, ch, a.integer(1), 4);
+            return ok();
+        });
+        add("WRITEIEEE", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            double v = a.num(1);
+            unsigned char buf[8];
+            std::memcpy(buf, &v, sizeof(buf));
+            if (!a.rt.files.writeBytes(ch, buf, sizeof(buf))) a.fail("Schreiben fehlgeschlagen");
+            return ok();
+        });
+        add("WRITESHORTIEEE", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            float v = static_cast<float>(a.num(1));
+            unsigned char buf[4];
+            std::memcpy(buf, &v, sizeof(buf));
+            if (!a.rt.files.writeBytes(ch, buf, sizeof(buf))) a.fail("Schreiben fehlgeschlagen");
+            return ok();
+        });
+        add("WRITESTR", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            std::string text = a.str(1);
+            if (!a.rt.files.writeBytes(ch, text.data(), text.size())) a.fail("Schreiben fehlgeschlagen");
+            return ok();
+        });
+        add("WRITELINE", 2, 2, [](BArgs& a) {
+            int ch = writeChannel(a, 0);
+            std::string text = a.str(1) + "\r\n";
+            if (!a.rt.files.writeBytes(ch, text.data(), text.size())) a.fail("Schreiben fehlgeschlagen");
+            return ok();
+        });
+
+        add("FILEEXISTS", 1, 1, [](BArgs& a) {
+            std::string path = a.rt.resolveAsset(a.str(0));
+            std::error_code ec;
+            return Value::mkInt(std::filesystem::is_regular_file(std::filesystem::path(path), ec) ? 1 : 0);
+        });
+        add("FILESIZE", 1, 1, [](BArgs& a) {
+            std::string path = a.rt.resolveAsset(a.str(0));
+            std::error_code ec;
+            if (!std::filesystem::is_regular_file(std::filesystem::path(path), ec)) return Value::mkInt(-1);
+            auto size = std::filesystem::file_size(std::filesystem::path(path), ec);
+            if (ec) return Value::mkInt(-1);
+            return Value::mkInt(static_cast<int64_t>(size));
+        });
+        add("COPYFILE", 2, 2, [](BArgs& a) {
+            std::string src = a.rt.resolveAsset(a.str(0));
+            std::string dst = outputPath(a.rt, a.str(1));
+            std::error_code ec;
+            if (!std::filesystem::is_regular_file(std::filesystem::path(src), ec))
+                a.fail("Datei nicht gefunden: " + a.str(0));
+            std::filesystem::copy_file(std::filesystem::path(src), std::filesystem::path(dst),
+                                       std::filesystem::copy_options::overwrite_existing, ec);
+            if (ec) a.fail("Kopieren fehlgeschlagen: " + ec.message());
+            return Value::mkInt(1);
+        });
+        add("RENAMEFILE", 2, 2, [](BArgs& a) {
+            std::string src = a.rt.resolveAsset(a.str(0));
+            std::string dst = outputPath(a.rt, a.str(1));
+            std::error_code ec;
+            if (!std::filesystem::is_regular_file(std::filesystem::path(src), ec))
+                a.fail("Datei nicht gefunden: " + a.str(0));
+            std::filesystem::rename(std::filesystem::path(src), std::filesystem::path(dst), ec);
+            if (ec) a.fail("Umbenennen fehlgeschlagen: " + ec.message());
+            return Value::mkInt(1);
+        });
+        add("DELETEFILE", 1, 1, [](BArgs& a) {
+            std::string path = a.rt.resolveAsset(a.str(0));
+            std::error_code ec;
+            if (!std::filesystem::is_regular_file(std::filesystem::path(path), ec))
+                a.fail("Datei nicht gefunden: " + a.str(0));
+            std::filesystem::remove(std::filesystem::path(path), ec);
+            if (ec) a.fail("Loeschen fehlgeschlagen: " + ec.message());
+            return Value::mkInt(1);
+        });
+        add("MAKEDIR", 1, 1, [](BArgs& a) {
+            std::string path = outputPath(a.rt, a.str(0));
+            std::error_code ec;
+            std::filesystem::create_directories(std::filesystem::path(path), ec);
+            if (ec) a.fail("Ordner laesst sich nicht anlegen: " + ec.message());
+            return Value::mkInt(1);
+        });
 
         return t;
     }();

@@ -7,13 +7,13 @@
 ![Tests](https://img.shields.io/badge/tests-language%20%2B%20inline%20%2B%20ui-brightgreen)
 
 A BASIC interpreter for 2D games, built on **SDL3** – with direct C++ `INLINE`
-blocks, sprites, sound and a complete IDE. 3D, networking and file streams are
-deliberately out of scope; the 2D core is complete.
+blocks, sprites, sound, file access and a complete IDE. 3D, networking and
+platform extras are deliberately out of scope; the 2D core is complete.
 
 ![GBX Studio](docs/screenshots/ide.png)
 
-<sub>**GBX Studio** – live name checking, outline, 292-command reference and a
-runtime debugger right next to the code.</sub>
+<sub>**GBX Studio** – live name checking, outline, a searchable command reference
+and a runtime debugger right next to the code.</sub>
 
 ## Highlights
 
@@ -339,6 +339,21 @@ Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
 `TRIM$` · `LTRIM$` · `RTRIM$` · `ASC(text[,index])` · `CHR$` · `HEX$` ·
 `FORMAT$(places,decimals,number)` · `STR$`* · `VAL`*
 
+**Files**
+`OPENFILE channel, file, mode` · `CLOSEFILE channel` ·
+`FILESEEK channel, offset, origin` · `FILEPOSITION(channel)` · `FILEEOF(channel)` ·
+`READBYTE channel, var%` · `READUBYTE channel, var%` · `READWORD channel, var%` ·
+`READUWORD channel, var%` · `READLONG channel, var%` · `READULONG channel, var%` ·
+`READIEEE channel, var#` · `READSHORTIEEE channel, var#` ·
+`READSTR channel, text$, count` · `READLINE channel, text$` ·
+`WRITEBYTE channel, value` · `WRITEUBYTE channel, value` ·
+`WRITEWORD channel, value` · `WRITEUWORD channel, value` ·
+`WRITELONG channel, value` · `WRITEULONG channel, value` ·
+`WRITEIEEE channel, value#` · `WRITESHORTIEEE channel, value#` ·
+`WRITESTR channel, text$` · `WRITELINE channel, text$` ·
+`FILEEXISTS(path)` · `FILESIZE(path)` · `COPYFILE source, target` ·
+`RENAMEFILE source, target` · `DELETEFILE path` · `MAKEDIR path`
+
 **Runtime and debug**
 `DEBUG` · `STDOUT` · `STDERR` · `STDIN$` · `SLEEP ms` · `GETTIMER()` ·
 `GETTIMERALL()` · `GETCOMMANDLINE$()` · `CODELINE()` · `CODEFILE$()` ·
@@ -375,6 +390,46 @@ Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
   definitions are loaded as a DLL at startup, steps run in the middle of the
   code (see [INLINE](#inline-c-inside-the-basic-program)). There is no
   `IMPORT` or `REQUIRE`.
+
+## Files and folders
+
+`OPENFILE channel, file, mode` opens a file and binds it to a channel (a
+positive integer): mode `1` reads, `0` writes a new file, `-1` appends. The
+call returns `1` on success and `0` otherwise, for example when the file is
+missing. `CLOSEFILE channel` closes it and flushes the data.
+
+Reading and writing are binary and little-endian: `BYTE` (1 byte), `WORD`
+(2), `LONG` (4), `SHORTIEEE` (4-byte float) and `IEEE` (8-byte double), with
+unsigned variants `READUBYTE`, `READUWORD` and `READULONG` for values that
+exceed the signed range. `READSTR`/`WRITESTR` move raw text,
+`READLINE`/`WRITELINE` work line by line (`WRITELINE` appends CRLF and
+`READLINE` trims it).
+
+`FILESEEK channel, offset, origin` seeks with origin `0` (start), `1`
+(current position) or `-1` (end); `FILEPOSITION` and `FILEEOF` report where
+the read position is. `FILEEXISTS` and `FILESIZE` work without opening a
+file, `COPYFILE`, `RENAMEFILE` and `DELETEFILE` change files, `MAKEDIR`
+creates folders (including missing parents).
+
+Paths for reading are resolved like assets (project folder, `assets/`,
+current folder). Writing, copying, renaming and `MAKEDIR` target the project
+folder – or the folder next to the EXE in a packaged game. In the browser the
+files live in Emscripten's virtual file system, so writes last for the session
+and are gone after a reload; reading bundled assets works as usual.
+
+```basic
+OPENFILE 1, "save.dat", 0
+WRITELONG 1, points
+WRITELINE 1, name$
+CLOSEFILE 1
+
+IF FILEEXISTS("save.dat") THEN
+  OPENFILE 1, "save.dat", 1
+  READLONG 1, points
+  READLINE 1, name$
+  CLOSEFILE 1
+ENDIF
+```
 
 ## INLINE: C++ inside the BASIC program
 
@@ -557,9 +612,9 @@ stored locally.
 
 ## Deliberately not included
 
-3D (`X_*`), including C++ templates (`IMPORT`, `REQUIRE`), preprocessor (`?IF`
-…), file streams (`OPENFILE`, `READLINE`, …), networking (`NET*`, `SOCK_*`),
-joystick/gamepad, movies, `MEM2SPRITE`/`SPRITE2MEM`/`MEM2FONT`/`FONT2MEM`,
+3D (`X_*`), pulling in C++ templates (`IMPORT`, `REQUIRE`), preprocessor
+(`?IF` …), networking (`NET*`, `SOCK_*`), joystick/gamepad, movies,
+`MEM2SPRITE`/`SPRITE2MEM`/`MEM2FONT`/`FONT2MEM`,
 `SORTARRAY`, `FINDPATH`, `FILEREQUEST`, `SHELLCMD`, `ADDRESSOF`/`CALLBYNAME`,
 `ENCRYPT$`/`DECRYPT$`, `SETSHOEBOX`. The need for these is either 3D-,
 platform- or security-related; the 2D core is complete.
@@ -680,6 +735,11 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 
 **October 2026**
 
+* **File access**: `OPENFILE`/`CLOSEFILE`, binary `READ*`/`WRITE*` including
+  `IEEE` doubles, `READLINE`/`WRITELINE`, `FILESEEK`/`FILEPOSITION`/`FILEEOF`,
+  plus `FILEEXISTS`, `FILESIZE`, `COPYFILE`, `RENAMEFILE`, `DELETEFILE` and
+  `MAKEDIR`. The HTML5 player was rebuilt, so the commands also work in the
+  browser's virtual file system.
 * **HTML5 with TrueType**: the wasm player is built with Emscripten's FreeType
   port (`-sUSE_FREETYPE=1 -DGBX_HAVE_TTF=1`); `-sSINGLE_FILE=1` puts the wasm
   into `gbx.js`, so `index.html` runs on double click. `LOADFONT` with `.ttf`
@@ -700,5 +760,5 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 * **IDE in English**: the interface starts in English; German can be selected
   in the settings or with the language switch. The change applies immediately
   to server messages and job logs too – no restart.
-* **Test status**: 133 language checks, 84 INLINE checks, 24 IDE checks
-  (`ide: npm test`), 151 built-in commands/functions.
+* **Test status**: 133 language checks, 84 INLINE checks, 79 UI checks, 47 file
+  checks, 24 IDE checks (`ide: npm test`), 182 built-in commands/functions.

@@ -73,7 +73,9 @@ const std::unordered_set<std::string>& outputCommands() {
     static const std::unordered_set<std::string> names = {
         "GETSCREENSIZE", "GETDESKTOPSIZE", "GETVIEWPORT", "GETSPRITESIZE",
         "GETFONTSIZE",    "INPUT",         "MOUSESTATE",  "DIMDATA",
-        "SPLITSTR"};
+        "SPLITSTR",       "READBYTE",      "READUBYTE",   "READWORD",
+        "READUWORD",      "READLONG",      "READULONG",   "READIEEE",
+        "READSHORTIEEE",  "READSTR",       "READLINE"};
     return names;
 }
 

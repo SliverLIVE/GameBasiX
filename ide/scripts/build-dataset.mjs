@@ -25,6 +25,26 @@ function descriptionFor(name) {
   return { de: own.de, en: own.en };
 }
 
+// Die Ueberschriften der README sind englisch; intern bleiben die Kategorien
+// deutsch, damit die Oberflaeche sie uebersetzen kann.
+const CATEGORY_KEYS = {
+  'Window and screen': 'Fenster und Bildschirm',
+  Drawing: 'Zeichnen',
+  'Image buffer and text': 'Bildpuffer und Text',
+  Sprites: 'Sprites',
+  Input: 'Eingabe',
+  Sound: 'Sound',
+  Math: 'Mathe',
+  Strings: 'Strings',
+  Files: 'Dateien',
+  'Runtime and debug': 'Laufzeit und Debug'
+};
+
+function sectionIndex(markdown, english, german) {
+  const found = markdown.indexOf(english);
+  return found >= 0 ? found : markdown.indexOf(german);
+}
+
 // Steuerwörter der Sprache (aus parseStatement in src/parser.cpp).
 // Die Beschreibungen stehen in data/gbx-descriptions.json.
 const KEYWORDS = new Set([
@@ -259,8 +279,8 @@ function parseParams(argsRaw) {
 }
 
 function parseReference(markdown, existing) {
-  const start = markdown.indexOf('## Befehlsreferenz');
-  const end = markdown.indexOf('## Sprachdetails');
+  const start = sectionIndex(markdown, '## Command reference', '## Befehlsreferenz');
+  const end = sectionIndex(markdown, '## Language details', '## Sprachdetails');
   if (start < 0) throw new Error('Befehlsreferenz fehlt in der README.');
   const section = markdown.slice(start, end > 0 ? end : undefined);
   const chunks = section.split(/\n\s*\n/);
@@ -274,7 +294,8 @@ function parseReference(markdown, existing) {
     if (!lines.length) continue;
     const head = /^\*\*(.+)\*\*$/.exec(lines[0]);
     if (head) {
-      category = head[1].trim();
+      const title = head[1].trim();
+      category = CATEGORY_KEYS[title] || title;
       lines.shift();
       if (!lines.length) continue;
     }

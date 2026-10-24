@@ -475,5 +475,98 @@
  ],
  "ZOOMSPRITE": [
   "ZOOMSPRITE num%, x%, y%, relx#, rely#"
+ ],
+ "OPENFILE": [
+  "ok% = OPENFILE(channel%, datei$, modus%)"
+ ],
+ "CLOSEFILE": [
+  "CLOSEFILE channel%"
+ ],
+ "FILESEEK": [
+  "FILESEEK channel%, offset%, ursprung%"
+ ],
+ "FILEPOSITION": [
+  "pos% = FILEPOSITION(channel%)"
+ ],
+ "FILEEOF": [
+  "eof% = FILEEOF(channel%)"
+ ],
+ "READBYTE": [
+  "READBYTE channel%, wert%"
+ ],
+ "READUBYTE": [
+  "READUBYTE channel%, wert%"
+ ],
+ "READWORD": [
+  "READWORD channel%, wert%"
+ ],
+ "READUWORD": [
+  "READUWORD channel%, wert%"
+ ],
+ "READLONG": [
+  "READLONG channel%, wert%"
+ ],
+ "READULONG": [
+  "READULONG channel%, wert%"
+ ],
+ "READIEEE": [
+  "READIEEE channel%, wert#"
+ ],
+ "READSHORTIEEE": [
+  "READSHORTIEEE channel%, wert#"
+ ],
+ "READSTR": [
+  "READSTR channel%, text$, anzahl%"
+ ],
+ "READLINE": [
+  "READLINE channel%, zeile$"
+ ],
+ "WRITEBYTE": [
+  "WRITEBYTE channel%, wert%"
+ ],
+ "WRITEUBYTE": [
+  "WRITEUBYTE channel%, wert%"
+ ],
+ "WRITEWORD": [
+  "WRITEWORD channel%, wert%"
+ ],
+ "WRITEUWORD": [
+  "WRITEUWORD channel%, wert%"
+ ],
+ "WRITELONG": [
+  "WRITELONG channel%, wert%"
+ ],
+ "WRITEULONG": [
+  "WRITEULONG channel%, wert%"
+ ],
+ "WRITEIEEE": [
+  "WRITEIEEE channel%, wert#"
+ ],
+ "WRITESHORTIEEE": [
+  "WRITESHORTIEEE channel%, wert#"
+ ],
+ "WRITESTR": [
+  "WRITESTR channel%, text$"
+ ],
+ "WRITELINE": [
+  "WRITELINE channel%, zeile$"
+ ],
+ "FILEEXISTS": [
+  "ok% = FILEEXISTS(datei$)"
+ ],
+ "FILESIZE": [
+  "bytes% = FILESIZE(datei$)"
+ ],
+ "COPYFILE": [
+  "COPYFILE quelle$, ziel$"
+ ],
+ "RENAMEFILE": [
+  "RENAMEFILE quelle$, ziel$"
+ ],
+ "DELETEFILE": [
+  "DELETEFILE datei$"
+ ],
+ "MAKEDIR": [
+  "MAKEDIR ordner$"
  ]
 }

@@ -1,12 +1,13 @@
 # GameBasiX – CheatSheet
 
 Vollständige Kurzreferenz für **GameBasiX**: Sprachsteuerung, Typen und alle
-eingebauten Befehle (151 in der Befehlstabelle plus die Sonderform `IIF`). Die
+eingebauten Befehle (182 einschließlich der Sonderform `IIF`). Die
 Liste stammt aus `src/builtins.cpp`, die Steuerung aus `src/parser.cpp` – es ist
 also genau das, was der Interpreter versteht.
 
 Zum Stand Oktober 2026: 133 Prüfungen in `tests/language_tests.gbx`, 84 in
-`tests/inline_tests.gbx` und 22 Prüfungen der IDE (`ide: npm test`).
+`tests/inline_tests.gbx`, 79 in `tests/ui_tests.gbx` und 47 rund um Dateien in
+`tests/file_tests.gbx`; die IDE prüft sich mit `ide: npm test`.
 
 ## 1. Programmgerüst
 
@@ -251,7 +252,7 @@ n% = LEN(feld[])             ' Anzahl Elemente
 
 ## 6. Befehle nach Gebiet
 
-Alle eingebauten Befehle (151 in der Tabelle, dazu `IIF`). `[…]` = optional,
+Alle eingebauten Befehle (182 einschließlich `IIF`). `[…]` = optional,
 `→` = liefert einen Wert. Farben sind `RGB(r,g,b)`-Werte; Winkel in **Grad**.
 
 ### Fenster und Bildschirm (18)
@@ -405,6 +406,42 @@ TRIM$(text[, zeichen])            ' beide Seiten
 LTRIM$(text[, zeichen])  RTRIM$(text[, zeichen])
 FORMAT$(stellen, nachkomma, zahl) ' Breite 0 = ohne Auffüllen
 STR$(wert)  VAL(text)
+```
+
+### Dateien (31)
+
+```basic
+OPENFILE kanal, "datei", modus    ' 1 lesen, 0 schreiben, -1 anhängen → 1/0
+CLOSEFILE kanal
+READBYTE kanal, b%                ' 1 Byte, vorzeichenbehaftet
+READUBYTE kanal, b%               ' 0 … 255
+READWORD kanal, w%                ' 2 Byte
+READUWORD kanal, w%
+READLONG kanal, l%                ' 4 Byte
+READULONG kanal, l%
+READIEEE kanal, d#                ' 8 Byte double
+READSHORTIEEE kanal, f#           ' 4 Byte float
+READSTR kanal, text$, anzahl
+READLINE kanal, zeile$
+WRITEBYTE kanal, wert
+WRITEUBYTE kanal, wert
+WRITEWORD kanal, wert
+WRITEUWORD kanal, wert
+WRITELONG kanal, wert
+WRITEULONG kanal, wert
+WRITEIEEE kanal, wert#
+WRITESHORTIEEE kanal, wert#
+WRITESTR kanal, text$
+WRITELINE kanal, zeile$           ' hängt CRLF an
+FILESEEK kanal, offset, ursprung  ' 0 Anfang, 1 Position, -1 Ende
+FILEPOSITION(kanal)               ' → Byte-Position
+FILEEOF(kanal)                    ' → 1 am Dateiende
+FILEEXISTS("datei")               ' → 1, wenn vorhanden
+FILESIZE("datei")                 ' → Bytes, -1 wenn nicht vorhanden
+COPYFILE quelle$, ziel$
+RENAMEFILE quelle$, ziel$
+DELETEFILE "datei"
+MAKEDIR "ordner"                  ' legt auch fehlende Elternordner an
 ```
 
 ### Laufzeit und Debug (15)

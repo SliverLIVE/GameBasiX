@@ -1,0 +1,145 @@
+' ============================================================
+' GameBasiX - Tests fuer Dateizugriff
+'
+'   gbx --headless --tests tests/file_tests.gbx
+'
+' Legt Testdateien neben diesem Skript an und raeumt sie am
+' Ende wieder weg.
+' ============================================================
+
+bin$ = "fileio_test.bin"
+lin$ = "fileio_lines.txt"
+app$ = "fileio_append.txt"
+cpy$ = "fileio_copy.bin"
+mov$ = "fileio_moved.bin"
+IF FILEEXISTS(bin$) THEN DELETEFILE bin$
+IF FILEEXISTS(lin$) THEN DELETEFILE lin$
+IF FILEEXISTS(app$) THEN DELETEFILE app$
+IF FILEEXISTS(cpy$) THEN DELETEFILE cpy$
+IF FILEEXISTS(mov$) THEN DELETEFILE mov$
+
+' ------------------------------------------------------ schreiben
+ASSERT OPENFILE(1, bin$, 0) = 1, "OPENFILE schreiben"
+WRITEBYTE 1, 200
+WRITEBYTE 1, -1
+WRITEWORD 1, 513
+WRITEUWORD 1, 65535
+WRITELONG 1, 123456
+WRITEULONG 1, 4000000000
+WRITEIEEE 1, 1.5
+WRITESHORTIEEE 1, -2.25
+WRITESTR 1, "abc"
+CLOSEFILE 1
+
+ASSERT FILESIZE(bin$) = 29, "FILESIZE nach dem Schreiben"
+ASSERT FILEEXISTS(bin$) = 1, "FILEEXISTS"
+ASSERT FILEEXISTS("gibt_es_nicht.bin") = 0, "FILEEXISTS fehlende Datei"
+ASSERT FILESIZE("gibt_es_nicht.bin") = -1, "FILESIZE fehlende Datei"
+
+' ---------------------------------------------------------- lesen
+ASSERT OPENFILE(1, bin$, 1) = 1, "OPENFILE lesen"
+READBYTE 1, b
+READUBYTE 1, ub
+READWORD 1, w
+READUWORD 1, uw
+READLONG 1, l
+READULONG 1, ul
+READIEEE 1, d#
+READSHORTIEEE 1, s#
+READSTR 1, text$, 3
+
+ASSERT b = -56, "READBYTE vorzeichenbehaftet"
+ASSERT ub = 255, "READUBYTE"
+ASSERT w = 513, "READWORD"
+ASSERT uw = 65535, "READUWORD"
+ASSERT l = 123456, "READLONG"
+ASSERT ul = 4000000000, "READULONG"
+ASSERT d# = 1.5, "READIEEE"
+ASSERT s# = -2.25, "READSHORTIEEE"
+ASSERT text$ = "abc", "READSTR"
+ASSERT FILEEOF(1) = 1, "FILEEOF am Ende"
+ASSERT FILEPOSITION(1) = 29, "FILEPOSITION am Ende"
+CLOSEFILE 1
+
+' --------------------------------------------------------- suchen
+ASSERT OPENFILE(1, bin$, 1) = 1, "OPENFILE erneut lesen"
+FILESEEK 1, 0, 0
+ASSERT FILEPOSITION(1) = 0, "FILESEEK Anfang"
+ASSERT FILEEOF(1) = 0, "FILEEOF am Anfang"
+READBYTE 1, b
+ASSERT b = -56, "READBYTE nach FILESEEK"
+
+FILESEEK 1, -1, -1
+ASSERT FILEPOSITION(1) = 28, "FILESEEK Ende"
+readEnd = 0
+READUBYTE 1, readEnd
+ASSERT readEnd = 99, "letztes Byte ist c"
+
+FILESEEK 1, -4, 1
+ASSERT FILEPOSITION(1) = 25, "FILESEEK relativ zur Position"
+READUBYTE 1, readEnd
+ASSERT readEnd = 192, "Byte aus dem Float"
+CLOSEFILE 1
+
+' --------------------------------------------------------- zeilen
+ASSERT OPENFILE(2, lin$, 0) = 1, "OPENFILE Zeilen schreiben"
+WRITELINE 2, "eins"
+WRITELINE 2, "zwei"
+WRITESTR 2, "ohne newline"
+CLOSEFILE 2
+ASSERT FILESIZE(lin$) = 24, "WRITELINE schreibt CRLF"
+
+ASSERT OPENFILE(2, lin$, 1) = 1, "OPENFILE Zeilen lesen"
+READLINE 2, zeile$
+ASSERT zeile$ = "eins", "READLINE erste Zeile"
+READLINE 2, zeile$
+ASSERT zeile$ = "zwei", "READLINE zweite Zeile"
+READLINE 2, zeile$
+ASSERT zeile$ = "ohne newline", "READLINE ohne Zeilenende"
+ASSERT FILEEOF(2) = 1, "FILEEOF nach letzter Zeile"
+READLINE 2, zeile$
+ASSERT zeile$ = "", "READLINE am Ende leer"
+CLOSEFILE 2
+
+' ------------------------------------------------------ anhaengen
+ASSERT OPENFILE(5, app$, 0) = 1, "Datei fuer Anhaengen"
+WRITELINE 5, "eins"
+CLOSEFILE 5
+ASSERT OPENFILE(5, app$, -1) = 1, "OPENFILE anhaengen"
+WRITELINE 5, "zwei"
+CLOSEFILE 5
+ASSERT FILESIZE(app$) = 12, "FILESIZE nach dem Anhaengen"
+ASSERT OPENFILE(5, app$, 1) = 1, "OPENFILE zum Pruefen"
+READLINE 5, zeile$
+ASSERT zeile$ = "eins", "erste Zeile vor dem Anhaengen"
+READLINE 5, zeile$
+ASSERT zeile$ = "zwei", "angehaengte Zeile"
+ASSERT FILEEOF(5) = 1, "Ende nach zwei Zeilen"
+CLOSEFILE 5
+
+' ------------------------------------------------- Dateioperationen
+COPYFILE lin$, cpy$
+ASSERT FILEEXISTS(cpy$) = 1, "COPYFILE"
+ASSERT FILESIZE(cpy$) = FILESIZE(lin$), "Kopie ist gleich gross"
+RENAMEFILE cpy$, mov$
+ASSERT FILEEXISTS(mov$) = 1 AND FILEEXISTS(cpy$) = 0, "RENAMEFILE"
+DELETEFILE mov$
+ASSERT FILEEXISTS(mov$) = 0, "DELETEFILE"
+
+' ---------------------------------------------------------- Ordner
+ordner$ = GETENV$("TEMP") + "/gbx-fileio-test"
+MAKEDIR ordner$
+ASSERT OPENFILE(4, ordner$ + "/drin.bin", 0) = 1, "Datei im neuen Ordner"
+WRITEBYTE 4, 7
+CLOSEFILE 4
+ASSERT FILEEXISTS(ordner$ + "/drin.bin") = 1, "Datei im Ordner gefunden"
+DELETEFILE ordner$ + "/drin.bin"
+
+' ---------------------------------------------------------- Fehler
+ASSERT OPENFILE(9, "gibt_es_nicht.bin", 1) = 0, "OPENFILE fehlende Datei"
+
+' -------------------------------------------------------- aufraeumen
+DELETEFILE bin$
+DELETEFILE lin$
+DELETEFILE app$
+STDOUT "DATEITEST FERTIG" + CHR$(10)

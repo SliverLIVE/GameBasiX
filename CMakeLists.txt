@@ -74,6 +74,7 @@ add_executable(gbx
   src/package.cpp
   src/debugger.cpp
   src/builtins.cpp
+  src/fileio.cpp
   src/graphics.cpp
   src/audio.cpp
   src/project.cpp
@@ -146,6 +147,13 @@ set_tests_properties(inline PROPERTIES
 add_test(NAME ui
          COMMAND gbx --headless --tests tests/ui_tests.gbx)
 set_tests_properties(ui PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+
+# Dateizugriff: OPENFILE/READ.../WRITE..., Seek und Dateioperationen
+add_test(NAME files
+         COMMAND gbx --headless --tests tests/file_tests.gbx)
+set_tests_properties(files PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
 

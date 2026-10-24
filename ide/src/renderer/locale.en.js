@@ -101,6 +101,7 @@ export const en = {
   "Sound": "Sound",
   "Mathe": "Maths",
   "Strings": "Strings",
+  "Dateien": "Files",
   "Laufzeit und Debug": "Runtime and debug",
   "Arrays": "Arrays",
   "Konstanten": "Constants",

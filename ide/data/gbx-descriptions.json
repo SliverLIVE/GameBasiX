@@ -850,5 +850,129 @@
   "WHILE": {
     "de": "Schleife, die vor jedem Durchlauf ihre Bedingung prüft und bis WEND läuft.",
     "en": "Loop that checks its condition before each pass and runs until WEND."
+  },
+  "OPENFILE": {
+    "de": "Öffnet eine Datei auf einem Kanal: Modus 1 liest, 0 schreibt neu, -1 hängt an. Liefert 1 bei Erfolg, sonst 0.",
+    "en": "Opens a file on a channel: mode 1 reads, 0 writes a new file, -1 appends. Returns 1 on success, otherwise 0."
+  },
+  "CLOSEFILE": {
+    "de": "Schließt den Kanal und schreibt gepufferte Daten auf die Platte.",
+    "en": "Closes the channel and flushes buffered data to disk."
+  },
+  "FILESEEK": {
+    "de": "Setzt die Dateiposition: Ursprung 0 ist der Anfang, 1 die aktuelle Position, -1 das Ende.",
+    "en": "Sets the file position: origin 0 is the start, 1 the current position, -1 the end."
+  },
+  "FILEPOSITION": {
+    "de": "Liefert die aktuelle Position in der Datei in Bytes.",
+    "en": "Returns the current position in the file in bytes."
+  },
+  "FILEEOF": {
+    "de": "Liefert 1, wenn der Lesezeiger am Dateiende steht, sonst 0.",
+    "en": "Returns 1 when the read position is at the end of the file, otherwise 0."
+  },
+  "READBYTE": {
+    "de": "Liest ein Byte mit Vorzeichen (-128 bis 127).",
+    "en": "Reads a signed byte (-128 to 127)."
+  },
+  "READUBYTE": {
+    "de": "Liest ein Byte ohne Vorzeichen (0 bis 255).",
+    "en": "Reads an unsigned byte (0 to 255)."
+  },
+  "READWORD": {
+    "de": "Liest eine 16-Bit-Zahl mit Vorzeichen (little endian).",
+    "en": "Reads a signed 16-bit number (little endian)."
+  },
+  "READUWORD": {
+    "de": "Liest eine 16-Bit-Zahl ohne Vorzeichen (little endian).",
+    "en": "Reads an unsigned 16-bit number (little endian)."
+  },
+  "READLONG": {
+    "de": "Liest eine 32-Bit-Zahl mit Vorzeichen (little endian).",
+    "en": "Reads a signed 32-bit number (little endian)."
+  },
+  "READULONG": {
+    "de": "Liest eine 32-Bit-Zahl ohne Vorzeichen (little endian).",
+    "en": "Reads an unsigned 32-bit number (little endian)."
+  },
+  "READIEEE": {
+    "de": "Liest eine 8-Byte-Gleitkommazahl (double) – das native Zahlenformat von GameBasiX.",
+    "en": "Reads an 8-byte floating point number (double) – the native number format of GameBasiX."
+  },
+  "READSHORTIEEE": {
+    "de": "Liest eine 4-Byte-Gleitkommazahl (float).",
+    "en": "Reads a 4-byte floating point number (float)."
+  },
+  "READSTR": {
+    "de": "Liest die angegebene Anzahl Zeichen in einen String.",
+    "en": "Reads the given number of characters into a string."
+  },
+  "READLINE": {
+    "de": "Liest eine Zeile bis zum Zeilenende und entfernt ein abschließendes CR.",
+    "en": "Reads one line up to the line break and strips a trailing CR."
+  },
+  "WRITEBYTE": {
+    "de": "Schreibt das niederwertige Byte einer Zahl.",
+    "en": "Writes the low byte of a number."
+  },
+  "WRITEUBYTE": {
+    "de": "Schreibt das niederwertige Byte einer Zahl (ohne Vorzeichen).",
+    "en": "Writes the low byte of a number (unsigned)."
+  },
+  "WRITEWORD": {
+    "de": "Schreibt eine 16-Bit-Zahl (little endian).",
+    "en": "Writes a 16-bit number (little endian)."
+  },
+  "WRITEUWORD": {
+    "de": "Schreibt eine 16-Bit-Zahl ohne Vorzeichen (little endian).",
+    "en": "Writes an unsigned 16-bit number (little endian)."
+  },
+  "WRITELONG": {
+    "de": "Schreibt eine 32-Bit-Zahl (little endian).",
+    "en": "Writes a 32-bit number (little endian)."
+  },
+  "WRITEULONG": {
+    "de": "Schreibt eine 32-Bit-Zahl ohne Vorzeichen (little endian).",
+    "en": "Writes an unsigned 32-bit number (little endian)."
+  },
+  "WRITEIEEE": {
+    "de": "Schreibt eine 8-Byte-Gleitkommazahl (double).",
+    "en": "Writes an 8-byte floating point number (double)."
+  },
+  "WRITESHORTIEEE": {
+    "de": "Schreibt eine 4-Byte-Gleitkommazahl (float).",
+    "en": "Writes a 4-byte floating point number (float)."
+  },
+  "WRITESTR": {
+    "de": "Schreibt Text ohne zusätzliches Zeilenende.",
+    "en": "Writes text without an additional line break."
+  },
+  "WRITELINE": {
+    "de": "Schreibt eine Zeile und hängt CRLF an.",
+    "en": "Writes a line and appends CRLF."
+  },
+  "FILEEXISTS": {
+    "de": "Liefert 1, wenn die Datei existiert, sonst 0.",
+    "en": "Returns 1 if the file exists, otherwise 0."
+  },
+  "FILESIZE": {
+    "de": "Liefert die Dateigröße in Bytes oder -1, wenn die Datei fehlt.",
+    "en": "Returns the file size in bytes, or -1 if the file is missing."
+  },
+  "COPYFILE": {
+    "de": "Kopiert eine Datei und überschreibt dabei ein vorhandenes Ziel.",
+    "en": "Copies a file and overwrites an existing target."
+  },
+  "RENAMEFILE": {
+    "de": "Benennt eine Datei um oder verschiebt sie.",
+    "en": "Renames a file or moves it."
+  },
+  "DELETEFILE": {
+    "de": "Löscht eine Datei.",
+    "en": "Deletes a file."
+  },
+  "MAKEDIR": {
+    "de": "Legt einen Ordner samt fehlender Elternordner an.",
+    "en": "Creates a folder including any missing parent folders."
   }
 }

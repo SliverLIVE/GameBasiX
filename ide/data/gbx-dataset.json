@@ -2,8 +2,8 @@
  "meta": {
   "app": "GameBasiX",
   "version": 1,
-  "generatedAt": "2026-10-24T01:07:56.664Z",
-  "commands": 213,
+  "generatedAt": "2026-10-24T11:21:56.487Z",
+  "commands": 244,
   "note": "Aus der Befehlsliste der README erzeugt; die Beschreibungen sind eigene Texte auf Deutsch und Englisch. Spracheigenschaften stehen im Eintrag „Sprachdetails“. "
  },
  "categories": [
@@ -15,6 +15,7 @@
   "Sound",
   "Mathe",
   "Strings",
+  "Dateien",
   "Laufzeit und Debug",
   "Sprache",
   "Arrays",
@@ -91,9 +92,9 @@
    "displayName": "ALLOWESCAPE",
    "kind": "command",
    "category": "Eingabe",
-   "signature": "ALLOWESCAPE an",
+   "signature": "ALLOWESCAPE on",
    "syntax": [
-    "ALLOWESCAPE an"
+    "ALLOWESCAPE on"
    ],
    "description": {
     "de": "Legt fest, ob die Esc-Taste das Programm beenden darf.",
@@ -104,8 +105,8 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "an",
-     "label": "an",
+     "name": "on",
+     "label": "on",
      "labelEn": "on",
      "type": "Wert",
      "optional": true
@@ -155,9 +156,9 @@
    "displayName": "ALPHATESTING",
    "kind": "command",
    "category": "Fenster und Bildschirm",
-   "signature": "ALPHATESTING wert",
+   "signature": "ALPHATESTING value",
    "syntax": [
-    "ALPHATESTING wert"
+    "ALPHATESTING value"
    ],
    "description": {
     "de": "Legt die Schwelle fest, unter der Pixel beim Laden von Bildern ganz durchsichtig werden. Gilt für neu geladene Bilder, nicht rückwirkend.",
@@ -465,9 +466,9 @@
    "displayName": "ASSERT",
    "kind": "command",
    "category": "Laufzeit und Debug",
-   "signature": "ASSERT bedingung[,text]",
+   "signature": "ASSERT condition[,text]",
    "syntax": [
-    "ASSERT bedingung[,text]"
+    "ASSERT condition[,text]"
    ],
    "description": {
     "de": "Prüft eine Bedingung. Schlägt sie fehl, zählt der Testlauf einen Fehler, gibt die Meldung aus und das Programm endet mit Code 1.",
@@ -478,8 +479,8 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "bedingung",
-     "label": "bedingung",
+     "name": "condition",
+     "label": "condition",
      "labelEn": "condition",
      "type": "Wert",
      "optional": false
@@ -606,9 +607,9 @@
    "displayName": "BLENDSCREEN",
    "kind": "command",
    "category": "Bildpuffer und Text",
-   "signature": "BLENDSCREEN \"bild.png\"[,ms]",
+   "signature": "BLENDSCREEN \"image.png\"[,ms]",
    "syntax": [
-    "BLENDSCREEN \"bild.png\"[,ms]"
+    "BLENDSCREEN \"image.png\"[,ms]"
    ],
    "description": {
     "de": "Blendet ein Bild über die angegebene Dauer ein, etwa als Übergang zwischen Szenen.",
@@ -619,9 +620,9 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "bildpng",
-     "label": "bildpng",
-     "labelEn": "image",
+     "name": "imagepng",
+     "label": "imagepng",
+     "labelEn": "imagepng",
      "type": "Wert",
      "optional": false
     },
@@ -635,9 +636,9 @@
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "BLENDSCREEN \"bild.png\"[,ms]",
+   "signatureEn": "BLENDSCREEN \"image.png\"[,ms]",
    "syntaxEn": [
-    "BLENDSCREEN \"bild.png\"[,ms]"
+    "BLENDSCREEN \"image.png\"[,ms]"
    ]
   },
   {
@@ -1035,9 +1036,9 @@
    "displayName": "CLEARSCREEN",
    "kind": "command",
    "category": "Fenster und Bildschirm",
-   "signature": "CLEARSCREEN [farbe]",
+   "signature": "CLEARSCREEN [color]",
    "syntax": [
-    "CLEARSCREEN [farbe]"
+    "CLEARSCREEN [color]"
    ],
    "description": {
     "de": "Löscht den Bildschirm in der angegebenen Farbe und merkt sie sich für die folgenden Bilder. Ohne Argument wird Schwarz benutzt, mit -1 hört das automatische Löschen auf.",
@@ -1048,18 +1049,50 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": true
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "CLEARSCREEN [colour]",
+   "signatureEn": "CLEARSCREEN [color]",
    "syntaxEn": [
-    "CLEARSCREEN [colour]"
+    "CLEARSCREEN [color]"
+   ]
+  },
+  {
+   "name": "CLOSEFILE",
+   "displayName": "CLOSEFILE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "CLOSEFILE channel",
+   "syntax": [
+    "CLOSEFILE channel"
+   ],
+   "description": {
+    "de": "Schließt den Kanal und schreibt gepufferte Daten auf die Platte.",
+    "en": "Closes the channel and flushes buffered data to disk."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "CLOSEFILE channel",
+   "syntaxEn": [
+    "CLOSEFILE channel"
    ]
   },
   {
@@ -1180,6 +1213,45 @@
    "signatureEn": "CONTINUE",
    "syntaxEn": [
     "CONTINUE"
+   ]
+  },
+  {
+   "name": "COPYFILE",
+   "displayName": "COPYFILE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "COPYFILE source, target",
+   "syntax": [
+    "COPYFILE source, target"
+   ],
+   "description": {
+    "de": "Kopiert eine Datei und überschreibt dabei ein vorhandenes Ziel.",
+    "en": "Copies a file and overwrites an existing target."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "source",
+     "label": "source",
+     "labelEn": "source",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "target",
+     "label": "target",
+     "labelEn": "target",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "COPYFILE source, target",
+   "syntaxEn": [
+    "COPYFILE source, target"
    ]
   },
   {
@@ -1345,6 +1417,38 @@
    "signatureEn": "DEFAULT",
    "syntaxEn": [
     "DEFAULT"
+   ]
+  },
+  {
+   "name": "DELETEFILE",
+   "displayName": "DELETEFILE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "DELETEFILE path",
+   "syntax": [
+    "DELETEFILE path"
+   ],
+   "description": {
+    "de": "Löscht eine Datei.",
+    "en": "Deletes a file."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "path",
+     "label": "path",
+     "labelEn": "path",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DELETEFILE path",
+   "syntaxEn": [
+    "DELETEFILE path"
    ]
   },
   {
@@ -1523,9 +1627,9 @@
    "displayName": "DRAWBORDER",
    "kind": "command",
    "category": "Zeichnen",
-   "signature": "DRAWBORDER x,y,w,h,farbe",
+   "signature": "DRAWBORDER x,y,w,h,color",
    "syntax": [
-    "DRAWBORDER x,y,w,h,farbe"
+    "DRAWBORDER x,y,w,h,color"
    ],
    "description": {
     "de": "Zeichnet nur den Rand eines Rechtecks, innen bleibt das Bild unberührt.",
@@ -1564,18 +1668,18 @@
      "optional": false
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "DRAWBORDER x,y,w,h,colour",
+   "signatureEn": "DRAWBORDER x,y,w,h,color",
    "syntaxEn": [
-    "DRAWBORDER x,y,w,h,colour"
+    "DRAWBORDER x,y,w,h,color"
    ]
   },
   {
@@ -1583,9 +1687,9 @@
    "displayName": "DRAWCIRCLE",
    "kind": "command",
    "category": "Zeichnen",
-   "signature": "DRAWCIRCLE x,y,r[,farbe]",
+   "signature": "DRAWCIRCLE x,y,r[,color]",
    "syntax": [
-    "DRAWCIRCLE x,y,r[,farbe]"
+    "DRAWCIRCLE x,y,r[,color]"
    ],
    "description": {
     "de": "Zeichnet den Umriss eines Kreises. Mittelpunkt und Radius werden in Pixeln angegeben.",
@@ -1617,18 +1721,18 @@
      "optional": false
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "DRAWCIRCLE x,y,r[,colour]",
+   "signatureEn": "DRAWCIRCLE x,y,r[,color]",
    "syntaxEn": [
-    "DRAWCIRCLE x,y,r[,colour]"
+    "DRAWCIRCLE x,y,r[,color]"
    ]
   },
   {
@@ -1636,9 +1740,9 @@
    "displayName": "DRAWFILLEDCIRCLE",
    "kind": "command",
    "category": "Zeichnen",
-   "signature": "DRAWFILLEDCIRCLE x,y,r[,farbe]",
+   "signature": "DRAWFILLEDCIRCLE x,y,r[,color]",
    "syntax": [
-    "DRAWFILLEDCIRCLE x,y,r[,farbe]"
+    "DRAWFILLEDCIRCLE x,y,r[,color]"
    ],
    "description": {
     "de": "Zeichnet einen vollständig gefüllten Kreis.",
@@ -1670,18 +1774,18 @@
      "optional": false
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "DRAWFILLEDCIRCLE x,y,r[,colour]",
+   "signatureEn": "DRAWFILLEDCIRCLE x,y,r[,color]",
    "syntaxEn": [
-    "DRAWFILLEDCIRCLE x,y,r[,colour]"
+    "DRAWFILLEDCIRCLE x,y,r[,color]"
    ]
   },
   {
@@ -1689,9 +1793,9 @@
    "displayName": "DRAWLINE",
    "kind": "command",
    "category": "Zeichnen",
-   "signature": "DRAWLINE x1,y1,x2,y2,farbe",
+   "signature": "DRAWLINE x1,y1,x2,y2,color",
    "syntax": [
-    "DRAWLINE x1,y1,x2,y2,farbe"
+    "DRAWLINE x1,y1,x2,y2,color"
    ],
    "description": {
     "de": "Zieht eine gerade Linie vom ersten zum zweiten Punkt.",
@@ -1730,18 +1834,18 @@
      "optional": false
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "DRAWLINE x1,y1,x2,y2,colour",
+   "signatureEn": "DRAWLINE x1,y1,x2,y2,color",
    "syntaxEn": [
-    "DRAWLINE x1,y1,x2,y2,colour"
+    "DRAWLINE x1,y1,x2,y2,color"
    ]
   },
   {
@@ -1749,9 +1853,9 @@
    "displayName": "DRAWRECT",
    "kind": "command",
    "category": "Zeichnen",
-   "signature": "DRAWRECT x,y,w,h,farbe",
+   "signature": "DRAWRECT x,y,w,h,color",
    "syntax": [
-    "DRAWRECT x,y,w,h,farbe"
+    "DRAWRECT x,y,w,h,color"
    ],
    "description": {
     "de": "Füllt ein Rechteck, das an der linken oberen Ecke beginnt.",
@@ -1790,18 +1894,18 @@
      "optional": false
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "DRAWRECT x,y,w,h,colour",
+   "signatureEn": "DRAWRECT x,y,w,h,color",
    "syntaxEn": [
-    "DRAWRECT x,y,w,h,colour"
+    "DRAWRECT x,y,w,h,color"
    ]
   },
   {
@@ -1855,9 +1959,9 @@
    "displayName": "DRAWTEXT",
    "kind": "command",
    "category": "Bildpuffer und Text",
-   "signature": "DRAWTEXT \"text\",x,y[,farbe]",
+   "signature": "DRAWTEXT \"text\",x,y[,color]",
    "syntax": [
-    "DRAWTEXT \"text\",x,y[,farbe]"
+    "DRAWTEXT \"text\",x,y[,color]"
    ],
    "description": {
     "de": "Schreibt Text in der angegebenen Farbe, ohne die mit SETTEXTCOLOR gesetzte Farbe zu verändern.",
@@ -1889,18 +1993,18 @@
      "optional": false
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": true
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "DRAWTEXT \"text\",x,y[,colour]",
+   "signatureEn": "DRAWTEXT \"text\",x,y[,color]",
    "syntaxEn": [
-    "DRAWTEXT \"text\",x,y[,colour]"
+    "DRAWTEXT \"text\",x,y[,color]"
    ]
   },
   {
@@ -2240,6 +2344,180 @@
    ]
   },
   {
+   "name": "FILEEOF",
+   "displayName": "FILEEOF",
+   "kind": "function",
+   "category": "Dateien",
+   "signature": "FILEEOF(channel)",
+   "syntax": [
+    "FILEEOF(channel)"
+   ],
+   "description": {
+    "de": "Liefert 1, wenn der Lesezeiger am Dateiende steht, sonst 0.",
+    "en": "Returns 1 when the read position is at the end of the file, otherwise 0."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "FILEEOF(channel)",
+   "syntaxEn": [
+    "FILEEOF(channel)"
+   ]
+  },
+  {
+   "name": "FILEEXISTS",
+   "displayName": "FILEEXISTS",
+   "kind": "function",
+   "category": "Dateien",
+   "signature": "FILEEXISTS(path)",
+   "syntax": [
+    "FILEEXISTS(path)"
+   ],
+   "description": {
+    "de": "Liefert 1, wenn die Datei existiert, sonst 0.",
+    "en": "Returns 1 if the file exists, otherwise 0."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "path",
+     "label": "path",
+     "labelEn": "path",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "FILEEXISTS(path)",
+   "syntaxEn": [
+    "FILEEXISTS(path)"
+   ]
+  },
+  {
+   "name": "FILEPOSITION",
+   "displayName": "FILEPOSITION",
+   "kind": "function",
+   "category": "Dateien",
+   "signature": "FILEPOSITION(channel)",
+   "syntax": [
+    "FILEPOSITION(channel)"
+   ],
+   "description": {
+    "de": "Liefert die aktuelle Position in der Datei in Bytes.",
+    "en": "Returns the current position in the file in bytes."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "FILEPOSITION(channel)",
+   "syntaxEn": [
+    "FILEPOSITION(channel)"
+   ]
+  },
+  {
+   "name": "FILESEEK",
+   "displayName": "FILESEEK",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "FILESEEK channel, offset, origin",
+   "syntax": [
+    "FILESEEK channel, offset, origin"
+   ],
+   "description": {
+    "de": "Setzt die Dateiposition: Ursprung 0 ist der Anfang, 1 die aktuelle Position, -1 das Ende.",
+    "en": "Sets the file position: origin 0 is the start, 1 the current position, -1 the end."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "offset",
+     "label": "offset",
+     "labelEn": "offset",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "origin",
+     "label": "origin",
+     "labelEn": "origin",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "FILESEEK channel, offset, origin",
+   "syntaxEn": [
+    "FILESEEK channel, offset, origin"
+   ]
+  },
+  {
+   "name": "FILESIZE",
+   "displayName": "FILESIZE",
+   "kind": "function",
+   "category": "Dateien",
+   "signature": "FILESIZE(path)",
+   "syntax": [
+    "FILESIZE(path)"
+   ],
+   "description": {
+    "de": "Liefert die Dateigröße in Bytes oder -1, wenn die Datei fehlt.",
+    "en": "Returns the file size in bytes, or -1 if the file is missing."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "path",
+     "label": "path",
+     "labelEn": "path",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "FILESIZE(path)",
+   "syntaxEn": [
+    "FILESIZE(path)"
+   ]
+  },
+  {
    "name": "FINALLY",
    "displayName": "FINALLY",
    "kind": "keyword",
@@ -2387,9 +2665,9 @@
    "displayName": "FORMAT$",
    "kind": "function",
    "category": "Strings",
-   "signature": "FORMAT$(stellen,nachkomma,zahl)",
+   "signature": "FORMAT$(places,decimals,number)",
    "syntax": [
-    "FORMAT$(stellen,nachkomma,zahl)"
+    "FORMAT$(places,decimals,number)"
    ],
    "description": {
     "de": "Schreibt eine Zahl mit fester Gesamtbreite und fester Zahl an Nachkommastellen. Eine Breite von 0 lässt sie offen.",
@@ -2400,22 +2678,22 @@
    "returnCode": "f",
    "params": [
     {
-     "name": "stellen",
-     "label": "stellen",
-     "labelEn": "width",
+     "name": "places",
+     "label": "places",
+     "labelEn": "places",
      "type": "Wert",
      "optional": false
     },
     {
-     "name": "nachkomma",
-     "label": "nachkomma",
+     "name": "decimals",
+     "label": "decimals",
      "labelEn": "decimals",
      "type": "Wert",
      "optional": false
     },
     {
-     "name": "zahl",
-     "label": "zahl",
+     "name": "number",
+     "label": "number",
      "labelEn": "number",
      "type": "Wert",
      "optional": false
@@ -2423,9 +2701,9 @@
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "FORMAT$(width,decimals,number)",
+   "signatureEn": "FORMAT$(places,decimals,number)",
    "syntaxEn": [
-    "FORMAT$(width,decimals,number)"
+    "FORMAT$(places,decimals,number)"
    ]
   },
   {
@@ -3244,9 +3522,9 @@
    "displayName": "IIF",
    "kind": "function",
    "category": "Mathe",
-   "signature": "IIF(bedingung, a, b)",
+   "signature": "IIF(condition, a, b)",
    "syntax": [
-    "IIF(bedingung, a, b)"
+    "IIF(condition, a, b)"
    ],
    "description": {
     "de": "Wählt anhand der Bedingung einen der beiden Werte. Der nicht gewählte Ausdruck wird nicht ausgewertet, eine Division durch Null im anderen Zweig schadet also nicht.",
@@ -3456,9 +3734,9 @@
    "displayName": "INSTR",
    "kind": "function",
    "category": "Strings",
-   "signature": "INSTR(text,suche[,start])",
+   "signature": "INSTR(text,search[,start])",
    "syntax": [
-    "INSTR(text,suche[,start])"
+    "INSTR(text,search[,start])"
    ],
    "description": {
     "de": "Sucht einen Text ab der Startstelle und liefert die Fundstelle, sonst -1. Der Index beginnt bei 0.\n\nHinweis: Der Startindex ist 0-basiert, -1 bedeutet „nicht gefunden“.",
@@ -3476,9 +3754,9 @@
      "optional": false
     },
     {
-     "name": "suche",
-     "label": "suche",
-     "labelEn": "needle",
+     "name": "search",
+     "label": "search",
+     "labelEn": "search",
      "type": "Wert",
      "optional": false
     },
@@ -3492,9 +3770,9 @@
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "INSTR(text,needle[,start])",
+   "signatureEn": "INSTR(text,search[,start])",
    "syntaxEn": [
-    "INSTR(text,needle[,start])"
+    "INSTR(text,search[,start])"
    ]
   },
   {
@@ -5525,9 +5803,9 @@
    "displayName": "LEN",
    "kind": "function",
    "category": "Bildpuffer und Text",
-   "signature": "LEN(text[,pixel])",
+   "signature": "LEN(text[,pixels])",
    "syntax": [
-    "LEN(text[,pixel])"
+    "LEN(text[,pixels])"
    ],
    "description": {
     "de": "Liefert die Zeichenzahl eines Textes; mit zweitem Argument seine gezeichnete Breite in Pixeln. Bei einem Array kommt die Elementzahl zurück.",
@@ -5545,18 +5823,18 @@
      "optional": false
     },
     {
-     "name": "pixel",
-     "label": "pixel",
-     "labelEn": "pixel",
+     "name": "pixels",
+     "label": "pixels",
+     "labelEn": "pixels",
      "type": "Wert",
      "optional": true
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "LEN(text[,pixel])",
+   "signatureEn": "LEN(text[,pixels])",
    "syntaxEn": [
-    "LEN(text[,pixel])"
+    "LEN(text[,pixels])"
    ]
   },
   {
@@ -5627,9 +5905,9 @@
    "displayName": "LOADANIM",
    "kind": "command",
    "category": "Sprites",
-   "signature": "LOADANIM \"sheet.png\",id,kachelw,kachelh",
+   "signature": "LOADANIM \"sheet.png\",id,tilew,tileh",
    "syntax": [
-    "LOADANIM \"sheet.png\",id,kachelw,kachelh"
+    "LOADANIM \"sheet.png\",id,tilew,tileh"
    ],
    "description": {
     "de": "Lädt ein Bild als Animation und zerlegt es dabei in Kacheln fester Größe.",
@@ -5654,25 +5932,25 @@
      "optional": false
     },
     {
-     "name": "kachelw",
-     "label": "kachelw",
-     "labelEn": "tileW",
+     "name": "tilew",
+     "label": "tilew",
+     "labelEn": "tilew",
      "type": "Wert",
      "optional": false
     },
     {
-     "name": "kachelh",
-     "label": "kachelh",
-     "labelEn": "tileH",
+     "name": "tileh",
+     "label": "tileh",
+     "labelEn": "tileh",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "LOADANIM \"sheet.png\",id,tileW,tileH",
+   "signatureEn": "LOADANIM \"sheet.png\",id,tilew,tileh",
    "syntaxEn": [
-    "LOADANIM \"sheet.png\",id,tileW,tileH"
+    "LOADANIM \"sheet.png\",id,tilew,tileh"
    ]
   },
   {
@@ -5680,9 +5958,9 @@
    "displayName": "LOADBMP",
    "kind": "command",
    "category": "Bildpuffer und Text",
-   "signature": "LOADBMP \"bild.png\"",
+   "signature": "LOADBMP \"image.png\"",
    "syntax": [
-    "LOADBMP \"bild.png\""
+    "LOADBMP \"image.png\""
    ],
    "description": {
     "de": "Lädt ein Bild als Hintergrund, der hinter allen anderen Zeichnungen liegt.",
@@ -5702,9 +5980,9 @@
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "LOADBMP \"bild.png\"",
+   "signatureEn": "LOADBMP \"image.png\"",
    "syntaxEn": [
-    "LOADBMP \"bild.png\""
+    "LOADBMP \"image.png\""
    ]
   },
   {
@@ -5712,9 +5990,9 @@
    "displayName": "LOADFONT",
    "kind": "command",
    "category": "Bildpuffer und Text",
-   "signature": "LOADFONT \"datei\",id[,groesse]",
+   "signature": "LOADFONT \"file\",id[,size]",
    "syntax": [
-    "LOADFONT \"datei\",id[,groesse]"
+    "LOADFONT \"file\",id[,size]"
    ],
    "description": {
     "de": "Lädt eine Bitmap-Schrift aus einem Rasterbild oder eine TrueType-Schrift (.ttf/.otf) in der angegebenen Punktgröße.\n\nHinweis: .bmp-Dateien werden als Raster mit 16 Zeichen pro Zeile gelesen, .ttf/.otf über FreeType.",
@@ -5739,8 +6017,8 @@
      "optional": false
     },
     {
-     "name": "groesse",
-     "label": "groesse",
+     "name": "size",
+     "label": "size",
      "labelEn": "size",
      "type": "Wert",
      "optional": true
@@ -5804,9 +6082,9 @@
    "displayName": "LOADSPRITE",
    "kind": "command",
    "category": "Sprites",
-   "signature": "LOADSPRITE \"bild.png\", id",
+   "signature": "LOADSPRITE \"image.png\", id",
    "syntax": [
-    "LOADSPRITE \"bild.png\", id"
+    "LOADSPRITE \"image.png\", id"
    ],
    "description": {
     "de": "Lädt ein Bild unter der angegebenen ID, damit die Zeichenbefehle es benutzen können.",
@@ -5833,9 +6111,9 @@
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "LOADSPRITE \"bild.png\", id",
+   "signatureEn": "LOADSPRITE \"image.png\", id",
    "syntaxEn": [
-    "LOADSPRITE \"bild.png\", id"
+    "LOADSPRITE \"image.png\", id"
    ]
   },
   {
@@ -5934,6 +6212,38 @@
    ]
   },
   {
+   "name": "MAKEDIR",
+   "displayName": "MAKEDIR",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "MAKEDIR path",
+   "syntax": [
+    "MAKEDIR path"
+   ],
+   "description": {
+    "de": "Legt einen Ordner samt fehlender Elternordner an.",
+    "en": "Creates a folder including any missing parent folders."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "path",
+     "label": "path",
+     "labelEn": "path",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "MAKEDIR path",
+   "syntaxEn": [
+    "MAKEDIR path"
+   ]
+  },
+  {
    "name": "MAX",
    "displayName": "MAX",
    "kind": "command",
@@ -6001,9 +6311,9 @@
    "displayName": "MID$",
    "kind": "function",
    "category": "Strings",
-   "signature": "MID$(text,start[,laenge])",
+   "signature": "MID$(text,start[,length])",
    "syntax": [
-    "MID$(text,start[,laenge])"
+    "MID$(text,start[,length])"
    ],
    "description": {
     "de": "Schneidet einen Teil des Textes ab der Startstelle heraus, ohne Länge bis zum Ende. Der Start beginnt bei 0.\n\nHinweis: Der Startindex ist 0-basiert.",
@@ -6028,8 +6338,8 @@
      "optional": false
     },
     {
-     "name": "laenge",
-     "label": "laenge",
+     "name": "length",
+     "label": "length",
      "labelEn": "length",
      "type": "Wert",
      "optional": true
@@ -6125,9 +6435,9 @@
    "displayName": "MOUSEAXIS",
    "kind": "function",
    "category": "Eingabe",
-   "signature": "MOUSEAXIS(achse)",
+   "signature": "MOUSEAXIS(axis)",
    "syntax": [
-    "MOUSEAXIS(achse)"
+    "MOUSEAXIS(axis)"
    ],
    "description": {
     "de": "Liefert eine Größe der Maus: 0 = x, 1 = y, 2 = Mausrad, 3/4/5 = linke, rechte, mittlere Taste.",
@@ -6138,8 +6448,8 @@
    "returnCode": "f",
    "params": [
     {
-     "name": "achse",
-     "label": "achse",
+     "name": "axis",
+     "label": "axis",
      "labelEn": "axis",
      "type": "Wert",
      "optional": false
@@ -6157,9 +6467,9 @@
    "displayName": "MOUSEHIT",
    "kind": "function",
    "category": "Eingabe",
-   "signature": "MOUSEHIT(taste)",
+   "signature": "MOUSEHIT(button)",
    "syntax": [
-    "MOUSEHIT(taste)"
+    "MOUSEHIT(button)"
    ],
    "description": {
     "de": "Liefert 1 nur in dem Frame, in dem die Taste gedrückt wurde: 0 links, 1 rechts, 2 mittlere Taste.",
@@ -6170,8 +6480,8 @@
    "returnCode": "f",
    "params": [
     {
-     "name": "taste",
-     "label": "taste",
+     "name": "button",
+     "label": "button",
      "labelEn": "button",
      "type": "Wert",
      "optional": false
@@ -6189,9 +6499,9 @@
    "displayName": "MOUSESTATE",
    "kind": "command",
    "category": "Eingabe",
-   "signature": "MOUSESTATE mx,my,links,rechts",
+   "signature": "MOUSESTATE mx,my,left,right",
    "syntax": [
-    "MOUSESTATE mx,my,links,rechts"
+    "MOUSESTATE mx,my,left,right"
    ],
    "description": {
     "de": "Schreibt Position und Tastenzustand der Maus in vier Variablen: x, y, linke Taste, rechte Taste.",
@@ -6216,15 +6526,15 @@
      "optional": false
     },
     {
-     "name": "links",
-     "label": "links",
+     "name": "left",
+     "label": "left",
      "labelEn": "left",
      "type": "Wert",
      "optional": false
     },
     {
-     "name": "rechts",
-     "label": "rechts",
+     "name": "right",
+     "label": "right",
      "labelEn": "right",
      "type": "Wert",
      "optional": false
@@ -6374,6 +6684,52 @@
    ]
   },
   {
+   "name": "OPENFILE",
+   "displayName": "OPENFILE",
+   "kind": "function",
+   "category": "Dateien",
+   "signature": "OPENFILE(channel, file, mode)",
+   "syntax": [
+    "OPENFILE(channel, file, mode)"
+   ],
+   "description": {
+    "de": "Öffnet eine Datei auf einem Kanal: Modus 1 liest, 0 schreibt neu, -1 hängt an. Liefert 1 bei Erfolg, sonst 0.",
+    "en": "Opens a file on a channel: mode 1 reads, 0 writes a new file, -1 appends. Returns 1 on success, otherwise 0."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "file",
+     "label": "file",
+     "labelEn": "file",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "mode",
+     "label": "mode",
+     "labelEn": "mode",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "OPENFILE(channel, file, mode)",
+   "syntaxEn": [
+    "OPENFILE(channel, file, mode)"
+   ]
+  },
+  {
    "name": "OR",
    "displayName": "OR",
    "kind": "keyword",
@@ -6402,9 +6758,9 @@
    "displayName": "PAUSEMUSIC",
    "kind": "command",
    "category": "Sound",
-   "signature": "PAUSEMUSIC an",
+   "signature": "PAUSEMUSIC on",
    "syntax": [
-    "PAUSEMUSIC an"
+    "PAUSEMUSIC on"
    ],
    "description": {
     "de": "Hält die Musik an (1) oder setzt sie an der Stelle fort (0).",
@@ -6415,8 +6771,8 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "an",
-     "label": "an",
+     "name": "on",
+     "label": "on",
      "labelEn": "on",
      "type": "Wert",
      "optional": false
@@ -6466,9 +6822,9 @@
    "displayName": "PLAYMUSIC",
    "kind": "command",
    "category": "Sound",
-   "signature": "PLAYMUSIC \"musik.wav\",loop",
+   "signature": "PLAYMUSIC \"music.wav\",loop",
    "syntax": [
-    "PLAYMUSIC \"musik.wav\",loop"
+    "PLAYMUSIC \"music.wav\",loop"
    ],
    "description": {
     "de": "Startet Musik im Hintergrund. Das zweite Argument legt fest, ob sie sich am Ende wiederholt.\n\nHinweis: GameBasiX spielt nur WAV-Dateien über den eingebauten Mixer.",
@@ -6495,9 +6851,9 @@
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "PLAYMUSIC \"musik.wav\",loop",
+   "signatureEn": "PLAYMUSIC \"music.wav\",loop",
    "syntaxEn": [
-    "PLAYMUSIC \"musik.wav\",loop"
+    "PLAYMUSIC \"music.wav\",loop"
    ]
   },
   {
@@ -6575,9 +6931,9 @@
    "displayName": "POLYVECTOR",
    "kind": "command",
    "category": "Zeichnen",
-   "signature": "POLYVECTOR x,y,u,v,farbe",
+   "signature": "POLYVECTOR x,y,u,v,color",
    "syntax": [
-    "POLYVECTOR x,y,u,v,farbe"
+    "POLYVECTOR x,y,u,v,color"
    ],
    "description": {
     "de": "Setzt einen Eckpunkt eines Polygons: Bildschirmposition, Texturkoordinate und Farbe.",
@@ -6616,18 +6972,18 @@
      "optional": true
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": true
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "POLYVECTOR x,y,u,v,colour",
+   "signatureEn": "POLYVECTOR x,y,u,v,color",
    "syntaxEn": [
-    "POLYVECTOR x,y,u,v,colour"
+    "POLYVECTOR x,y,u,v,color"
    ]
   },
   {
@@ -6841,6 +7197,403 @@
    "syntaxEn": []
   },
   {
+   "name": "READBYTE",
+   "displayName": "READBYTE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READBYTE channel, var%",
+   "syntax": [
+    "READBYTE channel, var%"
+   ],
+   "description": {
+    "de": "Liest ein Byte mit Vorzeichen (-128 bis 127).",
+    "en": "Reads a signed byte (-128 to 127)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "var",
+     "label": "var",
+     "labelEn": "var",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READBYTE channel, var%",
+   "syntaxEn": [
+    "READBYTE channel, var%"
+   ]
+  },
+  {
+   "name": "READIEEE",
+   "displayName": "READIEEE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READIEEE channel, var#",
+   "syntax": [
+    "READIEEE channel, var#"
+   ],
+   "description": {
+    "de": "Liest eine 8-Byte-Gleitkommazahl (double) – das native Zahlenformat von GameBasiX.",
+    "en": "Reads an 8-byte floating point number (double) – the native number format of GameBasiX."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "var",
+     "label": "var",
+     "labelEn": "var",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READIEEE channel, var#",
+   "syntaxEn": [
+    "READIEEE channel, var#"
+   ]
+  },
+  {
+   "name": "READLINE",
+   "displayName": "READLINE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READLINE channel, text$",
+   "syntax": [
+    "READLINE channel, text$"
+   ],
+   "description": {
+    "de": "Liest eine Zeile bis zum Zeilenende und entfernt ein abschließendes CR.",
+    "en": "Reads one line up to the line break and strips a trailing CR."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READLINE channel, text$",
+   "syntaxEn": [
+    "READLINE channel, text$"
+   ]
+  },
+  {
+   "name": "READLONG",
+   "displayName": "READLONG",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READLONG channel, var%",
+   "syntax": [
+    "READLONG channel, var%"
+   ],
+   "description": {
+    "de": "Liest eine 32-Bit-Zahl mit Vorzeichen (little endian).",
+    "en": "Reads a signed 32-bit number (little endian)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "var",
+     "label": "var",
+     "labelEn": "var",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READLONG channel, var%",
+   "syntaxEn": [
+    "READLONG channel, var%"
+   ]
+  },
+  {
+   "name": "READSHORTIEEE",
+   "displayName": "READSHORTIEEE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READSHORTIEEE channel, var#",
+   "syntax": [
+    "READSHORTIEEE channel, var#"
+   ],
+   "description": {
+    "de": "Liest eine 4-Byte-Gleitkommazahl (float).",
+    "en": "Reads a 4-byte floating point number (float)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "var",
+     "label": "var",
+     "labelEn": "var",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READSHORTIEEE channel, var#",
+   "syntaxEn": [
+    "READSHORTIEEE channel, var#"
+   ]
+  },
+  {
+   "name": "READSTR",
+   "displayName": "READSTR",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READSTR channel, text$, count",
+   "syntax": [
+    "READSTR channel, text$, count"
+   ],
+   "description": {
+    "de": "Liest die angegebene Anzahl Zeichen in einen String.",
+    "en": "Reads the given number of characters into a string."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "count",
+     "label": "count",
+     "labelEn": "count",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READSTR channel, text$, count",
+   "syntaxEn": [
+    "READSTR channel, text$, count"
+   ]
+  },
+  {
+   "name": "READUBYTE",
+   "displayName": "READUBYTE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READUBYTE channel, var%",
+   "syntax": [
+    "READUBYTE channel, var%"
+   ],
+   "description": {
+    "de": "Liest ein Byte ohne Vorzeichen (0 bis 255).",
+    "en": "Reads an unsigned byte (0 to 255)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "var",
+     "label": "var",
+     "labelEn": "var",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READUBYTE channel, var%",
+   "syntaxEn": [
+    "READUBYTE channel, var%"
+   ]
+  },
+  {
+   "name": "READULONG",
+   "displayName": "READULONG",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READULONG channel, var%",
+   "syntax": [
+    "READULONG channel, var%"
+   ],
+   "description": {
+    "de": "Liest eine 32-Bit-Zahl ohne Vorzeichen (little endian).",
+    "en": "Reads an unsigned 32-bit number (little endian)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "var",
+     "label": "var",
+     "labelEn": "var",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READULONG channel, var%",
+   "syntaxEn": [
+    "READULONG channel, var%"
+   ]
+  },
+  {
+   "name": "READUWORD",
+   "displayName": "READUWORD",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READUWORD channel, var%",
+   "syntax": [
+    "READUWORD channel, var%"
+   ],
+   "description": {
+    "de": "Liest eine 16-Bit-Zahl ohne Vorzeichen (little endian).",
+    "en": "Reads an unsigned 16-bit number (little endian)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "var",
+     "label": "var",
+     "labelEn": "var",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READUWORD channel, var%",
+   "syntaxEn": [
+    "READUWORD channel, var%"
+   ]
+  },
+  {
+   "name": "READWORD",
+   "displayName": "READWORD",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "READWORD channel, var%",
+   "syntax": [
+    "READWORD channel, var%"
+   ],
+   "description": {
+    "de": "Liest eine 16-Bit-Zahl mit Vorzeichen (little endian).",
+    "en": "Reads a signed 16-bit number (little endian)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "var",
+     "label": "var",
+     "labelEn": "var",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "READWORD channel, var%",
+   "syntaxEn": [
+    "READWORD channel, var%"
+   ]
+  },
+  {
    "name": "REDIM",
    "displayName": "REDIM",
    "kind": "keyword",
@@ -6862,6 +7615,45 @@
    "signatureEn": "REDIM a[n]",
    "syntaxEn": [
     "REDIM a[n]"
+   ]
+  },
+  {
+   "name": "RENAMEFILE",
+   "displayName": "RENAMEFILE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "RENAMEFILE source, target",
+   "syntax": [
+    "RENAMEFILE source, target"
+   ],
+   "description": {
+    "de": "Benennt eine Datei um oder verschiebt sie.",
+    "en": "Renames a file or moves it."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "source",
+     "label": "source",
+     "labelEn": "source",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "target",
+     "label": "target",
+     "labelEn": "target",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "RENAMEFILE source, target",
+   "syntaxEn": [
+    "RENAMEFILE source, target"
    ]
   },
   {
@@ -7126,9 +7918,9 @@
    "displayName": "ROTOSPRITE",
    "kind": "command",
    "category": "Sprites",
-   "signature": "ROTOSPRITE id,x,y,winkel",
+   "signature": "ROTOSPRITE id,x,y,angle",
    "syntax": [
-    "ROTOSPRITE id,x,y,winkel"
+    "ROTOSPRITE id,x,y,angle"
    ],
    "description": {
     "de": "Zeichnet ein Sprite um seinen Mittelpunkt gedreht; der Winkel wird in Grad angegeben.",
@@ -7160,8 +7952,8 @@
      "optional": false
     },
     {
-     "name": "winkel",
-     "label": "winkel",
+     "name": "angle",
+     "label": "angle",
      "labelEn": "angle",
      "type": "Wert",
      "optional": false
@@ -7179,9 +7971,9 @@
    "displayName": "ROTOZOOMANIM",
    "kind": "command",
    "category": "Sprites",
-   "signature": "ROTOZOOMANIM id,frame,x,y,winkel,zoom%",
+   "signature": "ROTOZOOMANIM id,frame,x,y,angle,zoom%",
    "syntax": [
-    "ROTOZOOMANIM id,frame,x,y,winkel,zoom%"
+    "ROTOZOOMANIM id,frame,x,y,angle,zoom%"
    ],
    "description": {
     "de": "Zeichnet eine Kachel einer Animation gedreht und in Prozent skaliert.",
@@ -7220,8 +8012,8 @@
      "optional": false
     },
     {
-     "name": "winkel",
-     "label": "winkel",
+     "name": "angle",
+     "label": "angle",
      "labelEn": "angle",
      "type": "Wert",
      "optional": false
@@ -7246,9 +8038,9 @@
    "displayName": "ROTOZOOMSPRITE",
    "kind": "command",
    "category": "Sprites",
-   "signature": "ROTOZOOMSPRITE id,x,y,winkel,zoom%",
+   "signature": "ROTOZOOMSPRITE id,x,y,angle,zoom%",
    "syntax": [
-    "ROTOZOOMSPRITE id,x,y,winkel,zoom%"
+    "ROTOZOOMSPRITE id,x,y,angle,zoom%"
    ],
    "description": {
     "de": "Zeichnet ein Sprite gedreht und in Prozent skaliert.",
@@ -7280,8 +8072,8 @@
      "optional": false
     },
     {
-     "name": "winkel",
-     "label": "winkel",
+     "name": "angle",
+     "label": "angle",
      "labelEn": "angle",
      "type": "Wert",
      "optional": false
@@ -7345,9 +8137,9 @@
    "displayName": "SAVEBMP",
    "kind": "command",
    "category": "Bildpuffer und Text",
-   "signature": "SAVEBMP \"datei.bmp\"",
+   "signature": "SAVEBMP \"file.bmp\"",
    "syntax": [
-    "SAVEBMP \"datei.bmp\""
+    "SAVEBMP \"file.bmp\""
    ],
    "description": {
     "de": "Speichert den aktuellen Bildschirm als BMP-Datei. Braucht ein echtes Fenster und scheitert im Headless-Modus.\n\nHinweis: Braucht einen echten Renderer und funktioniert nicht mit --headless.",
@@ -7377,9 +8169,9 @@
    "displayName": "SAVESPRITE",
    "kind": "command",
    "category": "Sprites",
-   "signature": "SAVESPRITE \"datei.png\",id",
+   "signature": "SAVESPRITE \"file.png\",id",
    "syntax": [
-    "SAVESPRITE \"datei.png\",id"
+    "SAVESPRITE \"file.png\",id"
    ],
    "description": {
     "de": "Schreibt ein geladenes Sprite als PNG auf die Festplatte.",
@@ -7496,9 +8288,9 @@
    "displayName": "SETFONT",
    "kind": "command",
    "category": "Bildpuffer und Text",
-   "signature": "SETFONT id[,scale[,farbe]]",
+   "signature": "SETFONT id[,scale[,color]]",
    "syntax": [
-    "SETFONT id[,scale[,farbe]]"
+    "SETFONT id[,scale[,color]]"
    ],
    "description": {
     "de": "Wählt die Schrift für PRINT und DRAWTEXT, optional mit Skalierung und neuer Textfarbe.",
@@ -7523,18 +8315,18 @@
      "optional": true
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": true
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "SETFONT id[,scale[,colour]]",
+   "signatureEn": "SETFONT id[,scale[,color]]",
    "syntaxEn": [
-    "SETFONT id[,scale[,colour]]"
+    "SETFONT id[,scale[,color]]"
    ]
   },
   {
@@ -7581,9 +8373,9 @@
    "displayName": "SETPIXEL",
    "kind": "command",
    "category": "Zeichnen",
-   "signature": "SETPIXEL x,y,farbe",
+   "signature": "SETPIXEL x,y,color",
    "syntax": [
-    "SETPIXEL x,y,farbe"
+    "SETPIXEL x,y,color"
    ],
    "description": {
     "de": "Färbt genau einen Pixel an der angegebenen Stelle.",
@@ -7608,18 +8400,18 @@
      "optional": false
     },
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "SETPIXEL x,y,colour",
+   "signatureEn": "SETPIXEL x,y,color",
    "syntaxEn": [
-    "SETPIXEL x,y,colour"
+    "SETPIXEL x,y,color"
    ]
   },
   {
@@ -7719,9 +8511,9 @@
    "displayName": "SETTEXTCOLOR",
    "kind": "command",
    "category": "Bildpuffer und Text",
-   "signature": "SETTEXTCOLOR farbe",
+   "signature": "SETTEXTCOLOR color",
    "syntax": [
-    "SETTEXTCOLOR farbe"
+    "SETTEXTCOLOR color"
    ],
    "description": {
     "de": "Setzt die Farbe, die PRINT und DRAWTEXT ohne eigenes Farbargument verwenden.",
@@ -7732,18 +8524,18 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "SETTEXTCOLOR colour",
+   "signatureEn": "SETTEXTCOLOR color",
    "syntaxEn": [
-    "SETTEXTCOLOR colour"
+    "SETTEXTCOLOR color"
    ]
   },
   {
@@ -7751,9 +8543,9 @@
    "displayName": "SETTRANSPARENCY",
    "kind": "command",
    "category": "Fenster und Bildschirm",
-   "signature": "SETTRANSPARENCY farbe",
+   "signature": "SETTRANSPARENCY color",
    "syntax": [
-    "SETTRANSPARENCY farbe"
+    "SETTRANSPARENCY color"
    ],
    "description": {
     "de": "Merkt sich eine Farbe, die beim nächsten Laden von Bildern durchsichtig wird. Bereits geladene Sprites bleiben, wie sie sind.",
@@ -7764,18 +8556,18 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "farbe",
-     "label": "farbe",
-     "labelEn": "colour",
+     "name": "color",
+     "label": "color",
+     "labelEn": "color",
      "type": "Wert",
      "optional": false
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "SETTRANSPARENCY colour",
+   "signatureEn": "SETTRANSPARENCY color",
    "syntaxEn": [
-    "SETTRANSPARENCY colour"
+    "SETTRANSPARENCY color"
    ]
   },
   {
@@ -7935,9 +8727,9 @@
    "displayName": "SMOOTHSHADING",
    "kind": "command",
    "category": "Fenster und Bildschirm",
-   "signature": "SMOOTHSHADING an",
+   "signature": "SMOOTHSHADING on",
    "syntax": [
-    "SMOOTHSHADING an"
+    "SMOOTHSHADING on"
    ],
    "description": {
     "de": "Schaltet weiche Farbübergänge ein oder aus: bei 1 werden Polygone und skalierte Sprites geglättet statt scharf gerechnet.",
@@ -7948,8 +8740,8 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "an",
-     "label": "an",
+     "name": "on",
+     "label": "on",
      "labelEn": "on",
      "type": "Wert",
      "optional": true
@@ -7967,9 +8759,9 @@
    "displayName": "SOUNDPLAYING",
    "kind": "function",
    "category": "Sound",
-   "signature": "SOUNDPLAYING(kanal)",
+   "signature": "SOUNDPLAYING(channel)",
    "syntax": [
-    "SOUNDPLAYING(kanal)"
+    "SOUNDPLAYING(channel)"
    ],
    "description": {
     "de": "Liefert 1, solange auf dem Kanal noch ein Klang läuft.",
@@ -7980,8 +8772,8 @@
    "returnCode": "f",
    "params": [
     {
-     "name": "kanal",
-     "label": "kanal",
+     "name": "channel",
+     "label": "channel",
      "labelEn": "channel",
      "type": "Wert",
      "optional": false
@@ -7999,9 +8791,9 @@
    "displayName": "SPLITSTR",
    "kind": "function",
    "category": "Strings",
-   "signature": "SPLITSTR(text, feld$[], trenner[, leer])",
+   "signature": "SPLITSTR(text, array$[], separator[, empty])",
    "syntax": [
-    "SPLITSTR(text, feld$[], trenner[, leer])"
+    "SPLITSTR(text, array$[], separator[, empty])"
    ],
    "description": {
     "de": "Zerlegt einen Text am Trennzeichen und legt die Teile als String-Array ab. Leere Teile fallen weg, sofern das letzte Argument nicht 0 ist.",
@@ -8019,32 +8811,32 @@
      "optional": false
     },
     {
-     "name": "feld",
-     "label": "feld",
+     "name": "array",
+     "label": "array",
      "labelEn": "array",
      "type": "Wert",
      "optional": false
     },
     {
-     "name": "trenner",
-     "label": "trenner",
+     "name": "separator",
+     "label": "separator",
      "labelEn": "separator",
      "type": "Wert",
      "optional": true
     },
     {
-     "name": "leer",
-     "label": "leer",
-     "labelEn": "skipEmpty",
+     "name": "empty",
+     "label": "empty",
+     "labelEn": "empty",
      "type": "Wert",
      "optional": true
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "SPLITSTR(text, array$[], separator[, skipEmpty])",
+   "signatureEn": "SPLITSTR(text, array$[], separator[, empty])",
    "syntaxEn": [
-    "SPLITSTR(text, array$[], separator[, skipEmpty])"
+    "SPLITSTR(text, array$[], separator[, empty])"
    ]
   },
   {
@@ -8390,9 +9182,9 @@
    "displayName": "STOPSOUND",
    "kind": "command",
    "category": "Sound",
-   "signature": "STOPSOUND kanal",
+   "signature": "STOPSOUND channel",
    "syntax": [
-    "STOPSOUND kanal"
+    "STOPSOUND channel"
    ],
    "description": {
     "de": "Stoppt den Klang auf dem angegebenen Kanal.",
@@ -8403,8 +9195,8 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "kanal",
-     "label": "kanal",
+     "name": "channel",
+     "label": "channel",
      "labelEn": "channel",
      "type": "Wert",
      "optional": false
@@ -8629,9 +9421,9 @@
    "displayName": "SYSTEMPOINTER",
    "kind": "command",
    "category": "Eingabe",
-   "signature": "SYSTEMPOINTER an",
+   "signature": "SYSTEMPOINTER on",
    "syntax": [
-    "SYSTEMPOINTER an"
+    "SYSTEMPOINTER on"
    ],
    "description": {
     "de": "Zeigt den Systemmauszeiger an (1) oder versteckt ihn (0).",
@@ -8642,8 +9434,8 @@
    "returnCode": "v",
    "params": [
     {
-     "name": "an",
-     "label": "an",
+     "name": "on",
+     "label": "on",
      "labelEn": "on",
      "type": "Wert",
      "optional": true
@@ -9114,6 +9906,396 @@
    "signatureEn": "WHILE",
    "syntaxEn": [
     "WHILE"
+   ]
+  },
+  {
+   "name": "WRITEBYTE",
+   "displayName": "WRITEBYTE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITEBYTE channel, value",
+   "syntax": [
+    "WRITEBYTE channel, value"
+   ],
+   "description": {
+    "de": "Schreibt das niederwertige Byte einer Zahl.",
+    "en": "Writes the low byte of a number."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITEBYTE channel, value",
+   "syntaxEn": [
+    "WRITEBYTE channel, value"
+   ]
+  },
+  {
+   "name": "WRITEIEEE",
+   "displayName": "WRITEIEEE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITEIEEE channel, value#",
+   "syntax": [
+    "WRITEIEEE channel, value#"
+   ],
+   "description": {
+    "de": "Schreibt eine 8-Byte-Gleitkommazahl (double).",
+    "en": "Writes an 8-byte floating point number (double)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITEIEEE channel, value#",
+   "syntaxEn": [
+    "WRITEIEEE channel, value#"
+   ]
+  },
+  {
+   "name": "WRITELINE",
+   "displayName": "WRITELINE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITELINE channel, text$",
+   "syntax": [
+    "WRITELINE channel, text$"
+   ],
+   "description": {
+    "de": "Schreibt eine Zeile und hängt CRLF an.",
+    "en": "Writes a line and appends CRLF."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITELINE channel, text$",
+   "syntaxEn": [
+    "WRITELINE channel, text$"
+   ]
+  },
+  {
+   "name": "WRITELONG",
+   "displayName": "WRITELONG",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITELONG channel, value",
+   "syntax": [
+    "WRITELONG channel, value"
+   ],
+   "description": {
+    "de": "Schreibt eine 32-Bit-Zahl (little endian).",
+    "en": "Writes a 32-bit number (little endian)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITELONG channel, value",
+   "syntaxEn": [
+    "WRITELONG channel, value"
+   ]
+  },
+  {
+   "name": "WRITESHORTIEEE",
+   "displayName": "WRITESHORTIEEE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITESHORTIEEE channel, value#",
+   "syntax": [
+    "WRITESHORTIEEE channel, value#"
+   ],
+   "description": {
+    "de": "Schreibt eine 4-Byte-Gleitkommazahl (float).",
+    "en": "Writes a 4-byte floating point number (float)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITESHORTIEEE channel, value#",
+   "syntaxEn": [
+    "WRITESHORTIEEE channel, value#"
+   ]
+  },
+  {
+   "name": "WRITESTR",
+   "displayName": "WRITESTR",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITESTR channel, text$",
+   "syntax": [
+    "WRITESTR channel, text$"
+   ],
+   "description": {
+    "de": "Schreibt Text ohne zusätzliches Zeilenende.",
+    "en": "Writes text without an additional line break."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITESTR channel, text$",
+   "syntaxEn": [
+    "WRITESTR channel, text$"
+   ]
+  },
+  {
+   "name": "WRITEUBYTE",
+   "displayName": "WRITEUBYTE",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITEUBYTE channel, value",
+   "syntax": [
+    "WRITEUBYTE channel, value"
+   ],
+   "description": {
+    "de": "Schreibt das niederwertige Byte einer Zahl (ohne Vorzeichen).",
+    "en": "Writes the low byte of a number (unsigned)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITEUBYTE channel, value",
+   "syntaxEn": [
+    "WRITEUBYTE channel, value"
+   ]
+  },
+  {
+   "name": "WRITEULONG",
+   "displayName": "WRITEULONG",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITEULONG channel, value",
+   "syntax": [
+    "WRITEULONG channel, value"
+   ],
+   "description": {
+    "de": "Schreibt eine 32-Bit-Zahl ohne Vorzeichen (little endian).",
+    "en": "Writes an unsigned 32-bit number (little endian)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITEULONG channel, value",
+   "syntaxEn": [
+    "WRITEULONG channel, value"
+   ]
+  },
+  {
+   "name": "WRITEUWORD",
+   "displayName": "WRITEUWORD",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITEUWORD channel, value",
+   "syntax": [
+    "WRITEUWORD channel, value"
+   ],
+   "description": {
+    "de": "Schreibt eine 16-Bit-Zahl ohne Vorzeichen (little endian).",
+    "en": "Writes an unsigned 16-bit number (little endian)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITEUWORD channel, value",
+   "syntaxEn": [
+    "WRITEUWORD channel, value"
+   ]
+  },
+  {
+   "name": "WRITEWORD",
+   "displayName": "WRITEWORD",
+   "kind": "command",
+   "category": "Dateien",
+   "signature": "WRITEWORD channel, value",
+   "syntax": [
+    "WRITEWORD channel, value"
+   ],
+   "description": {
+    "de": "Schreibt eine 16-Bit-Zahl (little endian).",
+    "en": "Writes a 16-bit number (little endian)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WRITEWORD channel, value",
+   "syntaxEn": [
+    "WRITEWORD channel, value"
    ]
   },
   {
