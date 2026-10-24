@@ -1,119 +1,118 @@
 # GameBasiX
 
-Ein BASIC-Interpreter für 2D-Spiele, gebaut auf **SDL3**. Alles rund um 3D,
-Netzwerk, C++-Inline-Code und Datei-Streams ist bewusst nicht enthalten.
+A BASIC interpreter for 2D games, built on **SDL3**. Everything around 3D,
+networking, C++ inline code and file streams is deliberately left out.
 
-* Sprache: BASIC mit `$`/`%`/`#`-Suffixen, `FUNCTION`/`SUB`, `TYPE` mit
-  `METHOD`en, Arrays, `SELECT CASE`, `TRY`/`THROW`
-* Laufzeit: C++17-Interpreter (Lexer → Parser → AST), kein Compiler-Zwischenschritt
-* Grafik: SDL3-Renderer, PNG/JPG/BMP-Sprites, Rotation/Zoom, Polygone,
-  Render-Targets, Software-Alphamodus
-* Text: eingebaute 8×8-Bitmap-Schrift, Bitmap-Fonts im 16×8-Raster und
-  **TrueType über FreeType** (optional)
-* Sound: kleiner Software-Mixer für WAV-Sounds und Musik
-* Fenster, Tastatur, Maus, Timer, Spielschleife
+* Language: BASIC with `$`/`%`/`#` suffixes, `FUNCTION`/`SUB`, `TYPE` with
+  `METHOD`s, arrays, `SELECT CASE`, `TRY`/`THROW`
+* Runtime: a C++17 interpreter (lexer → parser → AST), no compiler step in between
+* Graphics: SDL3 renderer, PNG/JPG/BMP sprites, rotation/zoom, polygons,
+  render targets, software alpha modes
+* Text: built-in 8×8 bitmap font, bitmap fonts on a 16×8 grid and
+  **TrueType through FreeType** (optional)
+* Sound: a small software mixer for WAV sounds and music
+* Window, keyboard, mouse, timers, game loop
 
-## Bauen
+## Building
 
-Voraussetzungen (Windows, MSYS2 UCRT64): `g++`, `cmake`, `ninja`, Internet beim
-ersten Konfigurieren (SDL3 wird per `FetchContent` geholt).
+Requirements (Windows, MSYS2 UCRT64): `g++`, `cmake`, `ninja`, and internet
+access during the first configure (SDL3 is fetched with `FetchContent`).
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-Ergebnis: `build/gbx.exe` und `GBXStudio.exe` im Projektordner. Das kleine
-Startprogramm öffnet den Editor aus `ide/` per Doppelklick (siehe [IDE](#ide)).
+Result: `build/gbx.exe` and `GBXStudio.exe` in the project folder. The small
+launcher opens the editor from `ide/` on double click (see [IDE](#ide)).
 
-TTF-Schriften werden über FreeType eingebunden, wenn es gefunden wird
-(MSYS2: `pacman -S mingw-w64-ucrt-x86_64-freetype`). Fehlt FreeType, baut alles
-trotzdem, nur ohne TTF:
+TTF fonts are included through FreeType when it is found
+(MSYS2: `pacman -S mingw-w64-ucrt-x86_64-freetype`). Without FreeType
+everything still builds, just without TTF:
 
 ```bash
 cmake -S . -B build -G Ninja -DGBX_WITH_TTF=OFF
 ```
 
-Ein bereits installiertes SDL3 lässt sich mit `-DGBX_USE_SYSTEM_SDL=ON` nutzen.
+An already installed SDL3 can be used with `-DGBX_USE_SYSTEM_SDL=ON`.
 
-Für eine Weitergabe ohne Beigaben baut `-DGBX_STATIC_RUNTIME=ON` die MinGW-Laufzeit
-und FreeType statisch ein. `gbx.exe` und `GBXStudio.exe` brauchen dann keine
-`libstdc++-6.dll`, `libgcc_s_seh-1.dll`, `libwinpthread-1.dll` und keine
-`libfreetype-6.dll` mehr – nur Windows 10/11:
+For handing the build to someone else, `-DGBX_STATIC_RUNTIME=ON` links the
+MinGW runtime and FreeType statically. `gbx.exe` and `GBXStudio.exe` then need
+no `libstdc++-6.dll`, `libgcc_s_seh-1.dll`, `libwinpthread-1.dll` and no
+`libfreetype-6.dll` – only Windows 10/11:
 
 ```bash
 cmake -S . -B build-static -G Ninja -DCMAKE_BUILD_TYPE=Release -DGBX_STATIC_RUNTIME=ON
 cmake --build build-static
 ```
 
-## Starten
+## Running
 
 ```bash
-build/gbx.exe examples/01_hello/hello.gbxproj   # Projekt starten
-build/gbx.exe examples/02_breakout/main.gbx     # einzelne Quelldatei
+build/gbx.exe examples/01_hello/hello.gbxproj   # start a project
+build/gbx.exe examples/02_breakout/main.gbx     # a single source file
 build/gbx.exe --headless tests/language_tests.gbx
-build/gbx.exe --lang en --check main.gbx        # Meldungen auf Englisch
+build/gbx.exe --lang en --check main.gbx        # messages in English
 ```
 
-Meldungen (Syntaxfehler, Laufzeitfehler, Namensprüfung, Hilfe) gibt es auf
-Deutsch und Englisch: `--lang de|en` oder die Umgebungsvariable `GBX_LANG`.
-Die IDE setzt `GBX_LANG` selbst, passend zur eingestellten Sprache.
+Messages (syntax errors, runtime errors, name checks, help) are available in
+German and English: `--lang de|en` or the `GBX_LANG` environment variable. The
+IDE sets `GBX_LANG` itself to match the selected language.
 
-| Option | Wirkung |
+| Option | Effect |
 | --- | --- |
-| `--headless` | ohne Fenster und Ton; Grafikbefehle werden zu No-Ops |
-| `--tests` | wie `--headless`, zählt `ASSERT` und gibt eine Zusammenfassung aus |
-| `--check` | parsen und Namen prüfen, nichts ausführen |
-| `--syntax-only` | wie `--check`, aber ohne Namensprüfung (für einzelne Teildateien) |
-| `--stdin` | Quelle aus der Standardeingabe lesen (nur mit `--check`) |
-| `--base <ordner>`, `--name <datei>` | Bezugsordner für `INCLUDE` und Dateiname in Meldungen bei `--stdin` |
-| `--inline-cpp <datei>` | erzeugtes C++ der `INLINE`-Blöcke schreiben (der HTML5-Export linkt es mit Emscripten dazu) |
-| `--debug` | Laufzeit-Debugger über stdin/stdout (Haltepunkte, Einzelschritte, Variablen) |
-| `--version`, `-h/--help` | Version bzw. Hilfe |
+| `--headless` | no window and no sound; graphics commands become no-ops |
+| `--tests` | like `--headless`, counts `ASSERT`s and prints a summary |
+| `--check` | parse and check names, run nothing |
+| `--syntax-only` | like `--check`, but without name checks (for individual part files) |
+| `--stdin` | read the source from standard input (only with `--check`) |
+| `--base <dir>`, `--name <file>` | base folder for `INCLUDE` and the file name in messages with `--stdin` |
+| `--inline-cpp <file>` | write the generated C++ of the `INLINE` blocks (the HTML5 export links it in with Emscripten) |
+| `--debug` | runtime debugger over stdin/stdout (breakpoints, single steps, variables) |
+| `--version`, `-h/--help` | version or help |
 
-Rückgabecodes: `0` ok, `1` fehlgeschlagene Asserts, `2` Syntax-/Laufzeitfehler,
-`3` interner Fehler.
+Exit codes: `0` ok, `1` failed asserts, `2` syntax/runtime error, `3` internal
+error.
 
-`--check` prüft nicht nur die Syntax, sondern auch die Namen: Was das Programm
-nirgends definiert, ist ein Fehler. Gemeldet werden unbekannte Befehle
-(`bla`), Funktionen (`x = NOPE(1)`), Variablen (`PRINT foo`), Marken (`GOTO
-spaeter`) und Unterprogramme (`GOSUB fehlt`). Bekannt ist alles, was im
-Programm zugewiesen, deklariert, als Parameter geführt oder eingebaut ist –
-auch Definitionen aus `INCLUDE`-Dateien. Ausgabeparameter wie `INPUT name$`
-legen ihre Variable dabei selbst an. Beim Ausführen bleibt GBX nachsichtig:
-Eine nie zugewiesene Variable liefert dort weiter den Standardwert.
+`--check` does not only verify the syntax, it also checks names: anything the
+program never defines is an error. It reports unknown commands (`bla`),
+functions (`x = NOPE(1)`), variables (`PRINT foo`), labels (`GOTO later`) and
+subroutines (`GOSUB missing`). Everything the program assigns, declares, uses
+as a parameter or gets built in is known – including definitions from
+`INCLUDE` files. Output parameters such as `INPUT name$` create their variable
+themselves. While executing, GBX stays lenient: a variable that was never
+assigned keeps returning the default value there.
 
-Auch die Felder von TYPEs werden geprüft: Ist der TYPE einer Variablen
-bekannt (`LOCAL p AS PUNKT`, `DIM feld[2] AS PUNKT`, Parameter `p AS PUNKT`,
-auch über `q = p` und verschachtelte TYPEs), muss `p.x` ein Feld dieses TYPEs
-sein. `p.nam$` ergibt dann `Unbekanntes Feld: NAM (PUNKT) – meintest du
-NAME?`. Ist der TYPE nicht eindeutig – etwa weil derselbe Name in zwei
-Funktionen unterschiedlich deklariert ist – bleibt die Prüfung still, statt
-zu raten.
+Fields of TYPEs are checked as well: if the TYPE of a variable is known
+(`LOCAL p AS POINT`, `DIM field[2] AS POINT`, parameter `p AS POINT`, also via
+`q = p` and nested TYPEs), `p.x` has to be a field of that TYPE. `p.nam$`
+then reports `Unknown field: NAM (POINT) – did you mean NAME?`. If the TYPE is
+not unambiguous – for example because the same name is declared differently in
+two functions – the check stays silent instead of guessing.
 
-## Eigenes Dateiformat
+## Project file format
 
-Statt `.gbas` benutzt GBX zwei klar getrennte Dateien:
+Instead of `.gbas`, GBX uses two clearly separated files:
 
-* **`.gbx`** – Quelltext (UTF-8, eine Anweisung pro Zeile, `'` oder `//` als Kommentar)
-* **`.gbxproj`** – Projektdatei im INI-Stil: Fenster, Einstiegspunkt, FPS, Asset-Ordner
+* **`.gbx`** – source text (UTF-8, one statement per line, `'` or `//` as comment)
+* **`.gbxproj`** – project file in INI style: window, entry point, FPS, asset folder
 
-Beispiel `hello.gbxproj`:
+Example `hello.gbxproj`:
 
 ```ini
 [project]
-name = "Hallo Welt"
-main = "main.gbx"          ; Einstiegspunkt relativ zur Projektdatei
+name = "Hello World"
+main = "main.gbx"          ; entry point relative to the project file
 
 [window]
-title = "Mein Spiel"
+title = "My game"
 width = 800
 height = 600
 fullscreen = 0
 resizable = 1
 
 [graphics]
-fps = 60                   ; 0 = unbegrenzt
+fps = 60                   ; 0 = unlimited
 vsync = 1
 
 [audio]
@@ -121,440 +120,439 @@ enabled = 1
 volume = 1.0
 
 [assets]
-root = "assets"            ; zusaetzlicher Suchpfad fuer Bilder/Sounds
+root = "assets"            ; additional search path for images/sounds
 ```
 
-Asset-Pfade werden in dieser Reihenfolge gesucht: Projektverzeichnis,
-`Projektverzeichnis/assets`, aktuelles Verzeichnis. TTF-Namen ohne Pfad werden
-zusätzlich in `%WINDIR%\Fonts` gesucht (`"arial.ttf"` funktioniert also direkt).
+Asset paths are searched in this order: project directory,
+`project directory/assets`, current directory. TTF names without a path are
+additionally looked up in `%WINDIR%\Fonts` (so `"arial.ttf"` works directly).
 
-Ein Projekt kann aus mehreren Dateien bestehen: `INCLUDE "lib.gbx"` bindet
-weitere Quellen ein (Pfad relativ zur einbindenden Datei, Mehrfach-Include wird
-ignoriert).
+A project can consist of several files: `INCLUDE "lib.gbx"` pulls in more
+source (path relative to the including file, duplicate includes are ignored).
 
-## Sprache in Kürze
+## The language at a glance
 
 ```basic
-' Kommentar
-CONSTANT BREITE = 800
+' comment
+CONSTANT WIDTH = 800
 
-TYPE PUNKT
+TYPE POINT
   x AS FLOAT
   y AS FLOAT
-  leben% = 3                 ' Standardwert je Instanz
+  lives% = 3                 ' default value per instance
 ENDTYPE
 
-GLOBAL punkte AS PUNKT
+GLOBAL points AS POINT
 
-FUNCTION laenge: a AS PUNKT, b AS PUNKT
+FUNCTION distance: a AS POINT, b AS POINT
   dx = b.x - a.x
   dy = b.y - a.y
   RETURN SQR(dx * dx + dy * dy)
 ENDFUNCTION
 
-DIM feld[10]              ' Indizes 0..9
-feld[0] = 5
-feld[-1] = 7              ' letztes Element
+DIM field[10]              ' indices 0..9
+field[0] = 5
+field[-1] = 7              ' last element
 
 FOR i = 10 TO 1 STEP -2
-  feld[i / 2] = i
+  field[i / 2] = i
 NEXT
 
-SELECT feld[0]
+SELECT field[0]
 CASE 1, 2
-  DEBUG "klein" + CHR$(10)
+  DEBUG "small" + CHR$(10)
 CASE 3 TO 9
-  DEBUG "mittel" + CHR$(10)
+  DEBUG "medium" + CHR$(10)
 DEFAULT
-  DEBUG "gross" + CHR$(10)
+  DEBUG "large" + CHR$(10)
 ENDSELECT
 ```
 
-**Werte und Typen.** Zahlen sind standardmäßig `FLOAT`, ganzzahlig mit `%`,
-Strings mit `$`; `#` erzwingt `FLOAT`. Bei der Zuweisung wandelt das Suffix um
-(`x$ = 5` ergibt `"5"`). `TRUE`/`FALSE` sind `1`/`0`.
+**Values and types.** Numbers are `FLOAT` by default, integers use `%`, strings
+use `$`; `#` forces `FLOAT`. On assignment the suffix converts the value
+(`x$ = 5` becomes `"5"`). `TRUE`/`FALSE` are `1`/`0`.
 
-**Operatoren.** `+ - * /`, Vergleiche `= <> < <= > >=`, `AND`, `OR`, `NOT`.
-`/` liefert immer eine Kommazahl, `MOD(a,b)` den ganzzahligen Rest.
+**Operators.** `+ - * /`, comparisons `= <> < <= > >=`, `AND`, `OR`, `NOT`.
+`/` always yields a decimal number, `MOD(a,b)` the integer remainder.
 
-**Kontrollfluss.** `IF/THEN/ELSE/ELSEIF/ENDIF` (auch einzeilig), `FOR ... TO ...
-STEP`, `WHILE/WEND`, `REPEAT/UNTIL`, `SELECT/CASE/DEFAULT/ENDSELECT`, `BREAK`,
-`CONTINUE`, `GOTO marke:` innerhalb eines Abschnitts, `GOSUB sub`.
+**Control flow.** `IF/THEN/ELSE/ELSEIF/ENDIF` (single-line as well), `FOR ... TO
+... STEP`, `WHILE/WEND`, `REPEAT/UNTIL`, `SELECT/CASE/DEFAULT/ENDSELECT`,
+`BREAK`, `CONTINUE`, `GOTO label:` inside one scope, `GOSUB sub`.
 
-**Funktionen.** `FUNCTION name: p1, p2 = 0 … ENDFUNCTION` mit `RETURN`, `EXIT`
-für vorzeitiges Verlassen, `STATIC` für persistente Locals, `BYREF` für
-Referenzparameter (auch auf Array-Elemente und TYPE-Felder). `SUB name: …
-ENDSUB` ist eine parameterlose Prozedur für `GOSUB`.
+**Functions.** `FUNCTION name: p1, p2 = 0 … ENDFUNCTION` with `RETURN`, `EXIT`
+for an early return, `STATIC` for persistent locals, `BYREF` for reference
+parameters (also to array elements and TYPE fields). `SUB name: … ENDSUB` is a
+parameterless procedure for `GOSUB`.
 
-**Arrays.** `DIM a[10]`, mehrdimensional bis 4 Dimensionen, `DIM a[10] AS TYP`,
-`REDIM` (erhält Daten; bei TYPE-Arrays `REDIM a[10] AS TYP`), `DIMPUSH`,
-`DIMDEL`, `DIMDATA`, `BOUNDS(a[], dim)`,
-`LEN(a[])`, `FOREACH x IN a[] … NEXT` (BYREF auf das Element).
+**Arrays.** `DIM a[10]`, up to 4 dimensions, `DIM a[10] AS TYPE`, `REDIM`
+(keeps data; for TYPE arrays `REDIM a[10] AS TYPE`), `DIMPUSH`, `DIMDEL`,
+`DIMDATA`, `BOUNDS(a[], dim)`, `LEN(a[])`, `FOREACH x IN a[] … NEXT`
+(BYREF to the element).
 
-**TYPE.** Felder ohne Suffix sind `FLOAT`, `$` macht Strings, `AS AndererTyp`
-verschachtelt. `LOCAL v AS TYP`, `GLOBAL v AS TYP`, `DIM arr[5] AS TYP`.
-Felder dürfen einen Standardwert tragen: `leben% = 3`, `name$ = "neu"`, auch
-`gesamt% = a + b` oder eine Konstante. Der Ausdruck läuft bei jeder neuen
-Instanz – für `LOCAL`, `GLOBAL` und jedes Element eines TYPE-Arrays.
-`TYPE`-Werte werden als Referenz geteilt (Felder und Arrays sind Zeiger).
+**TYPE.** Fields without a suffix are `FLOAT`, `$` makes strings, `AS
+OtherType` nests. `LOCAL v AS TYPE`, `GLOBAL v AS TYPE`, `DIM arr[5] AS TYPE`.
+Fields may carry a default value: `lives% = 3`, `name$ = "new"`, also
+`total% = a + b` or a constant. The expression runs for every new instance –
+for `LOCAL`, `GLOBAL` and every element of a TYPE array. `TYPE` values are
+shared by reference (fields and arrays are pointers).
 
-**Methoden.** Ein `TYPE` kann `METHOD`en tragen. Sie stehen im TYPE-Block und
-werden mit `objekt.name(...)` aufgerufen:
+**Methods.** A `TYPE` can carry `METHOD`s. They live in the TYPE block and are
+called with `object.name(...)`:
 
 ```basic
-TYPE KISTE
+TYPE BOX
   w AS FLOAT
   h AS FLOAT
 
-  METHOD flaeche
+  METHOD area
     RETURN w * h
   ENDMETHOD
 
-  METHOD skalieren: faktor
-    w = w * faktor
-    h = h * faktor
+  METHOD scale: factor
+    w = w * factor
+    h = h * factor
   ENDMETHOD
 ENDTYPE
 
-LOCAL k AS KISTE
-k.w = 4
-k.h = 2
-PRINT k.flaeche(), 0, 0     ' 8
-k.skalieren(3)
-PRINT k.w, 0, 0             ' 12
+LOCAL b AS BOX
+b.w = 4
+b.h = 2
+PRINT b.area(), 0, 0     ' 8
+b.scale(3)
+PRINT b.w, 0, 0          ' 12
 ```
 
-Im Rumpf sind die Felder des eigenen TYPEs wie Variablen sichtbar; Zuweisungen
-schreiben direkt in das Objekt. `self` steht für das Objekt selbst, also
-`self.x` und `self.flaeche()` – praktisch, um das eigene Objekt an eine andere
-Funktion zu übergeben. Parameter und `LOCAL` verdecken ein Feld mit demselben
-Namen. Ohne Objekt geschriebene Methodennamen gelten als `self.method(...)` –
-`skalieren(2)` ruft also die eigene Methode auf. Methoden funktionieren auf
-Variablen, TYPE-Feldern und Elementen von TYPE-Arrays. `FUNCTION` und `SUB`
-innerhalb eines TYPEs lehnt der Parser mit einem Hinweis auf `METHOD` ab.
+Inside the body the fields of the type itself are visible like variables;
+assignments write straight into the object. `self` stands for the object
+itself, so `self.x` and `self.area()` – handy for passing the object to
+another function. Parameters and `LOCAL` shadow a field with the same name.
+Method names written without an object count as `self.method(...)` – so
+`scale(2)` calls the object's own method. Methods work on variables, TYPE
+fields and elements of TYPE arrays. `FUNCTION` and `SUB` inside a `TYPE` are
+rejected by the parser with a hint to use `METHOD`.
 
-**Fehler.** `TRY … CATCH err$ … FINALLY` fängt Laufzeitfehler; `THROW "text"`
-wirft selbst einen. `FINALLY` beendet den Block (es gibt keinen eigenen
-FINALLY-Code).
+**Errors.** `TRY … CATCH err$ … FINALLY` catches runtime errors; `THROW "text"`
+raises one yourself. `FINALLY` ends the block (there is no separate FINALLY
+body).
 
-## Befehlsreferenz
+## Command reference
 
-Eine einseitige Kurzfassung mit allen Befehlen und der kompletten
-Sprachsteuerung steht in [CHEATSHEET.md](CHEATSHEET.md). Dieselbe Übersicht als
-Bild, nach Befehlart gruppiert: [CHEATSHEET.png](CHEATSHEET.png) (englisch:
-[CHEATSHEET.en.png](CHEATSHEET.en.png)), erzeugt mit
-[`python tools/make_cheatsheet.py`](tools/make_cheatsheet.py) aus dem
-Befehlsdatensatz der IDE.
+A one-page summary of all commands and the complete language control flow is
+in [CHEATSHEET.md](CHEATSHEET.md) (German). The same overview as an image,
+grouped by command type, is available in English:
+[CHEATSHEET.en.png](CHEATSHEET.en.png), generated by
+[`python tools/make_cheatsheet.py`](tools/make_cheatsheet.py) from the IDE's
+command dataset.
 
-Mit `*` markierte Befehle sind Ergänzungen, die über den Grundbestand der
-Sprache hinausgehen.
+Commands marked with `*` are additions that go beyond the basic language.
 
-**Fenster und Bildschirm**
-`SETSCREEN w,h,fullscreen` · `CLEARSCREEN [farbe]` (`-1` schaltet das
-Automatisch-Löschen ab) · `BLACKSCREEN` · `SHOWSCREEN` · `LIMITFPS fps[,vsync]` ·
+**Window and screen**
+`SETSCREEN w,h,fullscreen` · `CLEARSCREEN [color]` (`-1` turns off automatic
+clearing) · `BLACKSCREEN` · `SHOWSCREEN` · `LIMITFPS fps[,vsync]` ·
 `GETSCREENSIZE w,h` · `GETDESKTOPSIZE w,h` · `ISFULLSCREEN()` ·
 `SETWINDOWTITLE "text"`* · `GETSCREENWIDTH()`* · `GETSCREENHEIGHT()`* ·
 `VIEWPORT x,y,w,h` · `GETVIEWPORT x,y,w,h` · `PRESCALER w,h` ·
-`SMOOTHSHADING an` · `ALPHAMODE a` · `ALPHATESTING wert` ·
-`SETTRANSPARENCY farbe`
+`SMOOTHSHADING on` · `ALPHAMODE a` · `ALPHATESTING value` ·
+`SETTRANSPARENCY color`
 
-**Zeichnen**
-`RGB(r,g,b)` · `DRAWLINE x1,y1,x2,y2,farbe` · `DRAWRECT x,y,w,h,farbe` (gefüllt) ·
-`DRAWBORDER x,y,w,h,farbe`* · `DRAWCIRCLE x,y,r[,farbe]`* ·
-`DRAWFILLEDCIRCLE x,y,r[,farbe]`* · `SETPIXEL x,y,farbe` · `GETPIXEL(x,y)` ·
-`STARTPOLY sprite,mode` · `POLYVECTOR x,y,u,v,farbe` (u/v 0…1) · `POLYNEWSTRIP` ·
+**Drawing**
+`RGB(r,g,b)` · `DRAWLINE x1,y1,x2,y2,color` · `DRAWRECT x,y,w,h,color` (filled) ·
+`DRAWBORDER x,y,w,h,color`* · `DRAWCIRCLE x,y,r[,color]`* ·
+`DRAWFILLEDCIRCLE x,y,r[,color]`* · `SETPIXEL x,y,color` · `GETPIXEL(x,y)` ·
+`STARTPOLY sprite,mode` · `POLYVECTOR x,y,u,v,color` (u/v 0…1) · `POLYNEWSTRIP` ·
 `ENDPOLY`
 
 **Sprites**
-`LOADSPRITE "bild.png", id` · `GENSPRITE()` · `DRAWSPRITE id,x,y` ·
-`ROTOSPRITE id,x,y,winkel` · `ROTOZOOMSPRITE id,x,y,winkel,zoom%` ·
+`LOADSPRITE "image.png", id` · `GENSPRITE()` · `DRAWSPRITE id,x,y` ·
+`ROTOSPRITE id,x,y,angle` · `ROTOZOOMSPRITE id,x,y,angle,zoom%` ·
 `ZOOMSPRITE id,x,y,fx%,fy%` · `STRETCHSPRITE id,x,y,w,h` ·
-`LOADANIM "sheet.png",id,kachelw,kachelh` · `SETSPRITEANIM id,w,h` ·
-`DRAWANIM id,frame,x,y` · `ROTOZOOMANIM id,frame,x,y,winkel,zoom%` ·
+`LOADANIM "sheet.png",id,tilew,tileh` · `SETSPRITEANIM id,w,h` ·
+`DRAWANIM id,frame,x,y` · `ROTOZOOMANIM id,frame,x,y,angle,zoom%` ·
 `STRETCHANIM id,frame,x,y,w,h` · `GETSPRITESIZE id,w,h` ·
-`GRABSPRITE id,x,y,w,h` · `SAVESPRITE "datei.png",id` ·
+`GRABSPRITE id,x,y,w,h` · `SAVESPRITE "file.png",id` ·
 `SPRCOLL(id1,x1,y1,id2,x2,y2)` · `ANIMCOLL(...)` · `BOXCOLL(x1,y1,w1,h1,x2,y2,w2,h2)`
 
-**Bildpuffer und Text**
-`LOADBMP "bild.png"` (Hintergrund) · `SAVEBMP "datei.bmp"` · `USEASBMP` ·
-`BLENDSCREEN "bild.png"[,ms]` · `CREATESCREEN screen,sprite,w,h` ·
-`USESCREEN id` · `PRINT "text",x,y[,kerning]` · `DRAWTEXT "text",x,y[,farbe]`* ·
-`SETTEXTCOLOR farbe`* · `LOADFONT "datei",id[,groesse]` · `SETFONT id[,scale[,farbe]]` ·
-`GETFONTSIZE w,h` · `GETCURRENTFONT()` · `INPUT var,x,y` · `LEN(text[,pixel])`
+**Image buffer and text**
+`LOADBMP "image.png"` (background) · `SAVEBMP "file.bmp"` · `USEASBMP` ·
+`BLENDSCREEN "image.png"[,ms]` · `CREATESCREEN screen,sprite,w,h` ·
+`USESCREEN id` · `PRINT "text",x,y[,kerning]` · `DRAWTEXT "text",x,y[,color]`* ·
+`SETTEXTCOLOR color`* · `LOADFONT "file",id[,size]` · `SETFONT id[,scale[,color]]` ·
+`GETFONTSIZE w,h` · `GETCURRENTFONT()` · `INPUT var,x,y` · `LEN(text[,pixels])`
 
-**Eingabe**
-`KEY(scancode)` · `KEYHIT(scancode)`* · `INKEY$` · `MOUSESTATE mx,my,links,rechts` ·
-`MOUSEAXIS(achse)` · `MOUSEHIT(taste)`* · `GETMOUSECOUNT()` ·
+**Input**
+`KEY(scancode)` · `KEYHIT(scancode)`* · `INKEY$` · `MOUSESTATE mx,my,left,right` ·
+`MOUSEAXIS(axis)` · `MOUSEHIT(button)`* · `GETMOUSECOUNT()` ·
 `SETMOUSE x,y` · `MOUSEWAIT` · `KEYWAIT` ·
-`SYSTEMPOINTER an` · `ALLOWESCAPE an`
+`SYSTEMPOINTER on` · `ALLOWESCAPE on`
 
-Fertige Tastencodes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
+Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
 `KEY_BACKSPACE`, `KEY_DELETE`, `KEY_HOME`, `KEY_END`, `KEY_PGUP`, `KEY_PGDN`,
 `KEY_UP/DOWN/LEFT/RIGHT`, `KEY_LSHIFT/RSHIFT`, `KEY_LCTRL/RCTRL`,
 `KEY_LALT/RALT`, `KEY_F1`…`KEY_F12`, `KEY_A`…`KEY_Z`, `KEY_0`…`KEY_9`.
 
 **Sound**
-`LOADSOUND "sound.wav",id[,buffer]` · `PLAYSOUND(id,pan,volume)` → Kanal ·
-`STOPSOUND kanal` · `SOUNDPLAYING(kanal)` · `HUSH` · `GENSOUND()` ·
-`PLAYMUSIC "musik.wav",loop` · `STOPMUSIC` · `PAUSEMUSIC an` ·
+`LOADSOUND "sound.wav",id[,buffer]` · `PLAYSOUND(id,pan,volume)` → channel ·
+`STOPSOUND channel` · `SOUNDPLAYING(channel)` · `HUSH` · `GENSOUND()` ·
+`PLAYMUSIC "music.wav",loop` · `STOPMUSIC` · `PAUSEMUSIC on` ·
 `MUSICVOLUME v` · `ISMUSICPLAYING()`
 
-**Mathe**
-`ABS` · `SGN` · `SQR` · `SIN` · `COS` · `TAN` (Grad) · `ASIN` · `ACOS` ·
-`ATAN(dy,dx)` (Grad) · `FLOOR` · `CEIL` · `POW(a,b)` · `LOGN` ·
-`MOD(a,b)` · `FMOD(a,b)` · `MIN` · `MAX` · `RND(max)` (0…max, inklusiv) ·
+**Math**
+`ABS` · `SGN` · `SQR` · `SIN` · `COS` · `TAN` (degrees) · `ASIN` · `ACOS` ·
+`ATAN(dy,dx)` (degrees) · `FLOOR` · `CEIL` · `POW(a,b)` · `LOGN` ·
+`MOD(a,b)` · `FMOD(a,b)` · `MIN` · `MAX` · `RND(max)` (0…max, inclusive) ·
 `SEEDRND n` · `INTEGER` · `INTEGER64` · `NUMBER` · `ASL` · `ASR` ·
-`BAND` · `BOR` · `BXOR` · `BNOT` · `IIF(bedingung, a, b)`
+`BAND` · `BOR` · `BXOR` · `BNOT` · `IIF(condition, a, b)`
 
 **Strings**
-`LEN` · `LEFT$` · `RIGHT$` · `MID$(text,start[,laenge])` (0-basiert) ·
-`INSTR(text,suche[,start])` (0-basiert, `-1` = nicht gefunden) · `REVINSTR` ·
-`REPLACE$` · `SPLITSTR(text, feld$[], trenner[, leer])` · `UCASE$` · `LCASE$` ·
+`LEN` · `LEFT$` · `RIGHT$` · `MID$(text,start[,length])` (0-based) ·
+`INSTR(text,search[,start])` (0-based, `-1` = not found) · `REVINSTR` ·
+`REPLACE$` · `SPLITSTR(text, array$[], separator[, empty])` · `UCASE$` · `LCASE$` ·
 `TRIM$` · `LTRIM$` · `RTRIM$` · `ASC(text[,index])` · `CHR$` · `HEX$` ·
-`FORMAT$(stellen,nachkomma,zahl)` · `STR$`* · `VAL`*
+`FORMAT$(places,decimals,number)` · `STR$`* · `VAL`*
 
-**Laufzeit und Debug**
+**Runtime and debug**
 `DEBUG` · `STDOUT` · `STDERR` · `STDIN$` · `SLEEP ms` · `GETTIMER()` ·
 `GETTIMERALL()` · `GETCOMMANDLINE$()` · `CODELINE()` · `CODEFILE$()` ·
-`PLATFORMINFO$("os")` · `GETENV$` · `PUTENV` · `ASSERT bedingung[,text]` ·
+`PLATFORMINFO$("os")` · `GETENV$` · `PUTENV` · `ASSERT condition[,text]` ·
 `END` · `HIBERNATE`
 
-## Sprachdetails
+## Language details
 
-* **Tastencodes**: `KEY()`/`KEYHIT()` nehmen SDL3-Scancodes; die `KEY_*`-Konstanten
-  ersparen das Nachschlagen.
-* **Formate**: `MID$`, `ASC` und `INSTR` sind 0-basiert und `RND(max)` ist
-  inklusiv. `SIN/COS/TAN` und `ATAN` rechnen in Grad.
-* **Arrays**: `DIM a[n]` ergibt die Indizes `0…n-1`, negative Indizes zählen von
-  hinten, maximal 4 Dimensionen, `DIM a[0]` gibt den Speicher frei.
-* **GOTO/GOSUB**: `GOTO` springt nur innerhalb des aktuellen Abschnitts
-  (Hauptprogramm, `SUB` oder `FUNCTION`) und nur zu Marken auf dessen oberster
-  Ebene. `GOSUB` ruft `SUB`s auf; Rücksprungmarken gibt es nicht.
-* **TRY/CATCH**: `FINALLY` beendet den `TRY`-Block (kein eigener FINALLY-Code).
-* **Musik**: nur WAV (kein MP3/OGG), da kein Decoder mitgeliefert wird.
-  `PLAYMUSIC` nutzt denselben Mixer.
-* **Schriften**: `LOADFONT` lädt `.bmp`-Fonts im Raster mit 16 Zeichen pro
-  Zeile und 8 Zeilen (Zeichen 0–127) oder – bei `.ttf`/`.otf` bzw. Angabe einer
-  Größe – eine TrueType-Schrift über FreeType. `SETFONT id,scale` skaliert.
-  Der Kerning-Parameter von `PRINT` wird ignoriert (Bitmap-Fonts sind
-  monospaced).
-* **ALPHAMODE** ist angenähert: `> 0` additiv, `< 0` Alpha `1+wert`, `0` normal.
-* **`ALPHATESTING`/`SETTRANSPARENCY`** wirken beim Laden von Bildern, nicht
-  rückwirkend auf bereits geladene Sprites.
-* **`SAVEBMP`/`GRABSPRITE`** brauchen einen echten Renderer; im `--headless`-Modus
-  melden sie einen Fehler.
-* **PRESCALER** nutzt SDL-Logical-Presentation; `VIEWPORT` ist dann in
-  Fensterkoordinaten zu verstehen.
-* **`INLINE`** übersetzt die C++-Blöcke mit `g++` (im Paket liegt einer bei):
-  Definitionen werden beim Start als DLL geladen, Schritte laufen mitten im
-  Code (siehe [INLINE](#inline-c-im-basic-programm)). `IMPORT` und `REQUIRE`
-  gibt es nicht.
+* **Key codes**: `KEY()`/`KEYHIT()` take SDL3 scancodes; the `KEY_*` constants
+  save you the lookup.
+* **Formats**: `MID$`, `ASC` and `INSTR` are 0-based and `RND(max)` is
+  inclusive. `SIN/COS/TAN` and `ATAN` work in degrees.
+* **Arrays**: `DIM a[n]` gives the indices `0…n-1`, negative indices count from
+  the end, at most 4 dimensions, `DIM a[0]` frees the memory.
+* **GOTO/GOSUB**: `GOTO` only jumps inside the current scope (main program,
+  `SUB` or `FUNCTION`) and only to labels on its top level. `GOSUB` calls
+  `SUB`s; there are no return labels.
+* **TRY/CATCH**: `FINALLY` ends the `TRY` block (no separate FINALLY body).
+* **Music**: WAV only (no MP3/OGG), because no decoder is shipped.
+  `PLAYMUSIC` uses the same mixer.
+* **Fonts**: `LOADFONT` loads `.bmp` fonts on a grid with 16 characters per
+  row and 8 rows (characters 0–127) or – for `.ttf`/`.otf` or when a size is
+  given – a TrueType font through FreeType. `SETFONT id,scale` scales it.
+  The kerning parameter of `PRINT` is ignored (bitmap fonts are monospaced).
+* **ALPHAMODE** is approximate: `> 0` additive, `< 0` alpha `1+value`,
+  `0` normal.
+* **`ALPHATESTING`/`SETTRANSPARENCY`** apply while loading images, not
+  retroactively to sprites that are already loaded.
+* **`SAVEBMP`/`GRABSPRITE`** need a real renderer; in `--headless` mode they
+  report an error.
+* **PRESCALER** uses SDL logical presentation; `VIEWPORT` is then in window
+  coordinates.
+* **`INLINE`** compiles the C++ blocks with `g++` (the package ships one):
+  definitions are loaded as a DLL at startup, steps run in the middle of the
+  code (see [INLINE](#inline-c-inside-the-basic-program)). There is no
+  `IMPORT` or `REQUIRE`.
 
-## INLINE: C++ im BASIC-Programm
+## INLINE: C++ inside the BASIC program
 
-`INLINE … ENDINLINE` stellt C++-Code direkt ins Programm. Die Position
-entscheidet, was der Block ist:
+`INLINE … ENDINLINE` puts C++ code straight into the program. The position
+decides what the block is:
 
-* **Definitionen** – auf oberster Ebene, oder mit `INLINE DEFINE` auch mitten
-  im Code. Sie werden beim Start einmal übersetzt und als DLL geladen; die mit
-  `GBX_INLINE_FN` angemeldeten Funktionen sind danach normale GBX-Befehle.
-* **Schritte** – in einer `FUNCTION`/`SUB`/`METHOD`, einem `IF` oder einer
-  Schleife, auf oberster Ebene mit `INLINE RUN`. Der C++-Code läuft genau an
-  dieser Stelle und sieht die BASIC-Variablen des Orts.
+* **Definitions** – at top level, or in the middle of the code with `INLINE
+  DEFINE`. They are compiled once at startup and loaded as a DLL; the
+  functions registered with `GBX_INLINE_FN` are normal GBX commands afterwards.
+* **Steps** – inside a `FUNCTION`/`SUB`/`METHOD`, an `IF` or a loop, at top
+  level with `INLINE RUN`. The C++ code runs exactly at that point and sees the
+  BASIC variables of that place.
 
 ```basic
 INLINE
-#include "gbxarray.h"      ' Definition: Header liegt neben der .gbx-Datei
+#include "gbxarray.h"      ' definition: header sits next to the .gbx file
 ENDINLINE
 
-GLOBAL zaehler
-zaehler = 0
+GLOBAL counter
+counter = 0
 INLINE RUN
-  zaehler = zaehler + 41;
+  counter = counter + 41;
 ENDINLINE
-PRINT zaehler, 10, 10        ' 41
+PRINT counter, 10, 10        ' 41
 
-FUNCTION doppelt: wert
-  ergebnis = 0
+FUNCTION twice: value
+  result = 0
   INLINE
-    ergebnis = wert * 2;
+    result = value * 2;
   ENDINLINE
-  RETURN ergebnis
+  RETURN result
 ENDFUNCTION
 ```
 
-* **Namen**: BASIC-Variablen heißen in C++ klein geschrieben (`zaehler`,
-  `ergebnis`). Texte bekommen `_str` (`name$` → `name_str`), Arrays werden
-  `liste[i]` (auch mehrdimensional), TYPE-Variablen `p` mit den Feldern
-  `p.x` und `p.name_str`, TYPE-Arrays `punkte[i].x`. INTEGER-Variablen bleiben
-  INTEGER, wenn der Schritt etwas schreibt.
-* **Sichtbar** sind in einer `FUNCTION`/`SUB` die Parameter, die lokalen und
-  die globalen Variablen; in einer `METHOD` zusätzlich die Felder des eigenen
-  TYPEs; im Hauptprogramm die globalen und die `LOCAL` des Hauptprogramms.
-  Konstanten sind schreibgeschützt.
-* **Definitionen** binden Header mit `#include "…"` ein (relativ zur
-  `.gbx`-Datei und zum Projektordner) und melden Funktionen mit
-  `GBX_INLINE_FN("NAME", minArgs, maxArgs, funktion)` an. Zahlen kommen als
-  `double` (`gbxinline::argNum`), Texte als UTF-8 (`gbxinline::argText`);
-  Arrays/TYPEs lassen sich dabei nicht übergeben.
-* **Arrays** lassen sich im Schritt auch in der Größe ändern – wie `GBXArray`,
-  nur direkt auf dem BASIC-Array: `liste.push(42)`, `liste.insert(0, 7)`,
-  `liste.remove(-1)`, `liste.clear()` und `liste.resize(20)` (wie `REDIM`,
-  vorhandene Werte bleiben). `liste.size(1)` und `liste.rank()` lesen die
-  Form. Das gilt für Zahlen-, Text- und TYPE-Arrays; bei TYPE-Arrays legt
-  `push()` einen neuen Datensatz an, `push(p)` hängt `p` an (wie `DIMPUSH`:
-  beide teilen den Datensatz). Mehrdimensionale Arrays ändert `resize(a, b)`,
-  eine einzelne Zeile `feld[i].asArray()`.
-* **GBX-Befehle** dürfen im Schritt direkt aufgerufen werden, wie in BASIC:
-  `PRINT(text_str, x, y)`, `DRAWLINE(x1, y1, x2, y2, farbe)`, `GETTIMER()`.
-  Alle eingebauten Befehle ohne `$` im Namen stehen als C++-Funktion bereit;
-  Befehle mit `$` (`CHR$`, `LEFT$`) ruft man über `call("LEFT$", …)` auf,
-  dessen Ergebnis `.num()` oder `.text()` liefert. Variablen gehen als
-  BYREF-Ziel mit (`GETSPRITESIZE(id, w, h)`), Zahlen und Texte als Wert.
-  `RGB` heißt in C++ `rgb(r, g, b)` (das Windows-Makro belegt den Namen).
-* **Grenzen**: Eigene `FUNCTION`s, `SUB`s und `METHODen` lassen sich aus einem
-  Schritt nicht aufrufen, `RETURN`/`GOTO` nicht auslösen; GBX-Befehle nur in
-  Schritten, nicht in mit `GBX_INLINE_FN` angemeldeten Funktionen.
-  `push`/`insert`/`remove`/`clear` gelten nur für eindimensionale Arrays;
-  mehrdimensionale ändert man mit `resize`. Nach einer Größenänderung sind
-  vorher geholte Elemente (`Element`-Proxys) ungültig. Fehler im Schritt – etwa
-  ein Index außerhalb des Arrays – erscheinen als Laufzeitfehler mit der Zeile
-  im Block.
-* **Compiler**: gesucht wird zuerst `..\compiler\bin\g++.exe` neben `gbx.exe`
-  (das Paket bringt einen mit), dann `g++` im `PATH` und in den MSYS2-Ordnern;
-  `GBX_CXX` setzt einen anderen Pfad, `GBX_INLINE_INCLUDE` einen anderen Ordner
-  für `gbx_inline.h`. Die DLLs werden mit `-static` gelinkt und brauchen
-  deshalb keine Compiler-DLLs auf dem Zielrechner.
-* **Cache**: Die DLL heißt nach dem Hash des erzeugten C++-Textes und liegt in
-  `%TEMP%\gbx-inline`; unveränderte Blöcke werden nicht neu übersetzt.
-  Übersetzungsfehler erscheinen mit Datei und Zeile aus der `.gbx`-Datei.
-* **Migration**: Blöcke in einer `FUNCTION` oder einem `IF`, die nur
-  Definitionen enthielten, brauchen jetzt `INLINE DEFINE` – ohne das laufen sie
-  als Schritt und müssen C++-Anweisungen sein.
-* **Export**: Beim Packen einer EXE werden die Blöcke einmal übersetzt und
-  mitgeliefert (`__inline/gbx_inline.dll` mit Kennung); das fertige Spiel
-  braucht keinen Compiler mehr.
+* **Names**: BASIC variables are written in lower case in C++ (`counter`,
+  `result`). Texts get `_str` (`name$` → `name_str`), arrays become
+  `list[i]` (multi-dimensional too), TYPE variables `p` with the fields
+  `p.x` and `p.name_str`, TYPE arrays `points[i].x`. INTEGER variables stay
+  INTEGER when the step writes to them.
+* **Visible** inside a `FUNCTION`/`SUB` are the parameters, the local and the
+  global variables; inside a `METHOD` additionally the fields of the type
+  itself; in the main program the globals and the main program's `LOCAL`s.
+  Constants are read-only.
+* **Definitions** include headers with `#include "…"` (relative to the
+  `.gbx` file and to the project folder) and register functions with
+  `GBX_INLINE_FN("NAME", minArgs, maxArgs, function)`. Numbers arrive as
+  `double` (`gbxinline::argNum`), texts as UTF-8 (`gbxinline::argText`);
+  arrays/TYPEs cannot be passed that way.
+* **Arrays** can also be resized inside a step – like `GBXArray`, but directly
+  on the BASIC array: `list.push(42)`, `list.insert(0, 7)`, `list.remove(-1)`,
+  `list.clear()` and `list.resize(20)` (like `REDIM`, existing values stay).
+  `list.size(1)` and `list.rank()` read the shape. This works for number,
+  text and TYPE arrays; for TYPE arrays `push()` creates a new record,
+  `push(p)` appends `p` (like `DIMPUSH`: both share the record).
+  Multi-dimensional arrays are changed with `resize(a, b)`, a single row with
+  `field[i].asArray()`.
+* **GBX commands** can be called directly in a step, like in BASIC:
+  `PRINT(text_str, x, y)`, `DRAWLINE(x1, y1, x2, y2, color)`, `GETTIMER()`.
+  Every built-in command without `$` in its name is available as a C++
+  function; commands with `$` (`CHR$`, `LEFT$`) are called through
+  `call("LEFT$", …)`, whose result provides `.num()` or `.text()`. Variables
+  are passed as BYREF targets (`GETSPRITESIZE(id, w, h)`), numbers and texts
+  by value. `RGB` is named `rgb(r, g, b)` in C++ (the Windows macro owns the
+  name).
+* **Limits**: your own `FUNCTION`s, `SUB`s and `METHOD`s cannot be called
+  from a step, `RETURN`/`GOTO` cannot be triggered; GBX commands only in
+  steps, not in functions registered with `GBX_INLINE_FN`.
+  `push`/`insert`/`remove`/`clear` only apply to one-dimensional arrays;
+  multi-dimensional ones are changed with `resize`. After a resize, elements
+  fetched earlier (`Element` proxies) are invalid. Errors in a step – such as
+  an index outside the array – show up as runtime errors with the line inside
+  the block.
+* **Compiler**: it first looks for `..\compiler\bin\g++.exe` next to `gbx.exe`
+  (the package ships one), then `g++` in `PATH` and in the MSYS2 folders;
+  `GBX_CXX` sets a different path, `GBX_INLINE_INCLUDE` a different folder for
+  `gbx_inline.h`. The DLLs are linked with `-static` and therefore need no
+  compiler DLLs on the target machine.
+* **Cache**: the DLL is named after the hash of the generated C++ text and
+  lives in `%TEMP%\gbx-inline`; unchanged blocks are not recompiled.
+  Compilation errors appear with file and line from the `.gbx` file.
+* **Migration**: blocks inside a `FUNCTION` or an `IF` that only held
+  definitions now need `INLINE DEFINE` – without it they run as a step and
+  have to be C++ statements.
+* **Export**: when packing an EXE the blocks are compiled once and shipped
+  with it (`__inline/gbx_inline.dll` with an identifier); the finished game
+  no longer needs a compiler.
 
-## Spiel als EXE weitergeben
+## Shipping a game as an EXE
 
-`--export` packt ein Projekt in eine einzelne EXE. Darin stecken die Quellen
-und die fertig übersetzte INLINE-Bibliothek; **Assets bleiben draußen** und
-werden daneben kopiert.
+`--export` packs a project into a single EXE. It contains the sources and the
+already compiled INLINE library; **assets stay outside** and are copied next
+to it.
 
 ```bash
-build/gbx.exe --export spiel.exe examples/04_gbxarray/gbxarray.gbxproj
+build/gbx.exe --export game.exe examples/04_gbxarray/gbxarray.gbxproj
 ```
 
-* Die EXE hängt ihr Paket beim Start in `%TEMP%\gbx-run\<hash>` aus und läuft
-  von dort. Doppelklick öffnet kein Konsolenfenster mehr (das Windows-Subsystem
-  wird beim Export auf GUI gestellt); Fehler erscheinen als Meldungsfenster.
-* **Assets** (alles außer `.gbx`, `.gbxproj`, `.h`, `.hpp`, `.inl`) landen neben
-  der EXE, in derselben Ordnerstruktur. Sie lassen sich dort austauschen, ohne
-  neu zu packen; `SAVEBMP`/`SAVESPRITE` schreiben ebenfalls dorthin.
-* **INLINE** wird beim Export übersetzt und eingebettet – das Spiel braucht
-  keinen C++-Compiler.
-* **Ohne fremde DLLs** läuft die EXE nur, wenn `gbx.exe` selbst statisch
-  gelinkt ist: `-DGBX_STATIC_RUNTIME=ON`, also `build-static/gbx.exe`. Ein
-  dynamisch gelinkter Interpreter erzeugt eine EXE, die libstdc++ und FreeType
-  braucht; der Export weist darauf hin.
-* **In der IDE**: Plattform **Windows-EXE** im Dropdown neben **Bauen**
-  (Strg+E) – dort lässt sich der Speicherort wählen, und das Protokoll zeigt
-  die eingebetteten Dateien.
+* The EXE unpacks its package into `%TEMP%\gbx-run\<hash>` at startup and runs
+  from there. A double click no longer opens a console window (the export
+  switches the Windows subsystem to GUI); errors appear as a message box.
+* **Assets** (everything except `.gbx`, `.gbxproj`, `.h`, `.hpp`, `.inl`) end
+  up next to the EXE, in the same folder structure. They can be replaced there
+  without repacking; `SAVEBMP`/`SAVESPRITE` write there as well.
+* **INLINE** is compiled during the export and embedded – the game needs no
+  C++ compiler.
+* **Without foreign DLLs** the EXE only runs if `gbx.exe` itself is linked
+  statically: `-DGBX_STATIC_RUNTIME=ON`, i.e. `build-static/gbx.exe`. A
+  dynamically linked interpreter produces an EXE that needs libstdc++ and
+  FreeType; the export warns about that.
+* **In the IDE**: platform **Windows EXE** in the dropdown next to **Build**
+  (Ctrl+E) – there you can choose the location, and the log shows the embedded
+  files.
 
-## Spiel im Browser (HTML5)
+## Games in the browser (HTML5)
 
-Der Interpreter läuft auch als WebAssembly. Ein Export schreibt einen Ordner,
-den jeder Browser direkt öffnen kann – **Doppelklick auf `index.html` genügt**,
-ein Webserver ist nicht nötig.
+The interpreter also runs as WebAssembly. An export writes a folder that any
+browser can open directly – **double-clicking `index.html` is enough**, no web
+server required.
 
 ```
-spiel-web/
-  index.html   Seite mit Canvas, Tastatur, Maus und Audio
-  gbx.js       Interpreter als wasm, in eine JS-Datei eingebettet (-sSINGLE_FILE)
-  game.js      Quellen und Assets des Projekts (Base64)
+game-web/
+  index.html   page with canvas, keyboard, mouse and audio
+  gbx.js       interpreter as wasm, embedded into one JS file (-sSINGLE_FILE)
+  game.js      sources and assets of the project (Base64)
 ```
 
-* **Einmalig bauen**: `em++` übersetzt `src/` nach `html5/gbx.js`
+* **Build once**: `em++` compiles `src/` to `html5/gbx.js`
   (`-sUSE_SDL=3 -sUSE_FREETYPE=1 -DGBX_HAVE_TTF=1 -sASYNCIFY -sSINGLE_FILE=1
-  -fexceptions`). Das dauert rund 30 s und braucht das Emscripten SDK. In der IDE: **Einstellungen →
-  Allgemein → HTML5**, Knopf **Herunterladen …** holt das SDK in den Ordner
-  `emsdk` neben der Editor-EXE, **Prüfen** zeigt die Version, **Player bauen**
-  übersetzt den Interpreter.
-* **Export**: In der Werkzeugleiste rechts neben **Bauen** die Zielplattform
-  wählen (**HTML5 (Browser)**, Strg+E baut dann das Spiel). Die Quellen und
-  Assets landen in `game.js`, der Player wird daneben kopiert; fertig ist der
-  Ordner `<projekt>-web`.
-* **INLINE** funktioniert auch im Browser, aber anders: dort gibt es weder
-  Compiler noch `dlopen`. Deshalb übersetzt der Export die Blöcke einmalig mit
-  Emscripten und linkt sie fest in `gbx.js` des Spiels (rund 30 s, braucht das
-  SDK). Der Player aus **Player bauen** bleibt ohne Blöcke; er meldet INLINE
-  mit einem Hinweis.
-* **Ändert sich ein INLINE-Block oder ein eingebundener Header**, einfach neu
-  exportieren – das Spiel bringt seinen Player selbst mit.
-* **Zwischenspeicher**: Der fertige Player liegt im Temp-Ordner
-  (`gbx-inline-player`), benannt nach einem Hash aus Blöcken, Projekt-Headern,
-  Interpreter-Quellen und emsdk. Ohne Änderung ist der nächste Export nach
-  Sekunden fertig; die letzten acht Player bleiben liegen.
-* **Was funktioniert**: Grafik über SDL3 (WebGL), Tastatur/Maus, Audio nach der
-  ersten Nutzergeste, `LIMITFPS` (über `emscripten_sleep`), `SAVEBMP` in die
-  virtuelle Dateiablage, TrueType-Schriften.
-* **Schriften**: `LOADFONT "schrift.ttf", id, groesse` läuft im Browser über den
-  FreeType-Port von Emscripten (`-sUSE_FREETYPE=1`), mit Kerning und
-  Kantenglättung wie auf dem Desktop. Die Datei muss im Projekt liegen (Ordner
-  `assets/` oder ein Pfad in der `.gbxproj`); das Windows-Schriftverzeichnis
-  gibt es im Browser nicht, ein `LOADFONT "arial.ttf"` ohne Datei im Projekt
-  scheitert dort also. `TRY`/`CATCH` mit `SETFONT 0` als Rückfall fängt das ab.
-* **Hinweis**: Der Interpreter läuft im Browser, ist also langsamer als nativ;
-  für die Beispiele reicht es dicke. Die BASIC-Quellen liegen lesbar in
-  `game.js` – bei einer interpretierten Sprache unvermeidbar.
+  -fexceptions`). That takes about 30 s and needs the Emscripten SDK. In the
+  IDE: **Settings → General → HTML5**, the **Download …** button fetches the
+  SDK into the `emsdk` folder next to the editor EXE, **Check** shows the
+  version, **Build player** compiles the interpreter.
+* **Export**: in the toolbar, right next to **Build**, choose the target
+  platform (**HTML5 (browser)**; Ctrl+E then builds the game). Sources and
+  assets end up in `game.js`, the player is copied next to it; the folder
+  `<project>-web` is ready.
+* **INLINE** also works in the browser, but differently: there is no compiler
+  and no `dlopen`. The export therefore compiles the blocks once with
+  Emscripten and links them firmly into the game's `gbx.js` (about 30 s, needs
+  the SDK). The player from **Build player** stays without blocks; it reports
+  INLINE with a note.
+* **If an INLINE block or an included header changes**, simply export again –
+  the game brings its own player.
+* **Cache**: the finished player lives in the temp folder
+  (`gbx-inline-player`), named after a hash of blocks, project headers,
+  interpreter sources and emsdk. Without changes the next export is done in
+  seconds; the last eight players are kept.
+* **What works**: graphics through SDL3 (WebGL), keyboard/mouse, audio after
+  the first user gesture, `LIMITFPS` (through `emscripten_sleep`), `SAVEBMP`
+  into the virtual file system, TrueType fonts.
+* **Fonts**: `LOADFONT "font.ttf", id, size` runs in the browser through
+  Emscripten's FreeType port (`-sUSE_FREETYPE=1`), with kerning and
+  anti-aliasing like on the desktop. The file has to be part of the project
+  (`assets/` folder or a path in the `.gbxproj`); the Windows font directory
+  does not exist in the browser, so a `LOADFONT "arial.ttf"` without a file in
+  the project fails there. `TRY`/`CATCH` with `SETFONT 0` as a fallback catches
+  that.
+* **Note**: the interpreter runs in the browser, so it is slower than native;
+  the examples are more than fine. The BASIC sources sit readable in `game.js`
+  – unavoidable with an interpreted language.
 
-## Schriften aus Google Fonts
+## Fonts from Google Fonts
 
-**Werkzeuge → Google Fonts …** öffnet eine Liste aller Schriften von
-fonts.google.com. Die Suche filtert nach Name und Kategorie, die Vorschau zeigt
-den Text in der echten Schrift, mit allen vorhandenen Schnitten (Gewicht und
-kursiv) und einstellbarer Größe. **Herunterladen** legt die `.ttf` in den
-Asset-Ordner des Projekts (`assets/` oder der Pfad aus der `.gbxproj`) und zeigt
-die passende Zeile:
+**Tools → Google Fonts …** opens a list of all fonts from fonts.google.com.
+The search filters by name and category, the preview shows the text in the real
+font, with every available style (weight and italic) and an adjustable size.
+**Download** places the `.ttf` in the project's asset folder (`assets/` or the
+path from the `.gbxproj`) and shows the matching line:
 
 ```basic
 LOADFONT "assets/Roboto-Bold.ttf", 1, 28
 SETFONT 1
 ```
 
-Die Datei liegt damit im Projekt und wandert beim HTML5-Export mit – im Browser
-gibt es keine installierten Systemschriften. Ohne API-Key nutzt die IDE die
-öffentliche Fontliste; unter **Einstellungen → Allgemein** lässt sich ein
-Google-Fonts-API-Key hinterlegen, dann kommt die Liste über die offizielle
-Webfonts-API. Der Key wird nur lokal gespeichert.
+The file is then part of the project and travels along with the HTML5 export –
+the browser has no installed system fonts. Without an API key the IDE uses the
+public font list; under **Settings → General** a Google Fonts API key can be
+stored, then the list comes through the official Webfonts API. The key is only
+stored locally.
 
-## Nicht enthalten (bewusst)
+## Deliberately not included
 
-3D (`X_*`), C++-Vorlagen einbinden (`IMPORT`, `REQUIRE`), Präprozessor (`?IF` …),
-Datei-Streams (`OPENFILE`, `READLINE`, …), Netzwerk (`NET*`, `SOCK_*`),
-Joystick/Gamepad, Filme, `MEM2SPRITE`/`SPRITE2MEM`/`MEM2FONT`/`FONT2MEM`,
+3D (`X_*`), including C++ templates (`IMPORT`, `REQUIRE`), preprocessor (`?IF`
+…), file streams (`OPENFILE`, `READLINE`, …), networking (`NET*`, `SOCK_*`),
+joystick/gamepad, movies, `MEM2SPRITE`/`SPRITE2MEM`/`MEM2FONT`/`FONT2MEM`,
 `SORTARRAY`, `FINDPATH`, `FILEREQUEST`, `SHELLCMD`, `ADDRESSOF`/`CALLBYNAME`,
-`ENCRYPT$`/`DECRYPT$`, `SETSHOEBOX`. Der Bedarf dafür ist entweder 3D-, 
-Plattform- oder sicherheitskritisch; der 2D-Kern ist vollständig.
+`ENCRYPT$`/`DECRYPT$`, `SETSHOEBOX`. The need for these is either 3D-,
+platform- or security-related; the 2D core is complete.
 
-## Beispiele
+## Examples
 
-| Ordner | Inhalt |
+| Folder | Content |
 | --- | --- |
-| `examples/01_hello` | Formen, Text, TTF mit Fallback auf die Bitmap-Schrift |
-| `examples/02_breakout` | spielbares Breakout: Maus/Pfeiltasten, Leben, Punkte, Neustart |
-| `examples/03_sprites` | Sprites laden, rotieren/zoomen, Animationen (`LOADANIM`) |
-| `examples/04_gbxarray` | `INLINE`-Block mit eigenem Header: dynamische Arrays (`GBXArray`) in C++ |
-| `examples/05_inline` | `INLINE` an beliebiger Stelle: Definitionen aus `curve.h` und Schritte in `FUNCTION`/Schleife mit direkten Variablen |
-| `examples/06_sparks` | Feuerwerk: C++-Schritte bewegen ein `TYPE`-Array mit 900 Funken, `GLOWCOLOR` kommt aus dem Definitionsblock |
-| `examples/07_methods` | `METHOD` mit `INLINE`: `PRINT` und `DRAWFILLEDCIRCLE` direkt aus C++ aufrufen |
-| `examples/08_box2d` | fremde Bibliothek (Box2D-Lite) per `INLINE` einbinden: Wrapper-Header, Aufrufe aus `FUNCTION` und `METHOD`, registrierte `PHYSICS_*`-Befehle, texturierte Polygone mit `STARTPOLY`/`POLYVECTOR` |
-| `examples/09_ui` | fertige Oberfläche in reinem BASIC: `UI.gbx` mit Fenstern, Buttons, Schaltern, Reglern, Textfeldern, Dropdowns und Listen, dazu ein Beispielprojekt mit Themes |
+| `examples/01_hello` | shapes, text, TTF with a fallback to the bitmap font |
+| `examples/02_breakout` | playable Breakout: mouse/arrow keys, lives, score, restart |
+| `examples/03_sprites` | loading sprites, rotating/zooming, animations (`LOADANIM`) |
+| `examples/04_gbxarray` | `INLINE` block with its own header: dynamic arrays (`GBXArray`) in C++ |
+| `examples/05_inline` | `INLINE` anywhere: definitions from `curve.h` and steps in `FUNCTION`/loops with direct variables |
+| `examples/06_sparks` | fireworks: C++ steps move a `TYPE` array with 900 sparks, `GLOWCOLOR` comes from the definition block |
+| `examples/07_methods` | `METHOD` with `INLINE`: call `PRINT` and `DRAWFILLEDCIRCLE` straight from C++ |
+| `examples/08_box2d` | pulling in a foreign library (Box2D-Lite) via `INLINE`: wrapper header, calls from `FUNCTION` and `METHOD`, registered `PHYSICS_*` commands, textured polygons with `STARTPOLY`/`POLYVECTOR` |
+| `examples/09_ui` | a complete interface in pure BASIC: `UI.gbx` with windows, buttons, toggles, sliders, text fields, dropdowns and lists, plus a sample project with themes |
 
-`UI.gbx` ist eine eigenständige Bibliothek: Datei neben `main.gbx` legen,
-`INCLUDE "UI.gbx"`, Widgets einmal anlegen und pro Frame `app.run()` aufrufen.
-Die Kopfzeile der Datei beschreibt die komplette API; die Widgets sind
-`TYPE`s mit `METHOD`s, die ihren Zustand in zwei globalen Arrays halten.
+`UI.gbx` is a standalone library: put the file next to `main.gbx`,
+`INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
+The file header describes the complete API; the widgets are `TYPE`s with
+`METHOD`s that keep their state in two global arrays.
 
 ```bash
 build/gbx.exe examples/02_breakout/breakout.gbxproj
@@ -562,116 +560,116 @@ build/gbx.exe examples/02_breakout/breakout.gbxproj
 
 ## IDE
 
-Im Ordner `ide/` liegt **GBX Studio**, eine IDE für GameBasiX mit
-Syntaxhervorhebung, Autovervollständigung, Befehlsreferenz, Syntaxprüfung
-(F7), direktem Start über `F5`, einem Laufzeit-Debugger (F6) und dem Export
-als einzelne EXE (Knopf **Bauen** mit Plattform **Windows-EXE**, Strg+E):
+The `ide/` folder contains **GBX Studio**, an IDE for GameBasiX with syntax
+highlighting, autocompletion, a command reference, syntax checking (F7),
+direct launch with `F5`, a runtime debugger (F6) and export as a single EXE
+(the **Build** button with platform **Windows EXE**, Ctrl+E):
 
-Schon beim Tippen prüft die IDE den **ungespeicherten** Code: Nach einer
-halben Sekunde Pause geht der Editorinhalt über `gbx --check --stdin` an den
-Interpreter, Fehler erscheinen als Marker in der Zeile und als Anzahl in der
-Statusleiste. Gespeichert werden muss dafür nichts, und es entstehen keine
-temporären Dateien – die Prüfung liest den Puffer und wirft ihn weg.
+While you type, the IDE already checks the **unsaved** code: half a second
+after you stop, the editor content goes to the interpreter through `gbx --check
+--stdin`, errors appear as markers in the line and as a count in the status
+bar. Nothing has to be saved for that, and no temporary files are created –
+the check reads the buffer and throws it away.
 
-Angestrichen wird auch jeder **unbekannte Name** – genau das Wort, nicht die
-ganze Zeile; bei Tippfehlern in Befehlen und TYPE-Feldern schlägt die IDE den
-richtigen Namen vor.
-Teildateien, die per `INCLUDE` eingebunden werden, prüft die Live-Prüfung nur
-auf Syntax (`--syntax-only`), weil sie die Namen der anderen Dateien nicht
-kennen; die vollständige Namensprüfung liefert `F7` über die Einstiegsdatei.
+Every **unknown name** is underlined too – exactly that word, not the whole
+line; for typos in commands and TYPE fields the IDE suggests the right name.
+Part files pulled in with `INCLUDE` are only checked for syntax by the live
+check (`--syntax-only`), because it does not know the names of the other
+files; the full name check comes from `F7` through the entry file.
 
 ```bash
 cd ide
-npm install      # einmalig
-npm start        # Electron-Fenster; alternativ: npm run web
+npm install      # once
+npm start        # Electron window; alternatively: npm run web
 ```
 
-Nach dem einmaligen `npm install` genügt im Projektordner ein Doppelklick auf
-**`GBXStudio.exe`**: Die schmale EXE (kein eigener Editor, nur ein Startprogramm)
-findet `ide/node_modules/electron` neben sich und öffnet das Editorfenster.
-Fehlt Electron, startet sie stattdessen den Webserver und öffnet den Browser.
+After the one-time `npm install`, a double click on **`GBXStudio.exe`** in the
+project folder is enough: the slim EXE (no editor of its own, just a launcher)
+finds `ide/node_modules/electron` next to it and opens the editor window. If
+Electron is missing, it starts the web server and opens the browser instead.
 
-Das Icon (dunkler Grund, grüne Initialen „GBX“, darunter „STUDIO“) liegt als
-`ide/assets/icon.ico` bei und steckt in der EXE, im Editorfenster und im
-Paketbau. Neu erzeugen lässt es sich mit `python tools/make_icon.py` (braucht
+The icon (dark background, green initials "GBX", "STUDIO" below) ships as
+`ide/assets/icon.ico` and is embedded in the EXE, the editor window and the
+package build. It can be regenerated with `python tools/make_icon.py` (needs
 Pillow).
 
-Die IDE sucht `build/gbx.exe` neben dem IDE-Ordner; der Pfad lässt sich in den
-Einstellungen ändern. Details stehen in [ide/README.md](ide/README.md).
+The IDE looks for `build/gbx.exe` next to the IDE folder; the path can be
+changed in the settings. Details are in [ide/README.md](ide/README.md).
 
 ## Tests
 
 ```bash
-./build/gbx.exe --tests tests/language_tests.gbx     # 133 Sprachtests
-ctest --test-dir build --output-on-failure           # ueber CTest
-python tools/check_render.py                         # Pixelpruefung offscreen
-python tools/check_commands.py                       # jeder Befehl einmal
-python tools/check_debug.py                          # Debugger-Protokoll
-python tools/check_export.py                         # Spiel als einzelne EXE
-./build/gbx.exe --tests tests/inline_tests.gbx        # 84 INLINE-Prüfungen
+./build/gbx.exe --tests tests/language_tests.gbx     # 133 language tests
+ctest --test-dir build --output-on-failure           # through CTest
+python tools/check_render.py                         # pixel check offscreen
+python tools/check_commands.py                       # every command once
+python tools/check_debug.py                          # debugger protocol
+python tools/check_export.py                         # game as a single EXE
+./build/gbx.exe --tests tests/inline_tests.gbx        # 84 INLINE checks
 ```
 
-`tests/render_check.gbx` zeichnet Rechteck, Linie, Kreis, Rahmen, Sprite und
-Text und speichert das Ergebnis als BMP. `tools/check_render.py` startet das
-Programm mit `SDL_VIDEODRIVER=dummy` und prüft einzelne Pixel sowie die
-Textdarstellung.
+`tests/render_check.gbx` draws a rectangle, line, circle, border, sprite and
+text and saves the result as a BMP. `tools/check_render.py` starts the program
+with `SDL_VIDEODRIVER=dummy` and checks individual pixels as well as the text
+rendering.
 
-`tests/command_tests.gbx` ruft jeden eingebauten Befehl mindestens einmal mit
-minimalen Argumenten auf und prüft feststehende Ergebnisse mit `ASSERT`.
-`tools/check_commands.py` startet es zweimal – headless und mit Dummy-Renderer –
-und vergleicht die Befehlsliste aus `src/builtins.cpp` mit der Testdatei. Ein
-neuer Befehl ohne Test lässt den CTest-Lauf `commands` fehlschlagen; `INPUT`
-ist als nicht automatisierbar hinterlegt, weil es auf Tastatureingaben wartet.
+`tests/command_tests.gbx` calls every built-in command at least once with
+minimal arguments and checks fixed results with `ASSERT`.
+`tools/check_commands.py` starts it twice – headless and with the dummy
+renderer – and compares the command list from `src/builtins.cpp` with the test
+file. A new command without a test makes the CTest run `commands` fail;
+`INPUT` is listed as not automatable because it waits for keyboard input.
 
-## Projektstruktur
+## Project layout
 
 ```
-src/lexer.cpp       Tokens (Kommentare, Strings, Zahlen, Suffixe)
-src/parser.cpp      rekursiver Abstieg -> AST, INCLUDE, Blöcke
-src/interpreter.cpp Ausführung, Variablen, Arrays, TYPE mit METHODen, BYREF
-src/inline.cpp      INLINE-Blöcke: g++ aufrufen, DLL cachen und laden, Werte tauschen
-src/package.cpp     Spielpaket: Quellen + INLINE-DLL an die EXE hängen, beim Start auspacken
-inline/gbx_inline.h Schnittstelle für INLINE-Code (landet beim Bauen neben gbx.exe)
-src/lint.cpp        Namensprüfung für --check (Befehle, Variablen, Felder, Methoden)
-src/debugger.cpp    Laufzeit-Debugger (Haltepunkte, Schritte, Werte)
-src/builtins.cpp    alle Befehle/Funktionen
-src/graphics.cpp    SDL3-Renderer, Sprites, Text (Bitmap + FreeType), Eingabe
-src/audio.cpp       WAV-Laden und Software-Mixer
-src/project.cpp     .gbxproj lesen
-src/main.cpp        Kommandozeile, Start, Konstanten
-src/studio_launcher.cpp  GBXStudio.exe: startet den Editor aus ide/
-third_party/        stb_image, stb_image_write, font8x8 (gemeinfrei/MIT)
+src/lexer.cpp       tokens (comments, strings, numbers, suffixes)
+src/parser.cpp      recursive descent -> AST, INCLUDE, blocks
+src/interpreter.cpp execution, variables, arrays, TYPE with METHODs, BYREF
+src/inline.cpp      INLINE blocks: call g++, cache and load the DLL, exchange values
+src/package.cpp     game package: attach sources + INLINE DLL to the EXE, unpack at startup
+inline/gbx_inline.h interface for INLINE code (ends up next to gbx.exe when building)
+src/lint.cpp        name checking for --check (commands, variables, fields, methods)
+src/debugger.cpp    runtime debugger (breakpoints, steps, values)
+src/builtins.cpp    all commands/functions
+src/graphics.cpp    SDL3 renderer, sprites, text (bitmap + FreeType), input
+src/audio.cpp       WAV loading and software mixer
+src/project.cpp     reading .gbxproj
+src/main.cpp        command line, startup, constants
+src/studio_launcher.cpp  GBXStudio.exe: starts the editor from ide/
+third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 ```
 
-## Drittanbieter
+## Third-party
 
-* SDL3 (zlib-Lizenz), per CMake `FetchContent`
-* FreeType (FTL/GPLv2), optional für TTF
-* `stb_image.h`, `stb_image_write.h` (Public Domain/MIT)
-* `font8x8_basic.h` von Daniel Hepper (Public Domain)
+* SDL3 (zlib license), through CMake `FetchContent`
+* FreeType (FTL/GPLv2), optional for TTF
+* `stb_image.h`, `stb_image_write.h` (public domain/MIT)
+* `font8x8_basic.h` by Daniel Hepper (public domain)
 
-## Änderungsstand
+## Changelog
 
-**Oktober 2026**
+**October 2026**
 
-* **HTML5 mit TrueType**: Der wasm-Player wird mit Emscriptens FreeType-Port
-  gebaut (`-sUSE_FREETYPE=1 -DGBX_HAVE_TTF=1`); `-sSINGLE_FILE=1` legt das wasm
-  in `gbx.js`, sodass `index.html` per Doppelklick läuft. `LOADFONT` mit
-  `.ttf` funktioniert damit auch im Browser.
-* **Google Fonts in der IDE**: **Werkzeuge → Google Fonts …** sucht Schriften,
-  zeigt sie in echter Schrift und lädt die `.ttf` in den Asset-Ordner des
-  Projekts; mit einem API-Key in den Einstellungen über die Webfonts-API,
-  sonst über die öffentliche Fontliste.
-* **Bitmap-Font-Creator entfernt**: `LOADFONT` liest Bitmap-Fonts weiterhin,
-  im Editor gibt es nur keinen Generator mehr dafür.
-* **Name**: Die Sprache heißt jetzt **GameBasiX**; Compiler (`gbx.exe`),
-  Projektdateien (`.gbx`, `.gbxproj`) und **GBX Studio** behalten ihre Namen.
-  Alle Bezüge auf das alte SDK sind aus Code, IDE und Doku entfernt.
-* **Aufgeräumt**: `STDCOLOR`, `AUTOPAUSE`, `BUSY`, `GENFILE` und
-  `SETACTIVEMOUSE` waren ohne Funktion und sind gestrichen – samt Tests,
-  Referenz und Datensatz.
-* **IDE auf Englisch**: Die Oberfläche startet englisch; Deutsch lässt sich in
-  den Einstellungen oder über den Sprachschalter wählen. Der Wechsel gilt
-  sofort auch für Servermeldungen und Job-Logs – ohne Neustart.
-* **Teststand**: 133 Sprachprüfungen, 84 INLINE-Prüfungen, 24 Prüfungen der
-  IDE (`ide: npm test`), 151 eingebaute Befehle/Funktionen.
+* **HTML5 with TrueType**: the wasm player is built with Emscripten's FreeType
+  port (`-sUSE_FREETYPE=1 -DGBX_HAVE_TTF=1`); `-sSINGLE_FILE=1` puts the wasm
+  into `gbx.js`, so `index.html` runs on double click. `LOADFONT` with `.ttf`
+  therefore works in the browser too.
+* **Google Fonts in the IDE**: **Tools → Google Fonts …** searches fonts,
+  shows them in the real typeface and downloads the `.ttf` into the project's
+  asset folder; with an API key from the settings through the Webfonts API,
+  otherwise through the public font list.
+* **Bitmap font creator removed**: `LOADFONT` still reads bitmap fonts, the
+  editor just no longer offers a generator for them.
+* **Name**: the language is now called **GameBasiX**; the compiler
+  (`gbx.exe`), project files (`.gbx`, `.gbxproj`) and **GBX Studio** keep
+  their names. All references to the old SDK are gone from code, IDE and
+  documentation.
+* **Cleaned up**: `STDCOLOR`, `AUTOPAUSE`, `BUSY`, `GENFILE` and
+  `SETACTIVEMOUSE` had no effect and were removed – including tests, reference
+  and dataset.
+* **IDE in English**: the interface starts in English; German can be selected
+  in the settings or with the language switch. The change applies immediately
+  to server messages and job logs too – no restart.
+* **Test status**: 133 language checks, 84 INLINE checks, 24 IDE checks
+  (`ide: npm test`), 151 built-in commands/functions.
