@@ -1,0 +1,277 @@
+' ============================================================
+' FILE I/O: save game, backup and log in plain BASIC
+' Run: gbx examples/10_fileio/fileio.gbxproj
+'
+' The slot is binary: an 8-byte header, score and level as
+' 32-bit numbers, play time as a double and the name as a line.
+' The log is text, appended line by line and counted back with
+' FILEEOF/READLINE. All files live in saves/ next to this file.
+'
+' Try: SPACE for points, UP/DOWN for the level, then
+'      S save, L load, B backup, R rotate the log, D delete.
+' ============================================================
+
+TYPE SAVE
+  name$ = "PLAYER ONE"
+  score% = 0
+  level% = 1
+  playtime# = 0
+ENDTYPE
+
+TYPE STATUS
+  msg$ = "Ready."
+  timer# = 0
+  ok% = 1
+ENDTYPE
+
+GLOBAL game AS SAVE
+GLOBAL status AS STATUS
+
+GLOBAL magic$ = "GBXSAVE1"
+GLOBAL slot$ = "saves/slot1.sav"
+GLOBAL backup$ = "saves/slot1.bak"
+GLOBAL log$ = "saves/activity.log"
+GLOBAL old$ = "saves/activity.old"
+GLOBAL runTime# = 0
+
+GLOBAL colBg, colPanel, colEdge, colAccent, colInk, colMuted, colWarn
+colBg = RGB(13, 16, 21)
+colPanel = RGB(24, 29, 37)
+colEdge = RGB(45, 53, 65)
+colAccent = RGB(126, 209, 128)
+colInk = RGB(230, 235, 242)
+colMuted = RGB(140, 152, 166)
+colWarn = RGB(255, 176, 92)
+
+FUNCTION say: s AS STATUS, message$, ok
+  s.msg$ = message$
+  s.ok% = ok
+  s.timer# = 6
+ENDFUNCTION
+
+FUNCTION saveSlot: p AS SAVE
+  MAKEDIR "saves"
+  IF OPENFILE(1, slot$, 0) = 0 THEN RETURN 0
+  WRITESTR 1, magic$
+  WRITELONG 1, p.score%
+  WRITELONG 1, p.level%
+  WRITEIEEE 1, p.playtime#
+  WRITELINE 1, p.name$
+  CLOSEFILE 1
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION loadSlot: p AS SAVE
+  IF FILEEXISTS(slot$) = 0 THEN RETURN -1
+  IF OPENFILE(1, slot$, 1) = 0 THEN RETURN -2
+  READSTR 1, head$, 8
+  IF head$ <> magic$ THEN
+    CLOSEFILE 1
+    RETURN -3
+  ENDIF
+  READLONG 1, p.score%
+  READLONG 1, p.level%
+  READIEEE 1, p.playtime#
+  READLINE 1, p.name$
+  CLOSEFILE 1
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION backupSlot
+  IF FILEEXISTS(slot$) = 0 THEN RETURN 0
+  COPYFILE slot$, backup$
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION rotateLog
+  IF FILEEXISTS(log$) = 0 THEN RETURN 0
+  IF FILEEXISTS(old$) = 1 THEN DELETEFILE old$
+  RENAMEFILE log$, old$
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION deleteSlot
+  IF FILEEXISTS(slot$) = 0 THEN RETURN 0
+  DELETEFILE slot$
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION logLine: message$
+  IF OPENFILE(2, log$, -1) = 0 THEN RETURN 0
+  WRITELINE 2, "t=" + FORMAT$(0, 1, runTime#) + "s  " + message$
+  CLOSEFILE 2
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION logCount
+  n = 0
+  IF FILEEXISTS(log$) = 0 THEN RETURN 0
+  IF OPENFILE(3, log$, 1) = 0 THEN RETURN 0
+  WHILE FILEEOF(3) = 0
+    READLINE 3, line$
+    n = n + 1
+  WEND
+  CLOSEFILE 3
+  RETURN n
+ENDFUNCTION
+
+FUNCTION drawHead: title$, note$
+  SETTEXTCOLOR colAccent
+  PRINT title$, 30, 18
+  SETTEXTCOLOR colMuted
+  PRINT note$, 30, 38
+  DRAWRECT 30, 62, 800, 2, colEdge
+ENDFUNCTION
+
+FUNCTION drawPanel: x, y, w, h, title$
+  DRAWRECT x, y, w, h, colPanel
+  DRAWBORDER x, y, w, h, colEdge
+  SETTEXTCOLOR colAccent
+  PRINT title$, x + 18, y + 14
+ENDFUNCTION
+
+FUNCTION drawItem: label$, value$, x, y
+  SETTEXTCOLOR colMuted
+  PRINT label$, x, y
+  SETTEXTCOLOR colInk
+  PRINT value$, x + 150, y
+ENDFUNCTION
+
+' ------------------------------------------------------------ setup
+SYSTEMPOINTER TRUE
+SETSCREEN 860, 600, 0
+SETWINDOWTITLE "GameBasiX - File I/O"
+LIMITFPS 60
+ALLOWESCAPE FALSE
+
+last = GETTIMERALL()
+
+WHILE TRUE
+  now = GETTIMERALL()
+  delta# = (now - last) / 1000
+  last = now
+  runTime# = runTime# + delta#
+  game.playtime# = runTime#
+  IF status.timer# > 0 THEN status.timer# = status.timer# - delta#
+
+  ' ---------------------------------------------------------- keys
+  IF KEYHIT(KEY_SPACE) THEN
+    game.score% = game.score% + 25
+    say(status, "+25 points", 1)
+  ENDIF
+  IF KEYHIT(KEY_UP) THEN
+    IF game.level% < 9 THEN game.level% = game.level% + 1
+    say(status, "Level " + STR$(game.level%), 1)
+  ENDIF
+  IF KEYHIT(KEY_DOWN) THEN
+    IF game.level% > 1 THEN game.level% = game.level% - 1
+    say(status, "Level " + STR$(game.level%), 1)
+  ENDIF
+  IF KEYHIT(KEY_S) THEN
+    IF saveSlot(game) = 1 THEN
+      logLine("saved score=" + STR$(game.score%) + " level=" + STR$(game.level%))
+      say(status, "Saved " + STR$(FILESIZE(slot$)) + " bytes", 1)
+    ELSE
+      say(status, "Cannot write " + slot$, 0)
+    ENDIF
+  ENDIF
+  IF KEYHIT(KEY_L) THEN
+    result = loadSlot(game)
+    IF result = 1 THEN
+      runTime# = game.playtime#
+      logLine("loaded score=" + STR$(game.score%))
+      say(status, "Loaded slot 1", 1)
+    ELSEIF result = -1 THEN
+      say(status, "No save file - press S", 0)
+    ELSEIF result = -3 THEN
+      say(status, "Save is damaged (bad header)", 0)
+    ELSE
+      say(status, "Cannot read slot 1", 0)
+    ENDIF
+  ENDIF
+  IF KEYHIT(KEY_B) THEN
+    IF backupSlot() = 1 THEN
+      say(status, "Backup: " + backup$, 1)
+    ELSE
+      say(status, "Nothing to back up", 0)
+    ENDIF
+  ENDIF
+  IF KEYHIT(KEY_R) THEN
+    IF rotateLog() = 1 THEN
+      say(status, "Log rotated to activity.old", 1)
+    ELSE
+      say(status, "No log to rotate", 0)
+    ENDIF
+  ENDIF
+  IF KEYHIT(KEY_D) THEN
+    IF deleteSlot() = 1 THEN
+      say(status, "Save deleted", 1)
+    ELSE
+      say(status, "No save to delete", 0)
+    ENDIF
+  ENDIF
+  IF KEYHIT(KEY_N) THEN
+    game.name$ = "PLAYER ONE"
+    game.score% = 0
+    game.level% = 1
+    game.playtime# = 0
+    runTime# = 0
+    say(status, "New run", 1)
+  ENDIF
+  IF KEYHIT(KEY_ESC) THEN END
+
+  ' --------------------------------------------------------- draw
+  CLEARSCREEN colBg
+  drawHead("FILE I/O", "a save slot, a backup and a log - all in plain BASIC")
+
+  drawPanel(30, 84, 390, 330, "CURRENT RUN")
+  drawItem("PLAYER", game.name$, 50, 124)
+  drawItem("SCORE", STR$(game.score%), 50, 158)
+  drawItem("LEVEL", STR$(game.level%), 50, 192)
+  drawItem("PLAY TIME", FORMAT$(0, 1, runTime#) + " s", 50, 226)
+  drawItem("SLOT", slot$, 50, 260)
+  SETTEXTCOLOR colMuted
+  PRINT "SPACE adds 25 points.", 50, 306
+  PRINT "UP/DOWN change the level.", 50, 326
+  PRINT "S saves, L loads the slot.", 50, 346
+
+  drawPanel(440, 84, 390, 330, "SAVE SLOT")
+  IF FILEEXISTS(slot$) = 1 THEN
+    drawItem("FILE", "present", 460, 124)
+    drawItem("SIZE", STR$(FILESIZE(slot$)) + " bytes", 460, 158)
+  ELSE
+    drawItem("FILE", "empty", 460, 124)
+    drawItem("SIZE", "-", 460, 158)
+  ENDIF
+  IF FILEEXISTS(backup$) = 1 THEN
+    drawItem("BACKUP", STR$(FILESIZE(backup$)) + " bytes", 460, 192)
+  ELSE
+    drawItem("BACKUP", "-", 460, 192)
+  ENDIF
+  drawItem("LOG LINES", STR$(logCount()), 460, 226)
+  drawItem("FORMAT", "8 + 4 + 4 + 8 + name", 460, 260)
+  SETTEXTCOLOR colMuted
+  PRINT "WRITELINE appends to the log,", 460, 306
+  PRINT "READLINE/FILEEOF count it back.", 460, 326
+  PRINT "R rotates it to activity.old.", 460, 346
+
+  drawPanel(30, 432, 800, 84, "KEYS")
+  SETTEXTCOLOR colMuted
+  PRINT "SPACE +25 score    UP/DOWN level    S save    L load    B backup", 50, 468
+  PRINT "R rotate log       D delete save    N new run             ESC quits", 50, 492
+
+  IF status.timer# > 0 THEN
+    IF status.ok% = 1 THEN
+      DRAWRECT 30, 550, 8, 8, colAccent
+      SETTEXTCOLOR colInk
+    ELSE
+      DRAWRECT 30, 550, 8, 8, colWarn
+      SETTEXTCOLOR colWarn
+    ENDIF
+    PRINT status.msg$, 48, 550
+  ELSE
+    SETTEXTCOLOR colMuted
+    PRINT "Ready.", 30, 550
+  ENDIF
+  SHOWSCREEN
+WEND

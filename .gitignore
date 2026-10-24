@@ -9,6 +9,9 @@ GBXStudio.exe
 tests/out_render.bmp
 tests/out_commands.*
 
+# Spielstaende des FileIO-Beispiels
+examples/10_fileio/saves/
+
 # Emscripten-SDK und der daraus gebaute wasm-Player
 emsdk/
 html5/

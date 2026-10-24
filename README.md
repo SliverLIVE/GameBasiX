@@ -415,7 +415,8 @@ Paths for reading are resolved like assets (project folder, `assets/`,
 current folder). Writing, copying, renaming and `MAKEDIR` target the project
 folder – or the folder next to the EXE in a packaged game. In the browser the
 files live in Emscripten's virtual file system, so writes last for the session
-and are gone after a reload; reading bundled assets works as usual.
+and are gone after a reload; reading bundled assets works as usual. A complete
+demo is in `examples/10_fileio`.
 
 ```basic
 OPENFILE 1, "save.dat", 0
@@ -632,6 +633,7 @@ platform- or security-related; the 2D core is complete.
 | `examples/07_methods` | `METHOD` with `INLINE`: call `PRINT` and `DRAWFILLEDCIRCLE` straight from C++ |
 | `examples/08_box2d` | pulling in a foreign library (Box2D-Lite) via `INLINE`: wrapper header, calls from `FUNCTION` and `METHOD`, registered `PHYSICS_*` commands, textured polygons with `STARTPOLY`/`POLYVECTOR` |
 | `examples/09_ui` | a complete interface in pure BASIC: `UI.gbx` with windows, buttons, toggles, sliders, text fields, dropdowns and lists, plus a sample project with themes |
+| `examples/10_fileio` | a save slot in binary, a text log, backup, rotate and delete: every file command in one small demo |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.

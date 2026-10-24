@@ -1,0 +1,22 @@
+{
+  "name": "fileio",
+  "appName": "File I/O",
+  "title": "GameBasiX - File I/O",
+  "entry": "main.gbx",
+  "width": 860,
+  "height": 600,
+  "fullscreen": false,
+  "resizable": true,
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx"
+  ],
+  "createdAt": "2026-10-24T13:30:00.000Z"
+}
