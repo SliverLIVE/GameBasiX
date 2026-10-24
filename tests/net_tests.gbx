@@ -1,0 +1,92 @@
+' ============================================================
+' GameBasiX - Tests fuer Netzwerk (TCP und UDP)
+'
+'   gbx --headless --tests tests/net_tests.gbx
+'
+' Alles laeuft im selben Prozess ueber 127.0.0.1: der Server
+' nimmt seine eigene Verbindung an, und der UDP-Socket schickt
+' sich selbst ein Paket. Damit braucht der Test kein zweites
+' Programm und keinen festen Port.
+' ============================================================
+
+' ------------------------------------------------------------- TCP
+srv = NETLISTEN(0)
+ASSERT srv > 0, "NETLISTEN auf einem freien Port"
+port = NETPORT(srv)
+ASSERT port > 0, "NETPORT nennt den gebundenen Port"
+ASSERT LEN(NETIP$()) > 0, "NETIP$ liefert eine Adresse"
+
+cli = NETCONNECT("127.0.0.1", port, 2000)
+ASSERT cli > 0, "NETCONNECT zu 127.0.0.1"
+
+conn = 0
+t = GETTIMERALL()
+WHILE conn = 0 AND GETTIMERALL() - t < 3000
+  conn = NETACCEPT(srv)
+  SLEEP 1
+WEND
+ASSERT conn > 0, "NETACCEPT nimmt die Verbindung an"
+ASSERT INSTR(NETPEER$(conn), "127.0.0.1") = 0, "NETPEER$ nennt die Gegenstelle"
+ASSERT NETCONNECTED(conn) = 1, "NETCONNECTED auf einer offenen Verbindung"
+ASSERT NETPENDING(conn) = 0, "NETPENDING ohne anliegende Daten"
+
+ASSERT NETSEND(cli, "hallo") = 5, "NETSEND meldet die Bytes"
+
+msg$ = ""
+t = GETTIMERALL()
+WHILE msg$ = "" AND GETTIMERALL() - t < 3000
+  msg$ = NETRECV$(conn)
+  SLEEP 1
+WEND
+ASSERT msg$ = "hallo", "NETRECV$ liest die gesendeten Bytes"
+ASSERT NETPENDING(conn) = 0, "NETPENDING nach dem Lesen"
+
+NETSEND conn, "antwort"
+reply$ = ""
+t = GETTIMERALL()
+WHILE reply$ = "" AND GETTIMERALL() - t < 3000
+  reply$ = NETRECV$(cli)
+  SLEEP 1
+WEND
+ASSERT reply$ = "antwort", "Daten fliessen in beide Richtungen"
+ASSERT NETRECV$(cli) = "", "NETRECV$ ohne Daten ist leer"
+
+ASSERT NETCLOSE(conn) = 1, "NETCLOSE schliesst die angenommene Verbindung"
+closed = 0
+t = GETTIMERALL()
+WHILE closed = 0 AND GETTIMERALL() - t < 3000
+  IF NETCONNECTED(cli) = 0 THEN closed = 1
+  SLEEP 1
+WEND
+ASSERT closed = 1, "NETCONNECTED merkt, dass die Gegenstelle schliesst"
+ASSERT NETCLOSE(cli) = 1, "NETCLOSE schliesst den Client"
+
+' ----------------------------------------------------- Fehlerfaelle
+busy = NETLISTEN(port)
+ASSERT busy = 0, "NETLISTEN auf einem belegten Port scheitert"
+ASSERT LEN(NETERROR$()) > 0, "NETERROR$ nennt den Grund"
+ASSERT NETCLOSE(srv) = 1, "NETCLOSE schliesst den Server"
+
+dead = NETCONNECT("127.0.0.1", port, 500)
+ASSERT dead = 0, "NETCONNECT auf einem geschlossenen Port scheitert"
+ASSERT LEN(NETERROR$()) > 0, "NETERROR$ nach fehlgeschlagener Verbindung"
+
+' ------------------------------------------------------------- UDP
+u = UDPOPEN(0)
+ASSERT u > 0, "UDPOPEN auf einem freien Port"
+up = UDPPORT(u)
+ASSERT up > 0, "UDPPORT nennt den gebundenen Port"
+ASSERT UDPSEND(u, "127.0.0.1", up, "ping") = 1, "UDPSEND an sich selbst"
+
+pkt$ = ""
+t = GETTIMERALL()
+WHILE pkt$ = "" AND GETTIMERALL() - t < 3000
+  pkt$ = UDPRECV$(u)
+  SLEEP 1
+WEND
+ASSERT pkt$ = "ping", "UDPRECV$ liest das Paket"
+ASSERT INSTR(UDPFROM$(u), "127.0.0.1") = 0, "UDPFROM$ nennt den Absender"
+ASSERT UDPRECV$(u) = "", "UDPRECV$ ohne Paket ist leer"
+ASSERT UDPCLOSE(u) = 1, "UDPCLOSE"
+
+STDOUT "NETZWERKTEST FERTIG" + CHR$(10)

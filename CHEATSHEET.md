@@ -1,13 +1,15 @@
 # GameBasiX – CheatSheet
 
 Vollständige Kurzreferenz für **GameBasiX**: Sprachsteuerung, Typen und alle
-eingebauten Befehle (182 einschließlich der Sonderform `IIF`). Die
-Liste stammt aus `src/builtins.cpp`, die Steuerung aus `src/parser.cpp` – es ist
-also genau das, was der Interpreter versteht.
+eingebauten Befehle (220 einschließlich der Sonderform `IIF`, die nur einen
+Zweig auswertet). Die Liste stammt aus `src/builtins.cpp`, die Steuerung aus
+`src/parser.cpp` – es ist also genau das, was der Interpreter versteht.
 
 Zum Stand Oktober 2026: 133 Prüfungen in `tests/language_tests.gbx`, 84 in
-`tests/inline_tests.gbx`, 79 in `tests/ui_tests.gbx` und 47 rund um Dateien in
-`tests/file_tests.gbx`; die IDE prüft sich mit `ide: npm test`.
+`tests/inline_tests.gbx`, 79 in `tests/ui_tests.gbx`, 47 rund um Dateien in
+`tests/file_tests.gbx`, 28 für TCP/UDP in `tests/net_tests.gbx` und 26 für Steam
+in `tests/steam_tests.gbx` (gegen eine Mock-`steam_api`); die IDE prüft sich mit
+`ide: npm test`.
 
 ## 1. Programmgerüst
 
@@ -252,7 +254,7 @@ n% = LEN(feld[])             ' Anzahl Elemente
 
 ## 6. Befehle nach Gebiet
 
-Alle eingebauten Befehle (182 einschließlich `IIF`). `[…]` = optional,
+Alle eingebauten Befehle (220 einschließlich `IIF`). `[…]` = optional,
 `→` = liefert einen Wert. Farben sind `RGB(r,g,b)`-Werte; Winkel in **Grad**.
 
 ### Fenster und Bildschirm (18)
@@ -442,6 +444,60 @@ COPYFILE quelle$, ziel$
 RENAMEFILE quelle$, ziel$
 DELETEFILE "datei"
 MAKEDIR "ordner"                  ' legt auch fehlende Elternordner an
+```
+
+### Netzwerk (18)
+
+Alle Sockets sind nicht blockierend; besorgt wird nur `NETCONNECT`.
+Handles sind positive Zahlen und gelten für TCP und UDP gemeinsam.
+
+```basic
+NETLISTEN port%                   ' → handle, 0 = Fehler (0 = freier Port)
+NETACCEPT server%                 ' → neues Handle, 0 = keiner wartet
+NETCONNECT host$, port% [, ms%]   ' → handle; Standard-Zeitlimit 3000 ms
+NETSEND handle%, text$            ' → gesendete Bytes
+NETRECV$(handle%)                 ' → alles Anliegende, "" wenn nichts da ist
+NETPENDING(handle%)               ' → Bytes im Puffer
+NETCONNECTED(handle%)             ' → 0, sobald die Gegenstelle schließt
+NETPEER$(handle%)                 ' → "ip:port"
+NETPORT(handle%)                  ' → lokaler Port (bei NETLISTEN(0) der echte)
+NETIP$                            ' → eigene IPv4-Adresse im LAN
+NETCLOSE handle%                  ' Server oder Verbindung schließen
+NETERROR$                         ' letzter Fehler
+
+UDPOPEN port%                     ' → handle, 0 = freier Port
+UDPSEND handle%, host$, port%, text$   ' ein Paket, verbindungslos
+UDPRECV$(handle%)                 ' nächstes Paket, "" wenn keins da ist
+UDPFROM$(handle%)                 ' Absender des letzten Pakets
+UDPPORT(handle%)                  ' lokaler Port (bei 0 der zufällige)
+UDPCLOSE handle%
+```
+
+### Steam (19)
+
+Lädt `steam_api64.dll` bzw. `libsteam_api.so` zur Laufzeit; ohne Bibliothek
+bleiben die Befehle bei 0, `STEAMERROR$` nennt den Grund. `GBX_STEAM_LIB` zeigt
+auf eine Bibliothek an anderer Stelle. Die Flat-API-Einstiegspunkte sind
+versioniert (`SteamAPI_SteamUser_v023`, `SteamAPI_SteamNetworking_v006`, …);
+die Nummern wandern zwischen SDK-Ständen, deshalb werden sie beim Laden
+gesucht – jeder neuere SDK-Stand läuft ohne Neubau (geprüft mit SDK 1.65).
+
+```basic
+STEAMINIT [appid%]                ' → 1, wenn Steam bereit ist
+STEAMSHUTDOWN
+STEAMRUN                          ' Callbacks pumpen, einmal pro Frame
+STEAMREADY()  STEAMERROR$()
+STEAMNAME$()  STEAMID$()  STEAMAPPID()
+STEAMFRIENDS()                    ' → Anzahl der Freunde
+STEAMFRIENDID$(index%)            ' → SteamID als Text (64 Bit)
+STEAMFRIENDNAME$(index%)  STEAMFRIENDSTATE(index%)
+
+STEAMP2PSEND id$, text$ [, kanal% [, reliable%]]   ' → Bytes, 0 = nicht gesendet
+STEAMP2PAVAILABLE([kanal%])       ' → Bytes im Kanal
+STEAMP2PRECV$([kanal%])           ' → nächstes Paket, "" wenn keins da ist
+STEAMP2PFROM$()                   ' → SteamID des Absenders
+STEAMP2PACCEPT id$  STEAMP2PCLOSE id$
+STEAMP2PSTATE(id$)                ' 0 keine, 1 verbindet, 2 direkt, 3 Relay
 ```
 
 ### Laufzeit und Debug (15)

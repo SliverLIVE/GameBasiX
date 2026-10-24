@@ -12,7 +12,9 @@
 #include "audio.h"
 #include "fileio.h"
 #include "graphics.h"
+#include "net.h"
 #include "project.h"
+#include "steam.h"
 #include "value.h"
 
 struct Debugger;
@@ -28,6 +30,10 @@ struct Runtime {
     Gfx gfx;
     Audio audio;
     FileSet files;
+    Net net;
+    Steam steam;
+    std::string netError;  // letzter Fehler von NETERROR$
+    std::string netFrom;   // Absender des letzten UDP-Pakets (UDPFROM$)
     Program* prog = nullptr;
     Debugger* dbg = nullptr;  // gesetzt bei --debug
 

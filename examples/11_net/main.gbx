@@ -1,0 +1,359 @@
+' ============================================================
+' LAN LINK - two GameBasiX windows on one board
+' Run: gbx examples/11_net/net.gbxproj
+'
+' One window hosts, the other joins. Chat lines travel over
+' TCP (ordered, guaranteed); the dot position travels over UDP
+' twenty times a second, because the next packet replaces it
+' anyway. Nothing blocks: every socket is polled in the frame.
+'
+' Host:  H          shows the local address to type in
+' Join:  C          joins 127.0.0.1 (same PC, second window)
+' Both:  arrows     move your dot
+'        letters    type a line, ENTER sends it
+'        ESC        quits
+' ============================================================
+
+TYPE LINK
+  mode$ = "menu"
+  server% = 0
+  conn% = 0
+  udp% = 0
+  peerIp$ = ""
+  peerPort% = 0
+  myPort% = 0
+  localIp$ = ""
+  input$ = ""
+  status$ = "H hosts, C joins 127.0.0.1"
+  statusOk% = 1
+  peerName$ = "waiting"
+  myX# = 0.5
+  myY# = 0.5
+  peerX# = 0.5
+  peerY# = 0.5
+  sendAt# = 0
+  buffer$ = ""
+  joined% = 0
+  wasMenu% = 1
+ENDTYPE
+
+GLOBAL app AS LINK
+GLOBAL splitHost$
+GLOBAL splitPort%
+DIM chat$[6]
+GLOBAL chatCount% = 0
+GLOBAL last# = 0
+GLOBAL delta# = 0
+
+GLOBAL colBg, colPanel, colEdge, colAccent, colInk, colMuted, colWarn, colChat
+colBg = RGB(12, 15, 20)
+colPanel = RGB(22, 27, 35)
+colEdge = RGB(42, 50, 61)
+colAccent = RGB(126, 209, 128)
+colInk = RGB(232, 237, 244)
+colMuted = RGB(138, 150, 164)
+colWarn = RGB(255, 176, 92)
+colChat = RGB(150, 200, 255)
+
+FUNCTION note: s AS LINK, message$, ok
+  s.status$ = message$
+  s.statusOk% = ok
+ENDFUNCTION
+
+FUNCTION addChat: line$
+  IF chatCount% < 6 THEN
+    chat$[chatCount%] = line$
+    chatCount% = chatCount% + 1
+  ELSE
+    FOR i = 1 TO 5
+      chat$[i - 1] = chat$[i]
+    NEXT
+    chat$[5] = line$
+  ENDIF
+ENDFUNCTION
+
+' Splits "ip:port" into the two globals.
+FUNCTION splitAddress: text$
+  DIM parts$[2]
+  n = SPLITSTR(text$, parts$[], ":")
+  IF n >= 2 THEN
+    splitHost$ = parts$[0]
+    splitPort% = VAL(parts$[1])
+  ELSE
+    splitHost$ = text$
+    splitPort% = 0
+  ENDIF
+ENDFUNCTION
+
+FUNCTION sendLine: s AS LINK, text$
+  IF s.conn% = 0 THEN RETURN 0
+  NETSEND s.conn%, text$ + CHR$(10)
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION openUdp: s AS LINK, port
+  s.udp% = UDPOPEN(port)
+  IF s.udp% = 0 THEN
+    note(s, "UDP: " + NETERROR$(), 0)
+    RETURN 0
+  ENDIF
+  RETURN UDPPORT(s.udp%)
+ENDFUNCTION
+
+' Handshake and chat: TCP delivers lines separated by CHR$(10).
+FUNCTION pumpTcp: s AS LINK
+  IF s.conn% = 0 THEN RETURN 0
+  s.buffer$ = s.buffer$ + NETRECV$(s.conn%)
+  WHILE INSTR(s.buffer$, CHR$(10)) >= 0
+    cut = INSTR(s.buffer$, CHR$(10))
+    line$ = LEFT$(s.buffer$, cut)
+    s.buffer$ = MID$(s.buffer$, cut + 1)
+    IF LEN(line$) > 0 THEN
+      tag$ = LEFT$(line$, 1)
+      rest$ = MID$(line$, 1)
+      IF tag$ = "H" THEN
+        ' HELLO <udp port> from the guest
+        s.peerPort% = VAL(rest$)
+        sendLine(s, "W" + STR$(s.myPort%))
+        s.joined% = 1
+        s.peerName$ = s.peerIp$
+        note(s, "peer joined: " + s.peerIp$, 1)
+      ELSEIF tag$ = "W" THEN
+        s.peerPort% = VAL(rest$)
+        s.joined% = 1
+        note(s, "connected to " + s.peerIp$ + ":" + STR$(s.peerPort%), 1)
+      ELSEIF tag$ = "C" THEN
+        addChat("peer: " + rest$)
+      ENDIF
+    ENDIF
+  WEND
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION readUdp: s AS LINK
+  IF s.udp% = 0 THEN RETURN 0
+  packet$ = UDPRECV$(s.udp%)
+  IF packet$ = "" THEN RETURN 0
+  DIM nums$[2]
+  n = SPLITSTR(packet$, nums$[], " ")
+  IF n < 2 THEN RETURN 0
+  s.peerX# = VAL(nums$[0]) / 1000
+  s.peerY# = VAL(nums$[1]) / 1000
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION drawPanel: x, y, w, h, title$
+  DRAWRECT x, y, w, h, colPanel
+  DRAWBORDER x, y, w, h, colEdge
+  SETTEXTCOLOR colAccent
+  PRINT title$, x + 18, y + 12
+ENDFUNCTION
+
+FUNCTION drawKey: label$, value$, x, y, highlight
+  SETTEXTCOLOR colMuted
+  PRINT label$, x, y
+  IF highlight = 1 THEN
+    SETTEXTCOLOR colAccent
+  ELSE
+    SETTEXTCOLOR colInk
+  ENDIF
+  PRINT value$, x + 120, y
+ENDFUNCTION
+
+' ------------------------------------------------------------ setup
+SYSTEMPOINTER TRUE
+SETSCREEN 860, 600, 0
+SETWINDOWTITLE "GameBasiX - LAN Link"
+LIMITFPS 60
+ALLOWESCAPE FALSE
+
+app.localIp$ = NETIP$()
+last# = GETTIMERALL()
+
+WHILE TRUE
+  now# = GETTIMERALL()
+  delta# = (now# - last#) / 1000
+  last# = now#
+
+  ' ---------------------------------------------------------- keys
+  IF app.mode$ <> "menu" THEN
+    speed# = 0.7 * delta#
+    IF KEY(KEY_LEFT) THEN app.myX# = app.myX# - speed#
+    IF KEY(KEY_RIGHT) THEN app.myX# = app.myX# + speed#
+    IF KEY(KEY_UP) THEN app.myY# = app.myY# - speed#
+    IF KEY(KEY_DOWN) THEN app.myY# = app.myY# + speed#
+    IF app.myX# < 0.02 THEN app.myX# = 0.02
+    IF app.myX# > 0.98 THEN app.myX# = 0.98
+    IF app.myY# < 0.02 THEN app.myY# = 0.02
+    IF app.myY# > 0.98 THEN app.myY# = 0.98
+
+    typed$ = INKEY$()
+    WHILE typed$ <> ""
+      IF typed$ = CHR$(13) OR typed$ = CHR$(10) THEN
+        IF LEN(app.input$) > 0 THEN
+          IF sendLine(app, "C" + app.input$) = 1 THEN
+            addChat("you:  " + app.input$)
+          ELSE
+            note(app, "not connected", 0)
+          ENDIF
+          app.input$ = ""
+        ENDIF
+      ELSEIF typed$ = CHR$(8) THEN
+        IF LEN(app.input$) > 0 THEN app.input$ = LEFT$(app.input$, LEN(app.input$) - 1)
+      ELSE
+        IF ASC(typed$) >= 32 AND ASC(typed$) <= 126 AND LEN(app.input$) < 46 THEN
+          app.input$ = app.input$ + typed$
+        ENDIF
+      ENDIF
+      typed$ = INKEY$()
+    WEND
+  ENDIF
+
+  IF KEYHIT(KEY_H) AND app.mode$ = "menu" THEN
+    app.server% = NETLISTEN(35500)
+    IF app.server% = 0 THEN
+      note(app, "TCP: " + NETERROR$(), 0)
+    ELSE
+      app.myPort% = openUdp(app, 35501)
+      IF app.myPort% > 0 THEN
+        app.mode$ = "host"
+        note(app, "hosting - join " + app.localIp$ + ":35500", 1)
+      ENDIF
+    ENDIF
+  ENDIF
+
+  IF KEYHIT(KEY_C) AND app.mode$ = "menu" THEN
+    app.conn% = NETCONNECT("127.0.0.1", 35500, 2000)
+    IF app.conn% = 0 THEN
+      note(app, "connect: " + NETERROR$(), 0)
+    ELSE
+      app.myPort% = openUdp(app, 0)
+      IF app.myPort% > 0 THEN
+        app.mode$ = "client"
+        app.peerIp$ = "127.0.0.1"
+        sendLine(app, "H" + STR$(app.myPort%))
+        note(app, "joined 127.0.0.1:35500", 1)
+      ENDIF
+    ENDIF
+  ENDIF
+
+  ' ------------------------------------------------------- network
+  IF app.mode$ = "host" AND app.conn% = 0 THEN
+    accepted% = NETACCEPT(app.server%)
+    IF accepted% > 0 THEN
+      app.conn% = accepted%
+      app.joined% = 0
+      splitAddress(NETPEER$(app.conn%))
+      app.peerIp$ = splitHost$
+      note(app, "peer at " + app.peerIp$ + ", waiting for HELLO", 1)
+    ENDIF
+  ENDIF
+
+  IF app.conn% > 0 THEN
+    pumpTcp(app)
+    IF NETCONNECTED(app.conn%) = 0 AND app.joined% = 1 THEN
+      note(app, "peer left", 0)
+      addChat("- peer disconnected -")
+      NETCLOSE app.conn%
+      app.conn% = 0
+      app.joined% = 0
+      IF app.server% > 0 THEN
+        NETCLOSE app.server%
+        app.server% = 0
+      ENDIF
+      IF app.udp% > 0 THEN
+        UDPCLOSE app.udp%
+        app.udp% = 0
+      ENDIF
+      app.mode$ = "menu"
+    ENDIF
+  ENDIF
+
+  IF app.joined% = 1 AND app.udp% > 0 AND app.peerPort% > 0 THEN
+    IF now# - app.sendAt# > 50 THEN
+      app.sendAt# = now#
+      x% = app.myX# * 1000
+      y% = app.myY# * 1000
+      UDPSEND app.udp%, app.peerIp$, app.peerPort%, STR$(x%) + " " + STR$(y%)
+    ENDIF
+    readUdp(app)
+  ENDIF
+
+  ' Swallow the menu keystroke so it does not land in the input field.
+  IF app.mode$ <> "menu" AND app.wasMenu% = 1 THEN
+    WHILE INKEY$() <> ""
+    WEND
+    app.wasMenu% = 0
+  ENDIF
+  IF app.mode$ = "menu" THEN app.wasMenu% = 1
+
+  IF KEYHIT(KEY_ESC) THEN END
+
+  ' ---------------------------------------------------------- draw
+  CLEARSCREEN colBg
+  SETTEXTCOLOR colAccent
+  PRINT "LAN LINK", 30, 16
+  SETTEXTCOLOR colMuted
+  PRINT "TCP for chat, UDP for the dot - nothing blocks, everything is polled per frame", 30, 36
+  DRAWRECT 30, 58, 800, 2, colEdge
+
+  drawPanel(30, 72, 380, 200, "YOU")
+  DRAWRECT 48, 104, 344, 96, colBg
+  DRAWBORDER 48, 104, 344, 96, colEdge
+  DRAWCIRCLE 48 + app.myX# * 344, 104 + app.myY# * 96, 9, colAccent
+  drawKey "POSITION", FORMAT$(0, 2, app.myX#) + " / " + FORMAT$(0, 2, app.myY#), 48, 216, 1
+  drawKey "PORT", STR$(app.myPort%), 48, 240, 1
+
+  drawPanel(450, 72, 380, 200, "PEER")
+  DRAWRECT 468, 104, 344, 96, colBg
+  DRAWBORDER 468, 104, 344, 96, colEdge
+  DRAWCIRCLE 468 + app.peerX# * 344, 104 + app.peerY# * 96, 9, colChat
+  IF app.joined% = 1 THEN
+    drawKey "ADDRESS", app.peerIp$ + ":" + STR$(app.peerPort%), 468, 216, 1
+    drawKey "LINK", "up", 468, 240, 1
+  ELSE
+    drawKey "ADDRESS", app.peerIp$, 468, 216, 0
+    drawKey "LINK", "waiting", 468, 240, 0
+  ENDIF
+
+  drawPanel(30, 288, 800, 190, "CHAT")
+  SETTEXTCOLOR colChat
+  y = 316
+  FOR i = 0 TO 5
+    IF i < chatCount% THEN
+      IF i = chatCount% - 1 THEN SETTEXTCOLOR colInk ELSE SETTEXTCOLOR colChat
+      PRINT chat$[i], 50, y
+    ENDIF
+    y = y + 24
+  NEXT
+
+  drawPanel(30, 494, 800, 46, "")
+  SETTEXTCOLOR colMuted
+  PRINT ">", 44, 508
+  SETTEXTCOLOR colInk
+  PRINT app.input$, 62, 508
+  DRAWRECT 62 + LEN(app.input$, 1), 508, 2, 14, colAccent
+
+  IF app.mode$ = "menu" THEN
+    DRAWRECT 230, 236, 400, 92, colPanel
+    DRAWBORDER 230, 236, 400, 92, colAccent
+    SETTEXTCOLOR colAccent
+    PRINT "no link yet", 250, 252
+    SETTEXTCOLOR colMuted
+    PRINT "H  host on port 35500", 250, 276
+    PRINT "C  join 127.0.0.1:35500", 250, 296
+  ENDIF
+
+  IF app.statusOk% = 1 THEN
+    DRAWRECT 30, 556, 8, 8, colAccent
+    SETTEXTCOLOR colInk
+  ELSE
+    DRAWRECT 30, 556, 8, 8, colWarn
+    SETTEXTCOLOR colWarn
+  ENDIF
+  PRINT app.status$, 48, 554
+  SETTEXTCOLOR colMuted
+  PRINT app.localIp$, 730, 554
+
+  SHOWSCREEN
+WEND

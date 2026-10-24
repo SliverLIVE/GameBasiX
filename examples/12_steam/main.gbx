@@ -1,0 +1,240 @@
+' ============================================================
+' STEAM LINK - chat with a friend through Steam's P2P packets
+' Run: gbx examples/12_steam/steam.gbxproj
+'
+' Setup: steam_api64.dll next to gbx.exe (from the Steamworks
+' SDK, folder redistributable_bin/win64), steam_appid.txt with
+' your app id, and Steam running. Without them the window shows
+' what is missing instead of failing.
+'
+' Keys: 1..9 pick a friend, letters type, ENTER sends,
+'       ESC quits.
+' ============================================================
+
+TYPE STEAMLINK
+  ready% = 0
+  partner$ = ""
+  partnerName$ = "none"
+  input$ = ""
+  status$ = ""
+  statusOk% = 1
+  state% = 0
+  sent% = 0
+  got% = 0
+ENDTYPE
+
+GLOBAL app AS STEAMLINK
+DIM chat$[6]
+GLOBAL chatCount% = 0
+
+GLOBAL colBg, colPanel, colEdge, colAccent, colInk, colMuted, colWarn, colChat
+colBg = RGB(12, 15, 20)
+colPanel = RGB(22, 27, 35)
+colEdge = RGB(42, 50, 61)
+colAccent = RGB(126, 209, 128)
+colInk = RGB(232, 237, 244)
+colMuted = RGB(138, 150, 164)
+colWarn = RGB(255, 176, 92)
+colChat = RGB(150, 200, 255)
+
+FUNCTION note: s AS STEAMLINK, message$, ok
+  s.status$ = message$
+  s.statusOk% = ok
+ENDFUNCTION
+
+FUNCTION addChat: line$
+  IF chatCount% < 6 THEN
+    chat$[chatCount%] = line$
+    chatCount% = chatCount% + 1
+  ELSE
+    FOR i = 1 TO 5
+      chat$[i - 1] = chat$[i]
+    NEXT
+    chat$[5] = line$
+  ENDIF
+ENDFUNCTION
+
+FUNCTION drawPanel: x, y, w, h, title$
+  DRAWRECT x, y, w, h, colPanel
+  DRAWBORDER x, y, w, h, colEdge
+  SETTEXTCOLOR colAccent
+  PRINT title$, x + 18, y + 12
+ENDFUNCTION
+
+FUNCTION drawKey: label$, value$, x, y, highlight
+  SETTEXTCOLOR colMuted
+  PRINT label$, x, y
+  IF highlight = 1 THEN
+    SETTEXTCOLOR colAccent
+  ELSE
+    SETTEXTCOLOR colInk
+  ENDIF
+  PRINT value$, x + 130, y
+ENDFUNCTION
+
+FUNCTION stateName: state
+  IF state = 0 THEN RETURN "none"
+  IF state = 1 THEN RETURN "connecting"
+  IF state = 2 THEN RETURN "direct"
+  IF state = 3 THEN RETURN "via relay"
+  RETURN "?"
+ENDFUNCTION
+
+' ------------------------------------------------------------ setup
+SYSTEMPOINTER TRUE
+SETSCREEN 860, 600, 0
+SETWINDOWTITLE "GameBasiX - Steam Link"
+LIMITFPS 60
+ALLOWESCAPE FALSE
+
+IF STEAMINIT() = 1 THEN
+  app.ready% = 1
+  IF STEAMFRIENDS() > 0 THEN
+    app.partner$ = STEAMFRIENDID$(0)
+    app.partnerName$ = STEAMFRIENDNAME$(0)
+    note(app, "Steam ready - 1..9 picks a friend", 1)
+  ELSE
+    note(app, "Steam ready, but no friends online", 0)
+  ENDIF
+ELSE
+  app.ready% = 0
+  note(app, "Steam not available", 0)
+ENDIF
+
+WHILE TRUE
+  STEAMRUN
+
+  ' ---------------------------------------------------------- keys
+  IF app.ready% = 1 THEN
+    typed$ = INKEY$()
+    WHILE typed$ <> ""
+      IF typed$ = CHR$(13) OR typed$ = CHR$(10) THEN
+        IF LEN(app.input$) > 0 AND app.partner$ <> "" THEN
+          bytes = STEAMP2PSEND(app.partner$, "C" + app.input$)
+          IF bytes > 0 THEN
+            app.sent% = app.sent% + 1
+            addChat("you:  " + app.input$)
+          ELSE
+            note(app, "send failed: " + STEAMERROR$(), 0)
+          ENDIF
+          app.input$ = ""
+        ENDIF
+      ELSEIF typed$ = CHR$(8) THEN
+        IF LEN(app.input$) > 0 THEN app.input$ = LEFT$(app.input$, LEN(app.input$) - 1)
+      ELSE
+        IF ASC(typed$) >= 32 AND ASC(typed$) <= 126 AND LEN(app.input$) < 44 THEN
+          app.input$ = app.input$ + typed$
+        ENDIF
+      ENDIF
+      typed$ = INKEY$()
+    WEND
+
+    FOR i = 1 TO 9
+      IF KEYHIT(KEY_1 + i - 1) THEN
+        candidate$ = STEAMFRIENDID$(i - 1)
+        IF candidate$ <> "" THEN
+          app.partner$ = candidate$
+          app.partnerName$ = STEAMFRIENDNAME$(i - 1)
+          note(app, "partner: " + app.partnerName$, 1)
+        ENDIF
+      ENDIF
+    NEXT
+
+    ' ------------------------------------------------------ receive
+    WHILE STEAMP2PAVAILABLE(0) > 0
+      packet$ = STEAMP2PRECV$(0)
+      IF LEN(packet$) > 1 THEN
+        tag$ = LEFT$(packet$, 1)
+        rest$ = MID$(packet$, 1)
+        IF tag$ = "C" THEN
+          app.got% = app.got% + 1
+          addChat(app.partnerName$ + ": " + rest$)
+        ENDIF
+      ENDIF
+    WEND
+  ENDIF
+
+  IF app.partner$ <> "" THEN
+    app.state% = STEAMP2PSTATE(app.partner$)
+  ELSE
+    app.state% = 0
+  ENDIF
+
+  IF KEYHIT(KEY_ESC) THEN END
+
+  ' ---------------------------------------------------------- draw
+  CLEARSCREEN colBg
+  SETTEXTCOLOR colAccent
+  PRINT "STEAM LINK", 30, 16
+  SETTEXTCOLOR colMuted
+  PRINT "Steam callsigns, friend list and P2P packets - no port forwarding needed", 30, 36
+  DRAWRECT 30, 58, 800, 2, colEdge
+
+  drawPanel(30, 72, 380, 170, "YOU")
+  drawKey "NAME", STEAMNAME$(), 48, 104, 1
+  drawKey "ID", STEAMID$(), 48, 128, 1
+  drawKey "APP", STR$(STEAMAPPID()), 48, 152, 0
+  drawKey "READY", STR$(app.ready%), 48, 176, app.ready%
+
+  drawPanel(450, 72, 380, 170, "PARTNER")
+  drawKey "NAME", app.partnerName$, 468, 104, 1
+  drawKey "ID", app.partner$, 468, 128, 0
+  drawKey "LINK", stateName(app.state%), 468, 152, app.state%
+  drawKey "SENT / GOT", STR$(app.sent%) + " / " + STR$(app.got%), 468, 176, 0
+
+  drawPanel(30, 258, 800, 190, "CHAT")
+  y = 286
+  FOR i = 0 TO 5
+    IF i < chatCount% THEN
+      IF i = chatCount% - 1 THEN SETTEXTCOLOR colInk ELSE SETTEXTCOLOR colChat
+      PRINT chat$[i], 50, y
+    ENDIF
+    y = y + 24
+  NEXT
+
+  drawPanel(30, 464, 800, 46, "")
+  SETTEXTCOLOR colMuted
+  PRINT ">", 44, 478
+  SETTEXTCOLOR colInk
+  PRINT app.input$, 62, 478
+  DRAWRECT 62 + LEN(app.input$, 1), 478, 2, 14, colAccent
+
+  SETTEXTCOLOR colMuted
+  PRINT "1..9 pick a friend    ENTER sends    ESC quits", 30, 526
+
+  IF app.statusOk% = 1 THEN
+    DRAWRECT 30, 556, 8, 8, colAccent
+    SETTEXTCOLOR colInk
+  ELSE
+    DRAWRECT 30, 556, 8, 8, colWarn
+    SETTEXTCOLOR colWarn
+  ENDIF
+  PRINT app.status$, 48, 554
+
+  IF app.ready% = 0 THEN
+    DRAWRECT 150, 250, 560, 240, colPanel
+    DRAWBORDER 150, 250, 560, 240, colWarn
+    SETTEXTCOLOR colWarn
+    PRINT "Steam is not running for this program", 170, 270
+    SETTEXTCOLOR colMuted
+    PRINT "1. copy steam_api64.dll next to gbx.exe", 170, 306
+    PRINT "   (Steamworks SDK, redistributable_bin/win64)", 186, 326
+    PRINT "2. put steam_appid.txt with your app id beside it", 170, 352
+    PRINT "3. start Steam and run the program again", 170, 378
+    SETTEXTCOLOR colInk
+    rest$ = STEAMERROR$()
+    y = 414
+    FOR line = 1 TO 3
+      IF LEN(rest$) > 54 THEN
+        PRINT LEFT$(rest$, 54), 170, y
+        rest$ = MID$(rest$, 54)
+      ELSE
+        IF LEN(rest$) > 0 THEN PRINT rest$, 170, y
+        rest$ = ""
+      ENDIF
+      y = y + 18
+    NEXT
+  ENDIF
+
+  SHOWSCREEN
+WEND

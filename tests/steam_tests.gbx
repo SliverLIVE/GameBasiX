@@ -1,0 +1,49 @@
+' ============================================================
+' GameBasiX - Tests fuer die STEAM_*-Befehle
+'
+'   GBX_STEAM_LIB=<mock> gbx --headless --tests tests/steam_tests.gbx
+'
+' Laeuft gegen tools/mock_steam_api.cpp, das die Flat-API mit
+' einer festen Kennung, einem Freund und einem P2P-Paket nachbildet
+' (tools/check_steam.py baut und startet beides). Ohne Steam kann
+' damit der komplette Weg vom Laden bis zum Paket geprueft werden.
+' ============================================================
+
+ASSERT STEAMREADY() = 0, "vor STEAMINIT ist Steam nicht bereit"
+ASSERT STEAMNAME$() = "", "ohne Steam gibt es keinen Namen"
+ASSERT STEAMFRIENDS() = 0, "ohne Steam keine Freundesliste"
+ASSERT STEAMP2PAVAILABLE(0) = 0, "ohne Steam keine Pakete"
+
+ASSERT STEAMINIT(480) = 1, "STEAMINIT laedt die Bibliothek"
+ASSERT STEAMREADY() = 1, "STEAMREADY nach STEAMINIT"
+ASSERT STEAMERROR$() = "", "STEAMERROR$ bleibt nach dem Start leer"
+ASSERT STEAMAPPID() = 480, "STEAMAPPID"
+ASSERT STEAMID$() = "76561190000000001", "STEAMID$"
+ASSERT STEAMNAME$() = "Mock Player", "STEAMNAME$"
+
+' ------------------------------------------------------ Freundesliste
+ASSERT STEAMFRIENDS() = 1, "STEAMFRIENDS"
+ASSERT STEAMFRIENDID$(0) = "76561190000000002", "STEAMFRIENDID$"
+ASSERT STEAMFRIENDNAME$(0) = "Mock Friend", "STEAMFRIENDNAME$"
+ASSERT STEAMFRIENDSTATE(0) = 1, "STEAMFRIENDSTATE"
+ASSERT STEAMFRIENDID$(5) = "", "STEAMFRIENDID$ ausserhalb der Liste"
+
+' ------------------------------------------------------------- P2P
+partner$ = "76561190000000002"
+ASSERT STEAMP2PSEND(partner$, "hallo") = 5, "STEAMP2PSEND meldet die Bytes"
+ASSERT STEAMP2PAVAILABLE(0) = 5, "STEAMP2PAVAILABLE nach dem Senden"
+ASSERT STEAMP2PRECV$(0) = "hallo", "STEAMP2PRECV$ liest das Paket"
+ASSERT STEAMP2PFROM$() = partner$, "STEAMP2PFROM$ nennt den Absender"
+ASSERT STEAMP2PAVAILABLE(0) = 0, "nach dem Lesen ist nichts mehr da"
+ASSERT STEAMP2PRECV$(0) = "", "STEAMP2PRECV$ ohne Paket ist leer"
+
+ASSERT STEAMP2PSTATE(partner$) = 2, "STEAMP2PSTATE meldet eine offene Verbindung"
+ASSERT STEAMP2PACCEPT(partner$) = 1, "STEAMP2PACCEPT"
+ASSERT STEAMP2PCLOSE(partner$) = 1, "STEAMP2PCLOSE"
+ASSERT STEAMRUN() = 1, "STEAMRUN pumpt die Callbacks"
+
+' ---------------------------------------------------------- beenden
+STEAMSHUTDOWN
+ASSERT STEAMREADY() = 0, "STEAMSHUTDOWN beendet Steam"
+
+STDOUT "STEAMTEST FERTIG" + CHR$(10)

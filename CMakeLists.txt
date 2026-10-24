@@ -75,6 +75,8 @@ add_executable(gbx
   src/debugger.cpp
   src/builtins.cpp
   src/fileio.cpp
+  src/net.cpp
+  src/steam.cpp
   src/graphics.cpp
   src/audio.cpp
   src/project.cpp
@@ -91,6 +93,10 @@ add_custom_command(TARGET gbx POST_BUILD
           ${CMAKE_SOURCE_DIR}/inline/gbx_inline.h ${CMAKE_BINARY_DIR}/inline/gbx_inline.h
   COMMENT "Copying gbx_inline.h next to gbx.exe")
 target_link_libraries(gbx PRIVATE ${GBX_SDL_TARGET})
+# Winsock fuer die NET*-Befehle
+if(WIN32)
+  target_link_libraries(gbx PRIVATE ws2_32)
+endif()
 if(GBX_STATIC_RUNTIME AND NOT MSVC)
   target_link_options(gbx PRIVATE -static -static-libgcc -static-libstdc++)
   # Der Export warnt, wenn die EXE noch C++-Laufzeit-DLLs braucht.
@@ -157,6 +163,13 @@ set_tests_properties(files PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
 
+# Netzwerk: TCP und UDP ueber 127.0.0.1 im selben Prozess
+add_test(NAME net
+         COMMAND gbx --headless --tests tests/net_tests.gbx)
+set_tests_properties(net PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+
 # Pixelpruefung der Zeichenbefehle (offscreen ueber den SDL-dummy-Treiber)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
@@ -177,6 +190,14 @@ if(Python3_Interpreter_FOUND)
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/check_export.py
                    $<TARGET_FILE:gbx>)
   set_tests_properties(export PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+  # Steam-Befehle gegen eine Mock-steam_api (kein Steam noetig)
+  add_test(NAME steam
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/check_steam.py
+                   $<TARGET_FILE:gbx>)
+  set_tests_properties(steam PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    ENVIRONMENT "GBX_CXX=${CMAKE_CXX_COMPILER}")
 
   # Namenspruefung: unbekannte Befehle, Funktionen, Variablen und Marken
   add_test(NAME lint

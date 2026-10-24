@@ -37,6 +37,8 @@ const CATEGORY_KEYS = {
   Math: 'Mathe',
   Strings: 'Strings',
   Files: 'Dateien',
+  Network: 'Netzwerk',
+  Steam: 'Steam',
   'Runtime and debug': 'Laufzeit und Debug'
 };
 
@@ -551,6 +553,7 @@ const LABELS = {
   rechts: 'right',
   winkel: 'angle',
   kanal: 'channel',
+  server: 'listener',
   feld: 'array',
   trenner: 'separator',
   leer: 'skipEmpty'

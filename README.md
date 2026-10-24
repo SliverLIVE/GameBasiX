@@ -7,8 +7,9 @@
 ![Tests](https://img.shields.io/badge/tests-language%20%2B%20inline%20%2B%20ui-brightgreen)
 
 A BASIC interpreter for 2D games, built on **SDL3** – with direct C++ `INLINE`
-blocks, sprites, sound, file access and a complete IDE. 3D, networking and
-platform extras are deliberately out of scope; the 2D core is complete.
+blocks, sprites, sound, file access, TCP/UDP and Steam networking, and a
+complete IDE. 3D and platform extras are deliberately out of scope; the 2D
+core is complete.
 
 ![GBX Studio](docs/screenshots/ide.png)
 
@@ -27,6 +28,9 @@ and a runtime debugger right next to the code.</sub>
 * Sound: a small software mixer for WAV sounds and music
 * Inline C++: `INLINE` definitions and steps with direct access to BASIC
   variables, compiled once and cached
+* Network: non-blocking TCP and UDP sockets (`NET*`/`UDP*`) plus Steam P2P
+  packets and the friend list through the Steamworks flat API, loaded at
+  runtime
 * Tooling: **GBX Studio** with live checks, a debugger, single-file EXE and
   HTML5 export
 
@@ -41,6 +45,8 @@ Ready to try it? `cmake -S . -B build -G Ninja && cmake --build build`, then
 | **UI toolkit** – windows, widgets and themes in pure BASIC (`examples/09_ui`) | **Physics** – Box2D-Lite through `INLINE` (`examples/08_box2d`) |
 | <img src="docs/screenshots/breakout.png" width="430" alt="Breakout game"> | <img src="docs/screenshots/sparks.png" width="430" alt="Sparks demo"> |
 | **Breakout** – a complete game in `examples/02_breakout` | **900 sparks** – C++ steps moving a `TYPE` array (`examples/06_sparks`) |
+| <img src="docs/screenshots/net.png" width="430" alt="LAN chat with a shared dot"> | <img src="docs/screenshots/steam.png" width="430" alt="Steam P2P chat"> |
+| **LAN link** – TCP chat, UDP cursor (`examples/11_net`) | **Steam link** – friends and P2P packets (`examples/12_steam`) |
 
 ## Building
 
@@ -354,6 +360,22 @@ Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
 `FILEEXISTS(path)` · `FILESIZE(path)` · `COPYFILE source, target` ·
 `RENAMEFILE source, target` · `DELETEFILE path` · `MAKEDIR path`
 
+**Network**
+`NETLISTEN port` · `NETACCEPT listener` · `NETCONNECT host,port[,timeout]` ·
+`NETSEND handle,text` · `NETRECV$(handle)` · `NETPENDING(handle)` ·
+`NETCONNECTED(handle)` · `NETPEER$(handle)` · `NETPORT(handle)` · `NETIP$` ·
+`NETCLOSE handle` · `NETERROR$` · `UDPOPEN port` ·
+`UDPSEND handle,host,port,text` · `UDPRECV$(handle)` · `UDPFROM$(handle)` ·
+`UDPPORT(handle)` · `UDPCLOSE handle`
+
+**Steam**
+`STEAMINIT [appid]` · `STEAMSHUTDOWN` · `STEAMRUN` · `STEAMREADY()` ·
+`STEAMNAME$()` · `STEAMID$()` · `STEAMAPPID()` · `STEAMFRIENDS()` ·
+`STEAMFRIENDID$(i)` · `STEAMFRIENDNAME$(i)` · `STEAMFRIENDSTATE(i)` ·
+`STEAMP2PSEND id,text[,channel[,reliable]]` · `STEAMP2PAVAILABLE([channel])` ·
+`STEAMP2PRECV$([channel])` · `STEAMP2PFROM$()` · `STEAMP2PACCEPT id` ·
+`STEAMP2PCLOSE id` · `STEAMP2PSTATE(id)` · `STEAMERROR$()`
+
 **Runtime and debug**
 `DEBUG` · `STDOUT` · `STDERR` · `STDIN$` · `SLEEP ms` · `GETTIMER()` ·
 `GETTIMERALL()` · `GETCOMMANDLINE$()` · `CODELINE()` · `CODEFILE$()` ·
@@ -390,6 +412,12 @@ Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
   definitions are loaded as a DLL at startup, steps run in the middle of the
   code (see [INLINE](#inline-c-inside-the-basic-program)). There is no
   `IMPORT` or `REQUIRE`.
+* **Network**: sockets never block. `NETACCEPT`, `NETRECV$`, `UDPRECV$` and
+  `NETPENDING` return immediately; only `NETCONNECT` waits, at most for its
+  timeout (default 3000 ms). Handles are positive integers and shared by TCP
+  and UDP.
+* **Browser**: the HTML5 player has no raw sockets, so the `NET*`/`UDP*`
+  commands report an error there; Steam is desktop-only as well.
 
 ## Files and folders
 
@@ -431,6 +459,101 @@ IF FILEEXISTS("save.dat") THEN
   CLOSEFILE 1
 ENDIF
 ```
+
+## Network and Steam
+
+`NETLISTEN port` starts a TCP server and returns a handle; port `0` picks a
+free one and `NETPORT` reports which. `NETACCEPT` hands out one connection per
+call, or `0` when none is waiting. The other side uses `NETCONNECT host, port`,
+the only command that waits – at most for the timeout in milliseconds (default
+`3000`). `NETSEND` writes bytes, `NETRECV$` returns everything that arrived
+since the last call, `NETPENDING` says how much is buffered. `NETPEER$` names
+the other side as `ip:port`, and `NETIP$` is the machine's own IPv4 address –
+the one a player on the LAN has to type in.
+
+```basic
+' server
+listener = NETLISTEN(35500)
+IF listener = 0 THEN
+  PRINT NETERROR$(), 10, 10
+  END
+ENDIF
+
+conn = 0
+WHILE conn = 0
+  conn = NETACCEPT(listener)
+  SHOWSCREEN
+WEND
+
+WHILE 1
+  msg$ = NETRECV$(conn)
+  IF msg$ <> "" THEN NETSEND conn, "echo: " + msg$
+  SHOWSCREEN
+WEND
+```
+
+`UDPOPEN port` binds a datagram socket (`0` for any port, `UDPPORT` reports
+it). `UDPSEND handle, host, port, text` sends one packet, `UDPRECV$` returns
+the next one and `UDPFROM$` its sender as `ip:port`. Nothing is buffered on top
+of the socket, so lost and reordered packets are your business – which is what
+makes UDP right for positions that are replaced every frame.
+
+`NETERROR$` keeps the last failure (`Port belegt`, `Verbindung abgelehnt`, …).
+A `0` from `NETLISTEN`/`NETCONNECT` is not a runtime error, so a game can show
+a message instead of stopping. `NETCLOSE` closes servers and TCP connections,
+`UDPCLOSE` datagram sockets. The browser build has no sockets; there the
+commands report an error.
+
+### Steamworks
+
+The `STEAM*` commands use the stable Steamworks flat API, which GameBasiX
+loads at runtime – the project builds without the SDK. Copy `steam_api64.dll`
+(Windows) or `libsteam_api.so` (Linux) next to the EXE, place `steam_appid.txt`
+with the app id beside it (or pass the id to `STEAMINIT`), and start the game
+through Steam. `GBX_STEAM_LIB` points at a library in another folder, which is
+how the test suite runs against a mock.
+
+Flat-API entry points are versioned (`SteamAPI_SteamUser_v023`,
+`SteamAPI_SteamNetworking_v006`, …), and the numbers move between SDK
+releases. GameBasiX therefore resolves the accessors while it loads the
+library, so any recent SDK works without a rebuild; verified against Steamworks
+SDK 1.65. Without the library, without a running Steam client or without a
+valid app id the commands stay `0` and `STEAMERROR$()` reports the reason –
+including Steam's own message such as `Cannot create IPC pipe to Steam client
+process`.
+
+```basic
+IF STEAMINIT(480) = 0 THEN
+  PRINT "Steam: " + STEAMERROR$(), 10, 10
+  END
+ENDIF
+
+PRINT STEAMNAME$() + "  " + STEAMID$(), 10, 10
+FOR i = 0 TO STEAMFRIENDS() - 1
+  PRINT STEAMFRIENDNAME$(i) + "  " + STEAMFRIENDID$(i), 10, 40 + i * 20
+NEXT
+
+WHILE 1
+  STEAMRUN                       ' pumps Steam's callbacks, once per frame
+  packet$ = STEAMP2PRECV$(0)     ' "" while nothing arrived
+  IF packet$ <> "" THEN PRINT STEAMP2PFROM$() + ": " + packet$, 10, 300
+  SHOWSCREEN
+WEND
+```
+
+`STEAMP2PSEND id, text [,channel [,reliable]]` sends to another Steam user;
+the receiver reads it with `STEAMP2PRECV$` and finds the sender in
+`STEAMP2PFROM$`. The first packet opens the session, `STEAMP2PACCEPT` accepts
+it explicitly, `STEAMP2PSTATE id` reports `0` none, `1` connecting, `2` direct
+and `3` through Steam's relay – the relay is what makes this work without port
+forwarding. Reliable packets (`1`, the default) arrive in order; `0` is meant
+for state that the next packet replaces anyway.
+
+Steam IDs are 64-bit numbers and are therefore passed as strings; a FLOAT would
+lose digits. `STEAMREADY()` tells whether the API is up, `STEAMERROR$()` why it
+is not, and `STEAMSHUTDOWN` releases it. Lobbies and the newer
+`ISteamNetworkingSockets` are not covered – the old P2P packet API is enough for
+host/join by ID and needs no callback machinery.
 
 ## INLINE: C++ inside the BASIC program
 
@@ -614,7 +737,8 @@ stored locally.
 ## Deliberately not included
 
 3D (`X_*`), pulling in C++ templates (`IMPORT`, `REQUIRE`), preprocessor
-(`?IF` …), networking (`NET*`, `SOCK_*`), joystick/gamepad, movies,
+(`?IF` …), sockets behind Steam's newer `ISteamNetworkingSockets` (lobbies,
+connection handles), joystick/gamepad, movies,
 `MEM2SPRITE`/`SPRITE2MEM`/`MEM2FONT`/`FONT2MEM`,
 `SORTARRAY`, `FINDPATH`, `FILEREQUEST`, `SHELLCMD`, `ADDRESSOF`/`CALLBYNAME`,
 `ENCRYPT$`/`DECRYPT$`, `SETSHOEBOX`. The need for these is either 3D-,
@@ -634,6 +758,8 @@ platform- or security-related; the 2D core is complete.
 | `examples/08_box2d` | pulling in a foreign library (Box2D-Lite) via `INLINE`: wrapper header, calls from `FUNCTION` and `METHOD`, registered `PHYSICS_*` commands, textured polygons with `STARTPOLY`/`POLYVECTOR` |
 | `examples/09_ui` | a complete interface in pure BASIC: `UI.gbx` with windows, buttons, toggles, sliders, text fields, dropdowns and lists, plus a sample project with themes |
 | `examples/10_fileio` | a save slot in binary, a text log, backup, rotate and delete: every file command in one small demo |
+| `examples/11_net` | two windows on one board: host or join, chat over TCP and the dot position over UDP |
+| `examples/12_steam` | Steam P2P chat with friend list, relay state, and a setup panel when `steam_api` is missing |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
@@ -691,6 +817,7 @@ python tools/check_render.py                         # pixel check offscreen
 python tools/check_commands.py                       # every command once
 python tools/check_debug.py                          # debugger protocol
 python tools/check_export.py                         # game as a single EXE
+python tools/check_steam.py                          # STEAM* against a mock library
 ./build/gbx.exe --tests tests/inline_tests.gbx        # 84 INLINE checks
 ```
 
@@ -705,6 +832,15 @@ minimal arguments and checks fixed results with `ASSERT`.
 renderer – and compares the command list from `src/builtins.cpp` with the test
 file. A new command without a test makes the CTest run `commands` fail;
 `INPUT` is listed as not automatable because it waits for keyboard input.
+
+`tests/net_tests.gbx` runs the whole socket path inside one process over
+`127.0.0.1`: a server accepts its own connection, data flows both ways, a
+closed port fails cleanly, and a UDP socket sends a packet to itself.
+
+`tools/check_steam.py` builds `tools/mock_steam_api.cpp` into a stand-in
+`steam_api`, points `GBX_STEAM_LIB` at it and runs `tests/steam_tests.gbx`.
+That covers loading the library, binding the flat API, identity, friend list
+and P2P packets without Steam being installed.
 
 ## Project layout
 
@@ -737,6 +873,16 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 
 **October 2026**
 
+* **Networking**: `NETLISTEN`, `NETACCEPT`, `NETCONNECT`, `NETSEND`,
+  `NETRECV$`, `NETPENDING`, `NETCONNECTED`, `NETPEER$`, `NETPORT`, `NETIP$`,
+  `NETCLOSE`, `NETERROR$` for TCP and `UDPOPEN`, `UDPSEND`, `UDPRECV$`,
+  `UDPFROM$`, `UDPPORT`, `UDPCLOSE` for datagrams. All sockets are
+  non-blocking, so a game polls them inside its frame loop.
+* **Steamworks**: `STEAMINIT`, `STEAMRUN`, identity (`STEAMNAME$`, `STEAMID$`,
+  `STEAMAPPID`), friend list and P2P packets (`STEAMP2PSEND`,
+  `STEAMP2PRECV$`, `STEAMP2PACCEPT`, `STEAMP2PSTATE`, …) through the flat API,
+  loaded at runtime – no SDK needed to build, and without the DLL every command
+  reports `0` while `STEAMERROR$` explains why.
 * **File access**: `OPENFILE`/`CLOSEFILE`, binary `READ*`/`WRITE*` including
   `IEEE` doubles, `READLINE`/`WRITELINE`, `FILESEEK`/`FILEPOSITION`/`FILEEOF`,
   plus `FILEEXISTS`, `FILESIZE`, `COPYFILE`, `RENAMEFILE`, `DELETEFILE` and
@@ -762,5 +908,9 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 * **IDE in English**: the interface starts in English; German can be selected
   in the settings or with the language switch. The change applies immediately
   to server messages and job logs too – no restart.
+* **Network and Steam**: `NET*`/`UDP*` sockets and `STEAM*` P2P packets, friend
+  list and relay state, loaded from `steam_api` at runtime – the build needs no
+  SDK, and the IDE shows both groups in its command reference.
 * **Test status**: 133 language checks, 84 INLINE checks, 79 UI checks, 47 file
-  checks, 24 IDE checks (`ide: npm test`), 182 built-in commands/functions.
+  checks, 28 network checks, 26 Steam checks (against a mock `steam_api`),
+  24 IDE checks (`ide: npm test`), 219 built-in commands/functions.

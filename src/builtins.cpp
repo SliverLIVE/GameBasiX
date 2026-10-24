@@ -4,6 +4,8 @@
 #include "i18n.h"
 
 #include <algorithm>
+#include <cctype>
+#include <cerrno>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -1213,6 +1215,230 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (ec) a.fail("Ordner laesst sich nicht anlegen: " + ec.message());
             return Value::mkInt(1);
         });
+
+        // ------------------------------------------------------------ Netzwerk
+        auto netName = [](Net::Kind kind) -> const char* {
+            switch (kind) {
+                case Net::Kind::Listener: return "Server";
+                case Net::Kind::Stream: return "Verbindung";
+                case Net::Kind::Datagram: return "UDP-Socket";
+            }
+            return "Handle";
+        };
+        auto netWant = [netName](BArgs& a, Net::Kind want) -> int {
+            const int handle = static_cast<int>(a.integer(0));
+            if (!a.rt.net.known(handle))
+                a.fail("unbekanntes Netzwerk-Handle " + std::to_string(handle));
+            if (a.rt.net.kindOf(handle) != want)
+                a.fail(std::string("Handle ") + std::to_string(handle) + " ist kein " +
+                       netName(want));
+            return handle;
+        };
+
+        add("NETLISTEN", 1, 1, [](BArgs& a) {
+            int handle = 0;
+            std::string err;
+            const int port = clampi(a.integer(0), 0, 65535);
+            if (!a.rt.net.listen(port, handle, err)) {
+                a.rt.netError = err;
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(handle);
+        });
+        add("NETACCEPT", 1, 1, [netWant](BArgs& a) {
+            const int listener = netWant(a, Net::Kind::Listener);
+            std::string err;
+            const int handle = a.rt.net.accept(listener, err);
+            if (handle < 0) {
+                a.rt.netError = err;
+                return Value::mkInt(-1);
+            }
+            return Value::mkInt(handle);
+        });
+        add("NETCONNECT", 2, 3, [](BArgs& a) {
+            const int port = clampi(a.integer(1), 1, 65535);
+            const int timeout = a.vals.size() > 2 ? clampi(a.integer(2), 0, 60000) : 3000;
+            int handle = 0;
+            std::string err;
+            if (!a.rt.net.connect(a.str(0), port, timeout, handle, err)) {
+                a.rt.netError = err;
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(handle);
+        });
+        add("NETSEND", 2, 2, [netWant](BArgs& a) {
+            const int handle = netWant(a, Net::Kind::Stream);
+            int sent = 0;
+            std::string err;
+            const bool ok = a.rt.net.sendData(handle, a.str(1), sent, err);
+            if (!ok && sent == 0) {
+                a.rt.netError = err;
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(sent);
+        });
+        add("NETRECV$", 1, 1, [netWant](BArgs& a) {
+            const int handle = netWant(a, Net::Kind::Stream);
+            std::string err;
+            const std::string data = a.rt.net.receive(handle, err);
+            if (!err.empty()) a.rt.netError = err;
+            return Value::mkStr(data);
+        });
+        add("NETPENDING", 1, 1, [netWant](BArgs& a) {
+            return Value::mkInt(a.rt.net.pending(netWant(a, Net::Kind::Stream)));
+        });
+        add("NETCONNECTED", 1, 1, [netWant](BArgs& a) {
+            return Value::mkInt(a.rt.net.connected(netWant(a, Net::Kind::Stream)) ? 1 : 0);
+        });
+        add("NETCLOSE", 1, 1, [](BArgs& a) {
+            const int handle = static_cast<int>(a.integer(0));
+            if (!a.rt.net.known(handle)) {
+                a.rt.netError = "unbekanntes Netzwerk-Handle " + std::to_string(handle);
+                return Value::mkInt(0);
+            }
+            if (a.rt.net.kindOf(handle) == Net::Kind::Datagram) {
+                a.rt.netError = "UDP-Sockets schliessen mit UDPCLOSE";
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(a.rt.net.closeHandle(handle) ? 1 : 0);
+        });
+        add("NETPEER$", 1, 1, [netWant](BArgs& a) {
+            return Value::mkStr(a.rt.net.peerOf(netWant(a, Net::Kind::Stream)));
+        });
+        add("NETPORT", 1, 1, [](BArgs& a) {
+            const int handle = static_cast<int>(a.integer(0));
+            if (!a.rt.net.known(handle)) {
+                a.rt.netError = "unbekanntes Netzwerk-Handle " + std::to_string(handle);
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(a.rt.net.portOf(handle));
+        });
+        add("NETIP$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.net.localAddress()); });
+        add("NETERROR$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.netError); });
+
+        add("UDPOPEN", 1, 1, [](BArgs& a) {
+            int handle = 0;
+            std::string err;
+            const int port = clampi(a.integer(0), 0, 65535);
+            if (!a.rt.net.openDatagram(port, handle, err)) {
+                a.rt.netError = err;
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(handle);
+        });
+        add("UDPSEND", 4, 4, [netWant](BArgs& a) {
+            const int handle = netWant(a, Net::Kind::Datagram);
+            const int port = clampi(a.integer(2), 1, 65535);
+            std::string err;
+            if (!a.rt.net.sendDatagram(handle, a.str(1), port, a.str(3), err)) {
+                a.rt.netError = err;
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(1);
+        });
+        add("UDPRECV$", 1, 1, [netWant](BArgs& a) {
+            const int handle = netWant(a, Net::Kind::Datagram);
+            std::string from;
+            std::string err;
+            const std::string data = a.rt.net.receiveDatagram(handle, from, err);
+            if (!err.empty()) a.rt.netError = err;
+            if (!from.empty()) a.rt.netFrom = from;
+            return Value::mkStr(data);
+        });
+        add("UDPFROM$", 1, 1, [netWant](BArgs& a) {
+            netWant(a, Net::Kind::Datagram);
+            return Value::mkStr(a.rt.netFrom);
+        });
+        add("UDPPORT", 1, 1, [netWant](BArgs& a) {
+            return Value::mkInt(a.rt.net.portOf(netWant(a, Net::Kind::Datagram)));
+        });
+        add("UDPCLOSE", 1, 1, [netWant](BArgs& a) {
+            return Value::mkInt(a.rt.net.closeHandle(netWant(a, Net::Kind::Datagram)) ? 1 : 0);
+        });
+
+        // --------------------------------------------------------------- Steam
+        auto steamIdOf = [](BArgs& a, size_t i) -> unsigned long long {
+            std::string text = a.str(i);
+            text.erase(std::remove_if(text.begin(), text.end(),
+                                      [](unsigned char c) { return std::isspace(c) != 0; }),
+                       text.end());
+            char* end = nullptr;
+            errno = 0;
+            const unsigned long long id = std::strtoull(text.c_str(), &end, 10);
+            if (text.empty() || end == text.c_str() || errno != 0)
+                a.fail("SteamID muss eine Zahl sein: " + a.str(i));
+            return id;
+        };
+
+        add("STEAMINIT", 0, 1, [](BArgs& a) {
+            const auto app = a.vals.empty() ? 0u : static_cast<unsigned>(a.integer(0));
+            std::string err;
+            if (!a.rt.steam.startup(app, err)) {
+                a.rt.steam.fail(err);
+                return Value::mkInt(0);
+            }
+            return Value::mkInt(1);
+        });
+        add("STEAMSHUTDOWN", 0, 0, [](BArgs& a) {
+            a.rt.steam.shutdown();
+            return Value::mkInt(1);
+        });
+        add("STEAMRUN", 0, 0, [](BArgs& a) {
+            a.rt.steam.runCallbacks();
+            return Value::mkInt(a.rt.steam.ready() ? 1 : 0);
+        });
+        add("STEAMREADY", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.ready() ? 1 : 0);
+        });
+        add("STEAMNAME$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.steam.userName()); });
+        add("STEAMID$", 0, 0, [](BArgs& a) {
+            const unsigned long long id = a.rt.steam.userId();
+            return Value::mkStr(id ? std::to_string(id) : std::string());
+        });
+        add("STEAMAPPID", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.steam.appId()); });
+        add("STEAMFRIENDS", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.steam.friendCount()); });
+        add("STEAMFRIENDID$", 1, 1, [](BArgs& a) {
+            const unsigned long long id = a.rt.steam.friendId(static_cast<int>(a.integer(0)));
+            return Value::mkStr(id ? std::to_string(id) : std::string());
+        });
+        add("STEAMFRIENDNAME$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.friendName(static_cast<int>(a.integer(0))));
+        });
+        add("STEAMFRIENDSTATE", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.friendState(static_cast<int>(a.integer(0))));
+        });
+        add("STEAMP2PSEND", 2, 4, [steamIdOf](BArgs& a) {
+            const unsigned long long to = steamIdOf(a, 0);
+            const int channel = a.vals.size() > 2 ? clampi(a.integer(2), 0, 255) : 0;
+            const bool reliable = a.vals.size() > 3 ? a.truthy(3) : true;
+            const int sent = a.rt.steam.sendPacket(to, a.str(1), channel, reliable);
+            if (sent == 0 && !a.rt.steam.ready())
+                a.rt.steam.fail("Steam ist nicht bereit - erst STEAMINIT aufrufen");
+            return Value::mkInt(sent);
+        });
+        add("STEAMP2PAVAILABLE", 0, 1, [](BArgs& a) {
+            const int channel = a.vals.empty() ? 0 : clampi(a.integer(0), 0, 255);
+            return Value::mkInt(a.rt.steam.available(channel));
+        });
+        add("STEAMP2PRECV$", 0, 1, [](BArgs& a) {
+            const int channel = a.vals.empty() ? 0 : clampi(a.integer(0), 0, 255);
+            unsigned long long from = 0;
+            return Value::mkStr(a.rt.steam.readPacket(channel, from));
+        });
+        add("STEAMP2PFROM$", 0, 0, [](BArgs& a) {
+            const unsigned long long from = a.rt.steam.lastFrom();
+            return Value::mkStr(from ? std::to_string(from) : std::string());
+        });
+        add("STEAMP2PACCEPT", 1, 1, [steamIdOf](BArgs& a) {
+            return Value::mkInt(a.rt.steam.acceptSession(steamIdOf(a, 0)) ? 1 : 0);
+        });
+        add("STEAMP2PCLOSE", 1, 1, [steamIdOf](BArgs& a) {
+            return Value::mkInt(a.rt.steam.closeSession(steamIdOf(a, 0)) ? 1 : 0);
+        });
+        add("STEAMP2PSTATE", 1, 1, [steamIdOf](BArgs& a) {
+            return Value::mkInt(a.rt.steam.sessionState(steamIdOf(a, 0)));
+        });
+        add("STEAMERROR$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.steam.lastError()); });
 
         return t;
     }();

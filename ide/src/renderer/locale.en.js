@@ -102,6 +102,7 @@ export const en = {
   "Mathe": "Maths",
   "Strings": "Strings",
   "Dateien": "Files",
+  "Netzwerk": "Network",
   "Laufzeit und Debug": "Runtime and debug",
   "Arrays": "Arrays",
   "Konstanten": "Constants",

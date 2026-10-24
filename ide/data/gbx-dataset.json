@@ -2,8 +2,8 @@
  "meta": {
   "app": "GameBasiX",
   "version": 1,
-  "generatedAt": "2026-10-24T11:21:56.487Z",
-  "commands": 244,
+  "generatedAt": "2026-10-24T12:27:09.537Z",
+  "commands": 281,
   "note": "Aus der Befehlsliste der README erzeugt; die Beschreibungen sind eigene Texte auf Deutsch und Englisch. Spracheigenschaften stehen im Eintrag „Sprachdetails“. "
  },
  "categories": [
@@ -16,6 +16,8 @@
   "Mathe",
   "Strings",
   "Dateien",
+  "Netzwerk",
+  "Steam",
   "Laufzeit und Debug",
   "Sprache",
   "Arrays",
@@ -6604,6 +6606,395 @@
    ]
   },
   {
+   "name": "NETACCEPT",
+   "displayName": "NETACCEPT",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETACCEPT(listener)",
+   "syntax": [
+    "NETACCEPT(listener)"
+   ],
+   "description": {
+    "de": "Nimmt eine wartende Verbindung an: neues Handle, 0 wenn keine anliegt, -1 bei einem Fehler.",
+    "en": "Accepts one waiting connection: a new handle, 0 when none is pending, -1 on error."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "listener",
+     "label": "listener",
+     "labelEn": "listener",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETACCEPT(listener)",
+   "syntaxEn": [
+    "NETACCEPT(listener)"
+   ]
+  },
+  {
+   "name": "NETCLOSE",
+   "displayName": "NETCLOSE",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETCLOSE(handle)",
+   "syntax": [
+    "NETCLOSE(handle)"
+   ],
+   "description": {
+    "de": "Schliesst einen TCP-Server oder eine Verbindung und gibt das Handle frei.",
+    "en": "Closes a TCP server or connection and releases the handle."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETCLOSE(handle)",
+   "syntaxEn": [
+    "NETCLOSE(handle)"
+   ]
+  },
+  {
+   "name": "NETCONNECT",
+   "displayName": "NETCONNECT",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETCONNECT(host, port, timeout)",
+   "syntax": [
+    "NETCONNECT(host, port, timeout)"
+   ],
+   "description": {
+    "de": "Verbindet sich als Client zu host und Port und liefert ein Handle. Das Zeitlimit in Millisekunden (Vorgabe 3000) ist die einzige Stelle, an der das Netzwerk wartet.",
+    "en": "Connects as a client to host and port and returns a handle. The timeout in milliseconds (default 3000) is the only place where networking waits."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "host",
+     "label": "host",
+     "labelEn": "host",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "port",
+     "label": "port",
+     "labelEn": "port",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "timeout",
+     "label": "timeout",
+     "labelEn": "timeout",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETCONNECT(host, port, timeout)",
+   "syntaxEn": [
+    "NETCONNECT(host, port, timeout)"
+   ]
+  },
+  {
+   "name": "NETCONNECTED",
+   "displayName": "NETCONNECTED",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETCONNECTED(handle)",
+   "syntax": [
+    "NETCONNECTED(handle)"
+   ],
+   "description": {
+    "de": "1, solange die Verbindung offen ist; 0, nachdem die Gegenstelle geschlossen hat.",
+    "en": "1 while the connection is open, 0 after the other side closed it."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETCONNECTED(handle)",
+   "syntaxEn": [
+    "NETCONNECTED(handle)"
+   ]
+  },
+  {
+   "name": "NETERROR$",
+   "displayName": "NETERROR$",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETERROR$()",
+   "syntax": [
+    "NETERROR$()"
+   ],
+   "description": {
+    "de": "Der letzte Fehler der Netzwerkbefehle, etwa \"Port belegt\" oder \"Verbindung abgelehnt\".",
+    "en": "The last network error, for example \"port in use\" or \"connection refused\"."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETERROR$()",
+   "syntaxEn": [
+    "NETERROR$()"
+   ]
+  },
+  {
+   "name": "NETIP$",
+   "displayName": "NETIP$",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETIP$()",
+   "syntax": [
+    "NETIP$()"
+   ],
+   "description": {
+    "de": "Die eigene IPv4-Adresse im lokalen Netz, damit andere Spieler sie eingeben koennen; 127.0.0.1, wenn keine gefunden wird.",
+    "en": "The machine's own IPv4 address on the local network so other players can enter it; 127.0.0.1 when none is found."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETIP$()",
+   "syntaxEn": [
+    "NETIP$()"
+   ]
+  },
+  {
+   "name": "NETLISTEN",
+   "displayName": "NETLISTEN",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETLISTEN(port)",
+   "syntax": [
+    "NETLISTEN(port)"
+   ],
+   "description": {
+    "de": "Startet einen TCP-Server auf einem Port (0 waehlt einen freien) und liefert ein Handle; 0 bedeutet Fehler, NETERROR$ nennt den Grund.",
+    "en": "Starts a TCP server on a port (0 picks a free one) and returns a handle; 0 means failure and NETERROR$ names the reason."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "port",
+     "label": "port",
+     "labelEn": "port",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETLISTEN(port)",
+   "syntaxEn": [
+    "NETLISTEN(port)"
+   ]
+  },
+  {
+   "name": "NETPEER$",
+   "displayName": "NETPEER$",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETPEER$(handle)",
+   "syntax": [
+    "NETPEER$(handle)"
+   ],
+   "description": {
+    "de": "Adresse der Gegenstelle als ip:port.",
+    "en": "Address of the other side as ip:port."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETPEER$(handle)",
+   "syntaxEn": [
+    "NETPEER$(handle)"
+   ]
+  },
+  {
+   "name": "NETPENDING",
+   "displayName": "NETPENDING",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETPENDING(handle)",
+   "syntax": [
+    "NETPENDING(handle)"
+   ],
+   "description": {
+    "de": "Sagt, wie viele Bytes auf einer TCP-Verbindung zum Lesen bereitstehen.",
+    "en": "Reports how many bytes are ready to read on a TCP connection."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETPENDING(handle)",
+   "syntaxEn": [
+    "NETPENDING(handle)"
+   ]
+  },
+  {
+   "name": "NETPORT",
+   "displayName": "NETPORT",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETPORT(handle)",
+   "syntax": [
+    "NETPORT(handle)"
+   ],
+   "description": {
+    "de": "Der lokale Port eines Servers oder einer Verbindung - bei NETLISTEN(0) der tatsaechlich belegte.",
+    "en": "The local port of a server or connection - with NETLISTEN(0) the one that was actually bound."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETPORT(handle)",
+   "syntaxEn": [
+    "NETPORT(handle)"
+   ]
+  },
+  {
+   "name": "NETRECV$",
+   "displayName": "NETRECV$",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETRECV$(handle)",
+   "syntax": [
+    "NETRECV$(handle)"
+   ],
+   "description": {
+    "de": "Liest alles, was seit dem letzten Aufruf angekommen ist, und liefert es als Text; ohne Daten einen leeren String. Kehrt sofort zurueck.",
+    "en": "Reads everything that arrived since the last call and returns it as text, an empty string when nothing is buffered. Returns immediately."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETRECV$(handle)",
+   "syntaxEn": [
+    "NETRECV$(handle)"
+   ]
+  },
+  {
+   "name": "NETSEND",
+   "displayName": "NETSEND",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "NETSEND(handle, text)",
+   "syntax": [
+    "NETSEND(handle, text)"
+   ],
+   "description": {
+    "de": "Schickt Text (UTF-8) ueber eine TCP-Verbindung und liefert die gesendeten Bytes.",
+    "en": "Sends text (UTF-8) over a TCP connection and returns the bytes written."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "NETSEND(handle, text)",
+   "syntaxEn": [
+    "NETSEND(handle, text)"
+   ]
+  },
+  {
    "name": "NEXT",
    "displayName": "NEXT",
    "kind": "keyword",
@@ -9130,6 +9521,563 @@
    ]
   },
   {
+   "name": "STEAMAPPID",
+   "displayName": "STEAMAPPID",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMAPPID()",
+   "syntax": [
+    "STEAMAPPID()"
+   ],
+   "description": {
+    "de": "Die App-ID, mit der Steam laeuft.",
+    "en": "The app id Steam is running with."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMAPPID()",
+   "syntaxEn": [
+    "STEAMAPPID()"
+   ]
+  },
+  {
+   "name": "STEAMERROR$",
+   "displayName": "STEAMERROR$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMERROR$()",
+   "syntax": [
+    "STEAMERROR$()"
+   ],
+   "description": {
+    "de": "Der letzte Steam-Fehler, etwa wenn steam_api fehlt oder Steam nicht laeuft.",
+    "en": "The last Steam error, for example when steam_api is missing or Steam is not running."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMERROR$()",
+   "syntaxEn": [
+    "STEAMERROR$()"
+   ]
+  },
+  {
+   "name": "STEAMFRIENDID$",
+   "displayName": "STEAMFRIENDID$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMFRIENDID$(i)",
+   "syntax": [
+    "STEAMFRIENDID$(i)"
+   ],
+   "description": {
+    "de": "SteamID des Freundes an dieser Stelle der Liste.",
+    "en": "SteamID of the friend at this index in the list."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "i",
+     "label": "i",
+     "labelEn": "i",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMFRIENDID$(i)",
+   "syntaxEn": [
+    "STEAMFRIENDID$(i)"
+   ]
+  },
+  {
+   "name": "STEAMFRIENDNAME$",
+   "displayName": "STEAMFRIENDNAME$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMFRIENDNAME$(i)",
+   "syntax": [
+    "STEAMFRIENDNAME$(i)"
+   ],
+   "description": {
+    "de": "Anzeigename des Freundes an dieser Stelle.",
+    "en": "Persona name of the friend at this index."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "i",
+     "label": "i",
+     "labelEn": "i",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMFRIENDNAME$(i)",
+   "syntaxEn": [
+    "STEAMFRIENDNAME$(i)"
+   ]
+  },
+  {
+   "name": "STEAMFRIENDS",
+   "displayName": "STEAMFRIENDS",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMFRIENDS()",
+   "syntax": [
+    "STEAMFRIENDS()"
+   ],
+   "description": {
+    "de": "Anzahl der Freunde in der Steam-Freundesliste.",
+    "en": "Number of friends in the Steam friend list."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMFRIENDS()",
+   "syntaxEn": [
+    "STEAMFRIENDS()"
+   ]
+  },
+  {
+   "name": "STEAMFRIENDSTATE",
+   "displayName": "STEAMFRIENDSTATE",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMFRIENDSTATE(i)",
+   "syntax": [
+    "STEAMFRIENDSTATE(i)"
+   ],
+   "description": {
+    "de": "Online-Status des Freundes (0 offline, 1 online, 2 beschaeftigt, 3 weg, ...).",
+    "en": "Online state of the friend (0 offline, 1 online, 2 busy, 3 away, ...)."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "i",
+     "label": "i",
+     "labelEn": "i",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMFRIENDSTATE(i)",
+   "syntaxEn": [
+    "STEAMFRIENDSTATE(i)"
+   ]
+  },
+  {
+   "name": "STEAMID$",
+   "displayName": "STEAMID$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMID$()",
+   "syntax": [
+    "STEAMID$()"
+   ],
+   "description": {
+    "de": "Die 64-Bit-SteamID als Text - als Zahl wuerde ein FLOAT Stellen verlieren.",
+    "en": "The 64-bit SteamID as text - as a number a FLOAT would lose digits."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMID$()",
+   "syntaxEn": [
+    "STEAMID$()"
+   ]
+  },
+  {
+   "name": "STEAMINIT",
+   "displayName": "STEAMINIT",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMINIT(appid)",
+   "syntax": [
+    "STEAMINIT(appid)"
+   ],
+   "description": {
+    "de": "Laedt steam_api (steam_api64.dll bzw. libsteam_api.so) und ruft SteamAPI_Init. Ohne Argument kommt die App-ID aus steam_appid.txt, sonst aus dem Parameter. 0 heisst: nicht verfuegbar, STEAMERROR$ nennt den Grund.",
+    "en": "Loads steam_api (steam_api64.dll or libsteam_api.so) and calls SteamAPI_Init. Without an argument the app id comes from steam_appid.txt, otherwise from the parameter. 0 means unavailable, STEAMERROR$ tells why."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "appid",
+     "label": "appid",
+     "labelEn": "appid",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMINIT(appid)",
+   "syntaxEn": [
+    "STEAMINIT(appid)"
+   ]
+  },
+  {
+   "name": "STEAMNAME$",
+   "displayName": "STEAMNAME$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMNAME$()",
+   "syntax": [
+    "STEAMNAME$()"
+   ],
+   "description": {
+    "de": "Der Steam-Name des angemeldeten Spielers.",
+    "en": "The Steam name of the signed-in player."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMNAME$()",
+   "syntaxEn": [
+    "STEAMNAME$()"
+   ]
+  },
+  {
+   "name": "STEAMP2PACCEPT",
+   "displayName": "STEAMP2PACCEPT",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMP2PACCEPT(id)",
+   "syntax": [
+    "STEAMP2PACCEPT(id)"
+   ],
+   "description": {
+    "de": "Nimmt die P2P-Sitzung eines Spielers ausdruecklich an.",
+    "en": "Explicitly accepts a player's P2P session."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "id",
+     "label": "id",
+     "labelEn": "id",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMP2PACCEPT(id)",
+   "syntaxEn": [
+    "STEAMP2PACCEPT(id)"
+   ]
+  },
+  {
+   "name": "STEAMP2PAVAILABLE",
+   "displayName": "STEAMP2PAVAILABLE",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMP2PAVAILABLE([channel])",
+   "syntax": [
+    "STEAMP2PAVAILABLE([channel])"
+   ],
+   "description": {
+    "de": "Wie viele Bytes im Kanal zum Lesen bereitstehen.",
+    "en": "How many bytes are ready to read on the channel."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMP2PAVAILABLE([channel])",
+   "syntaxEn": [
+    "STEAMP2PAVAILABLE([channel])"
+   ]
+  },
+  {
+   "name": "STEAMP2PCLOSE",
+   "displayName": "STEAMP2PCLOSE",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMP2PCLOSE(id)",
+   "syntax": [
+    "STEAMP2PCLOSE(id)"
+   ],
+   "description": {
+    "de": "Beendet die P2P-Sitzung mit einem Spieler.",
+    "en": "Ends the P2P session with a player."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "id",
+     "label": "id",
+     "labelEn": "id",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMP2PCLOSE(id)",
+   "syntaxEn": [
+    "STEAMP2PCLOSE(id)"
+   ]
+  },
+  {
+   "name": "STEAMP2PFROM$",
+   "displayName": "STEAMP2PFROM$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMP2PFROM$()",
+   "syntax": [
+    "STEAMP2PFROM$()"
+   ],
+   "description": {
+    "de": "SteamID des Absenders des zuletzt gelesenen Pakets.",
+    "en": "SteamID of the sender of the last packet read."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMP2PFROM$()",
+   "syntaxEn": [
+    "STEAMP2PFROM$()"
+   ]
+  },
+  {
+   "name": "STEAMP2PRECV$",
+   "displayName": "STEAMP2PRECV$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMP2PRECV$([channel])",
+   "syntax": [
+    "STEAMP2PRECV$([channel])"
+   ],
+   "description": {
+    "de": "Liest das naechste P2P-Paket aus dem Kanal; leer, wenn keins anliegt.",
+    "en": "Reads the next P2P packet from the channel; empty when none is pending."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMP2PRECV$([channel])",
+   "syntaxEn": [
+    "STEAMP2PRECV$([channel])"
+   ]
+  },
+  {
+   "name": "STEAMP2PSEND",
+   "displayName": "STEAMP2PSEND",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMP2PSEND(id, text, channel, reliable)",
+   "syntax": [
+    "STEAMP2PSEND(id, text, channel, reliable)"
+   ],
+   "description": {
+    "de": "Schickt ein Paket an eine SteamID (als Text). reliable=1 (Vorgabe) kommt in Reihenfolge an, 0 ist fuer Werte, die das naechste Paket ohnehin ersetzt. Liefert die gesendeten Bytes.",
+    "en": "Sends a packet to a SteamID (as text). reliable=1 (default) arrives in order, 0 is for values the next packet replaces anyway. Returns the bytes sent."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "id",
+     "label": "id",
+     "labelEn": "id",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "channel",
+     "label": "channel",
+     "labelEn": "channel",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "reliable",
+     "label": "reliable",
+     "labelEn": "reliable",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMP2PSEND(id, text, channel, reliable)",
+   "syntaxEn": [
+    "STEAMP2PSEND(id, text, channel, reliable)"
+   ]
+  },
+  {
+   "name": "STEAMP2PSTATE",
+   "displayName": "STEAMP2PSTATE",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMP2PSTATE(id)",
+   "syntax": [
+    "STEAMP2PSTATE(id)"
+   ],
+   "description": {
+    "de": "Zustand der P2P-Sitzung: 0 keine, 1 verbindet, 2 direkt, 3 ueber Steams Relay.",
+    "en": "State of the P2P session: 0 none, 1 connecting, 2 direct, 3 through Steam's relay."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "id",
+     "label": "id",
+     "labelEn": "id",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMP2PSTATE(id)",
+   "syntaxEn": [
+    "STEAMP2PSTATE(id)"
+   ]
+  },
+  {
+   "name": "STEAMREADY",
+   "displayName": "STEAMREADY",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMREADY()",
+   "syntax": [
+    "STEAMREADY()"
+   ],
+   "description": {
+    "de": "1, wenn STEAMINIT erfolgreich war.",
+    "en": "1 when STEAMINIT succeeded."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMREADY()",
+   "syntaxEn": [
+    "STEAMREADY()"
+   ]
+  },
+  {
+   "name": "STEAMRUN",
+   "displayName": "STEAMRUN",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAMRUN()",
+   "syntax": [
+    "STEAMRUN()"
+   ],
+   "description": {
+    "de": "Pumpt die Steam-Callbacks; einmal pro Frame aufrufen. Liefert 1, wenn Steam bereit ist.",
+    "en": "Pumps Steam's callbacks; call it once per frame. Returns 1 when Steam is ready."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMRUN()",
+   "syntaxEn": [
+    "STEAMRUN()"
+   ]
+  },
+  {
+   "name": "STEAMSHUTDOWN",
+   "displayName": "STEAMSHUTDOWN",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAMSHUTDOWN",
+   "syntax": [
+    "STEAMSHUTDOWN"
+   ],
+   "description": {
+    "de": "Meldet die Steam-API ab (SteamAPI_Shutdown).",
+    "en": "Shuts the Steam API down (SteamAPI_Shutdown)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STEAMSHUTDOWN",
+   "syntaxEn": [
+    "STEAMSHUTDOWN"
+   ]
+  },
+  {
    "name": "STEP",
    "displayName": "STEP",
    "kind": "keyword",
@@ -9693,6 +10641,219 @@
    "signatureEn": "UCASE$(text)",
    "syntaxEn": [
     "UCASE$(text)"
+   ]
+  },
+  {
+   "name": "UDPCLOSE",
+   "displayName": "UDPCLOSE",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "UDPCLOSE(handle)",
+   "syntax": [
+    "UDPCLOSE(handle)"
+   ],
+   "description": {
+    "de": "Schliesst einen UDP-Socket und gibt das Handle frei.",
+    "en": "Closes a UDP socket and releases the handle."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "UDPCLOSE(handle)",
+   "syntaxEn": [
+    "UDPCLOSE(handle)"
+   ]
+  },
+  {
+   "name": "UDPFROM$",
+   "displayName": "UDPFROM$",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "UDPFROM$(handle)",
+   "syntax": [
+    "UDPFROM$(handle)"
+   ],
+   "description": {
+    "de": "Absender des zuletzt gelesenen Pakets als ip:port.",
+    "en": "Sender of the last packet read, as ip:port."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "UDPFROM$(handle)",
+   "syntaxEn": [
+    "UDPFROM$(handle)"
+   ]
+  },
+  {
+   "name": "UDPOPEN",
+   "displayName": "UDPOPEN",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "UDPOPEN(port)",
+   "syntax": [
+    "UDPOPEN(port)"
+   ],
+   "description": {
+    "de": "Oeffnet einen UDP-Socket auf einem Port (0 waehlt einen freien) und liefert ein Handle.",
+    "en": "Opens a UDP socket on a port (0 picks a free one) and returns a handle."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "port",
+     "label": "port",
+     "labelEn": "port",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "UDPOPEN(port)",
+   "syntaxEn": [
+    "UDPOPEN(port)"
+   ]
+  },
+  {
+   "name": "UDPPORT",
+   "displayName": "UDPPORT",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "UDPPORT(handle)",
+   "syntax": [
+    "UDPPORT(handle)"
+   ],
+   "description": {
+    "de": "Der lokal belegte UDP-Port, bei UDPOPEN(0) der zufaellig gewaehlte.",
+    "en": "The bound local UDP port; with UDPOPEN(0) the one that was chosen."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "UDPPORT(handle)",
+   "syntaxEn": [
+    "UDPPORT(handle)"
+   ]
+  },
+  {
+   "name": "UDPRECV$",
+   "displayName": "UDPRECV$",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "UDPRECV$(handle)",
+   "syntax": [
+    "UDPRECV$(handle)"
+   ],
+   "description": {
+    "de": "Das naechste anliegende Paket als Text, ohne Paket ein leerer String. Kehrt sofort zurueck.",
+    "en": "The next pending packet as text, an empty string when there is none. Returns immediately."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "UDPRECV$(handle)",
+   "syntaxEn": [
+    "UDPRECV$(handle)"
+   ]
+  },
+  {
+   "name": "UDPSEND",
+   "displayName": "UDPSEND",
+   "kind": "function",
+   "category": "Netzwerk",
+   "signature": "UDPSEND(handle, host, port, text)",
+   "syntax": [
+    "UDPSEND(handle, host, port, text)"
+   ],
+   "description": {
+    "de": "Schickt ein Paket an host:port. UDP ist verbindungslos: Verlust und Reihenfolge liegen beim Programm.",
+    "en": "Sends one packet to host:port. UDP is connectionless, so loss and order are up to the program."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "handle",
+     "label": "handle",
+     "labelEn": "handle",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "host",
+     "label": "host",
+     "labelEn": "host",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "port",
+     "label": "port",
+     "labelEn": "port",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "UDPSEND(handle, host, port, text)",
+   "syntaxEn": [
+    "UDPSEND(handle, host, port, text)"
    ]
   },
   {
