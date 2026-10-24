@@ -60,6 +60,17 @@ private:
     void* networking_ = nullptr;
     void* utils_ = nullptr;
 
+    // Die Accessoren (SteamAPI_SteamUser_v023 ...) sind Funktionen: erst ihr
+    // Aufruf liefert die Schnittstelle, deren Adresse jede ISteam*-Funktion
+    // als erstes Argument erwartet. Vor SteamAPI_Init geben sie nullptr,
+    // deshalb werden sie erst in startup() aufgerufen.
+    using InterfaceFn = void* (*)();
+    InterfaceFn fnUserIface_ = nullptr;
+    InterfaceFn fnFriendsIface_ = nullptr;
+    InterfaceFn fnNetworkingIface_ = nullptr;
+    InterfaceFn fnUtilsIface_ = nullptr;
+    void bindInterfaces();
+
     // SteamAPI_Init ist im SDK inline; exportiert wird SteamAPI_InitFlat mit
     // einem Fehlertext (SteamErrMsg, 1024 Zeichen).
     int (*fnInitFlat_)(char*) = nullptr;

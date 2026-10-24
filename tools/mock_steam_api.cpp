@@ -19,6 +19,18 @@ constexpr unsigned long long kSelf = 76561190000000001ULL;
 constexpr unsigned long long kFriend = 76561190000000002ULL;
 constexpr unsigned kPacketSize = 1024;
 
+// Jede Schnittstelle hat ihren eigenen Zeiger, und jede Funktion prueft ihn.
+// So faellt auf, wenn GameBasiX den Accessor nur bindet statt ihn aufzurufen:
+// dann kaeme eine Funktionsadresse als "this" an und alle Werte blieben leer.
+constexpr std::uintptr_t kUserIface = 1;
+constexpr std::uintptr_t kFriendsIface = 2;
+constexpr std::uintptr_t kNetworkingIface = 3;
+constexpr std::uintptr_t kUtilsIface = 4;
+
+bool ifaceIs(void* self, std::uintptr_t expected) {
+    return reinterpret_cast<std::uintptr_t>(self) == expected;
+}
+
 char g_packet[kPacketSize];
 unsigned g_packetLength = 0;
 int g_runCallbacks = 0;
@@ -34,37 +46,58 @@ GBX_EXPORT bool SteamAPI_InitSafe() { return true; }
 GBX_EXPORT void SteamAPI_Shutdown() {}
 GBX_EXPORT void SteamAPI_RunCallbacks() { ++g_runCallbacks; }
 
-GBX_EXPORT void* SteamAPI_SteamUser_v023() { return reinterpret_cast<void*>(1); }
-GBX_EXPORT void* SteamAPI_SteamFriends_v018() { return reinterpret_cast<void*>(2); }
-GBX_EXPORT void* SteamAPI_SteamNetworking_v006() { return reinterpret_cast<void*>(3); }
-GBX_EXPORT void* SteamAPI_SteamUtils_v011() { return reinterpret_cast<void*>(4); }
+GBX_EXPORT void* SteamAPI_SteamUser_v023() { return reinterpret_cast<void*>(kUserIface); }
+GBX_EXPORT void* SteamAPI_SteamFriends_v018() { return reinterpret_cast<void*>(kFriendsIface); }
+GBX_EXPORT void* SteamAPI_SteamNetworking_v006() {
+    return reinterpret_cast<void*>(kNetworkingIface);
+}
+GBX_EXPORT void* SteamAPI_SteamUtils_v011() { return reinterpret_cast<void*>(kUtilsIface); }
 
-GBX_EXPORT unsigned long long SteamAPI_ISteamUser_GetSteamID(void*) { return kSelf; }
+GBX_EXPORT unsigned long long SteamAPI_ISteamUser_GetSteamID(void* self) {
+    return ifaceIs(self, kUserIface) ? kSelf : 0ULL;
+}
 
-GBX_EXPORT const char* SteamAPI_ISteamFriends_GetPersonaName(void*) { return "Mock Player"; }
-GBX_EXPORT int SteamAPI_ISteamFriends_GetFriendCount(void*, int) { return 1; }
-GBX_EXPORT unsigned long long SteamAPI_ISteamFriends_GetFriendByIndex(void*, int index, int) {
+GBX_EXPORT const char* SteamAPI_ISteamFriends_GetPersonaName(void* self) {
+    return ifaceIs(self, kFriendsIface) ? "Mock Player" : "";
+}
+
+GBX_EXPORT int SteamAPI_ISteamFriends_GetFriendCount(void* self, int) {
+    return ifaceIs(self, kFriendsIface) ? 1 : 0;
+}
+
+GBX_EXPORT unsigned long long SteamAPI_ISteamFriends_GetFriendByIndex(void* self, int index,
+                                                                     int) {
+    if (!ifaceIs(self, kFriendsIface)) return 0ULL;
     return index == 0 ? kFriend : 0ULL;
 }
-GBX_EXPORT const char* SteamAPI_ISteamFriends_GetFriendPersonaName(void*, unsigned long long id) {
+
+GBX_EXPORT const char* SteamAPI_ISteamFriends_GetFriendPersonaName(void* self,
+                                                                  unsigned long long id) {
+    if (!ifaceIs(self, kFriendsIface)) return "";
     return id == kFriend ? "Mock Friend" : "";
 }
-GBX_EXPORT int SteamAPI_ISteamFriends_GetFriendPersonaState(void*, unsigned long long id) {
+
+GBX_EXPORT int SteamAPI_ISteamFriends_GetFriendPersonaState(void* self, unsigned long long id) {
+    if (!ifaceIs(self, kFriendsIface)) return 0;
     return id == kFriend ? 1 : 0;  // 1 = online
 }
 
-GBX_EXPORT uint32_t SteamAPI_ISteamUtils_GetAppID(void*) { return 480; }
+GBX_EXPORT uint32_t SteamAPI_ISteamUtils_GetAppID(void* self) {
+    return ifaceIs(self, kUtilsIface) ? 480u : 0u;
+}
 
-GBX_EXPORT bool SteamAPI_ISteamNetworking_SendP2PPacket(void*, unsigned long long to,
+GBX_EXPORT bool SteamAPI_ISteamNetworking_SendP2PPacket(void* self, unsigned long long to,
                                                         const void* data, uint32_t size,
                                                         int, int) {
+    if (!ifaceIs(self, kNetworkingIface)) return false;
     if (to == 0 || size > kPacketSize) return false;
     std::memcpy(g_packet, data, size);
     g_packetLength = size;
     return true;
 }
 
-GBX_EXPORT bool SteamAPI_ISteamNetworking_IsP2PPacketAvailable(void*, uint32_t* size, int) {
+GBX_EXPORT bool SteamAPI_ISteamNetworking_IsP2PPacketAvailable(void* self, uint32_t* size, int) {
+    if (!ifaceIs(self, kNetworkingIface)) return false;
     if (g_packetLength == 0) {
         if (size) *size = 0;
         return false;
@@ -73,9 +106,10 @@ GBX_EXPORT bool SteamAPI_ISteamNetworking_IsP2PPacketAvailable(void*, uint32_t* 
     return true;
 }
 
-GBX_EXPORT bool SteamAPI_ISteamNetworking_ReadP2PPacket(void*, void* dest, uint32_t capacity,
+GBX_EXPORT bool SteamAPI_ISteamNetworking_ReadP2PPacket(void* self, void* dest, uint32_t capacity,
                                                         uint32_t* got, unsigned long long* from,
                                                         int) {
+    if (!ifaceIs(self, kNetworkingIface)) return false;
     if (g_packetLength == 0 || capacity < g_packetLength) return false;
     std::memcpy(dest, g_packet, g_packetLength);
     if (got) *got = g_packetLength;
@@ -84,16 +118,21 @@ GBX_EXPORT bool SteamAPI_ISteamNetworking_ReadP2PPacket(void*, void* dest, uint3
     return true;
 }
 
-GBX_EXPORT bool SteamAPI_ISteamNetworking_AcceptP2PSessionWithUser(void*, unsigned long long user) {
+GBX_EXPORT bool SteamAPI_ISteamNetworking_AcceptP2PSessionWithUser(void* self,
+                                                                  unsigned long long user) {
+    if (!ifaceIs(self, kNetworkingIface)) return false;
     return user != 0;
 }
 
-GBX_EXPORT bool SteamAPI_ISteamNetworking_CloseP2PSessionWithUser(void*, unsigned long long user) {
+GBX_EXPORT bool SteamAPI_ISteamNetworking_CloseP2PSessionWithUser(void* self,
+                                                                 unsigned long long user) {
+    if (!ifaceIs(self, kNetworkingIface)) return false;
     return user != 0;
 }
 
-GBX_EXPORT bool SteamAPI_ISteamNetworking_GetP2PSessionState(void*, unsigned long long user,
+GBX_EXPORT bool SteamAPI_ISteamNetworking_GetP2PSessionState(void* self, unsigned long long user,
                                                              void* state) {
+    if (!ifaceIs(self, kNetworkingIface)) return false;
     if (user == 0 || !state) return false;
     auto* bytes = static_cast<unsigned char*>(state);
     std::memset(bytes, 0, 18);

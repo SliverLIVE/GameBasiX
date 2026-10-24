@@ -113,9 +113,9 @@ bool Steam::bindApi(std::string& err) {
                          symbol(fnInitSafe_, "SteamAPI_InitSafe");
     const bool core = hasInit &&
                       symbol(fnShutdown_, "SteamAPI_Shutdown") &&
-                      versioned(user_, "SteamAPI_SteamUser", 30) &&
-                      versioned(friends_, "SteamAPI_SteamFriends", 30) &&
-                      versioned(networking_, "SteamAPI_SteamNetworking", 30) &&
+                      versioned(fnUserIface_, "SteamAPI_SteamUser", 30) &&
+                      versioned(fnFriendsIface_, "SteamAPI_SteamFriends", 30) &&
+                      versioned(fnNetworkingIface_, "SteamAPI_SteamNetworking", 30) &&
                       symbol(fnGetSteamId_, "SteamAPI_ISteamUser_GetSteamID") &&
                       symbol(fnPersonaName_, "SteamAPI_ISteamFriends_GetPersonaName") &&
                       symbol(fnSendP2P_, "SteamAPI_ISteamNetworking_SendP2PPacket") &&
@@ -134,9 +134,19 @@ bool Steam::bindApi(std::string& err) {
     symbol(fnFriendByIndex_, "SteamAPI_ISteamFriends_GetFriendByIndex");
     symbol(fnFriendName_, "SteamAPI_ISteamFriends_GetFriendPersonaName");
     symbol(fnFriendState_, "SteamAPI_ISteamFriends_GetFriendPersonaState");
-    if (versioned(utils_, "SteamAPI_SteamUtils", 12))
-        symbol(fnAppId_, "SteamAPI_ISteamUtils_GetAppID");
+    versioned(fnUtilsIface_, "SteamAPI_SteamUtils", 12);
+    symbol(fnAppId_, "SteamAPI_ISteamUtils_GetAppID");
     return true;
+}
+
+// Die Accessoren liefern erst nach SteamAPI_Init eine Schnittstelle; davor
+// antworten sie mit nullptr. Deshalb hier und nicht in bindApi, sonst haetten
+// alle Befehle eine Adresse als "this" und wuerden beim ersten Aufruf stuerzen.
+void Steam::bindInterfaces() {
+    user_ = fnUserIface_ ? fnUserIface_() : nullptr;
+    friends_ = fnFriendsIface_ ? fnFriendsIface_() : nullptr;
+    networking_ = fnNetworkingIface_ ? fnNetworkingIface_() : nullptr;
+    utils_ = fnUtilsIface_ ? fnUtilsIface_() : nullptr;
 }
 
 bool Steam::load(std::string& err) {
@@ -203,6 +213,7 @@ bool Steam::startup(std::uint32_t appId, std::string& err) {
         return false;
     }
     ready_ = true;
+    bindInterfaces();
     return true;
 }
 
