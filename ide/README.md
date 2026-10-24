@@ -1,170 +1,204 @@
 # GBX Studio
 
-Die IDE für **GameBasiX** – ein Editor mit Befehlsreferenz, Autovervollständigung,
-Syntaxprüfung und direktem Start des Interpreters. Projekte bestehen aus
-`.gbx`-Quellen und einer `.gbxproj`-Datei; gestartet wird mit `gbx.exe`,
-eine Lizenzprüfung gibt es nicht.
+![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)
+![Electron](https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white)
+![Monaco](https://img.shields.io/badge/editor-Monaco-0078D4)
 
-## Starten
+The IDE for **GameBasiX**: a code editor with an integrated command reference,
+autocompletion, live syntax and name checking, a runtime debugger, and direct
+launch of the interpreter. Projects consist of `.gbx` sources plus a
+`.gbxproj` file and run on `gbx.exe` – there is no license check.
 
-Voraussetzungen: Node.js 20 oder neuer, der gebaute Interpreter
-`../build/gbx.exe` (siehe [README im Projektordner](../README.md)) und einmalig
-installierte Abhängigkeiten:
+![GBX Studio](../docs/screenshots/ide.png)
+
+<sub>Source, outline, command reference and problems side by side, with the
+program's window one key press away.</sub>
+
+## Features
+
+* **Editor** – Monaco with GameBasiX syntax highlighting, autocompletion,
+  `INLINE` blocks highlighted as their own region, and colour swatches in front
+  of literal `RGB(...)` calls.
+* **Live checking** – half a second after you stop typing, the *unsaved*
+  buffer goes through `gbx --check --stdin`. Errors and unknown names appear as
+  markers in the line and as a count in the status bar; no temporary files are
+  created.
+* **Outline** – globals, constants, functions, SUBs and TYPEs of the current
+  file, one click away.
+* **Reference** – every command, keyword and `KEY_*` constant with signature,
+  description and example, in German and English, searchable and filterable by
+  category.
+* **Debugger** – breakpoints (also conditional), step in/over/out, locals,
+  globals, call stack and pause-while-running.
+* **Build** – a single-file Windows EXE or a self-contained HTML5 folder,
+  chosen in the platform dropdown next to **Build**.
+* **Themes** – dark and light, plus Google Fonts download straight into the
+  project.
+
+## Quick start
+
+Requirements: Node.js 20 or newer and a built interpreter at
+`../build/gbx.exe` (see the [project README](../README.md)). Install the
+dependencies once:
 
 ```bash
 cd ide
 npm install
-npm start          # Desktop-Fenster (Electron)
+npm start          # desktop window (Electron)
 ```
 
-Danach genügt ein Doppelklick auf **`GBXStudio.exe`** im Projektordner: Die
-schmale EXE ist nur ein Startprogramm, sucht Electron neben sich und öffnet
-das Editorfenster. Fehlt Electron, startet sie den Webserver und öffnet den
-Browser. Sie baut mit dem übrigen Projekt (`cmake --build build`) und landet
-direkt im Projektordner.
+After that, a double click on **`GBXStudio.exe`** in the project folder is
+enough: the slim EXE is only a launcher, finds Electron next to it and opens the
+editor window. If Electron is missing it starts the web server and opens the
+browser instead. The launcher is built with the rest of the project
+(`cmake --build build`) and lands directly in the project folder.
 
-Ohne Electron im Browser:
+Without Electron, in any browser:
 
 ```bash
-npm run web        # öffnet http://127.0.0.1:3417/
+npm run web        # opens http://127.0.0.1:3417/
 ```
 
-Beim ersten Start sucht die IDE `build/gbx.exe` neben dem IDE-Ordner. Ein
-anderer Pfad lässt sich unter **⚙ Einstellungen → Allgemein** eintragen und mit
-**Prüfen** testen. Dort steht auch der C++-Compiler für `INLINE`. Beide Felder
-zeigen ihren Standard als relativen Pfad ab dem Ordner der Editor-EXE
-(`build\gbx.exe`, `compiler\bin\g++.exe`) und darunter den aufgelösten Pfad; im
-Paket liegt der Compiler also unter `compiler\bin\g++.exe`, ohne weitere
-Installation. Absolute Pfade gehen genauso. Der Server gibt den Compiler als
-`GBX_CXX` an jeden Start des Interpreters weiter.
+## Configuration
 
-Ordner lassen sich beim Öffnen und beim Anlegen eines Projekts direkt im
-Dialog durchsuchen (Pfeil nach oben, Laufwerke, Doppelklick auf eine
-`.gbxproj`-Datei öffnet sie). Im Desktop-Fenster übernimmt das der
-Windows-Dialog.
+On first start the IDE looks for `build/gbx.exe` next to the IDE folder. A
+different path can be set under **⚙ Settings → General** and tested with
+**Check**. The same page holds the C++ compiler for `INLINE`. Both fields show
+their default as a path relative to the editor EXE (`build\gbx.exe`,
+`compiler\bin\g++.exe`) and the resolved path underneath – in a package the
+compiler therefore lives at `compiler\bin\g++.exe` with nothing to install.
+Absolute paths work as well. The server passes the compiler to every
+interpreter start as `GBX_CXX`.
 
-**HTML5**: Zielplattform **HTML5 (Browser)** im Dropdown neben **Bauen** wählen
-und bauen – das schreibt einen Ordner `<projekt>-web` mit `index.html`, `gbx.js`
-(Interpreter als WebAssembly) und `game.js` (Quellen und Assets). Ein Doppelklick auf `index.html` startet das
-Spiel im Browser, ein Webserver geht auch. Voraussetzung ist der einmalige
-wasm-Build des Interpreters; dafür steht in **Einstellungen → Allgemein →
-HTML5** ein eigener Abschnitt bereit: **Herunterladen …** holt das Emscripten
-SDK in den Ordner `emsdk` neben der Editor-EXE (einige hundert MB, dauert ein
-paar Minuten), **Prüfen** zeigt die Version, **Player bauen** übersetzt `src/`
-nach `html5/gbx.js`. Liegt `html5/gbx.js` schon im Paket, exportiert die IDE
-auch ohne SDK. Projekte mit `INLINE`-Blöcken bekommen beim Export einen
-eigenen Player: die Blöcke werden dort mit Emscripten übersetzt und fest
-dazugelinkt (dauert rund 30 s, braucht das SDK). Im Browser selbst gibt es
-weder Compiler noch `dlopen`.
+When opening or creating a project, folders can be browsed right in the dialog
+(up one level, drives, double click on a `.gbxproj` opens it). In the desktop
+window the native Windows dialog takes over.
 
-**Google Fonts**: **Werkzeuge → Google Fonts …** durchsucht die Schriften von
-fonts.google.com, zeigt sie im gewählten Schnitt und in der eingestellten
-Größe und lädt die `.ttf` in den Asset-Ordner des Projekts (Vorgabe `assets/`).
-Der Dialog nennt Dateinamen und passende `LOADFONT`-Zeile; der Befehl lässt sich
-kopieren. Ohne API-Key liest die IDE die öffentliche Fontliste und holt die
-Datei über die CSS-Schnittstelle von Google. Ein Key aus der Google-Cloud-
-Konsole lässt sich unter **Einstellungen → Allgemein → Google Fonts (API-Key)**
-eintragen; dann kommt die Liste über die Webfonts-API. Der Key bleibt in den
-lokalen Einstellungen (`config.json`) und wird nicht an die Oberfläche
-zurückgegeben. Die Lizenz einer Schrift (meist OFL oder Apache) steht auf ihrer
-Seite bei Google Fonts. TrueType-Schriften (`LOADFONT "x.ttf", …`) laufen
-über den FreeType-Port von Emscripten; die Datei muss dafür im Projekt liegen
-(Ordner `assets/` oder Pfad in der `.gbxproj`), weil es im Browser kein
-Windows-Schriftverzeichnis gibt.
+## Working in the IDE
 
-## Arbeiten mit der IDE
-
-| Aktion | Taste |
+| Action | Shortcut |
 | --- | --- |
-| Syntax prüfen | `F7` |
-| Programm starten | `F5` |
-| Laufendes Programm beenden | `Shift+F5` |
-| Debugger starten | `F6` |
-| Weiter bis zum Haltepunkt | `F8` |
-| Haltepunkt setzen/entfernen | `F9` oder Klick in den Rand |
-| Nächste Zeile (Step over) | `F10` |
-| In Funktion springen (Step into) | `F11` |
-| Aus Funktion heraus (Step out) | `Shift+F11` |
-| Debug-Sitzung beenden | `Shift+F6` |
-| Speichern | `Strg+S` |
-| Projekt öffnen | `Strg+O` |
-| Neue Datei | `Strg+N` |
-| Vervollständigung | `Strg+Leertaste` |
-| Referenz ein-/ausblenden | `Strg+B` |
-| Spiel bauen (gewählte Plattform) | `Strg+E` |
+| Check syntax | `F7` |
+| Run the program | `F5` |
+| Stop the running program | `Shift+F5` |
+| Start the debugger | `F6` |
+| Continue to the next breakpoint | `F8` |
+| Toggle a breakpoint | `F9` or click the gutter |
+| Step over | `F10` |
+| Step into | `F11` |
+| Step out | `Shift+F11` |
+| End the debug session | `Shift+F6` |
+| Save | `Ctrl+S` |
+| Open a project | `Ctrl+O` |
+| New file | `Ctrl+N` |
+| Completion | `Ctrl+Space` |
+| Toggle the reference panel | `Ctrl+B` |
+| Build the game (selected platform) | `Ctrl+E` |
 
-**Prüfen** ruft `gbx --check` auf. Es wird kein C++ übersetzt: gbx liest die
-Quellen bei jedem Start neu. Meldungen erscheinen unter **Probleme** und als
-Marker im Editor; ein Klick springt in die Zeile. **Starten** speichert alle
-Dateien und startet den Interpreter im Projektordner. Ausgaben von `DEBUG`,
-`STDOUT` und `STDERR` sowie Laufzeitfehler stehen in der **Konsole**.
+**Check** calls `gbx --check`. No C++ is compiled: gbx reads the sources on
+every start. Messages appear under **Problems** and as markers in the editor; a
+click jumps to the line. **Run** saves all files and starts the interpreter in
+the project folder. Output from `DEBUG`, `STDOUT` and `STDERR` as well as
+runtime errors appear in the **Console**.
 
-**Bauen** (oder `Strg+E`) baut für die im Dropdown gewählte Plattform. Bei
-**Windows-EXE** stecken Quellen und die übersetzte INLINE-Bibliothek in einer
-einzelnen EXE, **Assets werden daneben kopiert**.
-Im Desktop-Fenster fragt die IDE nach dem Speicherort, im Browser entsteht die
-Datei im Projektordner. Für eine EXE ohne fremde DLLs in den Einstellungen auf
-`build-static/gbx.exe` zeigen (gebaut mit `-DGBX_STATIC_RUNTIME=ON`).
+**Build** (or `Ctrl+E`) builds for the platform selected in the dropdown. For
+**Windows EXE** the sources and the compiled INLINE library end up in a single
+EXE, while **assets are copied next to it**. The desktop window asks where to
+save; in the browser the file is written to the project folder. For an EXE
+without third-party DLLs, point the settings at `build-static/gbx.exe` (built
+with `-DGBX_STATIC_RUNTIME=ON`).
 
-Ein Projekt lässt sich als Ordner, als `.gbxproj` oder als einzelne `.gbx`
-öffnen. Weitere Quelldateien werden im Dateibaum angelegt und mit
-`INCLUDE "lib.gbx"` eingebunden.
+A project can be opened as a folder, as a `.gbxproj` or as a single `.gbx`.
+Additional source files are created in the file tree and pulled in with
+`INCLUDE "lib.gbx"`.
 
-Zwischen `INLINE` und `ENDINLINE` steht C++ (siehe
-[README im Projektordner](../README.md#inline-c-im-basic-programm)). Die IDE
-hebt den Block als eigenen Bereich hervor und prüft seine Zeilen nicht als
-BASIC; **Prüfen** sammelt die Namen ein, die der Block – auch über eingebundene
-Header – mit `GBX_INLINE_FN` anmeldet. Ein Block im Code (`FUNCTION`, `IF`,
-Schleife oder `INLINE RUN`) läuft beim **Starten** an seiner Stelle und sieht
-die BASIC-Variablen dort (Namen klein, Texte mit `_str`). Arrays lassen sich
-dort auch in der Größe ändern (`push`, `insert`, `remove`, `clear`, `resize`
-– wie `GBXArray`, aber direkt auf dem BASIC-Array), und die eingebauten
-GBX-Befehle (`PRINT`, `DRAWLINE`, `GETTIMER` …) ruft der Schritt direkt auf.
+Between `INLINE` and `ENDINLINE` sits C++ (see the
+[project README](../README.md#inline-c-inside-the-basic-program)). The IDE
+highlights the block as its own region and does not check its lines as BASIC;
+**Check** collects the names the block registers with `GBX_INLINE_FN`, including
+those from included headers. A block inside code (`FUNCTION`, `IF`, a loop or
+`INLINE RUN`) runs at that point on **Run** and sees the BASIC variables there
+(names in lower case, texts with `_str`). Arrays can be resized there too
+(`push`, `insert`, `remove`, `clear`, `resize` – like `GBXArray`, but directly
+on the BASIC array), and built-in GBX commands (`PRINT`, `DRAWLINE`,
+`GETTIMER`, …) are called straight from the step.
 
 ## Debugger
 
-`F6` speichert das Projekt und startet den Interpreter mit `--debug`. Die
-Debug-Leiste unter den Tabs zeigt den Zustand; bedient wird sie mit `F8`, `F10`,
-`F11`, `Shift+F11` oder per Klick. Während das Programm läuft, lässt es sich mit
-**Pause** beim nächsten Befehl anhalten.
+`F6` saves the project and starts the interpreter with `--debug`. The debug bar
+under the tabs shows the state and is driven with `F8`, `F10`, `F11`,
+`Shift+F11` or the mouse. While the program runs, **Pause** stops it at the next
+statement.
 
-* **Haltepunkte** setzt und entfernt man mit `F9` oder per Klick in den linken
-  Rand. Sie gehören zum Projekt und bleiben über Sitzungen hinweg erhalten.
-  Während einer Sitzung gesetzte Haltepunkte gelten sofort.
-* **Bedingte Haltepunkte**: Das Stiftsymbol neben einem Haltepunkt im Panel
-  öffnet ein Feld für einen GBX-Ausdruck (z. B. `LEBEN = 0` oder `I >= 4`). Der
-  Haltepunkt hält dann nur an, wenn der Ausdruck im aktuellen Bereich wahr ist;
-  bedingte Haltepunkte erscheinen als Raute. Ein nicht lesbarer Ausdruck wird
-  gemeldet und hält an, statt still nie zu greifen.
-* Das Panel **Debugger** zeigt beim Anhalten die lokalen Variablen der aktuellen
-  Funktion, die globalen Variablen, die Aufrufliste und alle Haltepunkte des
-  Projekts. Ein Klick auf einen Haltepunkt springt in die Zeile.
-* Die angehaltene Zeile wird im Editor markiert; die Datei öffnet sich
-  automatisch, auch wenn der Haltepunkt in einer eingebundenen Datei liegt.
+* **Breakpoints** are set and removed with `F9` or a click in the left gutter.
+  They belong to the project and survive sessions. Breakpoints added during a
+  session apply immediately.
+* **Conditional breakpoints**: the pencil icon next to a breakpoint in the panel
+  opens a field for a GBX expression (for example `LIVES = 0` or `I >= 4`). The
+  breakpoint then only stops when the expression is true in the current scope;
+  conditional breakpoints are drawn as a diamond. An expression that cannot be
+  parsed is reported and stops instead of silently never matching.
+* The **Debugger** panel shows the current function's locals, the globals, the
+  call stack and every breakpoint of the project while paused. Clicking a
+  breakpoint jumps to its line.
+* The paused line is marked in the editor; the file opens automatically, even
+  when the breakpoint sits in an included file.
 
-Der Debugger hängt direkt am Interpreter: gbx hält vor jeder Anweisung an und
-meldet Position und Werte als JSON-Zeilen auf der Standardausgabe (Vorsilbe
-`@@gbxdbg `), Befehle kommen zeilenweise über die Standardeingabe. Ein eigenes
-Debug-Backend oder GDB ist dafür nicht nötig.
+The debugger attaches directly to the interpreter: gbx stops before every
+statement and reports position and values as JSON lines on standard output
+(prefix `@@gbxdbg `), while commands arrive line by line on standard input. No
+separate debug backend or GDB is involved.
 
-**Syntaxfehler** fallen schon vor dem Start auf: Der Debugger läuft bereits
-während des Parsens, meldet den Fehler mit Datei und Zeile an die IDE und
-beendet die Sitzung. Die Meldung erscheint unter **Probleme** und als Marker im
-Editor – mit derselben Aufbereitung wie bei `F7`, inklusive Hinweis auf einen
-unbekannten Befehl.
+**Syntax errors** show up before the start: the debugger already runs while
+parsing, reports the error with file and line to the IDE and ends the session.
+The message appears under **Problems** and as a marker in the editor – prepared
+exactly like `F7`, including a hint for an unknown command.
 
-## Projektdatei
+## HTML5 export
 
-Die IDE schreibt beim Speichern eine `.gbxproj` im INI-Stil. Sie ist dieselbe
-Datei, die `gbx.exe` liest:
+Choose the target **HTML5 (browser)** in the dropdown next to **Build** and
+build – this writes a `<project>-web` folder with `index.html`, `gbx.js` (the
+interpreter as WebAssembly) and `game.js` (sources and assets). Double-clicking
+`index.html` starts the game in the browser; a web server works too.
+
+This needs a one-time wasm build of the interpreter. **Settings → General →
+HTML5** provides a dedicated section: **Download …** fetches the Emscripten SDK
+into the `emsdk` folder next to the editor EXE (several hundred MB, a few
+minutes), **Check** shows the version and **Build player** compiles `src/` to
+`html5/gbx.js`. If `html5/gbx.js` already ships with the package, the IDE
+exports without the SDK.
+
+Projects with `INLINE` blocks get their own player on export: the blocks are
+compiled with Emscripten and linked in (about 30 s, needs the SDK). The browser
+itself has neither a compiler nor `dlopen`.
+
+## Fonts from Google Fonts
+
+**Tools → Google Fonts …** searches the fonts on fonts.google.com, shows them
+in the selected style and size, and downloads the `.ttf` into the project's
+asset folder (default `assets/`). The dialog names the file and the matching
+`LOADFONT` line, which can be copied. Without an API key the IDE reads the
+public font list and fetches the file through Google's CSS endpoint. A key from
+the Google Cloud console can be stored under **Settings → General → Google
+Fonts (API key)**; the list then comes through the Webfonts API. The key stays
+in the local settings (`config.json`) and is never returned to the interface.
+A font's license (usually OFL or Apache) is shown on its Google Fonts page.
+TrueType fonts (`LOADFONT "x.ttf", …`) run through Emscripten's FreeType port,
+so the file has to be part of the project (`assets/` folder or a path in the
+`.gbxproj`) – the browser has no Windows font directory.
+
+## Project file
+
+On save the IDE writes a `.gbxproj` in INI style. It is the same file `gbx.exe`
+reads:
 
 ```ini
 [project]
-name = "Mein Spiel"
+name = "My game"
 main = "main.gbx"
 
 [window]
-title = "Mein Spiel"
+title = "My game"
 width = 800
 height = 600
 fullscreen = 0
@@ -182,56 +216,55 @@ volume = 1
 root = "assets"
 ```
 
-Die Felder stehen auch unter **Einstellungen → Projekt** zur Verfügung. Der
-Editorzustand (offene Reiter) liegt zusätzlich in `.gbxide/project.json`; dieser
-Ordner gehört nicht ins Projektarchiv.
+The same fields are available under **Settings → Project**. Editor state (open
+tabs) lives in `.gbxide/project.json`; that folder does not belong in the
+project archive.
 
-## Befehlsreferenz und Vervollständigung
+## Command reference and completion
 
-`data/gbx-dataset.json` enthält alle von GBX unterstützten Befehle,
-Schlüsselwörter und `KEY_*`-Konstanten mit Signatur, Beschreibung und Beispiel.
+`data/gbx-dataset.json` contains every command, keyword and `KEY_*` constant
+supported by GBX, together with signature, description and example.
 
-Jeder Eintrag beschreibt auf **Deutsch und Englisch**, was der Befehl tut; die
-Texte stehen in `data/gbx-descriptions.json` und sind eigene Formulierungen,
-keine Handbuchzitate. Angezeigt wird die Sprache, die gerade gewählt ist – im
-DE/EN-Schalter des Referenzpanels, im Hover und in der Vervollständigung.
-Der Schalter oben rechts (**DE**/**EN**) wechselt die ganze Oberfläche mit –
-auch die Meldungen von Interpreter und IDE-Konsole, weil die IDE `GBX_LANG`
-passend setzt. Auch die Argumentnamen der Signatur wechseln mit
-(`farbe` → `colour`).
+Each entry describes what the command does in **German and English**; the texts
+live in `data/gbx-descriptions.json` and are original wording, not manual
+quotes. The active language is shown in the reference panel, in hovers and in
+completion. The **DE**/**EN** switch in the top right changes the whole
+interface – including messages from the interpreter and the IDE console,
+because the IDE sets `GBX_LANG` accordingly. Signature argument names switch
+too (`farbe` → `colour`).
 
-## Farbfelder an RGB()
+Language details (0-based string functions, inclusive `RND`, SDL scancodes,
+WAV-only music, `PRESCALER`) are noted in the respective entry and in the
+“Language details” overview.
 
-Stehen bei `RGB(r, g, b)` drei Zahlen – auch `0x…` –, zeigt der Editor vor dem
-Aufruf ein kleines Kästchen in genau dieser Farbe. Zeigen oder Klicken darauf
-öffnet Monacos Farbwähler; die gewählte Farbe landet sofort im Quelltext, und
-Strg+Z nimmt sie wieder zurück. Kommentare und Zeichenketten
-bekommen kein Feld, ebenso `RGB(x, y, z)` mit Variablen – deren Farbe steht
-erst beim Start des Programms fest.
-
-Sprachdetails (0-basierte String-Funktionen, inklusives `RND`, SDL-Scancodes,
-WAV-only-Musik, `PRESCALER`) sind im jeweiligen Eintrag und in der Übersicht
-„Sprachdetails“ vermerkt.
-
-Datensatz neu erzeugen (nach Änderungen an der Befehlsliste im Haupt-README):
+Rebuild the dataset after changing the command list in the main README:
 
 ```bash
 npm run build:dataset
 ```
 
-## Was gegenüber dem alten Studio entfallen ist
+## Colour swatches at RGB()
 
-* **Premium-Lizenz** – GameBasiX hat keine Lizenzstufen, eine Lizenzdatei und die
-  Lizenzseite sind vollständig entfernt.
-* **Compiler-Anbindung** – kein SDK, kein `gpc`, kein Linken, keine
-  Plattform-/`cmp`-/`lnk`-Flags.
-* **KeyHit-Werkzeug** – `KEY()` nimmt SDL-Scancodes; die `KEY_*`-Konstanten
-  stehen in der Referenz.
+When `RGB(r, g, b)` is called with three numbers – `0x…` included – the editor
+shows a small swatch in exactly that colour in front of the call. Showing or
+clicking it opens Monaco's colour picker; the chosen colour goes straight into
+the source and `Ctrl+Z` takes it back. Comments and string literals get no
+swatch, and neither does `RGB(x, y, z)` with variables – their colour is only
+known when the program starts.
 
-Erhalten geblieben sind Editor, Themes, Dateibaum, Vorlagen, Medienvorschau,
-Referenzpanel, Outline und die Analyse eigener FUNCTION/TYPEs. Schriften holt
-**Werkzeuge → Google Fonts …** als TrueType-Datei direkt ins Projekt; einen
-eigenen Bitmap-Generator gibt es nicht mehr.
+## Differences from the classic Studio
+
+* **Premium license** – GameBasiX has no license tiers; the license file and the
+  license page are gone completely.
+* **Compiler integration** – no SDK, no `gpc`, no linking, no platform/`cmp`/
+  `lnk` flags.
+* **KeyHit tool** – `KEY()` takes SDL scancodes; the `KEY_*` constants are in
+  the reference.
+
+What remains: the editor, themes, file tree, templates, media preview, reference
+panel, outline and the analysis of your own FUNCTIONs and TYPEs. Fonts are
+fetched as TrueType files straight into the project via **Tools → Google
+Fonts …**; there is no separate bitmap generator any more.
 
 ## Tests
 
@@ -239,22 +272,21 @@ eigenen Bitmap-Generator gibt es nicht mehr.
 npm test
 ```
 
-Der Test startet den Server, legt ein Projekt an, prüft eine gültige und eine
-fehlerhafte Datei, startet ein kurzes Programm headless und kontrolliert
-Exit-Code und Ausgabe. Anschließend läuft eine Debug-Sitzung über die API:
-Haltepunkt, lokale Werte, Einzelschritt und Sitzungsende. Voraussetzung ist ein
-gebauter `../build/gbx.exe`.
+The test starts the server, creates a project, checks a valid and a broken
+file, runs a short program headless and verifies exit code and output. It then
+runs a debug session through the API: breakpoint, local values, single step and
+session end. A built `../build/gbx.exe` is required.
 
-Das Debug-Protokoll selbst prüft `tools/check_debug.py` (auch Teil von
-`ctest`): Einstiegshalt, Haltepunkt, Einzelschritt, lokale und globale Werte,
-Sitzungsende und die Meldung eines Syntaxfehlers.
+The debug protocol itself is covered by `tools/check_debug.py` (also part of
+`ctest`): entry stop, breakpoint, single step, local and global values, session
+end and the report of a syntax error.
 
-## Aufbau
+## Layout
 
 ```
-src/main/       Electron-Hülle (Fenster, Dialoge)
-src/server/     HTTP-API, Projektverwaltung, gbx-Anbindung
-src/renderer/   Oberfläche (Monaco, Docks, Referenz, Tools)
-scripts/        Datensatz-Generator und Ende-zu-Ende-Test
-data/           GBX-Befehlsdatensatz, eigene Beschreibungen (de/en) und Herkunftsseiten
+src/main/       Electron shell (window, dialogs)
+src/server/     HTTP API, project handling, gbx integration
+src/renderer/   interface (Monaco, docks, reference, tools)
+scripts/        dataset generator and end-to-end test
+data/           GBX command dataset, original descriptions (de/en) and source pages
 ```
