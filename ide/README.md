@@ -120,8 +120,8 @@ those from included headers. A block inside code (`FUNCTION`, `IF`, a loop or
 `INLINE RUN`) runs at that point on **Run** and sees the BASIC variables there
 (names in lower case, texts with `_str`). Arrays can be resized there too
 (`push`, `insert`, `remove`, `clear`, `resize` – like `GBXArray`, but directly
-on the BASIC array), and built-in GBX commands (`PRINT`, `DRAWLINE`,
-`GETTIMER`, …) are called straight from the step.
+on the BASIC array), and built-in GBX commands (`PRINT`, `DRAW_LINE`,
+`DELTA_TIME`, …) are called straight from the step.
 
 ## Debugger
 
@@ -177,13 +177,13 @@ itself has neither a compiler nor `dlopen`.
 **Tools → Google Fonts …** searches the fonts on fonts.google.com, shows them
 in the selected style and size, and downloads the `.ttf` into the project's
 asset folder (default `assets/`). The dialog names the file and the matching
-`LOADFONT` line, which can be copied. Without an API key the IDE reads the
+`FONT_LOAD` line, which can be copied. Without an API key the IDE reads the
 public font list and fetches the file through Google's CSS endpoint. A key from
 the Google Cloud console can be stored under **Settings → General → Google
 Fonts (API key)**; the list then comes through the Webfonts API. The key stays
 in the local settings (`config.json`) and is never returned to the interface.
 A font's license (usually OFL or Apache) is shown on its Google Fonts page.
-TrueType fonts (`LOADFONT "x.ttf", …`) run through Emscripten's FreeType port,
+TrueType fonts (`FONT_LOAD "x.ttf", …`) run through Emscripten's FreeType port,
 so the file has to be part of the project (`assets/` folder or a path in the
 `.gbxproj`) – the browser has no Windows font directory.
 
@@ -234,7 +234,7 @@ because the IDE sets `GBX_LANG` accordingly. Signature argument names switch
 too (`farbe` → `colour`).
 
 Language details (0-based string functions, inclusive `RND`, SDL scancodes,
-WAV-only music, `PRESCALER`) are noted in the respective entry and in the
+WAV-only music, `SCREEN_SCALE`) are noted in the respective entry and in the
 “Language details” overview.
 
 Rebuild the dataset after changing the command list in the main README:
@@ -258,7 +258,7 @@ known when the program starts.
   license page are gone completely.
 * **Compiler integration** – no SDK, no `gpc`, no linking, no platform/`cmp`/
   `lnk` flags.
-* **KeyHit tool** – `KEY()` takes SDL scancodes; the `KEY_*` constants are in
+* **KeyHit tool** – `KEY_DOWN()` takes SDL scancodes; the `KEY_*` constants are in
   the reference.
 
 What remains: the editor, themes, file tree, templates, media preview, reference

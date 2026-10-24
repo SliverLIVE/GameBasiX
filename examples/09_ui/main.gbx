@@ -12,11 +12,11 @@
 
 INCLUDE "UI.gbx"
 
-SYSTEMPOINTER TRUE
-SETSCREEN 1000, 680, 0
-SETWINDOWTITLE "GameBasiX - UI.gbx"
-LIMITFPS 60
-ALLOWESCAPE FALSE
+SET_SYSTEM_POINTER TRUE
+SCREEN_SET 1000, 680, 0
+WINDOW_TITLE "GameBasiX - UI.gbx"
+LIMIT_FPS 60
+ALLOW_ESCAPE FALSE
 
 GLOBAL app AS UI
 app.init()
@@ -125,22 +125,22 @@ FUNCTION loadPreset: i
 ENDFUNCTION
 
 FUNCTION drawBackground
-  LOCAL sw = GETSCREENWIDTH()
-  LOCAL sh = GETSCREENHEIGHT()
+  LOCAL sw = SCREEN_WIDTH()
+  LOCAL sh = SCREEN_HEIGHT()
   LOCAL g = 0
   LOCAL gc = uiMix(app.bg, app.ink, 0.045)
-  CLEARSCREEN app.bg
+  SCREEN_CLEAR app.bg
   IF app.value(tGrid) <> 0 THEN
     FOR g = 0 TO sh STEP 48
-      DRAWLINE 0, g, sw, g, gc
+      DRAW_LINE 0, g, sw, g, gc
     NEXT
     FOR g = 0 TO sw STEP 48
-      DRAWLINE g, 0, g, sh, gc
+      DRAW_LINE g, 0, g, sh, gc
     NEXT
   ENDIF
-  DRAWRECT 0, 0, sw, 72, uiMix(app.bg, app.surface, 0.6)
-  DRAWRECT 0, 72, sw, 1, app.line
-  DRAWRECT 0, 0, sw, 2, app.accent
+  DRAW_RECT 0, 0, sw, 72, uiMix(app.bg, app.surface, 0.6)
+  DRAW_RECT 0, 72, sw, 1, app.line
+  DRAW_RECT 0, 0, sw, 2, app.accent
 ENDFUNCTION
 
 ' ---------------------------------------------------- frame loop
@@ -148,7 +148,7 @@ WHILE TRUE
   drawBackground()
 
   ' Animated value: the progress bar is a plain number, 0..1.
-  app.setValue(pBudget, 0.5 + 0.45 * SIN(GETTIMERALL() / 18))
+  app.setValue(pBudget, 0.5 + 0.45 * SIN(ELAPSED_TIME() / 18))
 
   ' The reopen button is only usable while its window is closed.
   IF app.isOpen(wNotes) = 1 THEN
@@ -212,6 +212,6 @@ WHILE TRUE
   app.setText(lblAction, action$)
   app.setText(lblState, "hover " + STR$(app.hover%) + "   focus " + STR$(app.focus%) + "   mouse " + STR$(app.mx) + "," + STR$(app.my) + "   theme " + themeName$())
 
-  IF KEYHIT(KEY_ESC) THEN END
-  SHOWSCREEN
+  IF KEY_PRESSED(KEY_ESC) THEN END
+  SCREEN_SHOW
 WEND

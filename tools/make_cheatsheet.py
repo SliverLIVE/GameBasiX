@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Erzeugt CHEATSHEET.png: die Befehle von GameBasiX nach Art gruppiert.
+"""Builds CHEATSHEET.png: the GameBasiX commands grouped by category.
 
-Quelle ist ide/data/gbx-dataset.json, also derselbe Datensatz wie Referenz und
-Vervollständigung der IDE. Aufruf:
+The source is ide/data/gbx-dataset.json, the same dataset the IDE uses for its
+reference and completion. Usage:
 
-    python tools/make_cheatsheet.py [--lang de|en] [--out CHEATSHEET.png]
+    python tools/make_cheatsheet.py [--lang en|de] [--out CHEATSHEET.png]
+
+The repository ships the English sheet only; `--lang de` still works for
+local use.
 """
 from __future__ import annotations
 
@@ -250,7 +253,7 @@ def render(lang: str, out: pathlib.Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cheatsheet als PNG erzeugen")
-    parser.add_argument("--lang", choices=["de", "en"], default="de")
+    parser.add_argument("--lang", choices=["de", "en"], default="en")
     parser.add_argument("--out", default=str(ROOT / "CHEATSHEET.png"))
     args = parser.parse_args()
     render(args.lang, pathlib.Path(args.out))

@@ -151,7 +151,7 @@ bool waitWritable(socket_t s, int timeoutMs) {
     return ready > 0;
 }
 
-// Textform einer Adresse fuer NETPEER$/UDPFROM$.
+// Textform einer Adresse fuer NET_PEER$/UDP_FROM$.
 std::string formatAddress(const sockaddr* addr) {
     char host[INET6_ADDRSTRLEN] = {0};
     int port = 0;

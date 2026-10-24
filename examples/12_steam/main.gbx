@@ -55,19 +55,19 @@ FUNCTION addChat: line$
 ENDFUNCTION
 
 FUNCTION drawPanel: x, y, w, h, title$
-  DRAWRECT x, y, w, h, colPanel
-  DRAWBORDER x, y, w, h, colEdge
-  SETTEXTCOLOR colAccent
+  DRAW_RECT x, y, w, h, colPanel
+  DRAW_RECT_BORDER x, y, w, h, colEdge
+  TEXT_COLOR colAccent
   PRINT title$, x + 18, y + 12
 ENDFUNCTION
 
 FUNCTION drawKey: label$, value$, x, y, highlight
-  SETTEXTCOLOR colMuted
+  TEXT_COLOR colMuted
   PRINT label$, x, y
   IF highlight = 1 THEN
-    SETTEXTCOLOR colAccent
+    TEXT_COLOR colAccent
   ELSE
-    SETTEXTCOLOR colInk
+    TEXT_COLOR colInk
   ENDIF
   PRINT value$, x + 130, y
 ENDFUNCTION
@@ -81,28 +81,31 @@ FUNCTION stateName: state
 ENDFUNCTION
 
 ' ------------------------------------------------------------ setup
-SYSTEMPOINTER TRUE
-SETSCREEN 860, 600, 0
-SETWINDOWTITLE "GameBasiX - Steam Link"
-LIMITFPS 60
-ALLOWESCAPE FALSE
+SET_SYSTEM_POINTER TRUE
+SCREEN_SET 860, 600, 0
+WINDOW_TITLE "GameBasiX - Steam Link"
+LIMIT_FPS 60
+ALLOW_ESCAPE FALSE
 
-IF STEAMINIT() = 1 THEN
+IF STEAM_INIT() = 1 THEN
   app.ready% = 1
-  IF STEAMFRIENDS() > 0 THEN
-    app.partner$ = STEAMFRIENDID$(0)
-    app.partnerName$ = STEAMFRIENDNAME$(0)
+  ' Auch in der Konsole, damit ein Start ohne Fenster pruefbar bleibt.
+  STDOUT "Steam ready: " + STEAM_NAME$() + " (app " + STR$(STEAM_APP_ID()) + ", " + STR$(STEAM_FRIENDS()) + " friends)" + CHR$(10)
+  IF STEAM_FRIENDS() > 0 THEN
+    app.partner$ = STEAM_FRIEND_ID$(0)
+    app.partnerName$ = STEAM_FRIEND_NAME$(0)
     note(app, "Steam ready - 1..9 picks a friend", 1)
   ELSE
     note(app, "Steam ready, but no friends online", 0)
   ENDIF
 ELSE
   app.ready% = 0
+  STDOUT "Steam not available: " + STEAM_ERROR$() + CHR$(10)
   note(app, "Steam not available", 0)
 ENDIF
 
 WHILE TRUE
-  STEAMRUN
+  STEAM_RUN
 
   ' ---------------------------------------------------------- keys
   IF app.ready% = 1 THEN
@@ -110,12 +113,12 @@ WHILE TRUE
     WHILE typed$ <> ""
       IF typed$ = CHR$(13) OR typed$ = CHR$(10) THEN
         IF LEN(app.input$) > 0 AND app.partner$ <> "" THEN
-          bytes = STEAMP2PSEND(app.partner$, "C" + app.input$)
+          bytes = STEAM_P2P_SEND(app.partner$, "C" + app.input$)
           IF bytes > 0 THEN
             app.sent% = app.sent% + 1
             addChat("you:  " + app.input$)
           ELSE
-            note(app, "send failed: " + STEAMERROR$(), 0)
+            note(app, "send failed: " + STEAM_ERROR$(), 0)
           ENDIF
           app.input$ = ""
         ENDIF
@@ -130,19 +133,19 @@ WHILE TRUE
     WEND
 
     FOR i = 1 TO 9
-      IF KEYHIT(KEY_1 + i - 1) THEN
-        candidate$ = STEAMFRIENDID$(i - 1)
+      IF KEY_PRESSED(KEY_1 + i - 1) THEN
+        candidate$ = STEAM_FRIEND_ID$(i - 1)
         IF candidate$ <> "" THEN
           app.partner$ = candidate$
-          app.partnerName$ = STEAMFRIENDNAME$(i - 1)
+          app.partnerName$ = STEAM_FRIEND_NAME$(i - 1)
           note(app, "partner: " + app.partnerName$, 1)
         ENDIF
       ENDIF
     NEXT
 
     ' ------------------------------------------------------ receive
-    WHILE STEAMP2PAVAILABLE(0) > 0
-      packet$ = STEAMP2PRECV$(0)
+    WHILE STEAM_P2P_AVAILABLE(0) > 0
+      packet$ = STEAM_P2P_RECV$(0)
       IF LEN(packet$) > 1 THEN
         tag$ = LEFT$(packet$, 1)
         rest$ = MID$(packet$, 1)
@@ -155,25 +158,25 @@ WHILE TRUE
   ENDIF
 
   IF app.partner$ <> "" THEN
-    app.state% = STEAMP2PSTATE(app.partner$)
+    app.state% = STEAM_P2P_STATE(app.partner$)
   ELSE
     app.state% = 0
   ENDIF
 
-  IF KEYHIT(KEY_ESC) THEN END
+  IF KEY_PRESSED(KEY_ESC) THEN END
 
   ' ---------------------------------------------------------- draw
-  CLEARSCREEN colBg
-  SETTEXTCOLOR colAccent
+  SCREEN_CLEAR colBg
+  TEXT_COLOR colAccent
   PRINT "STEAM LINK", 30, 16
-  SETTEXTCOLOR colMuted
+  TEXT_COLOR colMuted
   PRINT "Steam callsigns, friend list and P2P packets - no port forwarding needed", 30, 36
-  DRAWRECT 30, 58, 800, 2, colEdge
+  DRAW_RECT 30, 58, 800, 2, colEdge
 
   drawPanel(30, 72, 380, 170, "YOU")
-  drawKey "NAME", STEAMNAME$(), 48, 104, 1
-  drawKey "ID", STEAMID$(), 48, 128, 1
-  drawKey "APP", STR$(STEAMAPPID()), 48, 152, 0
+  drawKey "NAME", STEAM_NAME$(), 48, 104, 1
+  drawKey "ID", STEAM_ID$(), 48, 128, 1
+  drawKey "APP", STR$(STEAM_APP_ID()), 48, 152, 0
   drawKey "READY", STR$(app.ready%), 48, 176, app.ready%
 
   drawPanel(450, 72, 380, 170, "PARTNER")
@@ -186,43 +189,43 @@ WHILE TRUE
   y = 286
   FOR i = 0 TO 5
     IF i < chatCount% THEN
-      IF i = chatCount% - 1 THEN SETTEXTCOLOR colInk ELSE SETTEXTCOLOR colChat
+      IF i = chatCount% - 1 THEN TEXT_COLOR colInk ELSE TEXT_COLOR colChat
       PRINT chat$[i], 50, y
     ENDIF
     y = y + 24
   NEXT
 
   drawPanel(30, 464, 800, 46, "")
-  SETTEXTCOLOR colMuted
+  TEXT_COLOR colMuted
   PRINT ">", 44, 478
-  SETTEXTCOLOR colInk
+  TEXT_COLOR colInk
   PRINT app.input$, 62, 478
-  DRAWRECT 62 + LEN(app.input$, 1), 478, 2, 14, colAccent
+  DRAW_RECT 62 + LEN(app.input$, 1), 478, 2, 14, colAccent
 
-  SETTEXTCOLOR colMuted
+  TEXT_COLOR colMuted
   PRINT "1..9 pick a friend    ENTER sends    ESC quits", 30, 526
 
   IF app.statusOk% = 1 THEN
-    DRAWRECT 30, 556, 8, 8, colAccent
-    SETTEXTCOLOR colInk
+    DRAW_RECT 30, 556, 8, 8, colAccent
+    TEXT_COLOR colInk
   ELSE
-    DRAWRECT 30, 556, 8, 8, colWarn
-    SETTEXTCOLOR colWarn
+    DRAW_RECT 30, 556, 8, 8, colWarn
+    TEXT_COLOR colWarn
   ENDIF
   PRINT app.status$, 48, 554
 
   IF app.ready% = 0 THEN
-    DRAWRECT 150, 250, 560, 240, colPanel
-    DRAWBORDER 150, 250, 560, 240, colWarn
-    SETTEXTCOLOR colWarn
+    DRAW_RECT 150, 250, 560, 240, colPanel
+    DRAW_RECT_BORDER 150, 250, 560, 240, colWarn
+    TEXT_COLOR colWarn
     PRINT "Steam is not running for this program", 170, 270
-    SETTEXTCOLOR colMuted
+    TEXT_COLOR colMuted
     PRINT "1. copy steam_api64.dll next to gbx.exe", 170, 306
     PRINT "   (Steamworks SDK, redistributable_bin/win64)", 186, 326
     PRINT "2. put steam_appid.txt with your app id beside it", 170, 352
     PRINT "3. start Steam and run the program again", 170, 378
-    SETTEXTCOLOR colInk
-    rest$ = STEAMERROR$()
+    TEXT_COLOR colInk
+    rest$ = STEAM_ERROR$()
     y = 414
     FOR line = 1 TO 3
       IF LEN(rest$) > 54 THEN
@@ -236,5 +239,5 @@ WHILE TRUE
     NEXT
   ENDIF
 
-  SHOWSCREEN
+  SCREEN_SHOW
 WEND

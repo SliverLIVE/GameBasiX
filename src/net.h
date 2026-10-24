@@ -1,12 +1,12 @@
-// GameBasiX - Netzwerk fuer NETLISTEN/NETCONNECT und UDPOPEN/UDPSEND
+// GameBasiX - Netzwerk fuer NET_LISTEN/NET_CONNECT und UDP_OPEN/UDP_SEND
 #pragma once
 
 #include <cstdint>
 #include <string>
 #include <unordered_map>
 
-// Alle Sockets sind nicht blockierend: NETACCEPT, NETRECV$ und UDPRECV$
-// kehren sofort zurueck, auch wenn nichts anliegt. NETCONNECT wartet
+// Alle Sockets sind nicht blockierend: NET_ACCEPT, NET_RECV$ und UDP_RECV$
+// kehren sofort zurueck, auch wenn nichts anliegt. NET_CONNECT wartet
 // hoechstens bis zum angegebenen Zeitlimit.
 //
 // Handles sind positive Ganzzahlen und gelten fuer TCP und UDP gemeinsam;

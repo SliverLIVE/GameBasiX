@@ -9,6 +9,14 @@ GBXStudio.exe
 tests/out_render.bmp
 tests/out_commands.*
 
+# Steamworks-Redistributables: gehoeren Valve, nur mit dem eigenen Spiel
+# ausliefern (SDK Access Agreement 1.1b), nicht ins oeffentliche Repo.
+steam_api64.dll
+steam_api.dll
+libsteam_api.so
+libsteam_api.dylib
+steam_appid.txt
+
 # Spielstaende des FileIO-Beispiels
 examples/10_fileio/saves/
 

@@ -162,7 +162,7 @@ public:
     bool allowEscape() const { return allowEscape_; }
 
     // Zeit
-    double timerFrame() const;  // ms seit letztem SHOWSCREEN
+    double timerFrame() const;  // ms seit letztem SCREEN_SHOW
     double timerAll() const;    // ms seit Programmstart
     void resetFrameTimer();
 

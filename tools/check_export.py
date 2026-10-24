@@ -83,13 +83,13 @@ FUNCTION schritt
 ENDFUNCTION
 schritt()
 ASSERT zaehler = 2, "INLINE-Schritt aus dem Paket"
-LOADSPRITE "assets/ball.png", 1
-GETSPRITESIZE 1, w, h
+SPRITE_LOAD "assets/ball.png", 1
+SPRITE_SIZE 1, w, h
 ASSERT w > 0 AND h > 0, "Asset neben der EXE"
-LOADSPRITE "ball.png", 2
-GETSPRITESIZE 2, w, h
+SPRITE_LOAD "ball.png", 2
+SPRITE_SIZE 2, w, h
 ASSERT w > 0 AND h > 0, "Asset ueber den Asset-Ordner"
-STDOUT "SCREEN " + GETSCREENWIDTH() + "x" + GETSCREENHEIGHT() + CHR$(10)
+STDOUT "SCREEN " + SCREEN_WIDTH() + "x" + SCREEN_HEIGHT() + CHR$(10)
 """
             )
 

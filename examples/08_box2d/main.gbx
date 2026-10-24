@@ -9,7 +9,7 @@
 '   1. registered commands such as PHYSICS_BOX() and PHYSICS_STEP()
 '      - usable in any FUNCTION, without INLINE.
 '   2. C++ functions such as gbxbox2d::x() directly in an INLINE
-'      step - here in the METHOD draw(), together with POLYVECTOR.
+'      step - here in the METHOD draw(), together with POLY_POINT.
 '
 ' BASIC handles setup and input, C++ handles physics and drawing
 ' the rotated corners. Each box is a textured polygon: one shared
@@ -20,15 +20,15 @@ INLINE
 #include "box2d_gbx.h"
 ENDINLINE
 
-SYSTEMPOINTER TRUE 
-SETSCREEN 960, 640, 0
-SETWINDOWTITLE "GameBasiX - Box2D-Lite"
-LIMITFPS 60
+SET_SYSTEM_POINTER TRUE 
+SCREEN_SET 960, 640, 0
+WINDOW_TITLE "GameBasiX - Box2D-Lite"
+LIMIT_FPS 60
 
 ' One crate texture, tinted per body by the vertex color below.
 GLOBAL Crate = 1
 GLOBAL UseTexture = 1
-LOADSPRITE "assets/crate.png", Crate
+SPRITE_LOAD "assets/crate.png", Crate
 
 CONSTANT GROUND_Y = 630
 
@@ -63,25 +63,25 @@ TYPE BOX
       if (usetexture.value() > 0.5) {
           /* Normalized texture coordinates: 0,0 is the top left of the
            * sprite, 1,1 the bottom right. The vertex color tints it. */
-          STARTPOLY(crate);
-          POLYVECTOR(x1, y1, 0.0, 0.0, color);
-          POLYVECTOR(x2, y2, 1.0, 0.0, color);
-          POLYVECTOR(x3, y3, 1.0, 1.0, color);
-          POLYVECTOR(x4, y4, 0.0, 1.0, color);
-          ENDPOLY();
+          POLY_BEGIN(crate);
+          POLY_POINT(x1, y1, 0.0, 0.0, color);
+          POLY_POINT(x2, y2, 1.0, 0.0, color);
+          POLY_POINT(x3, y3, 1.0, 1.0, color);
+          POLY_POINT(x4, y4, 0.0, 1.0, color);
+          POLY_END();
       } else {
-          STARTPOLY();
-          POLYVECTOR(x1, y1, 0, 0, color);
-          POLYVECTOR(x2, y2, 0, 0, color);
-          POLYVECTOR(x3, y3, 0, 0, color);
-          POLYVECTOR(x4, y4, 0, 0, color);
-          ENDPOLY();
+          POLY_BEGIN();
+          POLY_POINT(x1, y1, 0, 0, color);
+          POLY_POINT(x2, y2, 0, 0, color);
+          POLY_POINT(x3, y3, 0, 0, color);
+          POLY_POINT(x4, y4, 0, 0, color);
+          POLY_END();
       }
 
-      DRAWLINE(x1, y1, x2, y2, 0x0E1420);
-      DRAWLINE(x2, y2, x3, y3, 0x0E1420);
-      DRAWLINE(x3, y3, x4, y4, 0x0E1420);
-      DRAWLINE(x4, y4, x1, y1, 0x0E1420);
+      DRAW_LINE(x1, y1, x2, y2, 0x0E1420);
+      DRAW_LINE(x2, y2, x3, y3, 0x0E1420);
+      DRAW_LINE(x3, y3, x4, y4, 0x0E1420);
+      DRAW_LINE(x4, y4, x1, y1, 0x0E1420);
     ENDINLINE
   ENDMETHOD
 ENDTYPE
@@ -131,39 +131,39 @@ ENDFUNCTION
 Rebuild()
 
 WHILE TRUE
-  IF KEYHIT(KEY_ESC) THEN END
-  IF KEYHIT(KEY_R) THEN Rebuild()
-  IF KEYHIT(KEY_T) THEN UseTexture = 1 - UseTexture
+  IF KEY_PRESSED(KEY_ESC) THEN END
+  IF KEY_PRESSED(KEY_R) THEN Rebuild()
+  IF KEY_PRESSED(KEY_T) THEN UseTexture = 1 - UseTexture
 
-  IF KEYHIT(KEY_SPACE)
+  IF KEY_PRESSED(KEY_SPACE)
     FOR n = 0 TO 7
       NewBox(300 + n * 48, 80 + MOD(n, 2) * 40, 36, 36, RND(314) / 100.0, 0, RandomColor())
     NEXT
   ENDIF
 
-  IF MOUSEHIT(1)
-    NewBox(MOUSEAXIS(0), MOUSEAXIS(1), 30 + RND(30), 30 + RND(30), RND(314) / 100.0, 0, RandomColor())
+  IF MOUSE_PRESSED(1)
+    NewBox(MOUSE_AXIS(0), MOUSE_AXIS(1), 30 + RND(30), 30 + RND(30), RND(314) / 100.0, 0, RandomColor())
   ENDIF
 
   ' Fixed step: the simulation always runs at 60 Hz, even if a frame
   ' takes longer. The wrapper clamps dt as well.
   PHYSICS_STEP(1.0 / 60.0)
 
-  CLEARSCREEN RGB(10, 13, 20)
-  DRAWRECT 0, GROUND_Y, 960, 10, RGB(34, 43, 60)
-  DRAWRECT 0, GROUND_Y - 2, 960, 2, RGB(70, 90, 120)
+  SCREEN_CLEAR RGB(10, 13, 20)
+  DRAW_RECT 0, GROUND_Y, 960, 10, RGB(34, 43, 60)
+  DRAW_RECT 0, GROUND_Y - 2, 960, 2, RGB(70, 90, 120)
 
-  FOR i = 0 TO BOUNDS(boxes[], 0) - 1
+  FOR i = 0 TO ARRAY_BOUNDS(boxes[], 0) - 1
     CurrentBox = boxes[i]
     CurrentBox.draw()
   NEXT
 
-  SETTEXTCOLOR RGB(130, 205, 255)
+  TEXT_COLOR RGB(130, 205, 255)
   PRINT "BOX2D-LITE", 24, 18
-  SETTEXTCOLOR RGB(140, 150, 168)
+  TEXT_COLOR RGB(140, 150, 168)
   PRINT "C++ library embedded via INLINE - " + STR$(PHYSICS_COUNT() - 1) + " bodies", 24, 40
   PRINT "Click: box   SPACE: row   R: reset   T: texture   ESC: quit", 24, 62
 
-  SHOWSCREEN
+  SCREEN_SHOW
 WEND
 

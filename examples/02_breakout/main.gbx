@@ -3,10 +3,10 @@
 ' Mouse or arrow keys, SPACE to restart, ESC quits
 ' ============================================================
 
-SETSCREEN 900, 640, 0
-LIMITFPS 60
-CLEARSCREEN RGB(8, 10, 18)
-SYSTEMPOINTER FALSE
+SCREEN_SET 900, 640, 0
+LIMIT_FPS 60
+SCREEN_CLEAR RGB(8, 10, 18)
+SET_SYSTEM_POINTER FALSE
 
 CONSTANT COLS = 12
 CONSTANT ROWS = 6
@@ -44,11 +44,11 @@ FUNCTION resetBall
 ENDFUNCTION
 
 FUNCTION drawHud
-  SETTEXTCOLOR RGB(200, 220, 255)
+  TEXT_COLOR RGB(200, 220, 255)
   PRINT "Score: " + score, 30, 20
   PRINT "Lives: " + lives, 780, 20
   IF running = FALSE
-    SETTEXTCOLOR RGB(255, 230, 150)
+    TEXT_COLOR RGB(255, 230, 150)
     PRINT "Game over - SPACE to restart", 250, 300
   ENDIF
 ENDFUNCTION
@@ -58,10 +58,10 @@ resetBall()
 
 WHILE TRUE
   ' ------------------------------------------------ Input
-  IF KEY(KEY_LEFT) THEN paddleX = paddleX - 9
-  IF KEY(KEY_RIGHT) THEN paddleX = paddleX + 9
+  IF KEY_DOWN(KEY_LEFT) THEN paddleX = paddleX - 9
+  IF KEY_DOWN(KEY_RIGHT) THEN paddleX = paddleX + 9
 
-  MOUSESTATE mx, my, mb1, mb2
+  MOUSE_STATE mx, my, mb1, mb2
   IF mx <> lastMx
     paddleX = mx - PADDLEW / 2
     lastMx = mx
@@ -102,7 +102,7 @@ WHILE TRUE
         IF bricks[cx][cy] = 1
           bx = 60 + cx * (BRICKW + 2)
           by = 70 + cy * (BRICKH + 4)
-          IF BOXCOLL(ballX - ballR, ballY - ballR, ballR * 2, ballR * 2, bx, by, BRICKW, BRICKH)
+          IF RECT_COLLIDE(ballX - ballR, ballY - ballR, ballR * 2, ballR * 2, bx, by, BRICKW, BRICKH)
             bricks[cx][cy] = 0
             score = score + 10
             velY = -velY
@@ -121,7 +121,7 @@ WHILE TRUE
       ENDIF
     ENDIF
   ELSE
-    IF KEYHIT(KEY_SPACE)
+    IF KEY_PRESSED(KEY_SPACE)
       score = 0
       lives = 3
       newRound()
@@ -131,7 +131,7 @@ WHILE TRUE
   ENDIF
 
   ' ------------------------------------------------ Drawing
-  CLEARSCREEN RGB(8, 10, 18)
+  SCREEN_CLEAR RGB(8, 10, 18)
 
   FOR cx = 0 TO COLS - 1
     FOR cy = 0 TO ROWS - 1
@@ -139,18 +139,18 @@ WHILE TRUE
         bx = 60 + cx * (BRICKW + 2)
         by = 70 + cy * (BRICKH + 4)
         col = RGB(90 + cy * 22, 170 - cy * 14, 255 - cy * 20)
-        DRAWRECT bx, by, BRICKW, BRICKH, col
-        DRAWRECT bx + 3, by + 3, BRICKW - 6, 4, RGB(255, 255, 255)
+        DRAW_RECT bx, by, BRICKW, BRICKH, col
+        DRAW_RECT bx + 3, by + 3, BRICKW - 6, 4, RGB(255, 255, 255)
       ENDIF
     NEXT
   NEXT
 
-  DRAWRECT paddleX, 585, PADDLEW, 16, RGB(120, 200, 255)
-  DRAWRECT paddleX + 4, 588, PADDLEW - 8, 4, RGB(220, 245, 255)
+  DRAW_RECT paddleX, 585, PADDLEW, 16, RGB(120, 200, 255)
+  DRAW_RECT paddleX + 4, 588, PADDLEW - 8, 4, RGB(220, 245, 255)
 
-  DRAWFILLEDCIRCLE ballX, ballY, ballR, RGB(255, 220, 120)
-  DRAWFILLEDCIRCLE ballX - 3, ballY - 3, ballR / 2, RGB(255, 250, 220)
+  DRAW_CIRCLE_FILLED ballX, ballY, ballR, RGB(255, 220, 120)
+  DRAW_CIRCLE_FILLED ballX - 3, ballY - 3, ballR / 2, RGB(255, 250, 220)
 
   drawHud()
-  SHOWSCREEN
+  SCREEN_SHOW
 WEND

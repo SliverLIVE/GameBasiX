@@ -75,7 +75,7 @@ ENDFUNCTION
 ' Splits "ip:port" into the two globals.
 FUNCTION splitAddress: text$
   DIM parts$[2]
-  n = SPLITSTR(text$, parts$[], ":")
+  n = SPLIT_STRING(text$, parts$[], ":")
   IF n >= 2 THEN
     splitHost$ = parts$[0]
     splitPort% = VAL(parts$[1])
@@ -87,23 +87,23 @@ ENDFUNCTION
 
 FUNCTION sendLine: s AS LINK, text$
   IF s.conn% = 0 THEN RETURN 0
-  NETSEND s.conn%, text$ + CHR$(10)
+  NET_SEND s.conn%, text$ + CHR$(10)
   RETURN 1
 ENDFUNCTION
 
 FUNCTION openUdp: s AS LINK, port
-  s.udp% = UDPOPEN(port)
+  s.udp% = UDP_OPEN(port)
   IF s.udp% = 0 THEN
-    note(s, "UDP: " + NETERROR$(), 0)
+    note(s, "UDP: " + NET_ERROR$(), 0)
     RETURN 0
   ENDIF
-  RETURN UDPPORT(s.udp%)
+  RETURN UDP_PORT(s.udp%)
 ENDFUNCTION
 
 ' Handshake and chat: TCP delivers lines separated by CHR$(10).
 FUNCTION pumpTcp: s AS LINK
   IF s.conn% = 0 THEN RETURN 0
-  s.buffer$ = s.buffer$ + NETRECV$(s.conn%)
+  s.buffer$ = s.buffer$ + NET_RECV$(s.conn%)
   WHILE INSTR(s.buffer$, CHR$(10)) >= 0
     cut = INSTR(s.buffer$, CHR$(10))
     line$ = LEFT$(s.buffer$, cut)
@@ -132,10 +132,10 @@ ENDFUNCTION
 
 FUNCTION readUdp: s AS LINK
   IF s.udp% = 0 THEN RETURN 0
-  packet$ = UDPRECV$(s.udp%)
+  packet$ = UDP_RECV$(s.udp%)
   IF packet$ = "" THEN RETURN 0
   DIM nums$[2]
-  n = SPLITSTR(packet$, nums$[], " ")
+  n = SPLIT_STRING(packet$, nums$[], " ")
   IF n < 2 THEN RETURN 0
   s.peerX# = VAL(nums$[0]) / 1000
   s.peerY# = VAL(nums$[1]) / 1000
@@ -143,45 +143,45 @@ FUNCTION readUdp: s AS LINK
 ENDFUNCTION
 
 FUNCTION drawPanel: x, y, w, h, title$
-  DRAWRECT x, y, w, h, colPanel
-  DRAWBORDER x, y, w, h, colEdge
-  SETTEXTCOLOR colAccent
+  DRAW_RECT x, y, w, h, colPanel
+  DRAW_RECT_BORDER x, y, w, h, colEdge
+  TEXT_COLOR colAccent
   PRINT title$, x + 18, y + 12
 ENDFUNCTION
 
 FUNCTION drawKey: label$, value$, x, y, highlight
-  SETTEXTCOLOR colMuted
+  TEXT_COLOR colMuted
   PRINT label$, x, y
   IF highlight = 1 THEN
-    SETTEXTCOLOR colAccent
+    TEXT_COLOR colAccent
   ELSE
-    SETTEXTCOLOR colInk
+    TEXT_COLOR colInk
   ENDIF
   PRINT value$, x + 120, y
 ENDFUNCTION
 
 ' ------------------------------------------------------------ setup
-SYSTEMPOINTER TRUE
-SETSCREEN 860, 600, 0
-SETWINDOWTITLE "GameBasiX - LAN Link"
-LIMITFPS 60
-ALLOWESCAPE FALSE
+SET_SYSTEM_POINTER TRUE
+SCREEN_SET 860, 600, 0
+WINDOW_TITLE "GameBasiX - LAN Link"
+LIMIT_FPS 60
+ALLOW_ESCAPE FALSE
 
-app.localIp$ = NETIP$()
-last# = GETTIMERALL()
+app.localIp$ = NET_IP$()
+last# = ELAPSED_TIME()
 
 WHILE TRUE
-  now# = GETTIMERALL()
+  now# = ELAPSED_TIME()
   delta# = (now# - last#) / 1000
   last# = now#
 
   ' ---------------------------------------------------------- keys
   IF app.mode$ <> "menu" THEN
     speed# = 0.7 * delta#
-    IF KEY(KEY_LEFT) THEN app.myX# = app.myX# - speed#
-    IF KEY(KEY_RIGHT) THEN app.myX# = app.myX# + speed#
-    IF KEY(KEY_UP) THEN app.myY# = app.myY# - speed#
-    IF KEY(KEY_DOWN) THEN app.myY# = app.myY# + speed#
+    IF KEY_DOWN(KEY_LEFT) THEN app.myX# = app.myX# - speed#
+    IF KEY_DOWN(KEY_RIGHT) THEN app.myX# = app.myX# + speed#
+    IF KEY_DOWN(KEY_UP) THEN app.myY# = app.myY# - speed#
+    IF KEY_DOWN(KEY_DOWN) THEN app.myY# = app.myY# + speed#
     IF app.myX# < 0.02 THEN app.myX# = 0.02
     IF app.myX# > 0.98 THEN app.myX# = 0.98
     IF app.myY# < 0.02 THEN app.myY# = 0.02
@@ -209,10 +209,10 @@ WHILE TRUE
     WEND
   ENDIF
 
-  IF KEYHIT(KEY_H) AND app.mode$ = "menu" THEN
-    app.server% = NETLISTEN(35500)
+  IF KEY_PRESSED(KEY_H) AND app.mode$ = "menu" THEN
+    app.server% = NET_LISTEN(35500)
     IF app.server% = 0 THEN
-      note(app, "TCP: " + NETERROR$(), 0)
+      note(app, "TCP: " + NET_ERROR$(), 0)
     ELSE
       app.myPort% = openUdp(app, 35501)
       IF app.myPort% > 0 THEN
@@ -222,10 +222,10 @@ WHILE TRUE
     ENDIF
   ENDIF
 
-  IF KEYHIT(KEY_C) AND app.mode$ = "menu" THEN
-    app.conn% = NETCONNECT("127.0.0.1", 35500, 2000)
+  IF KEY_PRESSED(KEY_C) AND app.mode$ = "menu" THEN
+    app.conn% = NET_CONNECT("127.0.0.1", 35500, 2000)
     IF app.conn% = 0 THEN
-      note(app, "connect: " + NETERROR$(), 0)
+      note(app, "connect: " + NET_ERROR$(), 0)
     ELSE
       app.myPort% = openUdp(app, 0)
       IF app.myPort% > 0 THEN
@@ -239,11 +239,11 @@ WHILE TRUE
 
   ' ------------------------------------------------------- network
   IF app.mode$ = "host" AND app.conn% = 0 THEN
-    accepted% = NETACCEPT(app.server%)
+    accepted% = NET_ACCEPT(app.server%)
     IF accepted% > 0 THEN
       app.conn% = accepted%
       app.joined% = 0
-      splitAddress(NETPEER$(app.conn%))
+      splitAddress(NET_PEER$(app.conn%))
       app.peerIp$ = splitHost$
       note(app, "peer at " + app.peerIp$ + ", waiting for HELLO", 1)
     ENDIF
@@ -251,18 +251,18 @@ WHILE TRUE
 
   IF app.conn% > 0 THEN
     pumpTcp(app)
-    IF NETCONNECTED(app.conn%) = 0 AND app.joined% = 1 THEN
+    IF NET_CONNECTED(app.conn%) = 0 AND app.joined% = 1 THEN
       note(app, "peer left", 0)
       addChat("- peer disconnected -")
-      NETCLOSE app.conn%
+      NET_CLOSE app.conn%
       app.conn% = 0
       app.joined% = 0
       IF app.server% > 0 THEN
-        NETCLOSE app.server%
+        NET_CLOSE app.server%
         app.server% = 0
       ENDIF
       IF app.udp% > 0 THEN
-        UDPCLOSE app.udp%
+        UDP_CLOSE app.udp%
         app.udp% = 0
       ENDIF
       app.mode$ = "menu"
@@ -274,7 +274,7 @@ WHILE TRUE
       app.sendAt# = now#
       x% = app.myX# * 1000
       y% = app.myY# * 1000
-      UDPSEND app.udp%, app.peerIp$, app.peerPort%, STR$(x%) + " " + STR$(y%)
+      UDP_SEND app.udp%, app.peerIp$, app.peerPort%, STR$(x%) + " " + STR$(y%)
     ENDIF
     readUdp(app)
   ENDIF
@@ -287,27 +287,27 @@ WHILE TRUE
   ENDIF
   IF app.mode$ = "menu" THEN app.wasMenu% = 1
 
-  IF KEYHIT(KEY_ESC) THEN END
+  IF KEY_PRESSED(KEY_ESC) THEN END
 
   ' ---------------------------------------------------------- draw
-  CLEARSCREEN colBg
-  SETTEXTCOLOR colAccent
+  SCREEN_CLEAR colBg
+  TEXT_COLOR colAccent
   PRINT "LAN LINK", 30, 16
-  SETTEXTCOLOR colMuted
+  TEXT_COLOR colMuted
   PRINT "TCP for chat, UDP for the dot - nothing blocks, everything is polled per frame", 30, 36
-  DRAWRECT 30, 58, 800, 2, colEdge
+  DRAW_RECT 30, 58, 800, 2, colEdge
 
   drawPanel(30, 72, 380, 200, "YOU")
-  DRAWRECT 48, 104, 344, 96, colBg
-  DRAWBORDER 48, 104, 344, 96, colEdge
-  DRAWCIRCLE 48 + app.myX# * 344, 104 + app.myY# * 96, 9, colAccent
+  DRAW_RECT 48, 104, 344, 96, colBg
+  DRAW_RECT_BORDER 48, 104, 344, 96, colEdge
+  DRAW_CIRCLE 48 + app.myX# * 344, 104 + app.myY# * 96, 9, colAccent
   drawKey "POSITION", FORMAT$(0, 2, app.myX#) + " / " + FORMAT$(0, 2, app.myY#), 48, 216, 1
   drawKey "PORT", STR$(app.myPort%), 48, 240, 1
 
   drawPanel(450, 72, 380, 200, "PEER")
-  DRAWRECT 468, 104, 344, 96, colBg
-  DRAWBORDER 468, 104, 344, 96, colEdge
-  DRAWCIRCLE 468 + app.peerX# * 344, 104 + app.peerY# * 96, 9, colChat
+  DRAW_RECT 468, 104, 344, 96, colBg
+  DRAW_RECT_BORDER 468, 104, 344, 96, colEdge
+  DRAW_CIRCLE 468 + app.peerX# * 344, 104 + app.peerY# * 96, 9, colChat
   IF app.joined% = 1 THEN
     drawKey "ADDRESS", app.peerIp$ + ":" + STR$(app.peerPort%), 468, 216, 1
     drawKey "LINK", "up", 468, 240, 1
@@ -317,43 +317,43 @@ WHILE TRUE
   ENDIF
 
   drawPanel(30, 288, 800, 190, "CHAT")
-  SETTEXTCOLOR colChat
+  TEXT_COLOR colChat
   y = 316
   FOR i = 0 TO 5
     IF i < chatCount% THEN
-      IF i = chatCount% - 1 THEN SETTEXTCOLOR colInk ELSE SETTEXTCOLOR colChat
+      IF i = chatCount% - 1 THEN TEXT_COLOR colInk ELSE TEXT_COLOR colChat
       PRINT chat$[i], 50, y
     ENDIF
     y = y + 24
   NEXT
 
   drawPanel(30, 494, 800, 46, "")
-  SETTEXTCOLOR colMuted
+  TEXT_COLOR colMuted
   PRINT ">", 44, 508
-  SETTEXTCOLOR colInk
+  TEXT_COLOR colInk
   PRINT app.input$, 62, 508
-  DRAWRECT 62 + LEN(app.input$, 1), 508, 2, 14, colAccent
+  DRAW_RECT 62 + LEN(app.input$, 1), 508, 2, 14, colAccent
 
   IF app.mode$ = "menu" THEN
-    DRAWRECT 230, 236, 400, 92, colPanel
-    DRAWBORDER 230, 236, 400, 92, colAccent
-    SETTEXTCOLOR colAccent
+    DRAW_RECT 230, 236, 400, 92, colPanel
+    DRAW_RECT_BORDER 230, 236, 400, 92, colAccent
+    TEXT_COLOR colAccent
     PRINT "no link yet", 250, 252
-    SETTEXTCOLOR colMuted
+    TEXT_COLOR colMuted
     PRINT "H  host on port 35500", 250, 276
     PRINT "C  join 127.0.0.1:35500", 250, 296
   ENDIF
 
   IF app.statusOk% = 1 THEN
-    DRAWRECT 30, 556, 8, 8, colAccent
-    SETTEXTCOLOR colInk
+    DRAW_RECT 30, 556, 8, 8, colAccent
+    TEXT_COLOR colInk
   ELSE
-    DRAWRECT 30, 556, 8, 8, colWarn
-    SETTEXTCOLOR colWarn
+    DRAW_RECT 30, 556, 8, 8, colWarn
+    TEXT_COLOR colWarn
   ENDIF
   PRINT app.status$, 48, 554
-  SETTEXTCOLOR colMuted
+  TEXT_COLOR colMuted
   PRINT app.localIp$, 730, 554
 
-  SHOWSCREEN
+  SCREEN_SHOW
 WEND

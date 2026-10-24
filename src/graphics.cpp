@@ -561,23 +561,23 @@ void Gfx::deleteSprite(int id) {
 
 bool Gfx::grabSprite(int id, int x, int y, int w, int h, std::string& err) {
     if (headless || !renderer_) {
-        err = "GRABSPRITE ist im Headless-Modus nicht verfuegbar";
+        err = "SPRITE_GRAB ist im Headless-Modus nicht verfuegbar";
         return false;
     }
     if (w <= 0 || h <= 0) {
-        err = "GRABSPRITE: ungueltige Groesse";
+        err = "SPRITE_GRAB: ungueltige Groesse";
         return false;
     }
     SDL_Rect rect{x, y, w, h};
     SDL_Surface* surf = SDL_RenderReadPixels(renderer_, &rect);
     if (!surf) {
-        err = std::string("GRABSPRITE fehlgeschlagen: ") + SDL_GetError();
+        err = std::string("SPRITE_GRAB fehlgeschlagen: ") + SDL_GetError();
         return false;
     }
     SDL_Surface* conv = SDL_ConvertSurface(surf, SDL_PIXELFORMAT_RGBA32);
     SDL_DestroySurface(surf);
     if (!conv) {
-        err = "GRABSPRITE: Konvertierung fehlgeschlagen";
+        err = "SPRITE_GRAB: Konvertierung fehlgeschlagen";
         return false;
     }
     std::vector<uint8_t> rgba(static_cast<size_t>(w) * h * 4);
@@ -608,7 +608,7 @@ bool Gfx::grabSprite(int id, int x, int y, int w, int h, std::string& err) {
 bool Gfx::saveSprite(const std::string& file, int id, std::string& err) {
     const Sprite* s = findSprite(id);
     if (!s || !s->hasPixels) {
-        err = "SAVESPRITE: Sprite " + std::to_string(id) + " hat keine Bilddaten";
+        err = "SPRITE_SAVE: Sprite " + std::to_string(id) + " hat keine Bilddaten";
         return false;
     }
     std::string ext = lowerExt(file);
@@ -617,24 +617,24 @@ bool Gfx::saveSprite(const std::string& file, int id, std::string& err) {
         ok = stbi_write_png(file.c_str(), s->w, s->h, 4, s->pixels.data(), s->w * 4) != 0;
     else
         ok = stbi_write_bmp(file.c_str(), s->w, s->h, 4, s->pixels.data()) != 0;
-    if (!ok) err = "SAVESPRITE: Schreiben fehlgeschlagen: " + file;
+    if (!ok) err = "SPRITE_SAVE: Schreiben fehlgeschlagen: " + file;
     return ok;
 }
 
 bool Gfx::saveBmp(const std::string& file, std::string& err) {
     if (headless || !renderer_) {
-        err = "SAVEBMP ist im Headless-Modus nicht verfuegbar";
+        err = "SCREEN_SAVE_BMP ist im Headless-Modus nicht verfuegbar";
         return false;
     }
     SDL_Surface* surf = SDL_RenderReadPixels(renderer_, nullptr);
     if (!surf) {
-        err = std::string("SAVEBMP: Bildschirm konnte nicht gelesen werden: ") + SDL_GetError();
+        err = std::string("SCREEN_SAVE_BMP: Bildschirm konnte nicht gelesen werden: ") + SDL_GetError();
         return false;
     }
     SDL_Surface* conv = SDL_ConvertSurface(surf, SDL_PIXELFORMAT_RGBA32);
     SDL_DestroySurface(surf);
     if (!conv) {
-        err = "SAVEBMP: Konvertierung fehlgeschlagen";
+        err = "SCREEN_SAVE_BMP: Konvertierung fehlgeschlagen";
         return false;
     }
     std::vector<uint8_t> rgba(static_cast<size_t>(conv->w) * conv->h * 4);
@@ -652,7 +652,7 @@ bool Gfx::saveBmp(const std::string& file, std::string& err) {
         ok = stbi_write_png(file.c_str(), w, h, 4, rgba.data(), w * 4) != 0;
     else
         ok = stbi_write_bmp(file.c_str(), w, h, 4, rgba.data()) != 0;
-    if (!ok) err = "SAVEBMP: Schreiben fehlgeschlagen: " + file;
+    if (!ok) err = "SCREEN_SAVE_BMP: Schreiben fehlgeschlagen: " + file;
     return ok;
 }
 
@@ -824,7 +824,7 @@ bool Gfx::loadBackground(const std::string& file, std::string& err) {
     if (headless) return true;
     SDL_Texture* tex = makeTexture(rgba, w, h);
     if (!tex) {
-        err = "LOADBMP: Textur konnte nicht erstellt werden";
+        err = "BACKGROUND_LOAD: Textur konnte nicht erstellt werden";
         return false;
     }
     if (background_) SDL_DestroyTexture(background_);
@@ -1019,7 +1019,7 @@ bool Gfx::loadBitmapFont(const std::string& file, int id, std::string& err) {
     std::vector<uint8_t> rgba;
     if (!loadImagePixels(file, rgba, w, h, err)) return false;
     // Farbtransparenz fuer Fonts: Standard ist Schwarz, ausser der Benutzer
-    // hat mit SETTRANSPARENCY eine andere Farbe gesetzt.
+    // hat mit SET_COLOR_KEY eine andere Farbe gesetzt.
     uint32_t fontKey = transparencySet_ ? transparencyKey_ : 0x000000;
     for (size_t i = 0; i + 3 < rgba.size(); i += 4) {
         uint32_t c = (static_cast<uint32_t>(rgba[i]) << 16) |

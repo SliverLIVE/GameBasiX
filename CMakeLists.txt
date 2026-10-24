@@ -156,7 +156,7 @@ set_tests_properties(ui PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
 
-# Dateizugriff: OPENFILE/READ.../WRITE..., Seek und Dateioperationen
+# Dateizugriff: FILE_OPEN/READ.../WRITE..., Seek und Dateioperationen
 add_test(NAME files
          COMMAND gbx --headless --tests tests/file_tests.gbx)
 set_tests_properties(files PROPERTIES

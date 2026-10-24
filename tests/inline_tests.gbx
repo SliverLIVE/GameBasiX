@@ -298,7 +298,7 @@ FUNCTION listeWachsen
 ENDFUNCTION
 
 listeWachsen()
-ASSERT BOUNDS(liste[], 0) = 5, "push/insert/remove aendern die Groesse"
+ASSERT ARRAY_BOUNDS(liste[], 0) = 5, "push/insert/remove aendern die Groesse"
 ASSERT liste[0] = 5 AND liste[1] = 10 AND liste[2] = 20 AND liste[3] = 40 AND liste[4] = 50, "Reihenfolge nach den Aenderungen"
 
 FUNCTION letztesWeg
@@ -307,7 +307,7 @@ FUNCTION letztesWeg
   ENDINLINE
 ENDFUNCTION
 letztesWeg()
-ASSERT BOUNDS(liste[], 0) = 4 AND liste[-1] = 40, "remove mit negativem Index"
+ASSERT ARRAY_BOUNDS(liste[], 0) = 4 AND liste[-1] = 40, "remove mit negativem Index"
 
 FUNCTION hintenAnfuegen
   INLINE
@@ -315,7 +315,7 @@ FUNCTION hintenAnfuegen
   ENDINLINE
 ENDFUNCTION
 hintenAnfuegen()
-ASSERT BOUNDS(liste[], 0) = 5 AND liste[-1] = 99, "insert(-1) haengt an"
+ASSERT ARRAY_BOUNDS(liste[], 0) = 5 AND liste[-1] = 99, "insert(-1) haengt an"
 
 ' resize entspricht REDIM: bestehende Werte bleiben, neue Plaetze sind 0.
 DIM form[3]
@@ -327,7 +327,7 @@ FUNCTION formWachsen
   ENDINLINE
 ENDFUNCTION
 formWachsen()
-ASSERT BOUNDS(form[], 0) = 6, "resize vergroessert"
+ASSERT ARRAY_BOUNDS(form[], 0) = 6, "resize vergroessert"
 ASSERT form[0] = 1 AND form[2] = 3 AND form[3] = 5, "resize behaelt die Werte"
 ASSERT form[5] = 0, "neue Plaetze sind 0"
 
@@ -337,7 +337,7 @@ FUNCTION formSchrumpfen
   ENDINLINE
 ENDFUNCTION
 formSchrumpfen()
-ASSERT BOUNDS(form[], 0) = 2 AND form[1] = 2, "resize verkleinert"
+ASSERT ARRAY_BOUNDS(form[], 0) = 2 AND form[1] = 2, "resize verkleinert"
 
 DIM woerter$[2]
 woerter$[0] = "Ada" : woerter$[1] = "Blaise"
@@ -349,7 +349,7 @@ FUNCTION woerterWachsen
   ENDINLINE
 ENDFUNCTION
 woerterWachsen()
-ASSERT BOUNDS(woerter$[], 0) = 4, "Text-Array waechst"
+ASSERT ARRAY_BOUNDS(woerter$[], 0) = 4, "Text-Array waechst"
 ASSERT woerter$[0] = "Zora" AND woerter$[1] = "Ada L." AND woerter$[3] = "Grace", "Text-Array Inhalt"
 
 ' Ein Element aus demselben Array laesst sich kopieren (auch wenn es umzieht).
@@ -375,7 +375,7 @@ FUNCTION punkteWachsen
   ENDINLINE
 ENDFUNCTION
 punkteWachsen()
-ASSERT BOUNDS(neuPunkte[], 0) = 6, "TYPE-Array waechst"
+ASSERT ARRAY_BOUNDS(neuPunkte[], 0) = 6, "TYPE-Array waechst"
 ASSERT neuPunkte[0].x = 0 AND neuPunkte[2].x = 2 AND neuPunkte[3].x = 9 AND neuPunkte[5].x = 0, "Werte im TYPE-Array"
 
 FUNCTION punkteLeeren
@@ -384,7 +384,7 @@ FUNCTION punkteLeeren
   ENDINLINE
 ENDFUNCTION
 punkteLeeren()
-ASSERT BOUNDS(neuPunkte[], 0) = 0, "clear auf TYPE-Array"
+ASSERT ARRAY_BOUNDS(neuPunkte[], 0) = 0, "clear auf TYPE-Array"
 
 ' Mehrdimensional: resize baut die neue Form, rank/size lesen sie.
 DIM raster[2][3]
@@ -401,7 +401,7 @@ FUNCTION rasterWachsen
 ENDFUNCTION
 rasterWachsen()
 ASSERT Dimensionen = 2, "rank liefert die Dimensionen"
-ASSERT BOUNDS(raster[], 0) = 4 AND BOUNDS(raster[], 1) = 5, "resize mehrdimensional"
+ASSERT ARRAY_BOUNDS(raster[], 0) = 4 AND ARRAY_BOUNDS(raster[], 1) = 5, "resize mehrdimensional"
 ASSERT raster[3][4] = 7 AND raster[1][2] = 9, "Werte bleiben beim Wachsen"
 
 ' Eine einzelne Zeile ist selbst ein Array (Element::asArray).
@@ -411,7 +411,7 @@ FUNCTION reiheWachsen
   ENDINLINE
 ENDFUNCTION
 reiheWachsen()
-ASSERT BOUNDS(raster[], 1) = 6 AND raster[0][5] = 42, "Zeile einzeln vergroessern"
+ASSERT ARRAY_BOUNDS(raster[], 1) = 6 AND raster[0][5] = 42, "Zeile einzeln vergroessern"
 
 ' ------------------------------------------- GBX-Befehle im Schritt aufrufen
 GLOBAL RufLaenge, RufFarbe
@@ -422,7 +422,7 @@ RufText$ = ""
 FUNCTION rufeBefehle
   INLINE
     mx = 0; my = 0; mlinks = 0; mrechts = 0;
-    MOUSESTATE(mx, my, mlinks, mrechts);
+    MOUSE_STATE(mx, my, mlinks, mrechts);
     ruflaenge = LEN("Hallo");
     ruffarbe = call("RGB", 1, 2, 3);
     ruftext_str = call("LEFT$", "Hallo Welt", 5).text();
@@ -437,7 +437,7 @@ ASSERT Mx = 0 AND My = 0 AND Mlinks = 0 AND Mrechts = 0, "BYREF-Ausgaben landen 
 DIM teile$[0]
 FUNCTION teileText
   INLINE
-    SPLITSTR("a,b,c", teile);
+    SPLIT_STRING("a,b,c", teile);
   ENDINLINE
 ENDFUNCTION
 teileText()
@@ -508,7 +508,7 @@ FINALLY
 
 FUNCTION rufeLiteral
   INLINE
-    MOUSESTATE(0, 0, 0, 0);
+    MOUSE_STATE(0, 0, 0, 0);
   ENDINLINE
 ENDFUNCTION
 TRY

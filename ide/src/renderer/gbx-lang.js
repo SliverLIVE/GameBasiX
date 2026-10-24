@@ -7,7 +7,7 @@ import { t, getLanguage } from './i18n.js';
 import { checkLine, splitStatements, commandParamLabels } from './line-check.js';
 
 // Steuerwörter von GameBasiX – dieselbe Liste wie in parseStatement()
-// (src/parser.cpp) und im CheatSheet. Befehle wie MOD oder ASL sind hier
+// (src/parser.cpp) und im CheatSheet. Befehle wie MOD oder SHL sind hier
 // absichtlich nicht dabei: Sie werden aufgerufen, nicht als Block benutzt.
 const CONTROL = new Set([
   'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF', 'FOR', 'TO', 'STEP', 'NEXT',
@@ -1001,7 +1001,7 @@ export function registerGbx(monaco, dataset, options = {}) {
   const commands = dataset.commands || [];
   const byName = new Map(commands.map((c) => [norm(c.name), c]));
   // Alle eingebauten Namen bekommen die Befehl-Farbe – auch Funktionen wie
-  // KEYHIT oder ABS und die KEY_*-Konstanten. Vorher waren nur kind 'command'
+  // KEY_PRESSED oder ABS und die KEY_*-Konstanten. Vorher waren nur kind 'command'
   // gefärbt, dadurch blieben Funktionen grau.
   const commandNames = commands
     .filter((c) => ['command', 'optional', 'function', 'constant'].includes(c.kind))
@@ -1571,7 +1571,7 @@ export function registerGbx(monaco, dataset, options = {}) {
         if (ch === ',' && depth === 0) activeParameter++;
       }
       // Typlabels aus den Prototypen durch die Namen aus der Signatur ersetzen
-      // (`MOUSESTATE` → mx##, my##, mba##, mbb## statt vier Mal `Integer (BYREF)`).
+      // (`MOUSE_STATE` → mx##, my##, mba##, mbb## statt vier Mal `Integer (BYREF)`).
       const english = getLanguage() === 'en';
       const labels = commandParamLabels(command).map((label, index) => {
         const param = command.params?.[index];
@@ -1735,7 +1735,7 @@ export function registerGbx(monaco, dataset, options = {}) {
               add(t('Klammern ergänzen'), [{ range: span(offsets.nameEnd, offsets.nameEnd), text: '()' }], true);
             }
           } else if (error.code === 'parens-forbidden' && offsets.openParen >= 0) {
-            // `DRAWSPRITE(logo…)` braucht nach dem Entfernen ein Leerzeichen.
+            // `SPRITE_DRAW(logo…)` braucht nach dem Entfernen ein Leerzeichen.
             const next = model.getLineContent(line)[offsets.openParen + 1] || '';
             const gap = next && !/[\s)]/.test(next) ? ' ' : '';
             const edits = [{ range: span(offsets.openParen, offsets.openParen + 1), text: gap }];

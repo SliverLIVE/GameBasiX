@@ -294,7 +294,7 @@ export function googleFontFileName(family, { weight = 400, style = 'normal' } = 
 
 /**
  * Lädt eine Schrift herunter und legt sie im Asset-Ordner des Projekts ab.
- * Liefert Pfad, relative Angabe für LOADFONT und die fertige Befehlszeile.
+ * Liefert Pfad, relative Angabe für FONT_LOAD und die fertige Befehlszeile.
  */
 export async function downloadGoogleFont({
   projectDir = '',
@@ -328,6 +328,6 @@ export async function downloadGoogleFont({
     path: target,
     relative,
     bytes: buffer.length,
-    command: `LOADFONT "${relative}", 1, 20`
+    command: `FONT_LOAD "${relative}", 1, 20`
   };
 }

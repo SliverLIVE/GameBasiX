@@ -179,8 +179,8 @@ function tooManyMessage(name, max, found) {
 const NONE = { status: 'none' };
 
 /* Manche Befehle nennen in prototypen.txt nur den Typ ihrer Argumente
-   (`MOUSESTATE` → vier Mal `Integer (BYREF)`); die Namen stehen allein in der
-   Signatur (`MOUSESTATE mx##, my##, mba##, mbb##`). */
+   (`MOUSE_STATE` → vier Mal `Integer (BYREF)`); die Namen stehen allein in der
+   Signatur (`MOUSE_STATE mx##, my##, mba##, mbb##`). */
 const GENERIC_LABEL = /\((?:BYREF|REF)\)$|^(?:beliebig|optional|number|string|any|array)(?:\s*\(.*\))?$/i;
 
 function escapeRegExp(text) {
@@ -333,7 +333,7 @@ export function checkLine(text, { byName, caretColumn = 0 } = {}) {
     if (!statement) return NONE;
   }
 
-  // Zuweisung: die rechte Seite kann einen Befehl enthalten (n# = GETTIMER()).
+  // Zuweisung: die rechte Seite kann einen Befehl enthalten (n# = DELTA_TIME()).
   const assignment = /^[A-Za-z_]\w*[$%#]?\s*=\s*/.exec(statement);
   if (assignment) {
     offset += assignment[0].length;

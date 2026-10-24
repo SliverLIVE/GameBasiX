@@ -8,7 +8,7 @@ struct SDL_SharedObject;
 
 // Die Steam-Bibliothek (steam_api64.dll, libsteam_api.so) wird zur Laufzeit
 // geladen: das Projekt baut ohne SDK, und ohne Steam bleiben alle Befehle bei
-// 0, waehrend STEAMERROR$ den Grund nennt. Gesucht wird in der Umgebung
+// 0, waehrend STEAM_ERROR$ den Grund nennt. Gesucht wird in der Umgebung
 // GBX_STEAM_LIB und danach neben der EXE.
 class Steam {
 public:

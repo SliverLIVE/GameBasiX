@@ -134,11 +134,11 @@ const NOTES = {
     de: 'Hinweis: Der Index ist 0-basiert; ohne Index wird das erste Zeichen gelesen.',
     en: 'Note: the index is 0-based; without an index the first character is read.'
   },
-  KEY: {
+  KEY_DOWN: {
     de: 'Hinweis: Der Parameter ist ein SDL-Scancode; die KEY_*-Konstanten ersparen das Nachschlagen.',
     en: 'Note: the parameter is an SDL scancode; the KEY_* constants avoid looking them up.'
   },
-  LOADFONT: {
+  FONT_LOAD: {
     de: 'Hinweis: .bmp-Dateien werden als Raster mit 16 Zeichen pro Zeile gelesen, .ttf/.otf über FreeType.',
     en: 'Note: .bmp files are read as a raster with 16 characters per row; .ttf/.otf are loaded through FreeType.'
   },
@@ -146,27 +146,27 @@ const NOTES = {
     de: 'Hinweis: Der Kerning-Parameter wird ignoriert; Bitmap-Schriften sind festbreit.',
     en: 'Note: the kerning parameter is ignored; bitmap fonts are monospaced.'
   },
-  ALPHAMODE: {
+  SET_ALPHA_MODE: {
     de: 'Hinweis: > 0 additiv, < 0 Alpha mit 1+Wert, 0 normal.',
     en: 'Note: > 0 additive, < 0 alpha with 1+value, 0 normal.'
   },
-  PLAYSOUND: {
-    de: 'Hinweis: Liefert den Kanal zurück, den STOPSOUND und SOUNDPLAYING erwarten.',
-    en: 'Note: returns the channel expected by STOPSOUND and SOUNDPLAYING.'
+  SOUND_PLAY: {
+    de: 'Hinweis: Liefert den Kanal zurück, den SOUND_STOP und SOUND_PLAYING erwarten.',
+    en: 'Note: returns the channel expected by SOUND_STOP and SOUND_PLAYING.'
   },
-  PLAYMUSIC: {
+  MUSIC_PLAY: {
     de: 'Hinweis: GameBasiX spielt nur WAV-Dateien über den eingebauten Mixer.',
     en: 'Note: GameBasiX only plays WAV files through its built-in mixer.'
   },
-  PRESCALER: {
-    de: 'Hinweis: Nutzt SDL-Logical-Presentation; VIEWPORT rechnet dann in Fensterkoordinaten.',
-    en: 'Note: uses SDL logical presentation; VIEWPORT then works in window coordinates.'
+  SCREEN_SCALE: {
+    de: 'Hinweis: Nutzt SDL-Logical-Presentation; SET_VIEWPORT rechnet dann in Fensterkoordinaten.',
+    en: 'Note: uses SDL logical presentation; SET_VIEWPORT then works in window coordinates.'
   },
-  GRABSPRITE: {
+  SPRITE_GRAB: {
     de: 'Hinweis: Braucht einen echten Renderer und funktioniert nicht mit --headless.',
     en: 'Note: requires a real renderer and does not work with --headless.'
   },
-  SAVEBMP: {
+  SCREEN_SAVE_BMP: {
     de: 'Hinweis: Braucht einen echten Renderer und funktioniert nicht mit --headless.',
     en: 'Note: requires a real renderer and does not work with --headless.'
   }
@@ -177,29 +177,29 @@ const SAMPLES = {
   REDIM: 'REDIM punkte[20]',
   DIMPUSH: 'DIMPUSH namen$[], "Ada"',
   DIMDEL: 'DIMDEL namen$[], 0',
-  SETSCREEN: 'SETSCREEN 800, 600',
-  SHOWSCREEN: 'WHILE TRUE\n    CLEARSCREEN\n    PRINT "Hallo", 20, 20\n    SHOWSCREEN\n    IF KEYHIT(KEY_ESC) THEN BREAK\nWEND',
+  SCREEN_SET: 'SCREEN_SET 800, 600',
+  SCREEN_SHOW: 'WHILE TRUE\n    SCREEN_CLEAR\n    PRINT "Hallo", 20, 20\n    SCREEN_SHOW\n    IF KEY_PRESSED(KEY_ESC) THEN BREAK\nWEND',
   PRINT: 'PRINT "Punkte: " + punkte, 20, 20',
-  DRAWRECT: 'DRAWRECT 40, 40, 200, 100, RGB(200, 60, 60)',
-  DRAWLINE: 'DRAWLINE 0, 0, 800, 600, RGB(255, 255, 255)',
-  DRAWCIRCLE: 'DRAWCIRCLE 320, 240, 60, RGB(240, 200, 80)',
-  SETPIXEL: 'SETPIXEL 10, 10, RGB(255, 0, 0)',
-  LOADSPRITE: 'LOADSPRITE "assets/player.png", 0',
-  DRAWSPRITE: 'DRAWSPRITE 0, 100, 80',
-  ROTOZOOMSPRITE: 'ROTOZOOMSPRITE 0, 200, 150, 45, 120',
-  LOADANIM: 'LOADANIM "assets/sheet.png", 1, 32, 32\nDRAWANIM 1, 2, 100, 100',
-  MOUSESTATE: 'MOUSESTATE mx, my, mb1, mb2\nIF mb1 THEN PRINT "Klick bei " + mx + ", " + my, 10, 10',
-  KEY: 'IF KEY(KEY_LEFT) THEN x = x - 4\nIF KEY(KEY_RIGHT) THEN x = x + 4',
-  KEYHIT: 'IF KEYHIT(KEY_SPACE) THEN schuss()',
-  LOADSOUND: 'LOADSOUND "assets/blip.wav", 0\nkanal = PLAYSOUND(0, 0, 1)',
-  PLAYSOUND: 'kanal = PLAYSOUND(0, 0, 1)',
-  PLAYMUSIC: 'PLAYMUSIC "assets/musik.wav", TRUE',
-  LOADFONT: 'LOADFONT "assets/font.png", 0\nSETFONT 0',
+  DRAW_RECT: 'DRAW_RECT 40, 40, 200, 100, RGB(200, 60, 60)',
+  DRAW_LINE: 'DRAW_LINE 0, 0, 800, 600, RGB(255, 255, 255)',
+  DRAW_CIRCLE: 'DRAW_CIRCLE 320, 240, 60, RGB(240, 200, 80)',
+  PIXEL_SET: 'PIXEL_SET 10, 10, RGB(255, 0, 0)',
+  SPRITE_LOAD: 'SPRITE_LOAD "assets/player.png", 0',
+  SPRITE_DRAW: 'SPRITE_DRAW 0, 100, 80',
+  SPRITE_DRAW_ROTATED_SCALED: 'SPRITE_DRAW_ROTATED_SCALED 0, 200, 150, 45, 120',
+  ANIM_LOAD: 'ANIM_LOAD "assets/sheet.png", 1, 32, 32\nDRAWANIM 1, 2, 100, 100',
+  MOUSE_STATE: 'MOUSE_STATE mx, my, mb1, mb2\nIF mb1 THEN PRINT "Klick bei " + mx + ", " + my, 10, 10',
+  KEY_DOWN: 'IF KEY_DOWN(KEY_LEFT) THEN x = x - 4\nIF KEY_DOWN(KEY_RIGHT) THEN x = x + 4',
+  KEY_PRESSED: 'IF KEY_PRESSED(KEY_SPACE) THEN schuss()',
+  SOUND_LOAD: 'SOUND_LOAD "assets/blip.wav", 0\nkanal = SOUND_PLAY(0, 0, 1)',
+  SOUND_PLAY: 'kanal = SOUND_PLAY(0, 0, 1)',
+  MUSIC_PLAY: 'MUSIC_PLAY "assets/musik.wav", TRUE',
+  FONT_LOAD: 'FONT_LOAD "assets/font.png", 0\nSETFONT 0',
   RND: 'wurf = RND(6) + 1',
   RGB: 'farbe = RGB(255, 128, 0)',
-  GETTIMER: 'start = GETTIMER()\n...\nsekunden = (GETTIMER() - start) / 1000.0',
+  DELTA_TIME: 'start = DELTA_TIME()\n...\nsekunden = (DELTA_TIME() - start) / 1000.0',
   SLEEP: 'SLEEP 250',
-  SPLITSTR: 'SPLITSTR "a;b;c", teile$[], ";"',
+  SPLIT_STRING: 'SPLIT_STRING "a;b;c", teile$[], ";"',
   ASSERT: 'ASSERT 2 + 2 = 4, "Mathe kaputt"'
 };
 
@@ -212,9 +212,9 @@ const SUPPLEMENT = [
   { name: 'DIMDATA', args: 'a[], wert, ...', sample: 'DIM zahlen[5]\nDIMDATA zahlen[], 3, 8, 15, 1, 9' },
   { name: 'DIMPUSH', args: 'a[], wert', sample: 'DIMPUSH namen$[], "Ada"' },
   { name: 'DIMDEL', args: 'a[], index', sample: 'DIMDEL namen$[], 0' },
-  { name: 'BOUNDS', args: 'a[], dimension', kind: 'function', sample: 'n = BOUNDS(punkte[], 0)' },
-  { name: 'GENFONT', args: '', kind: 'function' },
-  { name: 'GENSCREEN', args: '', kind: 'function' }
+  { name: 'ARRAY_BOUNDS', args: 'a[], dimension', kind: 'function', sample: 'n = ARRAY_BOUNDS(punkte[], 0)' },
+  { name: 'FONT_NEW', args: '', kind: 'function' },
+  { name: 'SCREEN_NEW', args: '', kind: 'function' }
 ];
 
 const CONSTANTS = {
@@ -307,12 +307,15 @@ function parseReference(markdown, existing) {
       const match = /`([^`]+)`/.exec(part);
       if (!match) continue;
       const code = match[1].trim();
-      if (/^(KEY_|Fertige)/.test(code)) continue;
       // Fließtext wie `python tools/make_cheatsheet.py` ist kein Befehl.
       if (/[/\\]/.test(code)) continue;
       const nameMatch = /^([A-Za-z][A-Za-z0-9_$]*)\s*(.*)$/.exec(code);
       if (!nameMatch) continue;
       const name = nameMatch[1].toUpperCase();
+      // Die README listet die Tastencode-Konstanten (KEY_A … KEY_Z, KEY_0 …
+      // KEY_9); das sind keine Befehle. KEY_DOWN, KEY_PRESSED und KEY_WAIT
+      // stehen dagegen im Interpreter und gehören in den Datensatz.
+      if (/^(KEY_|Fertige)/.test(code) && !BUILTINS.has(name)) continue;
       if (['TRUE', 'FALSE', 'END'].includes(name)) continue;
       const argsRaw = nameMatch[2].trim();
       const isFunction = argsRaw.startsWith('(');
@@ -465,8 +468,8 @@ function overviewEntries() {
     ),
     entry(
       'Sprachdetails',
-      'KEY() und KEYHIT() nehmen SDL-Scancodes (KEY_*-Konstanten). MID$, ASC und INSTR sind 0-basiert, RND(max) ist inklusiv. SIN/COS/TAN und ATAN rechnen in Grad. DIM a[n] ergibt die Indizes 0…n-1, negative Indizes zählen von hinten. GOTO springt nur innerhalb des aktuellen Abschnitts. FINALLY beendet den TRY-Block. Musik ist auf WAV beschränkt, PRESCALER nutzt SDL-Logical-Presentation. 3D, Netzwerk, INLINE und Datei-Streams fehlen bewusst.',
-      'KEY() and KEYHIT() take SDL scancodes (KEY_* constants). MID$, ASC and INSTR are 0-based, RND(max) is inclusive. SIN/COS/TAN and ATAN work in degrees. DIM a[n] yields indices 0…n-1, negative indices count from the end. GOTO only jumps within the current section. FINALLY ends the TRY block. Music is WAV only, PRESCALER uses SDL logical presentation. 3D, networking, INLINE and file streams are intentionally absent.'
+      'KEY_DOWN() und KEY_PRESSED() nehmen SDL-Scancodes (KEY_*-Konstanten). MID$, ASC und INSTR sind 0-basiert, RND(max) ist inklusiv. SIN/COS/TAN und ATAN rechnen in Grad. DIM a[n] ergibt die Indizes 0…n-1, negative Indizes zählen von hinten. GOTO springt nur innerhalb des aktuellen Abschnitts. FINALLY beendet den TRY-Block. Musik ist auf WAV beschränkt, SCREEN_SCALE nutzt SDL-Logical-Presentation. 3D, Netzwerk, INLINE und Datei-Streams fehlen bewusst.',
+      'KEY_DOWN() and KEY_PRESSED() take SDL scancodes (KEY_* constants). MID$, ASC and INSTR are 0-based, RND(max) is inclusive. SIN/COS/TAN and ATAN work in degrees. DIM a[n] yields indices 0…n-1, negative indices count from the end. GOTO only jumps within the current section. FINALLY ends the TRY block. Music is WAV only, SCREEN_SCALE uses SDL logical presentation. 3D, networking, INLINE and file streams are intentionally absent.'
     )
   ];
 }
@@ -505,8 +508,8 @@ const BUILTINS = (() => {
 // ignoriert. Ohne die Korrektur würde die Signatur ein Argument anzeigen,
 // das nichts tut.
 const ARITY_FIX = {
-  DRAWCIRCLE: 4,
-  DRAWFILLEDCIRCLE: 4
+  DRAW_CIRCLE: 4,
+  DRAW_CIRCLE_FILLED: 4
 };
 
 // Argumentnamen für Befehle, deren Prototyp keine brauchbaren Namen hergibt.
@@ -514,13 +517,13 @@ const PARAM_LABELS = {
   DEBUG: ['text'],
   STDOUT: ['text'],
   STDERR: ['text'],
-  ALPHATESTING: ['wert'],
+  SET_ALPHA_TEST: ['wert'],
   CEIL: ['wert'],
   FLOOR: ['wert'],
   INTEGER64: ['wert'],
   'STR$': ['wert'],
   VAL: ['text'],
-  PUTENV: ['name', 'wert'],
+  SET_ENV: ['name', 'wert'],
   'TRIM$': ['text', 'zeichen'],
   'LTRIM$': ['text', 'zeichen'],
   'RTRIM$': ['text', 'zeichen'],
@@ -529,7 +532,7 @@ const PARAM_LABELS = {
 };
 
 // Die Argumentnamen in der Signatur gibt es auf Deutsch und Englisch:
-// DRAWRECT x, y, w, h, farbe / colour.
+// DRAW_RECT x, y, w, h, farbe / colour.
 const LABELS = {
   an: 'on',
   wert: 'value',

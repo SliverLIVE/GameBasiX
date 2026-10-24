@@ -3,8 +3,8 @@
 
 Zwei Durchlaeufe:
   1. --headless --tests  (ohne Fenster, ASSERTs werden gezaehlt)
-  2. SDL_VIDEODRIVER=dummy ohne --tests (mit Renderer, damit GRABSPRITE,
-     SAVEBMP und die Bildschirm-Funktionen wirklich laufen)
+  2. SDL_VIDEODRIVER=dummy ohne --tests (mit Renderer, damit SPRITE_GRAB,
+     SCREEN_SAVE_BMP und die Bildschirm-Funktionen wirklich laufen)
 
 Ausserdem: jeder Befehl aus src/builtins.cpp muss im Testskript vorkommen,
 damit ein neuer Befehl nicht unbemerkt ungetestet bleibt.

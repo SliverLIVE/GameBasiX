@@ -284,7 +284,7 @@ ExprP Parser::parsePostfix() {
             SrcPos p{path_, cur().line};
             advance();
             if (acceptSym("]")) {
-                // "a[]" - Zugriff auf das komplette Array (BOUNDS, LEN, FOREACH ...)
+                // "a[]" - Zugriff auf das komplette Array (ARRAY_BOUNDS, LEN, FOREACH ...)
                 continue;
             }
             ExprP idx = parseExpr();

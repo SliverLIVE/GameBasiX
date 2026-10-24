@@ -198,20 +198,20 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (!a.rt.headless) SDL_Delay(static_cast<Uint32>(ms));
             return ok();
         });
-        add("GETTIMER", 0, 0, [](BArgs& a) { return Value::mkFloat(a.rt.gfx.timerFrame()); });
-        add("GETTIMERALL", 0, 0, [](BArgs& a) { return Value::mkFloat(a.rt.gfx.timerAll()); });
-        add("KEYWAIT", 0, 0, [](BArgs& a) {
+        add("DELTA_TIME", 0, 0, [](BArgs& a) { return Value::mkFloat(a.rt.gfx.timerFrame()); });
+        add("ELAPSED_TIME", 0, 0, [](BArgs& a) { return Value::mkFloat(a.rt.gfx.timerAll()); });
+        add("KEY_WAIT", 0, 0, [](BArgs& a) {
             a.rt.gfx.waitKey();
             return ok();
         });
-        add("MOUSEWAIT", 0, 0, [](BArgs& a) {
+        add("MOUSE_WAIT", 0, 0, [](BArgs& a) {
             a.rt.gfx.waitMouse();
             return ok();
         });
-        add("GETCOMMANDLINE$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.commandLine); });
-        add("CODELINE", 0, 0, [](BArgs& a) { return Value::mkInt(a.pos.line); });
-        add("CODEFILE$", 0, 0, [](BArgs& a) { return Value::mkStr(a.pos.file); });
-        add("PLATFORMINFO$", 1, 1, [](BArgs& a) {
+        add("COMMAND_LINE$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.commandLine); });
+        add("SOURCE_LINE", 0, 0, [](BArgs& a) { return Value::mkInt(a.pos.line); });
+        add("SOURCE_FILE$", 0, 0, [](BArgs& a) { return Value::mkStr(a.pos.file); });
+        add("PLATFORM_INFO$", 1, 1, [](BArgs& a) {
             std::string what = lowerAscii(a.str(0));
             if (what == "os" || what == "platform") {
                 const char* p = SDL_GetPlatform();
@@ -228,11 +228,11 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (what == "cpus" || what == "cpu") return Value::mkInt(SDL_GetNumLogicalCPUCores());
             return Value::mkStr("");
         });
-        add("GETENV$", 1, 1, [](BArgs& a) {
+        add("ENV$", 1, 1, [](BArgs& a) {
             const char* v = std::getenv(a.str(0).c_str());
             return Value::mkStr(v ? v : "");
         });
-        add("PUTENV", 2, 2, [](BArgs& a) {
+        add("SET_ENV", 2, 2, [](BArgs& a) {
 #ifdef _WIN32
             _putenv_s(a.str(0).c_str(), a.str(1).c_str());
 #else
@@ -251,7 +251,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return ok();
         });
-        add("HIBERNATE", 0, 0, [](BArgs& a) {
+        add("WAIT_INPUT", 0, 0, [](BArgs& a) {
             if (a.rt.headless) return ok();
             for (;;) {
                 a.rt.gfx.present();
@@ -263,32 +263,32 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return ok();
         });
-        add("ALLOWESCAPE", 0, 1, [](BArgs& a) {
+        add("ALLOW_ESCAPE", 0, 1, [](BArgs& a) {
             a.rt.gfx.setAllowEscape(a.truthy(0));
             return ok();
         });
-        add("SYSTEMPOINTER", 0, 1, [](BArgs& a) {
+        add("SET_SYSTEM_POINTER", 0, 1, [](BArgs& a) {
             a.rt.gfx.showCursor(a.truthy(0));
             return ok();
         });
-        add("HUSH", 0, 0, [](BArgs& a) {
+        add("SOUND_STOP_ALL", 0, 0, [](BArgs& a) {
             a.rt.audio.hush();
             return ok();
         });
 
         // ----------------------------------------------------------- Fenster
-        add("SETSCREEN", 1, 3, [](BArgs& a) {
+        add("SCREEN_SET", 1, 3, [](BArgs& a) {
             int w = static_cast<int>(a.integer(0));
             int h = a.vals.size() > 1 ? static_cast<int>(a.integer(1)) : 0;
             int fs = a.vals.size() > 2 ? static_cast<int>(a.integer(2)) : -1;
             a.rt.gfx.setScreen(w, h, fs);
             return ok();
         });
-        add("SETWINDOWTITLE", 1, 1, [](BArgs& a) {
+        add("WINDOW_TITLE", 1, 1, [](BArgs& a) {
             a.rt.gfx.setTitle(a.str(0));
             return ok();
         });
-        add("CLEARSCREEN", 0, 1, [](BArgs& a) {
+        add("SCREEN_CLEAR", 0, 1, [](BArgs& a) {
             int64_t col = a.vals.empty() ? 0 : a.integer(0);
             if (col == -1) {
                 a.rt.gfx.setClearColor(static_cast<uint32_t>(-1));
@@ -297,40 +297,40 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.rt.gfx.clearScreen(static_cast<uint32_t>(col) & 0xFFFFFF);
             return ok();
         });
-        add("BLACKSCREEN", 0, 0, [](BArgs& a) {
+        add("SCREEN_BLACK", 0, 0, [](BArgs& a) {
             a.rt.gfx.blackScreen();
             return ok();
         });
-        add("SHOWSCREEN", 0, 0, [](BArgs& a) {
+        add("SCREEN_SHOW", 0, 0, [](BArgs& a) {
             a.rt.gfx.present();
             if (a.rt.gfx.quitRequested()) a.rt.quit = true;
             return ok();
         });
-        add("LIMITFPS", 1, 2, [](BArgs& a) {
+        add("LIMIT_FPS", 1, 2, [](BArgs& a) {
             a.rt.gfx.setLimitFps(a.num(0), a.vals.size() > 1 ? a.truthy(1) : false);
             return ok();
         });
-        add("GETSCREENSIZE", 2, 2, [](BArgs& a) {
+        add("SCREEN_SIZE", 2, 2, [](BArgs& a) {
             a.setOut(0, Value::mkInt(a.rt.gfx.screenWidth()));
             a.setOut(1, Value::mkInt(a.rt.gfx.screenHeight()));
             return ok();
         });
-        add("GETSCREENWIDTH", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.screenWidth()); });
-        add("GETSCREENHEIGHT", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.screenHeight()); });
-        add("GETDESKTOPSIZE", 2, 2, [](BArgs& a) {
+        add("SCREEN_WIDTH", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.screenWidth()); });
+        add("SCREEN_HEIGHT", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.screenHeight()); });
+        add("DESKTOP_SIZE", 2, 2, [](BArgs& a) {
             int w = 0, h = 0;
             a.rt.gfx.desktopSize(w, h);
             a.setOut(0, Value::mkInt(w));
             a.setOut(1, Value::mkInt(h));
             return ok();
         });
-        add("ISFULLSCREEN", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.isFullscreen()); });
-        add("VIEWPORT", 4, 4, [](BArgs& a) {
+        add("SCREEN_FULLSCREEN", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.isFullscreen()); });
+        add("SET_VIEWPORT", 4, 4, [](BArgs& a) {
             a.rt.gfx.setViewport(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                                  static_cast<int>(a.integer(2)), static_cast<int>(a.integer(3)));
             return ok();
         });
-        add("GETVIEWPORT", 4, 4, [](BArgs& a) {
+        add("VIEWPORT", 4, 4, [](BArgs& a) {
             int x, y, w, h;
             a.rt.gfx.getViewport(x, y, w, h);
             a.setOut(0, Value::mkInt(x));
@@ -339,28 +339,28 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.setOut(3, Value::mkInt(h));
             return ok();
         });
-        add("PRESCALER", 0, 2, [](BArgs& a) {
+        add("SCREEN_SCALE", 0, 2, [](BArgs& a) {
             if (a.vals.size() < 2) a.rt.gfx.setPrescaler(0, 0);
             else a.rt.gfx.setPrescaler(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)));
             return ok();
         });
-        add("SMOOTHSHADING", 0, 1, [](BArgs& a) {
+        add("SET_SMOOTHING", 0, 1, [](BArgs& a) {
             a.rt.gfx.setSmoothShading(a.truthy(0));
             return ok();
         });
-        add("ALPHAMODE", 0, 1, [](BArgs& a) {
+        add("SET_ALPHA_MODE", 0, 1, [](BArgs& a) {
             a.rt.gfx.setAlphaMode(a.vals.empty() ? 0.0 : a.num(0));
             return ok();
         });
-        add("ALPHATESTING", 0, 1, [](BArgs& a) {
+        add("SET_ALPHA_TEST", 0, 1, [](BArgs& a) {
             a.rt.gfx.setAlphaTesting(a.vals.empty() ? 1.0 : a.num(0));
             return ok();
         });
-        add("SETTRANSPARENCY", 1, 1, [](BArgs& a) {
+        add("SET_COLOR_KEY", 1, 1, [](BArgs& a) {
             a.rt.gfx.setTransparency(colorOf(a, 0));
             return ok();
         });
-        add("SETTEXTCOLOR", 1, 1, [](BArgs& a) {
+        add("TEXT_COLOR", 1, 1, [](BArgs& a) {
             a.rt.textColor = colorOf(a, 0);
             return ok();
         });
@@ -369,19 +369,19 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("RGB", 3, 3, [](BArgs& a) {
             return Value::mkInt(rgbInt(a.integer(0), a.integer(1), a.integer(2)));
         });
-        add("DRAWLINE", 5, 5, [](BArgs& a) {
+        add("DRAW_LINE", 5, 5, [](BArgs& a) {
             a.rt.gfx.drawLine(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)),
                               static_cast<float>(a.num(2)), static_cast<float>(a.num(3)),
                               colorOf(a, 4));
             return ok();
         });
-        add("DRAWRECT", 5, 5, [](BArgs& a) {
+        add("DRAW_RECT", 5, 5, [](BArgs& a) {
             a.rt.gfx.drawRect(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)),
                               static_cast<float>(a.num(2)), static_cast<float>(a.num(3)),
                               colorOf(a, 4));
             return ok();
         });
-        add("DRAWBORDER", 5, 5, [](BArgs& a) {
+        add("DRAW_RECT_BORDER", 5, 5, [](BArgs& a) {
             float x = static_cast<float>(a.num(0)), y = static_cast<float>(a.num(1));
             float w = static_cast<float>(a.num(2)), h = static_cast<float>(a.num(3));
             uint32_t c = colorOf(a, 4);
@@ -391,94 +391,94 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.rt.gfx.drawLine(x, y + h, x, y, c);
             return ok();
         });
-        add("DRAWCIRCLE", 4, 5, [](BArgs& a) {
+        add("DRAW_CIRCLE", 4, 5, [](BArgs& a) {
             uint32_t c = a.vals.size() > 3 ? colorOf(a, 3) : 0xFFFFFF;
             a.rt.gfx.drawCircle(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)),
                                 static_cast<float>(a.num(2)), c, false);
             return ok();
         });
-        add("DRAWFILLEDCIRCLE", 4, 5, [](BArgs& a) {
+        add("DRAW_CIRCLE_FILLED", 4, 5, [](BArgs& a) {
             uint32_t c = a.vals.size() > 3 ? colorOf(a, 3) : 0xFFFFFF;
             a.rt.gfx.drawCircle(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)),
                                 static_cast<float>(a.num(2)), c, true);
             return ok();
         });
-        add("SETPIXEL", 3, 3, [](BArgs& a) {
+        add("PIXEL_SET", 3, 3, [](BArgs& a) {
             a.rt.gfx.setPixel(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                               colorOf(a, 2));
             return ok();
         });
-        add("GETPIXEL", 2, 2, [](BArgs& a) {
+        add("PIXEL_GET", 2, 2, [](BArgs& a) {
             return Value::mkInt(a.rt.gfx.getPixel(static_cast<int>(a.integer(0)),
                                                   static_cast<int>(a.integer(1))));
         });
-        add("STARTPOLY", 0, 2, [](BArgs& a) {
+        add("POLY_BEGIN", 0, 2, [](BArgs& a) {
             int sprite = a.vals.empty() ? -1 : static_cast<int>(a.integer(0));
             int mode = a.vals.size() > 1 ? static_cast<int>(a.integer(1)) : 0;
             a.rt.gfx.startPoly(sprite, mode);
             return ok();
         });
-        add("POLYVECTOR", 2, 5, [](BArgs& a) {
+        add("POLY_POINT", 2, 5, [](BArgs& a) {
             float tx = a.vals.size() > 2 ? static_cast<float>(a.num(2)) : 0.0f;
             float ty = a.vals.size() > 3 ? static_cast<float>(a.num(3)) : 0.0f;
             uint32_t c = a.vals.size() > 4 ? colorOf(a, 4) : 0xFFFFFF;
             a.rt.gfx.polyVector(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)), tx, ty, c);
             return ok();
         });
-        add("POLYNEWSTRIP", 0, 0, [](BArgs& a) {
+        add("POLY_STRIP", 0, 0, [](BArgs& a) {
             a.rt.gfx.startPoly(-1, 2);
             return ok();
         });
-        add("ENDPOLY", 0, 0, [](BArgs& a) {
+        add("POLY_END", 0, 0, [](BArgs& a) {
             a.rt.gfx.endPoly();
             return ok();
         });
 
         // ------------------------------------------------------------ Sprites
-        add("GENSPRITE", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.nextSpriteId()); });
-        add("GENSOUND", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.audio.nextId()); });
-        add("GENFONT", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.nextFontId()); });
-        add("GENSCREEN", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.nextScreenId()); });
-        add("LOADSPRITE", 2, 2, [](BArgs& a) {
+        add("SPRITE_NEW", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.nextSpriteId()); });
+        add("SOUND_NEW", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.audio.nextId()); });
+        add("FONT_NEW", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.nextFontId()); });
+        add("SCREEN_NEW", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.nextScreenId()); });
+        add("SPRITE_LOAD", 2, 2, [](BArgs& a) {
             std::string err;
             if (!a.rt.gfx.loadSprite(ASSET(0), static_cast<int>(a.integer(1)), err)) a.fail(err);
             return ok();
         });
-        add("LOADANIM", 4, 4, [](BArgs& a) {
+        add("ANIM_LOAD", 4, 4, [](BArgs& a) {
             std::string err;
             int id = static_cast<int>(a.integer(1));
             if (!a.rt.gfx.loadSprite(ASSET(0), id, err)) a.fail(err);
             a.rt.gfx.setSpriteAnim(id, static_cast<int>(a.integer(2)), static_cast<int>(a.integer(3)));
             return ok();
         });
-        add("SETSPRITEANIM", 3, 3, [](BArgs& a) {
+        add("ANIM_SET_TILES", 3, 3, [](BArgs& a) {
             a.rt.gfx.setSpriteAnim(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                                    static_cast<int>(a.integer(2)));
             return ok();
         });
-        add("DRAWSPRITE", 3, 3, [](BArgs& a) {
+        add("SPRITE_DRAW", 3, 3, [](BArgs& a) {
             a.rt.gfx.drawSprite(static_cast<int>(a.integer(0)), static_cast<float>(a.num(1)),
                                 static_cast<float>(a.num(2)));
             return ok();
         });
-        add("ROTOSPRITE", 4, 4, [](BArgs& a) {
+        add("SPRITE_DRAW_ROTATED", 4, 4, [](BArgs& a) {
             a.rt.gfx.drawSpriteRotozoom(static_cast<int>(a.integer(0)), static_cast<float>(a.num(1)),
                                         static_cast<float>(a.num(2)), a.num(3), 100.0f);
             return ok();
         });
-        add("ROTOZOOMSPRITE", 5, 5, [](BArgs& a) {
+        add("SPRITE_DRAW_ROTATED_SCALED", 5, 5, [](BArgs& a) {
             a.rt.gfx.drawSpriteRotozoom(static_cast<int>(a.integer(0)), static_cast<float>(a.num(1)),
                                         static_cast<float>(a.num(2)), a.num(3),
                                         static_cast<float>(a.num(4)));
             return ok();
         });
-        add("ZOOMSPRITE", 5, 5, [](BArgs& a) {
+        add("SPRITE_DRAW_SCALED", 5, 5, [](BArgs& a) {
             a.rt.gfx.drawSpriteZoom(static_cast<int>(a.integer(0)), static_cast<float>(a.num(1)),
                                     static_cast<float>(a.num(2)), static_cast<float>(a.num(3)),
                                     static_cast<float>(a.num(4)));
             return ok();
         });
-        add("STRETCHSPRITE", 5, 5, [](BArgs& a) {
+        add("SPRITE_DRAW_STRETCHED", 5, 5, [](BArgs& a) {
             int id = static_cast<int>(a.integer(0));
             a.rt.gfx.drawSpriteZoom(id, static_cast<float>(a.num(1)), static_cast<float>(a.num(2)),
                                     100.0f * static_cast<float>(a.num(3)) /
@@ -487,31 +487,31 @@ std::unordered_map<std::string, Builtin>& builtins() {
                                         std::max(1, a.rt.gfx.spriteHeight(id)));
             return ok();
         });
-        add("DRAWANIM", 4, 4, [](BArgs& a) {
+        add("ANIM_DRAW", 4, 4, [](BArgs& a) {
             a.rt.gfx.drawAnim(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                               static_cast<float>(a.num(2)), static_cast<float>(a.num(3)));
             return ok();
         });
-        add("ROTOZOOMANIM", 6, 6, [](BArgs& a) {
+        add("ANIM_DRAW_ROTATED_SCALED", 6, 6, [](BArgs& a) {
             a.rt.gfx.drawAnimRotozoom(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                                       static_cast<float>(a.num(2)), static_cast<float>(a.num(3)),
                                       a.num(4), static_cast<float>(a.num(5)));
             return ok();
         });
-        add("STRETCHANIM", 6, 6, [](BArgs& a) {
+        add("ANIM_DRAW_STRETCHED", 6, 6, [](BArgs& a) {
             a.rt.gfx.drawAnimStretch(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                                      static_cast<float>(a.num(2)), static_cast<float>(a.num(3)),
                                      static_cast<float>(a.num(4)), static_cast<float>(a.num(5)));
             return ok();
         });
-        add("GETSPRITESIZE", 3, 3, [](BArgs& a) {
+        add("SPRITE_SIZE", 3, 3, [](BArgs& a) {
             int w = 0, h = 0;
             a.rt.gfx.spriteInfo(static_cast<int>(a.integer(0)), w, h);
             a.setOut(1, Value::mkInt(w));
             a.setOut(2, Value::mkInt(h));
             return ok();
         });
-        add("GRABSPRITE", 5, 5, [](BArgs& a) {
+        add("SPRITE_GRAB", 5, 5, [](BArgs& a) {
             std::string err;
             if (!a.rt.gfx.grabSprite(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                                      static_cast<int>(a.integer(2)), static_cast<int>(a.integer(3)),
@@ -519,26 +519,26 @@ std::unordered_map<std::string, Builtin>& builtins() {
                 a.fail(err);
             return ok();
         });
-        add("SAVESPRITE", 2, 2, [](BArgs& a) {
+        add("SPRITE_SAVE", 2, 2, [](BArgs& a) {
             std::string err;
             if (!a.rt.gfx.saveSprite(outputPath(a.rt, a.str(0)), static_cast<int>(a.integer(1)), err))
                 a.fail(err);
             return ok();
         });
-        add("SPRCOLL", 6, 6, [](BArgs& a) {
+        add("SPRITE_COLLIDE", 6, 6, [](BArgs& a) {
             return Value::mkInt(a.rt.gfx.spriteCollision(
                 static_cast<int>(a.integer(0)), static_cast<float>(a.num(1)),
                 static_cast<float>(a.num(2)), static_cast<int>(a.integer(3)),
                 static_cast<float>(a.num(4)), static_cast<float>(a.num(5))));
         });
-        add("ANIMCOLL", 8, 8, [](BArgs& a) {
+        add("ANIM_COLLIDE", 8, 8, [](BArgs& a) {
             return Value::mkInt(a.rt.gfx.animCollision(
                 static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                 static_cast<float>(a.num(2)), static_cast<float>(a.num(3)),
                 static_cast<int>(a.integer(4)), static_cast<int>(a.integer(5)),
                 static_cast<float>(a.num(6)), static_cast<float>(a.num(7))));
         });
-        add("BOXCOLL", 8, 8, [](BArgs& a) {
+        add("RECT_COLLIDE", 8, 8, [](BArgs& a) {
             double x1 = a.num(0), y1 = a.num(1), w1 = a.num(2), h1 = a.num(3);
             double x2 = a.num(4), y2 = a.num(5), w2 = a.num(6), h2 = a.num(7);
             bool hit = x1 < x2 + w2 && x2 < x1 + w1 && y1 < y2 + h2 && y2 < y1 + h1;
@@ -546,30 +546,30 @@ std::unordered_map<std::string, Builtin>& builtins() {
         });
 
         // -------------------------------------------------------- Bildpuffer
-        add("LOADBMP", 1, 1, [](BArgs& a) {
+        add("BACKGROUND_LOAD", 1, 1, [](BArgs& a) {
             std::string err;
             if (!a.rt.gfx.loadBackground(ASSET(0), err)) a.fail(err);
             return ok();
         });
-        add("SAVEBMP", 1, 1, [](BArgs& a) {
+        add("SCREEN_SAVE_BMP", 1, 1, [](BArgs& a) {
             std::string err;
             if (!a.rt.gfx.saveBmp(outputPath(a.rt, a.str(0)), err)) a.fail(err);
             return ok();
         });
-        add("USEASBMP", 0, 0, [](BArgs& a) {
+        add("SCREEN_TO_BACKGROUND", 0, 0, [](BArgs& a) {
             a.rt.gfx.useAsBackground();
             return ok();
         });
-        add("BLENDSCREEN", 1, 2, [](BArgs& a) {
+        add("SCREEN_FADE", 1, 2, [](BArgs& a) {
             a.rt.gfx.blendScreen(ASSET(0), a.vals.size() > 1 ? static_cast<int>(a.integer(1)) : 1000);
             return ok();
         });
-        add("CREATESCREEN", 4, 4, [](BArgs& a) {
+        add("SCREEN_CREATE", 4, 4, [](BArgs& a) {
             a.rt.gfx.createScreen(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)),
                                   static_cast<int>(a.integer(2)), static_cast<int>(a.integer(3)));
             return ok();
         });
-        add("USESCREEN", 1, 1, [](BArgs& a) {
+        add("SCREEN_USE", 1, 1, [](BArgs& a) {
             a.rt.gfx.useScreen(static_cast<int>(a.integer(0)));
             return ok();
         });
@@ -580,12 +580,12 @@ std::unordered_map<std::string, Builtin>& builtins() {
                               a.rt.textColor);
             return ok();
         });
-        add("DRAWTEXT", 3, 4, [](BArgs& a) {
+        add("TEXT_DRAW", 3, 4, [](BArgs& a) {
             uint32_t c = a.vals.size() > 3 ? colorOf(a, 3) : a.rt.textColor;
             a.rt.gfx.drawText(a.str(0), static_cast<float>(a.num(1)), static_cast<float>(a.num(2)), c);
             return ok();
         });
-        add("LOADFONT", 2, 3, [](BArgs& a) {
+        add("FONT_LOAD", 2, 3, [](BArgs& a) {
             std::string file = a.str(0);
             int id = static_cast<int>(a.integer(1));
             int size = a.vals.size() > 2 ? static_cast<int>(a.integer(2)) : 0;
@@ -602,20 +602,20 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return ok();
         });
-        add("SETFONT", 1, 3, [](BArgs& a) {
+        add("FONT_SET", 1, 3, [](BArgs& a) {
             a.rt.gfx.setFont(static_cast<int>(a.integer(0)));
             if (a.vals.size() > 1) a.rt.gfx.setFontScale(static_cast<int>(a.integer(1)));
             if (a.vals.size() > 2) a.rt.textColor = colorOf(a, 2);
             return ok();
         });
-        add("GETFONTSIZE", 2, 2, [](BArgs& a) {
+        add("FONT_SIZE", 2, 2, [](BArgs& a) {
             int w = 0, h = 0;
             a.rt.gfx.fontCharSize(w, h);
             a.setOut(0, Value::mkInt(w));
             a.setOut(1, Value::mkInt(h));
             return ok();
         });
-        add("GETCURRENTFONT", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.currentFont()); });
+        add("FONT_CURRENT", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.currentFont()); });
         add("INPUT", 1, 3, [](BArgs& a) {
             Value* target = a.out(0);
             if (!target) a.fail("erwartet eine Variable als erstes Argument");
@@ -651,14 +651,14 @@ std::unordered_map<std::string, Builtin>& builtins() {
         });
 
         // ----------------------------------------------------------- Eingabe
-        add("KEY", 1, 1, [](BArgs& a) {
+        add("KEY_DOWN", 1, 1, [](BArgs& a) {
             return Value::mkInt(a.rt.gfx.keyDown(static_cast<int>(a.integer(0))) ? 1 : 0);
         });
-        add("KEYHIT", 1, 1, [](BArgs& a) {
+        add("KEY_PRESSED", 1, 1, [](BArgs& a) {
             return Value::mkInt(a.rt.gfx.keyHit(static_cast<int>(a.integer(0))) ? 1 : 0);
         });
         add("INKEY$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.gfx.takeInkey()); });
-        add("MOUSESTATE", 4, 4, [](BArgs& a) {
+        add("MOUSE_STATE", 4, 4, [](BArgs& a) {
             float x, y;
             bool l, r, m;
             a.rt.gfx.mouseState(x, y, l, r, m);
@@ -668,7 +668,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.setOut(3, Value::mkInt(r ? 1 : 0));
             return ok();
         });
-        add("MOUSEAXIS", 1, 1, [](BArgs& a) {
+        add("MOUSE_AXIS", 1, 1, [](BArgs& a) {
             float x, y;
             bool l, r, m;
             a.rt.gfx.mouseState(x, y, l, r, m);
@@ -682,53 +682,53 @@ std::unordered_map<std::string, Builtin>& builtins() {
                 default: return Value::mkInt(0);
             }
         });
-        add("MOUSEHIT", 1, 1, [](BArgs& a) {
+        add("MOUSE_PRESSED", 1, 1, [](BArgs& a) {
             return Value::mkInt(a.rt.gfx.mouseHit(static_cast<int>(a.integer(0))) ? 1 : 0);
         });
-        add("GETMOUSECOUNT", 0, 0, [](BArgs&) { return Value::mkInt(1); });
-        add("SETMOUSE", 2, 2, [](BArgs& a) {
+        add("MOUSE_COUNT", 0, 0, [](BArgs&) { return Value::mkInt(1); });
+        add("MOUSE_MOVE", 2, 2, [](BArgs& a) {
             a.rt.gfx.setMouse(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)));
             return ok();
         });
 
         // ------------------------------------------------------------ Sound
-        add("LOADSOUND", 2, 3, [](BArgs& a) {
+        add("SOUND_LOAD", 2, 3, [](BArgs& a) {
             std::string err;
             int buffers = a.vals.size() > 2 ? static_cast<int>(a.integer(2)) : 1;
             if (!a.rt.audio.loadSound(ASSET(0), static_cast<int>(a.integer(1)), buffers, err))
                 a.fail(err);
             return ok();
         });
-        add("PLAYSOUND", 1, 3, [](BArgs& a) {
+        add("SOUND_PLAY", 1, 3, [](BArgs& a) {
             double pan = a.vals.size() > 1 ? a.num(1) : 0.0;
             double vol = a.vals.size() > 2 ? a.num(2) : 1.0;
             return Value::mkInt(a.rt.audio.playSound(static_cast<int>(a.integer(0)), pan, vol));
         });
-        add("STOPSOUND", 1, 1, [](BArgs& a) {
+        add("SOUND_STOP", 1, 1, [](BArgs& a) {
             a.rt.audio.stopChannel(static_cast<int>(a.integer(0)));
             return ok();
         });
-        add("SOUNDPLAYING", 1, 1, [](BArgs& a) {
+        add("SOUND_PLAYING", 1, 1, [](BArgs& a) {
             return Value::mkInt(a.rt.audio.channelPlaying(static_cast<int>(a.integer(0))) ? 1 : 0);
         });
-        add("PLAYMUSIC", 1, 2, [](BArgs& a) {
+        add("MUSIC_PLAY", 1, 2, [](BArgs& a) {
             std::string err;
             bool loop = a.vals.size() > 1 ? a.truthy(1) : true;
             if (!a.rt.audio.playMusic(ASSET(0), loop, err)) a.fail(err);
             return ok();
         });
-        add("STOPMUSIC", 0, 0, [](BArgs& a) {
+        add("MUSIC_STOP", 0, 0, [](BArgs& a) {
             a.rt.audio.stopMusic();
             return ok();
         });
-        add("PAUSEMUSIC", 1, 1, [](BArgs& a) {
+        add("MUSIC_PAUSE", 1, 1, [](BArgs& a) {
             a.rt.audio.pauseMusic(a.truthy(0));
             return ok();
         });
-        add("ISMUSICPLAYING", 0, 0, [](BArgs& a) {
+        add("MUSIC_PLAYING", 0, 0, [](BArgs& a) {
             return Value::mkInt(a.rt.audio.musicPlaying() ? 1 : 0);
         });
-        add("MUSICVOLUME", 1, 1, [](BArgs& a) {
+        add("MUSIC_VOLUME", 1, 1, [](BArgs& a) {
             a.rt.audio.setMusicVolume(a.num(0));
             return ok();
         });
@@ -798,7 +798,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             std::uniform_int_distribution<int64_t> dist(0, mx);
             return Value::mkInt(dist(a.rt.rng));
         });
-        add("SEEDRND", 1, 1, [](BArgs& a) {
+        add("RND_SEED", 1, 1, [](BArgs& a) {
             a.rt.rng.seed(static_cast<uint64_t>(a.integer(0)));
             return ok();
         });
@@ -812,11 +812,11 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (a.vals[0].isNum()) return Value::mkFloat(a.num(0));
             return Value::mkFloat(std::atof(a.str(0).c_str()));
         });
-        add("ASL", 2, 2, [](BArgs& a) {
+        add("SHL", 2, 2, [](BArgs& a) {
             return Value::mkInt(static_cast<int64_t>(static_cast<uint64_t>(a.integer(0))
                                                      << (a.integer(1) & 63)));
         });
-        add("ASR", 2, 2, [](BArgs& a) {
+        add("SHR", 2, 2, [](BArgs& a) {
             return Value::mkInt(a.integer(0) >> (a.integer(1) & 63));
         });
         add("BAND", 2, 2, [](BArgs& a) { return Value::mkInt(a.integer(0) & a.integer(1)); });
@@ -853,7 +853,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.setOut(0, Value::mkArray(arr));
             return Value::mkInt(static_cast<int64_t>(arr->items.size()));
         });
-        add("BOUNDS", 2, 2, [](BArgs& a) {
+        add("ARRAY_BOUNDS", 2, 2, [](BArgs& a) {
             int64_t dim = a.integer(1);
             Value v = a.vals[0];
             int64_t size = 0;
@@ -916,7 +916,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (pos == std::string::npos) return Value::mkInt(-1);
             return Value::mkInt(static_cast<int64_t>(pos));
         });
-        add("REVINSTR", 2, 3, [](BArgs& a) {
+        add("INSTR_REVERSE", 2, 3, [](BArgs& a) {
             std::string s = a.str(0), f = a.str(1);
             int64_t start = a.vals.size() > 2 ? a.integer(2) : -1;
             if (start < 0 || start > static_cast<int64_t>(s.size()))
@@ -935,7 +935,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkStr(s);
         });
-        add("SPLITSTR", 2, 4, [](BArgs& a) {
+        add("SPLIT_STRING", 2, 4, [](BArgs& a) {
             std::string text = a.str(0);
             std::string sep = a.vals.size() > 2 ? a.str(2) : ",";
             bool dropEmpty = a.vals.size() > 3 ? a.truthy(3) : true;
@@ -995,7 +995,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("VAL", 1, 1, [](BArgs& a) { return Value::mkFloat(std::atof(a.str(0).c_str())); });
 
         // ----------------------------------------------------------- Dateien
-        add("OPENFILE", 3, 3, [](BArgs& a) {
+        add("FILE_OPEN", 3, 3, [](BArgs& a) {
             int ch = static_cast<int>(a.integer(0));
             std::string file = a.str(1);
             int mode = static_cast<int>(a.integer(2));
@@ -1005,72 +1005,72 @@ std::unordered_map<std::string, Builtin>& builtins() {
             std::string path = mode == 1 ? a.rt.resolveAsset(file) : outputPath(a.rt, file);
             std::string err;
             if (!a.rt.files.open(ch, path, mode, err)) {
-                a.rt.warnOnce("OPENFILE: " + err);
+                a.rt.warnOnce("FILE_OPEN: " + err);
                 return Value::mkInt(0);
             }
             return Value::mkInt(1);
         });
-        add("CLOSEFILE", 1, 1, [](BArgs& a) {
+        add("FILE_CLOSE", 1, 1, [](BArgs& a) {
             int ch = channelArg(a, 0);
             return Value::mkInt(a.rt.files.close(ch) ? 1 : 0);
         });
-        add("FILESEEK", 3, 3, [](BArgs& a) {
+        add("FILE_SEEK", 3, 3, [](BArgs& a) {
             int ch = channelArg(a, 0);
             if (!a.rt.files.isOpen(ch))
                 a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
             int origin = static_cast<int>(a.integer(2));
             if (origin < -1 || origin > 1)
                 a.fail("Ursprung muss -1 (Ende), 0 (Anfang) oder 1 (Position) sein");
-            if (!a.rt.files.seek(ch, a.integer(1), origin)) a.fail("FILESEEK fehlgeschlagen");
+            if (!a.rt.files.seek(ch, a.integer(1), origin)) a.fail("FILE_SEEK fehlgeschlagen");
             return ok();
         });
-        add("FILEPOSITION", 1, 1, [](BArgs& a) {
+        add("FILE_POSITION", 1, 1, [](BArgs& a) {
             int ch = channelArg(a, 0);
             if (!a.rt.files.isOpen(ch))
                 a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
             return Value::mkInt(a.rt.files.position(ch));
         });
-        add("FILEEOF", 1, 1, [](BArgs& a) {
+        add("FILE_EOF", 1, 1, [](BArgs& a) {
             int ch = channelArg(a, 0);
             if (!a.rt.files.isOpen(ch))
                 a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
             return Value::mkInt(a.rt.files.atEnd(ch) ? 1 : 0);
         });
 
-        add("READBYTE", 2, 2, [](BArgs& a) {
+        add("FILE_READ_BYTE", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             int8_t v = static_cast<int8_t>(readBits(a, ch, 1) & 0xFF);
             a.setOut(1, Value::mkInt(v));
             return ok();
         });
-        add("READUBYTE", 2, 2, [](BArgs& a) {
+        add("FILE_READ_UBYTE", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             a.setOut(1, Value::mkInt(static_cast<int64_t>(readBits(a, ch, 1))));
             return ok();
         });
-        add("READWORD", 2, 2, [](BArgs& a) {
+        add("FILE_READ_WORD", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             int16_t v = static_cast<int16_t>(readBits(a, ch, 2));
             a.setOut(1, Value::mkInt(v));
             return ok();
         });
-        add("READUWORD", 2, 2, [](BArgs& a) {
+        add("FILE_READ_UWORD", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             a.setOut(1, Value::mkInt(static_cast<int64_t>(readBits(a, ch, 2))));
             return ok();
         });
-        add("READLONG", 2, 2, [](BArgs& a) {
+        add("FILE_READ_LONG", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             int32_t v = static_cast<int32_t>(readBits(a, ch, 4));
             a.setOut(1, Value::mkInt(v));
             return ok();
         });
-        add("READULONG", 2, 2, [](BArgs& a) {
+        add("FILE_READ_ULONG", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             a.setOut(1, Value::mkInt(static_cast<int64_t>(readBits(a, ch, 4))));
             return ok();
         });
-        add("READIEEE", 2, 2, [](BArgs& a) {
+        add("FILE_READ_DOUBLE", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             unsigned char buf[8] = {0};
             size_t got = 0;
@@ -1080,7 +1080,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.setOut(1, Value::mkFloat(v));
             return ok();
         });
-        add("READSHORTIEEE", 2, 2, [](BArgs& a) {
+        add("FILE_READ_FLOAT", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             unsigned char buf[4] = {0};
             size_t got = 0;
@@ -1090,7 +1090,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.setOut(1, Value::mkFloat(v));
             return ok();
         });
-        add("READSTR", 3, 3, [](BArgs& a) {
+        add("FILE_READ_STR", 3, 3, [](BArgs& a) {
             int ch = readChannel(a, 0);
             int64_t count = a.integer(2);
             if (count < 0) a.fail("Laenge muss 0 oder groesser sein");
@@ -1098,7 +1098,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.setOut(1, Value::mkStr(readText(a, ch, static_cast<size_t>(count))));
             return ok();
         });
-        add("READLINE", 2, 2, [](BArgs& a) {
+        add("FILE_READ_LINE", 2, 2, [](BArgs& a) {
             int ch = readChannel(a, 0);
             std::string line;
             a.rt.files.readLine(ch, line);
@@ -1106,37 +1106,37 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return ok();
         });
 
-        add("WRITEBYTE", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_BYTE", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             writeBits(a, ch, a.integer(1), 1);
             return ok();
         });
-        add("WRITEUBYTE", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_UBYTE", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             writeBits(a, ch, a.integer(1), 1);
             return ok();
         });
-        add("WRITEWORD", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_WORD", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             writeBits(a, ch, a.integer(1), 2);
             return ok();
         });
-        add("WRITEUWORD", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_UWORD", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             writeBits(a, ch, a.integer(1), 2);
             return ok();
         });
-        add("WRITELONG", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_LONG", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             writeBits(a, ch, a.integer(1), 4);
             return ok();
         });
-        add("WRITEULONG", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_ULONG", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             writeBits(a, ch, a.integer(1), 4);
             return ok();
         });
-        add("WRITEIEEE", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_DOUBLE", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             double v = a.num(1);
             unsigned char buf[8];
@@ -1144,7 +1144,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (!a.rt.files.writeBytes(ch, buf, sizeof(buf))) a.fail("Schreiben fehlgeschlagen");
             return ok();
         });
-        add("WRITESHORTIEEE", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_FLOAT", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             float v = static_cast<float>(a.num(1));
             unsigned char buf[4];
@@ -1152,25 +1152,25 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (!a.rt.files.writeBytes(ch, buf, sizeof(buf))) a.fail("Schreiben fehlgeschlagen");
             return ok();
         });
-        add("WRITESTR", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_STR", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             std::string text = a.str(1);
             if (!a.rt.files.writeBytes(ch, text.data(), text.size())) a.fail("Schreiben fehlgeschlagen");
             return ok();
         });
-        add("WRITELINE", 2, 2, [](BArgs& a) {
+        add("FILE_WRITE_LINE", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             std::string text = a.str(1) + "\r\n";
             if (!a.rt.files.writeBytes(ch, text.data(), text.size())) a.fail("Schreiben fehlgeschlagen");
             return ok();
         });
 
-        add("FILEEXISTS", 1, 1, [](BArgs& a) {
+        add("FILE_EXISTS", 1, 1, [](BArgs& a) {
             std::string path = a.rt.resolveAsset(a.str(0));
             std::error_code ec;
             return Value::mkInt(std::filesystem::is_regular_file(std::filesystem::path(path), ec) ? 1 : 0);
         });
-        add("FILESIZE", 1, 1, [](BArgs& a) {
+        add("FILE_SIZE", 1, 1, [](BArgs& a) {
             std::string path = a.rt.resolveAsset(a.str(0));
             std::error_code ec;
             if (!std::filesystem::is_regular_file(std::filesystem::path(path), ec)) return Value::mkInt(-1);
@@ -1178,7 +1178,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (ec) return Value::mkInt(-1);
             return Value::mkInt(static_cast<int64_t>(size));
         });
-        add("COPYFILE", 2, 2, [](BArgs& a) {
+        add("FILE_COPY", 2, 2, [](BArgs& a) {
             std::string src = a.rt.resolveAsset(a.str(0));
             std::string dst = outputPath(a.rt, a.str(1));
             std::error_code ec;
@@ -1189,7 +1189,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (ec) a.fail("Kopieren fehlgeschlagen: " + ec.message());
             return Value::mkInt(1);
         });
-        add("RENAMEFILE", 2, 2, [](BArgs& a) {
+        add("FILE_RENAME", 2, 2, [](BArgs& a) {
             std::string src = a.rt.resolveAsset(a.str(0));
             std::string dst = outputPath(a.rt, a.str(1));
             std::error_code ec;
@@ -1199,7 +1199,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (ec) a.fail("Umbenennen fehlgeschlagen: " + ec.message());
             return Value::mkInt(1);
         });
-        add("DELETEFILE", 1, 1, [](BArgs& a) {
+        add("FILE_DELETE", 1, 1, [](BArgs& a) {
             std::string path = a.rt.resolveAsset(a.str(0));
             std::error_code ec;
             if (!std::filesystem::is_regular_file(std::filesystem::path(path), ec))
@@ -1208,7 +1208,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (ec) a.fail("Loeschen fehlgeschlagen: " + ec.message());
             return Value::mkInt(1);
         });
-        add("MAKEDIR", 1, 1, [](BArgs& a) {
+        add("DIR_MAKE", 1, 1, [](BArgs& a) {
             std::string path = outputPath(a.rt, a.str(0));
             std::error_code ec;
             std::filesystem::create_directories(std::filesystem::path(path), ec);
@@ -1235,7 +1235,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return handle;
         };
 
-        add("NETLISTEN", 1, 1, [](BArgs& a) {
+        add("NET_LISTEN", 1, 1, [](BArgs& a) {
             int handle = 0;
             std::string err;
             const int port = clampi(a.integer(0), 0, 65535);
@@ -1245,7 +1245,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkInt(handle);
         });
-        add("NETACCEPT", 1, 1, [netWant](BArgs& a) {
+        add("NET_ACCEPT", 1, 1, [netWant](BArgs& a) {
             const int listener = netWant(a, Net::Kind::Listener);
             std::string err;
             const int handle = a.rt.net.accept(listener, err);
@@ -1255,7 +1255,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkInt(handle);
         });
-        add("NETCONNECT", 2, 3, [](BArgs& a) {
+        add("NET_CONNECT", 2, 3, [](BArgs& a) {
             const int port = clampi(a.integer(1), 1, 65535);
             const int timeout = a.vals.size() > 2 ? clampi(a.integer(2), 0, 60000) : 3000;
             int handle = 0;
@@ -1266,7 +1266,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkInt(handle);
         });
-        add("NETSEND", 2, 2, [netWant](BArgs& a) {
+        add("NET_SEND", 2, 2, [netWant](BArgs& a) {
             const int handle = netWant(a, Net::Kind::Stream);
             int sent = 0;
             std::string err;
@@ -1277,35 +1277,35 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkInt(sent);
         });
-        add("NETRECV$", 1, 1, [netWant](BArgs& a) {
+        add("NET_RECV$", 1, 1, [netWant](BArgs& a) {
             const int handle = netWant(a, Net::Kind::Stream);
             std::string err;
             const std::string data = a.rt.net.receive(handle, err);
             if (!err.empty()) a.rt.netError = err;
             return Value::mkStr(data);
         });
-        add("NETPENDING", 1, 1, [netWant](BArgs& a) {
+        add("NET_PENDING", 1, 1, [netWant](BArgs& a) {
             return Value::mkInt(a.rt.net.pending(netWant(a, Net::Kind::Stream)));
         });
-        add("NETCONNECTED", 1, 1, [netWant](BArgs& a) {
+        add("NET_CONNECTED", 1, 1, [netWant](BArgs& a) {
             return Value::mkInt(a.rt.net.connected(netWant(a, Net::Kind::Stream)) ? 1 : 0);
         });
-        add("NETCLOSE", 1, 1, [](BArgs& a) {
+        add("NET_CLOSE", 1, 1, [](BArgs& a) {
             const int handle = static_cast<int>(a.integer(0));
             if (!a.rt.net.known(handle)) {
                 a.rt.netError = "unbekanntes Netzwerk-Handle " + std::to_string(handle);
                 return Value::mkInt(0);
             }
             if (a.rt.net.kindOf(handle) == Net::Kind::Datagram) {
-                a.rt.netError = "UDP-Sockets schliessen mit UDPCLOSE";
+                a.rt.netError = "UDP-Sockets schliessen mit UDP_CLOSE";
                 return Value::mkInt(0);
             }
             return Value::mkInt(a.rt.net.closeHandle(handle) ? 1 : 0);
         });
-        add("NETPEER$", 1, 1, [netWant](BArgs& a) {
+        add("NET_PEER$", 1, 1, [netWant](BArgs& a) {
             return Value::mkStr(a.rt.net.peerOf(netWant(a, Net::Kind::Stream)));
         });
-        add("NETPORT", 1, 1, [](BArgs& a) {
+        add("NET_PORT", 1, 1, [](BArgs& a) {
             const int handle = static_cast<int>(a.integer(0));
             if (!a.rt.net.known(handle)) {
                 a.rt.netError = "unbekanntes Netzwerk-Handle " + std::to_string(handle);
@@ -1313,10 +1313,10 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkInt(a.rt.net.portOf(handle));
         });
-        add("NETIP$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.net.localAddress()); });
-        add("NETERROR$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.netError); });
+        add("NET_IP$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.net.localAddress()); });
+        add("NET_ERROR$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.netError); });
 
-        add("UDPOPEN", 1, 1, [](BArgs& a) {
+        add("UDP_OPEN", 1, 1, [](BArgs& a) {
             int handle = 0;
             std::string err;
             const int port = clampi(a.integer(0), 0, 65535);
@@ -1326,7 +1326,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkInt(handle);
         });
-        add("UDPSEND", 4, 4, [netWant](BArgs& a) {
+        add("UDP_SEND", 4, 4, [netWant](BArgs& a) {
             const int handle = netWant(a, Net::Kind::Datagram);
             const int port = clampi(a.integer(2), 1, 65535);
             std::string err;
@@ -1336,7 +1336,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkInt(1);
         });
-        add("UDPRECV$", 1, 1, [netWant](BArgs& a) {
+        add("UDP_RECV$", 1, 1, [netWant](BArgs& a) {
             const int handle = netWant(a, Net::Kind::Datagram);
             std::string from;
             std::string err;
@@ -1345,14 +1345,14 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (!from.empty()) a.rt.netFrom = from;
             return Value::mkStr(data);
         });
-        add("UDPFROM$", 1, 1, [netWant](BArgs& a) {
+        add("UDP_FROM$", 1, 1, [netWant](BArgs& a) {
             netWant(a, Net::Kind::Datagram);
             return Value::mkStr(a.rt.netFrom);
         });
-        add("UDPPORT", 1, 1, [netWant](BArgs& a) {
+        add("UDP_PORT", 1, 1, [netWant](BArgs& a) {
             return Value::mkInt(a.rt.net.portOf(netWant(a, Net::Kind::Datagram)));
         });
-        add("UDPCLOSE", 1, 1, [netWant](BArgs& a) {
+        add("UDP_CLOSE", 1, 1, [netWant](BArgs& a) {
             return Value::mkInt(a.rt.net.closeHandle(netWant(a, Net::Kind::Datagram)) ? 1 : 0);
         });
 
@@ -1370,7 +1370,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return id;
         };
 
-        add("STEAMINIT", 0, 1, [](BArgs& a) {
+        add("STEAM_INIT", 0, 1, [](BArgs& a) {
             const auto app = a.vals.empty() ? 0u : static_cast<unsigned>(a.integer(0));
             std::string err;
             if (!a.rt.steam.startup(app, err)) {
@@ -1379,66 +1379,66 @@ std::unordered_map<std::string, Builtin>& builtins() {
             }
             return Value::mkInt(1);
         });
-        add("STEAMSHUTDOWN", 0, 0, [](BArgs& a) {
+        add("STEAM_SHUTDOWN", 0, 0, [](BArgs& a) {
             a.rt.steam.shutdown();
             return Value::mkInt(1);
         });
-        add("STEAMRUN", 0, 0, [](BArgs& a) {
+        add("STEAM_RUN", 0, 0, [](BArgs& a) {
             a.rt.steam.runCallbacks();
             return Value::mkInt(a.rt.steam.ready() ? 1 : 0);
         });
-        add("STEAMREADY", 0, 0, [](BArgs& a) {
+        add("STEAM_READY", 0, 0, [](BArgs& a) {
             return Value::mkInt(a.rt.steam.ready() ? 1 : 0);
         });
-        add("STEAMNAME$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.steam.userName()); });
-        add("STEAMID$", 0, 0, [](BArgs& a) {
+        add("STEAM_NAME$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.steam.userName()); });
+        add("STEAM_ID$", 0, 0, [](BArgs& a) {
             const unsigned long long id = a.rt.steam.userId();
             return Value::mkStr(id ? std::to_string(id) : std::string());
         });
-        add("STEAMAPPID", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.steam.appId()); });
-        add("STEAMFRIENDS", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.steam.friendCount()); });
-        add("STEAMFRIENDID$", 1, 1, [](BArgs& a) {
+        add("STEAM_APP_ID", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.steam.appId()); });
+        add("STEAM_FRIENDS", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.steam.friendCount()); });
+        add("STEAM_FRIEND_ID$", 1, 1, [](BArgs& a) {
             const unsigned long long id = a.rt.steam.friendId(static_cast<int>(a.integer(0)));
             return Value::mkStr(id ? std::to_string(id) : std::string());
         });
-        add("STEAMFRIENDNAME$", 1, 1, [](BArgs& a) {
+        add("STEAM_FRIEND_NAME$", 1, 1, [](BArgs& a) {
             return Value::mkStr(a.rt.steam.friendName(static_cast<int>(a.integer(0))));
         });
-        add("STEAMFRIENDSTATE", 1, 1, [](BArgs& a) {
+        add("STEAM_FRIEND_STATE", 1, 1, [](BArgs& a) {
             return Value::mkInt(a.rt.steam.friendState(static_cast<int>(a.integer(0))));
         });
-        add("STEAMP2PSEND", 2, 4, [steamIdOf](BArgs& a) {
+        add("STEAM_P2P_SEND", 2, 4, [steamIdOf](BArgs& a) {
             const unsigned long long to = steamIdOf(a, 0);
             const int channel = a.vals.size() > 2 ? clampi(a.integer(2), 0, 255) : 0;
             const bool reliable = a.vals.size() > 3 ? a.truthy(3) : true;
             const int sent = a.rt.steam.sendPacket(to, a.str(1), channel, reliable);
             if (sent == 0 && !a.rt.steam.ready())
-                a.rt.steam.fail("Steam ist nicht bereit - erst STEAMINIT aufrufen");
+                a.rt.steam.fail("Steam ist nicht bereit - erst STEAM_INIT aufrufen");
             return Value::mkInt(sent);
         });
-        add("STEAMP2PAVAILABLE", 0, 1, [](BArgs& a) {
+        add("STEAM_P2P_AVAILABLE", 0, 1, [](BArgs& a) {
             const int channel = a.vals.empty() ? 0 : clampi(a.integer(0), 0, 255);
             return Value::mkInt(a.rt.steam.available(channel));
         });
-        add("STEAMP2PRECV$", 0, 1, [](BArgs& a) {
+        add("STEAM_P2P_RECV$", 0, 1, [](BArgs& a) {
             const int channel = a.vals.empty() ? 0 : clampi(a.integer(0), 0, 255);
             unsigned long long from = 0;
             return Value::mkStr(a.rt.steam.readPacket(channel, from));
         });
-        add("STEAMP2PFROM$", 0, 0, [](BArgs& a) {
+        add("STEAM_P2P_FROM$", 0, 0, [](BArgs& a) {
             const unsigned long long from = a.rt.steam.lastFrom();
             return Value::mkStr(from ? std::to_string(from) : std::string());
         });
-        add("STEAMP2PACCEPT", 1, 1, [steamIdOf](BArgs& a) {
+        add("STEAM_P2P_ACCEPT", 1, 1, [steamIdOf](BArgs& a) {
             return Value::mkInt(a.rt.steam.acceptSession(steamIdOf(a, 0)) ? 1 : 0);
         });
-        add("STEAMP2PCLOSE", 1, 1, [steamIdOf](BArgs& a) {
+        add("STEAM_P2P_CLOSE", 1, 1, [steamIdOf](BArgs& a) {
             return Value::mkInt(a.rt.steam.closeSession(steamIdOf(a, 0)) ? 1 : 0);
         });
-        add("STEAMP2PSTATE", 1, 1, [steamIdOf](BArgs& a) {
+        add("STEAM_P2P_STATE", 1, 1, [steamIdOf](BArgs& a) {
             return Value::mkInt(a.rt.steam.sessionState(steamIdOf(a, 0)));
         });
-        add("STEAMERROR$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.steam.lastError()); });
+        add("STEAM_ERROR$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.steam.lastError()); });
 
         return t;
     }();

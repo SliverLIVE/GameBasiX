@@ -133,7 +133,7 @@ bool FileSet::atEnd(int channel) {
     auto it = files_.find(channel);
     if (it == files_.end() || it->second.mode != 1) return false;
     // peek() setzt am Ende das eof-Bit; das wieder loeschen, damit
-    // FILEPOSITION danach noch die Position liefert.
+    // FILE_POSITION danach noch die Position liefert.
     bool end = it->second.stream.peek() == std::char_traits<char>::eof();
     if (end) it->second.stream.clear();
     return end;

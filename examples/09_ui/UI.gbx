@@ -6,7 +6,7 @@
 '   INCLUDE "UI.gbx"
 '   GLOBAL app AS UI
 '
-'   SETSCREEN 960, 640, 0
+'   SCREEN_SET 960, 640, 0
 '   app.init()
 '
 '   GLOBAL win   = app.window("Settings", 40, 40, 420, 360)
@@ -17,11 +17,11 @@
 '   app.endWindow()
 '
 '   WHILE TRUE
-'     CLEARSCREEN app.bg
+'     SCREEN_CLEAR app.bg
 '     app.run()                       ' input + drawing, once per frame
 '     IF app.clicked(go) THEN STDOUT "start\n"
-'     IF KEYHIT(KEY_ESC) THEN END
-'     SHOWSCREEN
+'     IF KEY_PRESSED(KEY_ESC) THEN END
+'     SCREEN_SHOW
 '   WEND
 '
 ' Rules
@@ -196,8 +196,8 @@ TYPE UI
 
   ' ------------------------------------------------------ setup
   METHOD init: w = 0, h = 0
-    IF w > 0 THEN screenW% = w ELSE screenW% = GETSCREENWIDTH()
-    IF h > 0 THEN screenH% = h ELSE screenH% = GETSCREENHEIGHT()
+    IF w > 0 THEN screenW% = w ELSE screenW% = SCREEN_WIDTH()
+    IF h > 0 THEN screenH% = h ELSE screenH% = SCREEN_HEIGHT()
     vm% = 0
     vkey% = 0
     vtype$ = ""
@@ -271,7 +271,7 @@ TYPE UI
       UI_WIDGETS[id].num = 0
       RETURN
     ENDIF
-    SPLITSTR options$, parts$, "|"
+    SPLIT_STRING options$, parts$, "|"
     UI_WIDGETS[id].optStart% = LEN(UI_OPTS$)
     UI_WIDGETS[id].optCount% = LEN(parts$)
     FOR i = 0 TO LEN(parts$) - 1
@@ -599,7 +599,7 @@ TYPE UI
       ENDIF
       RETURN 0
     ENDIF
-    RETURN KEYHIT(code)
+    RETURN KEY_PRESSED(code)
   ENDMETHOD
 
   METHOD cycleFocus: delta
@@ -659,7 +659,7 @@ TYPE UI
     rightk = readKey(KEY_RIGHT)
     homek = readKey(KEY_HOME)
     endk = readKey(KEY_END)
-    shift = KEY(KEY_LSHIFT) + KEY(KEY_RSHIFT)
+    shift = KEY_DOWN(KEY_LSHIFT) + KEY_DOWN(KEY_RSHIFT)
 
     IF tab = 1 THEN
       IF shift > 0 THEN cycleFocus(-1) ELSE cycleFocus(1)
@@ -981,7 +981,7 @@ TYPE UI
 
   ' ------------------------------------------------------ drawing
   ' NOTE: palette fields are passed as SELF.name on purpose. A bare
-  ' field name in a builtin argument (DRAWRECT, DRAWTEXT, ...) would be
+  ' field name in a builtin argument (DRAW_RECT, TEXT_DRAW, ...) would be
   ' treated as a fresh local variable, so the color would come out black.
   METHOD drawWidget: id
     LOCAL w0 = UI_WIDGETS[id]
@@ -1010,48 +1010,48 @@ TYPE UI
     LOCAL maxOff = 0
 
     IF BAND(w0.flags%, 1) <> 0 THEN dis = 1
-    GETFONTSIZE cw, ch
+    FONT_SIZE cw, ch
     IF ch < 8 THEN ch = 8
 
     IF k = UIK_WINDOW THEN
       ' Shadow, body, title bar, close button.
-      DRAWRECT x + 5, y + 7, ww, hh, uiMix(SELF.bg, RGB(0, 0, 0), 0.3)
-      DRAWRECT x, y, ww, hh, SELF.surface
-      DRAWRECT x, y, ww, w0.insetY, SELF.titleBar
-      DRAWRECT x, y + w0.insetY, ww, 1, uiMix(SELF.accent, SELF.titleBar, 0.75)
-      DRAWBORDER x, y, ww, hh, SELF.line
+      DRAW_RECT x + 5, y + 7, ww, hh, uiMix(SELF.bg, RGB(0, 0, 0), 0.3)
+      DRAW_RECT x, y, ww, hh, SELF.surface
+      DRAW_RECT x, y, ww, w0.insetY, SELF.titleBar
+      DRAW_RECT x, y + w0.insetY, ww, 1, uiMix(SELF.accent, SELF.titleBar, 0.75)
+      DRAW_RECT_BORDER x, y, ww, hh, SELF.line
       t$ = uiFit$(w0.title$, ww - 60)
-      DRAWTEXT t$, x + 12, y + (w0.insetY - ch) / 2, SELF.ink
+      TEXT_DRAW t$, x + 12, y + (w0.insetY - ch) / 2, SELF.ink
       bx = x + ww - 26
       by = y + 3
       IF closeHot% = id THEN
-        DRAWRECT bx, by, 22, w0.insetY - 6, SELF.danger
+        DRAW_RECT bx, by, 22, w0.insetY - 6, SELF.danger
         fgc = RGB(255, 255, 255)
       ELSE
         fgc = inkDim
       ENDIF
-      DRAWLINE bx + 8, by + 8, bx + 15, by + 15, fgc
-      DRAWLINE bx + 15, by + 8, bx + 8, by + 15, fgc
+      DRAW_LINE bx + 8, by + 8, bx + 15, by + 15, fgc
+      DRAW_LINE bx + 15, by + 8, bx + 8, by + 15, fgc
 
     ELSEIF k = UIK_PANEL THEN
-      DRAWRECT x, y, ww, hh, SELF.surface2
-      DRAWBORDER x, y, ww, hh, SELF.line
+      DRAW_RECT x, y, ww, hh, SELF.surface2
+      DRAW_RECT_BORDER x, y, ww, hh, SELF.line
       IF w0.title$ <> "" THEN
-        DRAWTEXT uiFit$(w0.title$, ww - 24), x + 12, y + 8, SELF.inkDim
+        TEXT_DRAW uiFit$(w0.title$, ww - 24), x + 12, y + 8, SELF.inkDim
       ENDIF
 
     ELSEIF k = UIK_SEPARATOR THEN
-      DRAWRECT x, y, ww, 1, SELF.line
+      DRAW_RECT x, y, ww, 1, SELF.line
 
     ELSEIF k = UIK_LABEL THEN
       IF dis = 1 THEN fgc = inkDim ELSE fgc = ink
-      DRAWTEXT uiFit$(w0.title$, ww), x, y + (18 - ch) / 2, fgc
+      TEXT_DRAW uiFit$(w0.title$, ww), x, y + (18 - ch) / 2, fgc
 
     ELSEIF k = UIK_HEADING THEN
       IF dis = 1 THEN fgc = inkDim ELSE fgc = accent
       t$ = uiFit$(w0.title$, ww)
-      DRAWTEXT t$, x, y + 2, fgc
-      DRAWRECT x, y + 16, LEN(t$, 1), 2, fgc
+      TEXT_DRAW t$, x, y + 2, fgc
+      DRAW_RECT x, y + 16, LEN(t$, 1), 2, fgc
 
     ELSEIF k = UIK_BUTTON THEN
       bgc = surface2
@@ -1071,62 +1071,62 @@ TYPE UI
       ELSEIF hover% = id THEN
         bgc = uiMix(bgc, ink, 0.10)
       ENDIF
-      DRAWRECT x, y + 2, ww, hh, uiMix(bgc, 0, 0.45)
-      DRAWRECT x, y, ww, hh, bgc
-      DRAWBORDER x, y, ww, hh, bdc
-      IF focus% = id THEN DRAWBORDER x - 2, y - 2, ww + 4, hh + 4, SELF.accent
+      DRAW_RECT x, y + 2, ww, hh, uiMix(bgc, 0, 0.45)
+      DRAW_RECT x, y, ww, hh, bgc
+      DRAW_RECT_BORDER x, y, ww, hh, bdc
+      IF focus% = id THEN DRAW_RECT_BORDER x - 2, y - 2, ww + 4, hh + 4, SELF.accent
       t$ = uiFit$(w0.title$, ww - 12)
-      DRAWTEXT t$, x + (ww - LEN(t$, 1)) / 2, y + (hh - ch) / 2, fgc
+      TEXT_DRAW t$, x + (ww - LEN(t$, 1)) / 2, y + (hh - ch) / 2, fgc
 
     ELSEIF k = UIK_TOGGLE THEN
       fgc = ink
       IF dis = 1 THEN fgc = inkDim
-      DRAWRECT x, y + 2, 18, 18, SELF.field
+      DRAW_RECT x, y + 2, 18, 18, SELF.field
       IF w0.num <> 0 THEN
-        DRAWRECT x, y + 2, 18, 18, SELF.accent
-        DRAWBORDER x, y + 2, 18, 18, SELF.accent
-        DRAWLINE x + 4, y + 10, x + 8, y + 14, SELF.accentInk
-        DRAWLINE x + 8, y + 14, x + 14, y + 6, SELF.accentInk
+        DRAW_RECT x, y + 2, 18, 18, SELF.accent
+        DRAW_RECT_BORDER x, y + 2, 18, 18, SELF.accent
+        DRAW_LINE x + 4, y + 10, x + 8, y + 14, SELF.accentInk
+        DRAW_LINE x + 8, y + 14, x + 14, y + 6, SELF.accentInk
       ELSE
-        DRAWBORDER x, y + 2, 18, 18, uiMix(SELF.line, SELF.ink, 0.1)
+        DRAW_RECT_BORDER x, y + 2, 18, 18, uiMix(SELF.line, SELF.ink, 0.1)
       ENDIF
-      IF focus% = id THEN DRAWBORDER x - 2, y, 22, 22, SELF.accent
-      DRAWTEXT uiFit$(w0.title$, ww - 28), x + 26, y + (hh - ch) / 2, fgc
+      IF focus% = id THEN DRAW_RECT_BORDER x - 2, y, 22, 22, SELF.accent
+      TEXT_DRAW uiFit$(w0.title$, ww - 28), x + 26, y + (hh - ch) / 2, fgc
 
     ELSEIF k = UIK_SLIDER THEN
       v = w0.num
       t$ = uiNum$(v, uiDec(w0.step))
       fgc = accent
       IF dis = 1 THEN fgc = inkDim
-      DRAWTEXT uiFit$(w0.title$, ww - 40), x, y + 3, SELF.inkDim
-      DRAWTEXT t$, x + ww - LEN(t$, 1), y + 3, fgc
+      TEXT_DRAW uiFit$(w0.title$, ww - 40), x, y + 3, SELF.inkDim
+      TEXT_DRAW t$, x + ww - LEN(t$, 1), y + 3, fgc
       ty = y + 28
-      DRAWRECT x, ty, ww, 4, uiMix(SELF.surface2, SELF.line, 0.55)
+      DRAW_RECT x, ty, ww, 4, uiMix(SELF.surface2, SELF.line, 0.55)
       IF w0.hi > w0.lo THEN
         px = x + 6 + (v - w0.lo) / (w0.hi - w0.lo) * (ww - 12)
       ELSE
         px = x + 6
       ENDIF
-      DRAWRECT x, ty, px - x, 4, fgc
+      DRAW_RECT x, ty, px - x, 4, fgc
       bgc = surface2
       IF hover% = id OR focus% = id THEN bgc = uiMix(surface2, accent, 0.25)
-      DRAWRECT px - 6, ty - 6, 12, 16, bgc
-      DRAWBORDER px - 6, ty - 6, 12, 16, fgc
+      DRAW_RECT px - 6, ty - 6, 12, 16, bgc
+      DRAW_RECT_BORDER px - 6, ty - 6, 12, 16, fgc
 
     ELSEIF k = UIK_PROGRESS THEN
-      DRAWTEXT uiFit$(w0.title$, ww - 46), x, y + 3, SELF.inkDim
+      TEXT_DRAW uiFit$(w0.title$, ww - 46), x, y + 3, SELF.inkDim
       t$ = uiNum$(w0.num * 100, 0) + "%"
-      DRAWTEXT t$, x + ww - LEN(t$, 1), y + 3, SELF.inkDim
-      DRAWRECT x, y + 24, ww, 8, SELF.field
+      TEXT_DRAW t$, x + ww - LEN(t$, 1), y + 3, SELF.inkDim
+      DRAW_RECT x, y + 24, ww, 8, SELF.field
       bgc = accent
       IF dis = 1 THEN bgc = inkDim
-      DRAWRECT x + 1, y + 25, (ww - 2) * w0.num, 6, bgc
-      DRAWBORDER x, y + 24, ww, 8, SELF.line
+      DRAW_RECT x + 1, y + 25, (ww - 2) * w0.num, 6, bgc
+      DRAW_RECT_BORDER x, y + 24, ww, 8, SELF.line
 
     ELSEIF k = UIK_FIELD THEN
-      DRAWTEXT uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
+      TEXT_DRAW uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
       by = y + 20
-      DRAWRECT x, by, ww, 30, SELF.field
+      DRAW_RECT x, by, ww, 30, SELF.field
       IF focus% = id THEN
         bdc = accent
       ELSEIF hover% = id THEN
@@ -1134,7 +1134,7 @@ TYPE UI
       ELSE
         bdc = line
       ENDIF
-      DRAWBORDER x, by, ww, 30, bdc
+      DRAW_RECT_BORDER x, by, ww, 30, bdc
       IF dis = 1 THEN
         bdc = inkDim
       ELSE
@@ -1144,18 +1144,18 @@ TYPE UI
       WHILE LEN(t$, 1) > ww - 28 AND LEN(t$) > 1
         t$ = RIGHT$(t$, LEN(t$) - 1)
       WEND
-      DRAWTEXT t$, x + 10, by + (30 - ch) / 2, bdc
+      TEXT_DRAW t$, x + 10, by + (30 - ch) / 2, bdc
       IF focus% = id THEN
         IF blink% = 0 THEN
           px = x + 10 + LEN(t$, 1)
-          DRAWRECT px + 1, by + 7, 2, 16, SELF.accent
+          DRAW_RECT px + 1, by + 7, 2, 16, SELF.accent
         ENDIF
       ENDIF
 
     ELSEIF k = UIK_DROPDOWN THEN
-      DRAWTEXT uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
+      TEXT_DRAW uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
       by = y + 20
-      DRAWRECT x, by, ww, 30, SELF.surface2
+      DRAW_RECT x, by, ww, 30, SELF.surface2
       IF focus% = id OR openDrop% = id THEN
         bdc = accent
       ELSEIF hover% = id THEN
@@ -1163,21 +1163,21 @@ TYPE UI
       ELSE
         bdc = line
       ENDIF
-      DRAWBORDER x, by, ww, 30, bdc
+      DRAW_RECT_BORDER x, by, ww, 30, bdc
       t$ = uiFit$(w0.optAt$(w0.num), ww - 44)
       fgc = ink
       IF dis = 1 THEN fgc = inkDim
-      DRAWTEXT t$, x + 10, by + (30 - ch) / 2, fgc
+      TEXT_DRAW t$, x + 10, by + (30 - ch) / 2, fgc
       ' chevron
       px = x + ww - 18
-      DRAWLINE px, by + 12, px + 5, by + 18, fgc
-      DRAWLINE px + 5, by + 18, px + 10, by + 12, fgc
+      DRAW_LINE px, by + 12, px + 5, by + 18, fgc
+      DRAW_LINE px + 5, by + 18, px + 10, by + 12, fgc
 
     ELSEIF k = UIK_LIST THEN
-      DRAWTEXT uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
+      TEXT_DRAW uiFit$(w0.title$, ww), x, y + 2, SELF.inkDim
       by = y + 20
-      DRAWRECT x, by, ww, hh - 20, SELF.field
-      DRAWBORDER x, by, ww, hh - 20, uiMix(SELF.line, SELF.surface, 0.3)
+      DRAW_RECT x, by, ww, hh - 20, SELF.field
+      DRAW_RECT_BORDER x, by, ww, hh - 20, uiMix(SELF.line, SELF.surface, 0.3)
       vis = visibleRows(id)
       maxOff = w0.optCount% - vis
       IF maxOff < 0 THEN maxOff = 0
@@ -1187,18 +1187,18 @@ TYPE UI
         IF i + w0.off% < w0.optCount% THEN
           ty = by + 4 + i * rowH
           IF i + w0.off% = w0.num THEN
-            DRAWRECT x + 1, ty, ww - 2, SELF.rowH, uiMix(SELF.accent, SELF.surface2, 0.55)
-            DRAWRECT x + 1, ty, 3, SELF.rowH, SELF.accent
+            DRAW_RECT x + 1, ty, ww - 2, SELF.rowH, uiMix(SELF.accent, SELF.surface2, 0.55)
+            DRAW_RECT x + 1, ty, 3, SELF.rowH, SELF.accent
             fgc = ink
           ELSEIF i + w0.off% = row THEN
-            DRAWRECT x + 1, ty, ww - 2, SELF.rowH, uiMix(SELF.field, SELF.ink, 0.08)
+            DRAW_RECT x + 1, ty, ww - 2, SELF.rowH, uiMix(SELF.field, SELF.ink, 0.08)
             fgc = ink
           ELSE
             fgc = ink
           ENDIF
           IF dis = 1 THEN fgc = inkDim
           t$ = uiFit$(w0.optAt$(i + w0.off%), ww - 20)
-          DRAWTEXT t$, x + 12, ty + (rowH - ch) / 2, fgc
+          TEXT_DRAW t$, x + 12, ty + (rowH - ch) / 2, fgc
         ENDIF
       NEXT
       IF w0.optCount% > vis THEN
@@ -1206,8 +1206,8 @@ TYPE UI
         thumbH = trackH * vis / w0.optCount%
         IF thumbH < 20 THEN thumbH = 20
         px = x + ww - 6
-        DRAWRECT px, by + 6, 3, trackH, uiMix(SELF.line, SELF.field, 0.4)
-        DRAWRECT px, by + 6 + (trackH - thumbH) * w0.off% / maxOff, 3, thumbH, SELF.inkDim
+        DRAW_RECT px, by + 6, 3, trackH, uiMix(SELF.line, SELF.field, 0.4)
+        DRAW_RECT px, by + 6 + (trackH - thumbH) * w0.off% / maxOff, 3, thumbH, SELF.inkDim
       ENDIF
     ENDIF
   ENDMETHOD
@@ -1221,17 +1221,17 @@ TYPE UI
     LOCAL t$ = ""
     LOCAL ch = 8
     LOCAL cw = 8
-    GETFONTSIZE cw, ch
-    DRAWRECT x + 4, y + 5, w0.w, w0.optCount% * 24 + 2, uiMix(SELF.bg, RGB(0, 0, 0), 0.3)
-    DRAWRECT x, y, w0.w, w0.optCount% * 24 + 2, SELF.titleBar
-    DRAWBORDER x, y, w0.w, w0.optCount% * 24 + 2, SELF.accent
+    FONT_SIZE cw, ch
+    DRAW_RECT x + 4, y + 5, w0.w, w0.optCount% * 24 + 2, uiMix(SELF.bg, RGB(0, 0, 0), 0.3)
+    DRAW_RECT x, y, w0.w, w0.optCount% * 24 + 2, SELF.titleBar
+    DRAW_RECT_BORDER x, y, w0.w, w0.optCount% * 24 + 2, SELF.accent
     FOR i = 0 TO w0.optCount% - 1
       IF i = w0.num THEN
-        DRAWRECT x + 1, y + 1 + i * 24, w0.w - 2, 24, SELF.accent
-        DRAWTEXT uiFit$(w0.optAt$(i), w0.w - 20), x + 10, y + 1 + i * 24 + (24 - ch) / 2, SELF.accentInk
+        DRAW_RECT x + 1, y + 1 + i * 24, w0.w - 2, 24, SELF.accent
+        TEXT_DRAW uiFit$(w0.optAt$(i), w0.w - 20), x + 10, y + 1 + i * 24 + (24 - ch) / 2, SELF.accentInk
       ELSE
         t$ = uiFit$(w0.optAt$(i), w0.w - 20)
-        DRAWTEXT t$, x + 10, y + 1 + i * 24 + (24 - ch) / 2, SELF.ink
+        TEXT_DRAW t$, x + 10, y + 1 + i * 24 + (24 - ch) / 2, SELF.ink
       ENDIF
     NEXT
   ENDMETHOD
@@ -1282,18 +1282,18 @@ TYPE UI
       mdown% = vdown%
       wheel% = 0
     ELSE
-      MOUSESTATE px, py, l, r
+      MOUSE_STATE px, py, l, r
       mx = px
       my = py
       IF l <> 0 THEN mdown% = 1 ELSE mdown% = 0
-      wheel% = MOUSEAXIS(2)
+      wheel% = MOUSE_AXIS(2)
     ENDIF
-    IF screenW% = 0 THEN screenW% = GETSCREENWIDTH()
-    IF screenH% = 0 THEN screenH% = GETSCREENHEIGHT()
+    IF screenW% = 0 THEN screenW% = SCREEN_WIDTH()
+    IF screenH% = 0 THEN screenH% = SCREEN_HEIGHT()
     clickId% = -1
     changeId% = -1
     curWin% = -1
-    now = GETTIMERALL()
+    now = ELAPSED_TIME()
     blink% = MOD(FLOOR(now / 500), 2)
     handleMouse()
     handleKeys()
@@ -1344,7 +1344,7 @@ FUNCTION uiFit$: s$, maxw
   LOCAL n = 0
   IF maxw <= 0 THEN RETURN ""
   IF s$ = "" THEN RETURN ""
-  GETFONTSIZE cw, ch
+  FONT_SIZE cw, ch
   IF cw < 1 THEN cw = 8
   IF LEN(s$, 1) <= maxw THEN RETURN s$
   n = FLOOR(maxw / cw)

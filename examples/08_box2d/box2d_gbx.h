@@ -10,7 +10,7 @@
  *      from ordinary FUNCTIONs, without any INLINE step.
  *
  * The steps in main.gbx use both: the commands for creating bodies, and the
- * C++ accessors plus DRAWLINE/POLYVECTOR inside a METHOD. That shows the
+ * C++ accessors plus DRAW_LINE/POLY_POINT inside a METHOD. That shows the
  * whole path: BASIC -> C++ step -> third-party library -> drawing.
  *
  * Box2D-Lite itself lives in box2d_lite.h (MIT license, see

@@ -9,41 +9,41 @@
 ' damit der komplette Weg vom Laden bis zum Paket geprueft werden.
 ' ============================================================
 
-ASSERT STEAMREADY() = 0, "vor STEAMINIT ist Steam nicht bereit"
-ASSERT STEAMNAME$() = "", "ohne Steam gibt es keinen Namen"
-ASSERT STEAMFRIENDS() = 0, "ohne Steam keine Freundesliste"
-ASSERT STEAMP2PAVAILABLE(0) = 0, "ohne Steam keine Pakete"
+ASSERT STEAM_READY() = 0, "vor STEAM_INIT ist Steam nicht bereit"
+ASSERT STEAM_NAME$() = "", "ohne Steam gibt es keinen Namen"
+ASSERT STEAM_FRIENDS() = 0, "ohne Steam keine Freundesliste"
+ASSERT STEAM_P2P_AVAILABLE(0) = 0, "ohne Steam keine Pakete"
 
-ASSERT STEAMINIT(480) = 1, "STEAMINIT laedt die Bibliothek"
-ASSERT STEAMREADY() = 1, "STEAMREADY nach STEAMINIT"
-ASSERT STEAMERROR$() = "", "STEAMERROR$ bleibt nach dem Start leer"
-ASSERT STEAMAPPID() = 480, "STEAMAPPID"
-ASSERT STEAMID$() = "76561190000000001", "STEAMID$"
-ASSERT STEAMNAME$() = "Mock Player", "STEAMNAME$"
+ASSERT STEAM_INIT(480) = 1, "STEAM_INIT laedt die Bibliothek"
+ASSERT STEAM_READY() = 1, "STEAM_READY nach STEAM_INIT"
+ASSERT STEAM_ERROR$() = "", "STEAM_ERROR$ bleibt nach dem Start leer"
+ASSERT STEAM_APP_ID() = 480, "STEAM_APP_ID"
+ASSERT STEAM_ID$() = "76561190000000001", "STEAM_ID$"
+ASSERT STEAM_NAME$() = "Mock Player", "STEAM_NAME$"
 
 ' ------------------------------------------------------ Freundesliste
-ASSERT STEAMFRIENDS() = 1, "STEAMFRIENDS"
-ASSERT STEAMFRIENDID$(0) = "76561190000000002", "STEAMFRIENDID$"
-ASSERT STEAMFRIENDNAME$(0) = "Mock Friend", "STEAMFRIENDNAME$"
-ASSERT STEAMFRIENDSTATE(0) = 1, "STEAMFRIENDSTATE"
-ASSERT STEAMFRIENDID$(5) = "", "STEAMFRIENDID$ ausserhalb der Liste"
+ASSERT STEAM_FRIENDS() = 1, "STEAM_FRIENDS"
+ASSERT STEAM_FRIEND_ID$(0) = "76561190000000002", "STEAM_FRIEND_ID$"
+ASSERT STEAM_FRIEND_NAME$(0) = "Mock Friend", "STEAM_FRIEND_NAME$"
+ASSERT STEAM_FRIEND_STATE(0) = 1, "STEAM_FRIEND_STATE"
+ASSERT STEAM_FRIEND_ID$(5) = "", "STEAM_FRIEND_ID$ ausserhalb der Liste"
 
 ' ------------------------------------------------------------- P2P
 partner$ = "76561190000000002"
-ASSERT STEAMP2PSEND(partner$, "hallo") = 5, "STEAMP2PSEND meldet die Bytes"
-ASSERT STEAMP2PAVAILABLE(0) = 5, "STEAMP2PAVAILABLE nach dem Senden"
-ASSERT STEAMP2PRECV$(0) = "hallo", "STEAMP2PRECV$ liest das Paket"
-ASSERT STEAMP2PFROM$() = partner$, "STEAMP2PFROM$ nennt den Absender"
-ASSERT STEAMP2PAVAILABLE(0) = 0, "nach dem Lesen ist nichts mehr da"
-ASSERT STEAMP2PRECV$(0) = "", "STEAMP2PRECV$ ohne Paket ist leer"
+ASSERT STEAM_P2P_SEND(partner$, "hallo") = 5, "STEAM_P2P_SEND meldet die Bytes"
+ASSERT STEAM_P2P_AVAILABLE(0) = 5, "STEAM_P2P_AVAILABLE nach dem Senden"
+ASSERT STEAM_P2P_RECV$(0) = "hallo", "STEAM_P2P_RECV$ liest das Paket"
+ASSERT STEAM_P2P_FROM$() = partner$, "STEAM_P2P_FROM$ nennt den Absender"
+ASSERT STEAM_P2P_AVAILABLE(0) = 0, "nach dem Lesen ist nichts mehr da"
+ASSERT STEAM_P2P_RECV$(0) = "", "STEAM_P2P_RECV$ ohne Paket ist leer"
 
-ASSERT STEAMP2PSTATE(partner$) = 2, "STEAMP2PSTATE meldet eine offene Verbindung"
-ASSERT STEAMP2PACCEPT(partner$) = 1, "STEAMP2PACCEPT"
-ASSERT STEAMP2PCLOSE(partner$) = 1, "STEAMP2PCLOSE"
-ASSERT STEAMRUN() = 1, "STEAMRUN pumpt die Callbacks"
+ASSERT STEAM_P2P_STATE(partner$) = 2, "STEAM_P2P_STATE meldet eine offene Verbindung"
+ASSERT STEAM_P2P_ACCEPT(partner$) = 1, "STEAM_P2P_ACCEPT"
+ASSERT STEAM_P2P_CLOSE(partner$) = 1, "STEAM_P2P_CLOSE"
+ASSERT STEAM_RUN() = 1, "STEAM_RUN pumpt die Callbacks"
 
 ' ---------------------------------------------------------- beenden
-STEAMSHUTDOWN
-ASSERT STEAMREADY() = 0, "STEAMSHUTDOWN beendet Steam"
+STEAM_SHUTDOWN
+ASSERT STEAM_READY() = 0, "STEAM_SHUTDOWN beendet Steam"
 
 STDOUT "STEAMTEST FERTIG" + CHR$(10)

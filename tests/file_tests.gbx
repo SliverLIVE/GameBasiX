@@ -12,134 +12,134 @@ lin$ = "fileio_lines.txt"
 app$ = "fileio_append.txt"
 cpy$ = "fileio_copy.bin"
 mov$ = "fileio_moved.bin"
-IF FILEEXISTS(bin$) THEN DELETEFILE bin$
-IF FILEEXISTS(lin$) THEN DELETEFILE lin$
-IF FILEEXISTS(app$) THEN DELETEFILE app$
-IF FILEEXISTS(cpy$) THEN DELETEFILE cpy$
-IF FILEEXISTS(mov$) THEN DELETEFILE mov$
+IF FILE_EXISTS(bin$) THEN FILE_DELETE bin$
+IF FILE_EXISTS(lin$) THEN FILE_DELETE lin$
+IF FILE_EXISTS(app$) THEN FILE_DELETE app$
+IF FILE_EXISTS(cpy$) THEN FILE_DELETE cpy$
+IF FILE_EXISTS(mov$) THEN FILE_DELETE mov$
 
 ' ------------------------------------------------------ schreiben
-ASSERT OPENFILE(1, bin$, 0) = 1, "OPENFILE schreiben"
-WRITEBYTE 1, 200
-WRITEBYTE 1, -1
-WRITEWORD 1, 513
-WRITEUWORD 1, 65535
-WRITELONG 1, 123456
-WRITEULONG 1, 4000000000
-WRITEIEEE 1, 1.5
-WRITESHORTIEEE 1, -2.25
-WRITESTR 1, "abc"
-CLOSEFILE 1
+ASSERT FILE_OPEN(1, bin$, 0) = 1, "FILE_OPEN schreiben"
+FILE_WRITE_BYTE 1, 200
+FILE_WRITE_BYTE 1, -1
+FILE_WRITE_WORD 1, 513
+FILE_WRITE_UWORD 1, 65535
+FILE_WRITE_LONG 1, 123456
+FILE_WRITE_ULONG 1, 4000000000
+FILE_WRITE_DOUBLE 1, 1.5
+FILE_WRITE_FLOAT 1, -2.25
+FILE_WRITE_STR 1, "abc"
+FILE_CLOSE 1
 
-ASSERT FILESIZE(bin$) = 29, "FILESIZE nach dem Schreiben"
-ASSERT FILEEXISTS(bin$) = 1, "FILEEXISTS"
-ASSERT FILEEXISTS("gibt_es_nicht.bin") = 0, "FILEEXISTS fehlende Datei"
-ASSERT FILESIZE("gibt_es_nicht.bin") = -1, "FILESIZE fehlende Datei"
+ASSERT FILE_SIZE(bin$) = 29, "FILE_SIZE nach dem Schreiben"
+ASSERT FILE_EXISTS(bin$) = 1, "FILE_EXISTS"
+ASSERT FILE_EXISTS("gibt_es_nicht.bin") = 0, "FILE_EXISTS fehlende Datei"
+ASSERT FILE_SIZE("gibt_es_nicht.bin") = -1, "FILE_SIZE fehlende Datei"
 
 ' ---------------------------------------------------------- lesen
-ASSERT OPENFILE(1, bin$, 1) = 1, "OPENFILE lesen"
-READBYTE 1, b
-READUBYTE 1, ub
-READWORD 1, w
-READUWORD 1, uw
-READLONG 1, l
-READULONG 1, ul
-READIEEE 1, d#
-READSHORTIEEE 1, s#
-READSTR 1, text$, 3
+ASSERT FILE_OPEN(1, bin$, 1) = 1, "FILE_OPEN lesen"
+FILE_READ_BYTE 1, b
+FILE_READ_UBYTE 1, ub
+FILE_READ_WORD 1, w
+FILE_READ_UWORD 1, uw
+FILE_READ_LONG 1, l
+FILE_READ_ULONG 1, ul
+FILE_READ_DOUBLE 1, d#
+FILE_READ_FLOAT 1, s#
+FILE_READ_STR 1, text$, 3
 
-ASSERT b = -56, "READBYTE vorzeichenbehaftet"
-ASSERT ub = 255, "READUBYTE"
-ASSERT w = 513, "READWORD"
-ASSERT uw = 65535, "READUWORD"
-ASSERT l = 123456, "READLONG"
-ASSERT ul = 4000000000, "READULONG"
-ASSERT d# = 1.5, "READIEEE"
-ASSERT s# = -2.25, "READSHORTIEEE"
-ASSERT text$ = "abc", "READSTR"
-ASSERT FILEEOF(1) = 1, "FILEEOF am Ende"
-ASSERT FILEPOSITION(1) = 29, "FILEPOSITION am Ende"
-CLOSEFILE 1
+ASSERT b = -56, "FILE_READ_BYTE vorzeichenbehaftet"
+ASSERT ub = 255, "FILE_READ_UBYTE"
+ASSERT w = 513, "FILE_READ_WORD"
+ASSERT uw = 65535, "FILE_READ_UWORD"
+ASSERT l = 123456, "FILE_READ_LONG"
+ASSERT ul = 4000000000, "FILE_READ_ULONG"
+ASSERT d# = 1.5, "FILE_READ_DOUBLE"
+ASSERT s# = -2.25, "FILE_READ_FLOAT"
+ASSERT text$ = "abc", "FILE_READ_STR"
+ASSERT FILE_EOF(1) = 1, "FILE_EOF am Ende"
+ASSERT FILE_POSITION(1) = 29, "FILE_POSITION am Ende"
+FILE_CLOSE 1
 
 ' --------------------------------------------------------- suchen
-ASSERT OPENFILE(1, bin$, 1) = 1, "OPENFILE erneut lesen"
-FILESEEK 1, 0, 0
-ASSERT FILEPOSITION(1) = 0, "FILESEEK Anfang"
-ASSERT FILEEOF(1) = 0, "FILEEOF am Anfang"
-READBYTE 1, b
-ASSERT b = -56, "READBYTE nach FILESEEK"
+ASSERT FILE_OPEN(1, bin$, 1) = 1, "FILE_OPEN erneut lesen"
+FILE_SEEK 1, 0, 0
+ASSERT FILE_POSITION(1) = 0, "FILE_SEEK Anfang"
+ASSERT FILE_EOF(1) = 0, "FILE_EOF am Anfang"
+FILE_READ_BYTE 1, b
+ASSERT b = -56, "FILE_READ_BYTE nach FILE_SEEK"
 
-FILESEEK 1, -1, -1
-ASSERT FILEPOSITION(1) = 28, "FILESEEK Ende"
+FILE_SEEK 1, -1, -1
+ASSERT FILE_POSITION(1) = 28, "FILE_SEEK Ende"
 readEnd = 0
-READUBYTE 1, readEnd
+FILE_READ_UBYTE 1, readEnd
 ASSERT readEnd = 99, "letztes Byte ist c"
 
-FILESEEK 1, -4, 1
-ASSERT FILEPOSITION(1) = 25, "FILESEEK relativ zur Position"
-READUBYTE 1, readEnd
+FILE_SEEK 1, -4, 1
+ASSERT FILE_POSITION(1) = 25, "FILE_SEEK relativ zur Position"
+FILE_READ_UBYTE 1, readEnd
 ASSERT readEnd = 192, "Byte aus dem Float"
-CLOSEFILE 1
+FILE_CLOSE 1
 
 ' --------------------------------------------------------- zeilen
-ASSERT OPENFILE(2, lin$, 0) = 1, "OPENFILE Zeilen schreiben"
-WRITELINE 2, "eins"
-WRITELINE 2, "zwei"
-WRITESTR 2, "ohne newline"
-CLOSEFILE 2
-ASSERT FILESIZE(lin$) = 24, "WRITELINE schreibt CRLF"
+ASSERT FILE_OPEN(2, lin$, 0) = 1, "FILE_OPEN Zeilen schreiben"
+FILE_WRITE_LINE 2, "eins"
+FILE_WRITE_LINE 2, "zwei"
+FILE_WRITE_STR 2, "ohne newline"
+FILE_CLOSE 2
+ASSERT FILE_SIZE(lin$) = 24, "FILE_WRITE_LINE schreibt CRLF"
 
-ASSERT OPENFILE(2, lin$, 1) = 1, "OPENFILE Zeilen lesen"
-READLINE 2, zeile$
-ASSERT zeile$ = "eins", "READLINE erste Zeile"
-READLINE 2, zeile$
-ASSERT zeile$ = "zwei", "READLINE zweite Zeile"
-READLINE 2, zeile$
-ASSERT zeile$ = "ohne newline", "READLINE ohne Zeilenende"
-ASSERT FILEEOF(2) = 1, "FILEEOF nach letzter Zeile"
-READLINE 2, zeile$
-ASSERT zeile$ = "", "READLINE am Ende leer"
-CLOSEFILE 2
+ASSERT FILE_OPEN(2, lin$, 1) = 1, "FILE_OPEN Zeilen lesen"
+FILE_READ_LINE 2, zeile$
+ASSERT zeile$ = "eins", "FILE_READ_LINE erste Zeile"
+FILE_READ_LINE 2, zeile$
+ASSERT zeile$ = "zwei", "FILE_READ_LINE zweite Zeile"
+FILE_READ_LINE 2, zeile$
+ASSERT zeile$ = "ohne newline", "FILE_READ_LINE ohne Zeilenende"
+ASSERT FILE_EOF(2) = 1, "FILE_EOF nach letzter Zeile"
+FILE_READ_LINE 2, zeile$
+ASSERT zeile$ = "", "FILE_READ_LINE am Ende leer"
+FILE_CLOSE 2
 
 ' ------------------------------------------------------ anhaengen
-ASSERT OPENFILE(5, app$, 0) = 1, "Datei fuer Anhaengen"
-WRITELINE 5, "eins"
-CLOSEFILE 5
-ASSERT OPENFILE(5, app$, -1) = 1, "OPENFILE anhaengen"
-WRITELINE 5, "zwei"
-CLOSEFILE 5
-ASSERT FILESIZE(app$) = 12, "FILESIZE nach dem Anhaengen"
-ASSERT OPENFILE(5, app$, 1) = 1, "OPENFILE zum Pruefen"
-READLINE 5, zeile$
+ASSERT FILE_OPEN(5, app$, 0) = 1, "Datei fuer Anhaengen"
+FILE_WRITE_LINE 5, "eins"
+FILE_CLOSE 5
+ASSERT FILE_OPEN(5, app$, -1) = 1, "FILE_OPEN anhaengen"
+FILE_WRITE_LINE 5, "zwei"
+FILE_CLOSE 5
+ASSERT FILE_SIZE(app$) = 12, "FILE_SIZE nach dem Anhaengen"
+ASSERT FILE_OPEN(5, app$, 1) = 1, "FILE_OPEN zum Pruefen"
+FILE_READ_LINE 5, zeile$
 ASSERT zeile$ = "eins", "erste Zeile vor dem Anhaengen"
-READLINE 5, zeile$
+FILE_READ_LINE 5, zeile$
 ASSERT zeile$ = "zwei", "angehaengte Zeile"
-ASSERT FILEEOF(5) = 1, "Ende nach zwei Zeilen"
-CLOSEFILE 5
+ASSERT FILE_EOF(5) = 1, "Ende nach zwei Zeilen"
+FILE_CLOSE 5
 
 ' ------------------------------------------------- Dateioperationen
-COPYFILE lin$, cpy$
-ASSERT FILEEXISTS(cpy$) = 1, "COPYFILE"
-ASSERT FILESIZE(cpy$) = FILESIZE(lin$), "Kopie ist gleich gross"
-RENAMEFILE cpy$, mov$
-ASSERT FILEEXISTS(mov$) = 1 AND FILEEXISTS(cpy$) = 0, "RENAMEFILE"
-DELETEFILE mov$
-ASSERT FILEEXISTS(mov$) = 0, "DELETEFILE"
+FILE_COPY lin$, cpy$
+ASSERT FILE_EXISTS(cpy$) = 1, "FILE_COPY"
+ASSERT FILE_SIZE(cpy$) = FILE_SIZE(lin$), "Kopie ist gleich gross"
+FILE_RENAME cpy$, mov$
+ASSERT FILE_EXISTS(mov$) = 1 AND FILE_EXISTS(cpy$) = 0, "FILE_RENAME"
+FILE_DELETE mov$
+ASSERT FILE_EXISTS(mov$) = 0, "FILE_DELETE"
 
 ' ---------------------------------------------------------- Ordner
-ordner$ = GETENV$("TEMP") + "/gbx-fileio-test"
-MAKEDIR ordner$
-ASSERT OPENFILE(4, ordner$ + "/drin.bin", 0) = 1, "Datei im neuen Ordner"
-WRITEBYTE 4, 7
-CLOSEFILE 4
-ASSERT FILEEXISTS(ordner$ + "/drin.bin") = 1, "Datei im Ordner gefunden"
-DELETEFILE ordner$ + "/drin.bin"
+ordner$ = ENV$("TEMP") + "/gbx-fileio-test"
+DIR_MAKE ordner$
+ASSERT FILE_OPEN(4, ordner$ + "/drin.bin", 0) = 1, "Datei im neuen Ordner"
+FILE_WRITE_BYTE 4, 7
+FILE_CLOSE 4
+ASSERT FILE_EXISTS(ordner$ + "/drin.bin") = 1, "Datei im Ordner gefunden"
+FILE_DELETE ordner$ + "/drin.bin"
 
 ' ---------------------------------------------------------- Fehler
-ASSERT OPENFILE(9, "gibt_es_nicht.bin", 1) = 0, "OPENFILE fehlende Datei"
+ASSERT FILE_OPEN(9, "gibt_es_nicht.bin", 1) = 0, "FILE_OPEN fehlende Datei"
 
 ' -------------------------------------------------------- aufraeumen
-DELETEFILE bin$
-DELETEFILE lin$
-DELETEFILE app$
+FILE_DELETE bin$
+FILE_DELETE lin$
+FILE_DELETE app$
 STDOUT "DATEITEST FERTIG" + CHR$(10)

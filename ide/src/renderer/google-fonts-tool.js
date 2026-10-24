@@ -217,7 +217,7 @@ export function openGoogleFonts({ t, openModal, toast, get, post, projectDir, pr
     targetEl.textContent = relative;
     commandEl.textContent = lastCommand && lastCommand.includes(relative)
       ? lastCommand
-      : `LOADFONT "${relative}", 1, 20`;
+      : `FONT_LOAD "${relative}", 1, 20`;
   }
 
   function resetDownload() {
@@ -407,7 +407,7 @@ export function openGoogleFonts({ t, openModal, toast, get, post, projectDir, pr
 
   const modal = openModal({
     title: t('Google Fonts'),
-    subtitle: t('Schriften für LOADFONT'),
+    subtitle: t('Schriften für FONT_LOAD'),
     className: 'gfont-modal',
     body,
     footer: [

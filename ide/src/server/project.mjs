@@ -373,8 +373,8 @@ const TEMPLATES = {
 ' Erstellt mit GBX Studio
 ' -------------------------------------------------------------
 
-SETSCREEN 800, 600
-SETWINDOWTITLE "${name}"
+SCREEN_SET 800, 600
+WINDOW_TITLE "${name}"
 
 GLOBAL x, y, mx, my, mb1, mb2
 
@@ -382,17 +382,17 @@ x = 400
 y = 300
 
 WHILE TRUE
-    CLEARSCREEN RGB(20, 24, 32)
-    DRAWRECT 60, 60, 680, 480, RGB(35, 42, 56)
-    DRAWBORDER 60, 60, 680, 480, RGB(90, 120, 200)
-    DRAWCIRCLE x, y, 40, RGB(240, 180, 60)
+    SCREEN_CLEAR RGB(20, 24, 32)
+    DRAW_RECT 60, 60, 680, 480, RGB(35, 42, 56)
+    DRAW_RECT_BORDER 60, 60, 680, 480, RGB(90, 120, 200)
+    DRAW_CIRCLE x, y, 40, RGB(240, 180, 60)
     PRINT "Hallo GameBasiX!", x - 70, y + 70
     PRINT "F5 startet, F7 prueft die Syntax.", 80, 500
-    SHOWSCREEN
-    MOUSESTATE mx, my, mb1, mb2
+    SCREEN_SHOW
+    MOUSE_STATE mx, my, mb1, mb2
     IF mb1 THEN x = mx
     IF mb1 THEN y = my
-    IF KEYHIT(KEY_ESC) THEN BREAK
+    IF KEY_PRESSED(KEY_ESC) THEN BREAK
 WEND
 
 END
@@ -400,13 +400,13 @@ END
   empty: (name) => `' ${name}
 ' Leeres GBX-Projekt
 
-SETSCREEN 640, 480
+SCREEN_SET 640, 480
 
 WHILE TRUE
-    CLEARSCREEN RGB(0, 0, 0)
+    SCREEN_CLEAR RGB(0, 0, 0)
     PRINT "Bereit.", 20, 20
-    SHOWSCREEN
-    IF KEYHIT(KEY_ESC) THEN BREAK
+    SCREEN_SHOW
+    IF KEY_PRESSED(KEY_ESC) THEN BREAK
 WEND
 
 END
@@ -414,24 +414,24 @@ END
   shapes: (name) => `' ${name}
 ' Formen, Farben und Text
 
-SETSCREEN 800, 600
+SCREEN_SET 800, 600
 CONSTANT HINTERGRUND = RGB(18, 20, 26)
 
 GLOBAL t#
 
 WHILE TRUE
-    CLEARSCREEN HINTERGRUND
+    SCREEN_CLEAR HINTERGRUND
     t = t + 0.02
     FOR i = 0 TO 11
         winkel# = i * 30 + t * 40
         x# = 400 + COS(winkel#) * 180
         y# = 300 + SIN(winkel#) * 180
-        DRAWFILLEDCIRCLE x#, y#, 26, RGB(60 + i * 15, 120, 220 - i * 10)
+        DRAW_CIRCLE_FILLED x#, y#, 26, RGB(60 + i * 15, 120, 220 - i * 10)
     NEXT
-    DRAWLINE 0, 300, 800, 300, RGB(70, 80, 100)
+    DRAW_LINE 0, 300, 800, 300, RGB(70, 80, 100)
     PRINT "GameBasiX - Formen", 24, 24
-    SHOWSCREEN
-    IF KEYHIT(KEY_ESC) THEN BREAK
+    SCREEN_SHOW
+    IF KEY_PRESSED(KEY_ESC) THEN BREAK
 WEND
 
 END
@@ -440,29 +440,29 @@ END
 ' Sprites laden und bewegen
 ' Bilder in den Ordner assets/ legen (PNG, JPG oder BMP).
 
-SETSCREEN 800, 600
+SCREEN_SET 800, 600
 
 GLOBAL x#, y#, vx#, vy#, mx, my, mb1, mb2
 
-LOADSPRITE "assets/sprite.png", 0
+SPRITE_LOAD "assets/sprite.png", 0
 x# = 400
 y# = 300
 vx# = 3.5
 vy# = 2.5
 
 WHILE TRUE
-    CLEARSCREEN RGB(16, 18, 24)
+    SCREEN_CLEAR RGB(16, 18, 24)
     x# = x# + vx#
     y# = y# + vy#
     IF x# < 32 OR x# > 768 THEN vx# = -vx#
     IF y# < 32 OR y# > 568 THEN vy# = -vy#
-    ROTOZOOMSPRITE 0, x#, y#, x# * 0.25, 100
+    SPRITE_DRAW_ROTATED_SCALED 0, x#, y#, x# * 0.25, 100
     PRINT "Maus bewegt den Sprite, ESC beendet.", 20, 20
-    SHOWSCREEN
-    MOUSESTATE mx, my, mb1, mb2
+    SCREEN_SHOW
+    MOUSE_STATE mx, my, mb1, mb2
     IF mb1 THEN x# = mx
     IF mb1 THEN y# = my
-    IF KEYHIT(KEY_ESC) THEN BREAK
+    IF KEY_PRESSED(KEY_ESC) THEN BREAK
 WEND
 
 END

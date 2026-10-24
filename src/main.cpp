@@ -37,7 +37,7 @@ namespace fs = std::filesystem;
 
 namespace {
 
-const char* kVersion = "1.0";
+const char* kVersion = "1.2";
 
 // Ein exportiertes Spiel erkennt sich beim Start am angehaengten Paket.
 bool g_packaged = false;

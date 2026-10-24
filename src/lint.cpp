@@ -71,11 +71,11 @@ std::string closestName(const std::vector<std::string>& names, const std::string
  */
 const std::unordered_set<std::string>& outputCommands() {
     static const std::unordered_set<std::string> names = {
-        "GETSCREENSIZE", "GETDESKTOPSIZE", "GETVIEWPORT", "GETSPRITESIZE",
-        "GETFONTSIZE",    "INPUT",         "MOUSESTATE",  "DIMDATA",
-        "SPLITSTR",       "READBYTE",      "READUBYTE",   "READWORD",
-        "READUWORD",      "READLONG",      "READULONG",   "READIEEE",
-        "READSHORTIEEE",  "READSTR",       "READLINE"};
+        "SCREEN_SIZE", "DESKTOP_SIZE", "VIEWPORT", "SPRITE_SIZE",
+        "FONT_SIZE",    "INPUT",         "MOUSE_STATE",  "DIMDATA",
+        "SPLIT_STRING",       "FILE_READ_BYTE",      "FILE_READ_UBYTE",   "FILE_READ_WORD",
+        "FILE_READ_UWORD",      "FILE_READ_LONG",      "FILE_READ_ULONG",   "FILE_READ_DOUBLE",
+        "FILE_READ_FLOAT",  "FILE_READ_STR",       "FILE_READ_LINE"};
     return names;
 }
 

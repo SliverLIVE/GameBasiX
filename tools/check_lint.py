@@ -83,8 +83,8 @@ def main():
             """' Bekanntes darf nicht anschlagen
 PRINT "Hallo", 0, 0
 x = 3
-IF KEYHIT(KEY_SPACE) THEN x = x + ABS(-2)
-SETSCREEN 640, 480
+IF KEY_PRESSED(KEY_SPACE) THEN x = x + ABS(-2)
+SCREEN_SET 640, 480
 y = spaeter(2)
 END
 
@@ -98,10 +98,10 @@ ENDFUNCTION
             "Ausgabeparameter legen die Variable an",
             """INPUT name$
 PRINT name$, 0, 0
-MOUSESTATE mx, my, mb, mbb
-GETSCREENSIZE w, h
+MOUSE_STATE mx, my, mb, mbb
+SCREEN_SIZE w, h
 DIM teile$[8]
-SPLITSTR("a,b", teile$[], ",")
+SPLIT_STRING("a,b", teile$[], ",")
 END
 """,
         )

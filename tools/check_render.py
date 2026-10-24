@@ -41,7 +41,7 @@ def main():
         print("FEHLER: Programm endete mit", proc.returncode)
         return 1
     if not os.path.exists(BMP):
-        print("FEHLER: SAVEBMP hat keine Datei erzeugt")
+        print("FEHLER: SCREEN_SAVE_BMP hat keine Datei erzeugt")
         return 1
 
     width, height, px = read_bmp(BMP)

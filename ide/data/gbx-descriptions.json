@@ -7,15 +7,15 @@
     "de": "Liefert den Winkel in Grad, dessen Kosinus der Wert ist.",
     "en": "Returns the angle in degrees whose cosine is the given value."
   },
-  "ALLOWESCAPE": {
+  "ALLOW_ESCAPE": {
     "de": "Legt fest, ob die Esc-Taste das Programm beenden darf.",
     "en": "Decides whether the Esc key may close the program."
   },
-  "ALPHAMODE": {
+  "SET_ALPHA_MODE": {
     "de": "Bestimmt, wie Transparenz beim Zeichnen verrechnet wird: 0 normal, positive Werte additiv, negative Werte als Alpha mit 1+Wert.",
     "en": "Decides how transparency is blended while drawing: 0 normal, positive values additive, negative values as alpha with 1+value."
   },
-  "ALPHATESTING": {
+  "SET_ALPHA_TEST": {
     "de": "Legt die Schwelle fest, unter der Pixel beim Laden von Bildern ganz durchsichtig werden. Gilt für neu geladene Bilder, nicht rückwirkend.",
     "en": "Sets the threshold below which pixels become fully transparent when images are loaded. Applies to newly loaded images, not retroactively."
   },
@@ -23,7 +23,7 @@
     "de": "Logisches UND in Bedingungen. Es wird nur so weit geprüft, wie nötig, das Ergebnis ist 1 oder 0.",
     "en": "Logical AND in conditions. It stops evaluating as soon as the result is clear and returns 1 or 0."
   },
-  "ANIMCOLL": {
+  "ANIM_COLLIDE": {
     "de": "Prüft zwei Animationsbilder auf Überlappung: je Seite Sprite-ID, Kachelnummer und Position.",
     "en": "Checks two animation frames for overlap: sprite id, tile number and position for each side."
   },
@@ -39,11 +39,11 @@
     "de": "Liefert den Winkel in Grad, dessen Sinus der Wert ist.",
     "en": "Returns the angle in degrees whose sine is the given value."
   },
-  "ASL": {
+  "SHL": {
     "de": "Verschiebt die Bits einer ganzen Zahl nach links; das entspricht einer Multiplikation mit Zweierpotenzen.",
     "en": "Shifts the bits of an integer to the left, which multiplies it by powers of two."
   },
-  "ASR": {
+  "SHR": {
     "de": "Verschiebt die Bits einer ganzen Zahl nach rechts; das entspricht einer Division durch Zweierpotenzen.",
     "en": "Shifts the bits of an integer to the right, which divides it by powers of two."
   },
@@ -59,11 +59,11 @@
     "de": "Verknüpft zwei ganze Zahlen bitweise mit UND.",
     "en": "Combines two integers bit by bit with AND."
   },
-  "BLACKSCREEN": {
-    "de": "Malt den Bildschirm sofort schwarz, ohne die gemerkte Hintergrundfarbe zu ändern.",
-    "en": "Paints the screen black right away without changing the remembered background colour."
+  "SCREEN_BLACK": {
+    "de": "Malt den Bildschirm schwarz und verwirft ein geladenes Hintergrundbild; die gemerkte Hintergrundfarbe bleibt.",
+    "en": "Paints the screen black and drops a loaded background image; the remembered background colour stays."
   },
-  "BLENDSCREEN": {
+  "SCREEN_FADE": {
     "de": "Blendet ein Bild über die angegebene Dauer ein, etwa als Übergang zwischen Szenen.",
     "en": "Fades an image in over the given duration, for example as a transition between scenes."
   },
@@ -75,11 +75,11 @@
     "de": "Verknüpft zwei ganze Zahlen bitweise mit ODER.",
     "en": "Combines two integers bit by bit with OR."
   },
-  "BOUNDS": {
+  "ARRAY_BOUNDS": {
     "de": "Liefert die Größe der angegebenen Dimension; 0 ist die erste.",
     "en": "Returns the size of the given dimension; 0 is the first one."
   },
-  "BOXCOLL": {
+  "RECT_COLLIDE": {
     "de": "Rechnet zwei Rechtecke gegeneinander und liefert 1, sobald sie sich überschneiden.",
     "en": "Tests two rectangles against each other and returns 1 as soon as they overlap."
   },
@@ -111,19 +111,19 @@
     "de": "Macht aus einem Zeichencode wieder ein Zeichen.",
     "en": "Turns a character code back into a character."
   },
-  "CLEARSCREEN": {
+  "SCREEN_CLEAR": {
     "de": "Löscht den Bildschirm in der angegebenen Farbe und merkt sie sich für die folgenden Bilder. Ohne Argument wird Schwarz benutzt, mit -1 hört das automatische Löschen auf.",
     "en": "Clears the screen in the given colour and remembers it for the following frames. Without an argument black is used, -1 turns the automatic clearing off."
   },
-  "CLOSEFILE": {
+  "FILE_CLOSE": {
     "de": "Schließt den Kanal und schreibt gepufferte Daten auf die Platte.",
     "en": "Closes the channel and flushes buffered data to disk."
   },
-  "CODEFILE$": {
+  "SOURCE_FILE$": {
     "de": "Liefert den Namen der Datei, in der der Aufruf steht.",
     "en": "Returns the name of the file the call appears in."
   },
-  "CODELINE": {
+  "SOURCE_LINE": {
     "de": "Liefert die Zeilennummer des Aufrufs.",
     "en": "Returns the line number of the call."
   },
@@ -139,7 +139,7 @@
     "de": "Springt sofort zum nächsten Durchlauf der innersten Schleife.",
     "en": "Jumps straight to the next pass of the innermost loop."
   },
-  "COPYFILE": {
+  "FILE_COPY": {
     "de": "Kopiert eine Datei und überschreibt dabei ein vorhandenes Ziel.",
     "en": "Copies a file and overwrites an existing target."
   },
@@ -147,9 +147,9 @@
     "de": "Liefert den Kosinus eines Winkels in Grad.",
     "en": "Returns the cosine of an angle given in degrees."
   },
-  "CREATESCREEN": {
-    "de": "Legt einen zusätzlichen Bildschirm an, dessen Inhalt in einem Sprite landet; USESCREEN schaltet dorthin um.",
-    "en": "Creates an extra screen whose content ends up in a sprite; USESCREEN switches to it."
+  "SCREEN_CREATE": {
+    "de": "Legt einen zusätzlichen Bildschirm an, dessen Inhalt in einem Sprite landet; SCREEN_USE schaltet dorthin um.",
+    "en": "Creates an extra screen whose content ends up in a sprite; SCREEN_USE switches to it."
   },
   "DEBUG": {
     "de": "Schreibt Text ohne Zeilenumbruch auf die Fehlerausgabe; die IDE zeigt ihn in der Konsole.",
@@ -163,7 +163,7 @@
     "de": "Der Zweig in SELECT, der greift, wenn kein CASE passt.",
     "en": "The branch in SELECT that runs when no CASE matches."
   },
-  "DELETEFILE": {
+  "FILE_DELETE": {
     "de": "Löscht eine Datei.",
     "en": "Deletes a file."
   },
@@ -183,37 +183,37 @@
     "de": "Hängt einen Wert hinten an ein Array an.",
     "en": "Appends a value to the end of an array."
   },
-  "DRAWANIM": {
+  "ANIM_DRAW": {
     "de": "Zeichnet eine einzelne Kachel einer Animation: Sprite-ID, Kachelnummer und Zielposition.",
     "en": "Draws a single tile of an animation: sprite id, tile number and target position."
   },
-  "DRAWBORDER": {
+  "DRAW_RECT_BORDER": {
     "de": "Zeichnet nur den Rand eines Rechtecks, innen bleibt das Bild unberührt.",
     "en": "Draws only the outline of a rectangle and leaves the inside untouched."
   },
-  "DRAWCIRCLE": {
+  "DRAW_CIRCLE": {
     "de": "Zeichnet den Umriss eines Kreises. Mittelpunkt und Radius werden in Pixeln angegeben.",
     "en": "Draws a circle outline. Centre and radius are given in pixels."
   },
-  "DRAWFILLEDCIRCLE": {
+  "DRAW_CIRCLE_FILLED": {
     "de": "Zeichnet einen vollständig gefüllten Kreis.",
     "en": "Draws a completely filled circle."
   },
-  "DRAWLINE": {
+  "DRAW_LINE": {
     "de": "Zieht eine gerade Linie vom ersten zum zweiten Punkt.",
     "en": "Draws a straight line from the first point to the second."
   },
-  "DRAWRECT": {
+  "DRAW_RECT": {
     "de": "Füllt ein Rechteck, das an der linken oberen Ecke beginnt.",
     "en": "Fills a rectangle starting at its top left corner."
   },
-  "DRAWSPRITE": {
+  "SPRITE_DRAW": {
     "de": "Zeichnet ein geladenes Sprite an die angegebene Stelle; x und y sind die linke obere Ecke.",
     "en": "Draws a loaded sprite at the given position; x and y are the top left corner."
   },
-  "DRAWTEXT": {
-    "de": "Schreibt Text in der angegebenen Farbe, ohne die mit SETTEXTCOLOR gesetzte Farbe zu verändern.",
-    "en": "Writes text in the given colour without changing the colour set with SETTEXTCOLOR."
+  "TEXT_DRAW": {
+    "de": "Schreibt Text in der angegebenen Farbe, ohne die mit TEXT_COLOR gesetzte Farbe zu verändern.",
+    "en": "Writes text in the given colour without changing the colour set with TEXT_COLOR."
   },
   "ELSE": {
     "de": "Der Zweig eines IF, der läuft, wenn die Bedingung falsch ist.",
@@ -243,9 +243,9 @@
     "de": "Schließt eine METHOD ab.",
     "en": "Closes a METHOD."
   },
-  "ENDPOLY": {
-    "de": "Schließt das Polygon, das mit STARTPOLY begonnen wurde, und zeichnet es.",
-    "en": "Closes and draws the polygon started with STARTPOLY."
+  "POLY_END": {
+    "de": "Schließt das Polygon, das mit POLY_BEGIN begonnen wurde, und zeichnet es.",
+    "en": "Closes and draws the polygon started with POLY_BEGIN."
   },
   "ENDSELECT": {
     "de": "Beendet ein SELECT.",
@@ -267,23 +267,23 @@
     "de": "Verlässt eine FUNCTION oder ein SUB vorzeitig.",
     "en": "Leaves a FUNCTION or SUB early."
   },
-  "FILEEOF": {
+  "FILE_EOF": {
     "de": "Liefert 1, wenn der Lesezeiger am Dateiende steht, sonst 0.",
     "en": "Returns 1 when the read position is at the end of the file, otherwise 0."
   },
-  "FILEEXISTS": {
+  "FILE_EXISTS": {
     "de": "Liefert 1, wenn die Datei existiert, sonst 0.",
     "en": "Returns 1 if the file exists, otherwise 0."
   },
-  "FILEPOSITION": {
+  "FILE_POSITION": {
     "de": "Liefert die aktuelle Position in der Datei in Bytes.",
     "en": "Returns the current position in the file in bytes."
   },
-  "FILESEEK": {
+  "FILE_SEEK": {
     "de": "Setzt die Dateiposition: Ursprung 0 ist der Anfang, 1 die aktuelle Position, -1 das Ende.",
     "en": "Sets the file position: origin 0 is the start, 1 the current position, -1 the end."
   },
-  "FILESIZE": {
+  "FILE_SIZE": {
     "de": "Liefert die Dateigröße in Bytes oder -1, wenn die Datei fehlt.",
     "en": "Returns the file size in bytes, or -1 if the file is missing."
   },
@@ -315,75 +315,75 @@
     "de": "Definiert eine Funktion mit Rückgabewert: FUNCTION name: parameter … ENDFUNCTION, Rückgabe mit RETURN.",
     "en": "Defines a function with a return value: FUNCTION name: parameter … ENDFUNCTION, return with RETURN."
   },
-  "GENFONT": {
+  "FONT_NEW": {
     "de": "Vergibt die nächste freie Font-ID.",
     "en": "Hands out the next free font id."
   },
-  "GENSCREEN": {
-    "de": "Vergibt die nächste freie Bildschirm-ID für CREATESCREEN.",
-    "en": "Hands out the next free screen id for CREATESCREEN."
+  "SCREEN_NEW": {
+    "de": "Vergibt die nächste freie Bildschirm-ID für SCREEN_CREATE.",
+    "en": "Hands out the next free screen id for SCREEN_CREATE."
   },
-  "GENSOUND": {
+  "SOUND_NEW": {
     "de": "Vergibt die nächste freie Sound-ID.",
     "en": "Hands out the next free sound id."
   },
-  "GENSPRITE": {
+  "SPRITE_NEW": {
     "de": "Vergibt die nächste freie Sprite-ID, ohne ein Bild zu laden.",
     "en": "Hands out the next free sprite id without loading an image."
   },
-  "GETCOMMANDLINE$": {
+  "COMMAND_LINE$": {
     "de": "Liefert die Argumente, mit denen das Programm gestartet wurde.",
     "en": "Returns the arguments the program was started with."
   },
-  "GETCURRENTFONT": {
+  "FONT_CURRENT": {
     "de": "Liefert die ID der Schrift, die gerade für Text benutzt wird.",
     "en": "Returns the id of the font currently used for text."
   },
-  "GETDESKTOPSIZE": {
+  "DESKTOP_SIZE": {
     "de": "Schreibt Breite und Höhe des Monitors in Pixeln in die beiden Variablen.",
     "en": "Writes the monitor width and height in pixels into the two variables."
   },
-  "GETENV$": {
+  "ENV$": {
     "de": "Liest eine Umgebungsvariable; ist sie nicht gesetzt, kommt ein leerer Text zurück.",
     "en": "Reads an environment variable; if it is not set an empty string comes back."
   },
-  "GETFONTSIZE": {
+  "FONT_SIZE": {
     "de": "Schreibt Zeichenbreite und Zeilenhöhe der aktuellen Schrift in die beiden Variablen.",
     "en": "Writes the character width and line height of the current font into the two variables."
   },
-  "GETMOUSECOUNT": {
+  "MOUSE_COUNT": {
     "de": "Liefert die Zahl der Mäuse. GameBasiX arbeitet mit einer Maus und meldet deshalb immer 1.",
     "en": "Returns the number of mice. GameBasiX works with one mouse and therefore always reports 1."
   },
-  "GETPIXEL": {
+  "PIXEL_GET": {
     "de": "Liest die Farbe eines Pixels aus dem aktuellen Bildschirm.",
     "en": "Reads the colour of one pixel from the current screen."
   },
-  "GETSCREENHEIGHT": {
+  "SCREEN_HEIGHT": {
     "de": "Liefert die Höhe des Zeichenbereichs in Pixeln.",
     "en": "Returns the height of the drawing area in pixels."
   },
-  "GETSCREENSIZE": {
+  "SCREEN_SIZE": {
     "de": "Schreibt Breite und Höhe des aktuellen Fensters in die beiden Variablen.",
     "en": "Writes the width and height of the current window into the two variables."
   },
-  "GETSCREENWIDTH": {
+  "SCREEN_WIDTH": {
     "de": "Liefert die Breite des Zeichenbereichs in Pixeln.",
     "en": "Returns the width of the drawing area in pixels."
   },
-  "GETSPRITESIZE": {
+  "SPRITE_SIZE": {
     "de": "Schreibt Breite und Höhe eines geladenen Sprites in die beiden Variablen.",
     "en": "Writes the width and height of a loaded sprite into the two variables."
   },
-  "GETTIMER": {
-    "de": "Liefert die Zeit seit dem letzten SHOWSCREEN in Millisekunden, praktisch für gleichmäßige Bewegung.",
-    "en": "Returns the milliseconds since the last SHOWSCREEN, handy for smooth movement."
+  "DELTA_TIME": {
+    "de": "Liefert die Zeit seit dem letzten SCREEN_SHOW in Millisekunden, praktisch für gleichmäßige Bewegung.",
+    "en": "Returns the milliseconds since the last SCREEN_SHOW, handy for smooth movement."
   },
-  "GETTIMERALL": {
+  "ELAPSED_TIME": {
     "de": "Liefert die Laufzeit seit dem Programmstart in Millisekunden.",
     "en": "Returns the time since the program started in milliseconds."
   },
-  "GETVIEWPORT": {
+  "VIEWPORT": {
     "de": "Liest den gerade gesetzten Ausschnitt in die vier Variablen.",
     "en": "Reads the current viewport into the four variables."
   },
@@ -399,7 +399,7 @@
     "de": "Springt zu einer Marke im selben Abschnitt (Hauptprogramm, SUB oder FUNCTION).",
     "en": "Jumps to a label inside the same section (main program, SUB or FUNCTION)."
   },
-  "GRABSPRITE": {
+  "SPRITE_GRAB": {
     "de": "Kopiert einen Ausschnitt des Bildschirms in ein Sprite. Braucht ein echtes Fenster und scheitert im Headless-Modus.",
     "en": "Copies part of the screen into a sprite. Needs a real window and fails in headless mode."
   },
@@ -407,11 +407,11 @@
     "de": "Schreibt eine ganze Zahl als Hexadezimaltext in Großbuchstaben, ohne Vorsilbe.",
     "en": "Writes an integer as hexadecimal text in upper case without a prefix."
   },
-  "HIBERNATE": {
+  "WAIT_INPUT": {
     "de": "Wartet auf einen Tastendruck oder Mausklick, während das Fenster weiter gezeichnet wird.",
     "en": "Waits for a key press or mouse click while the window keeps presenting frames."
   },
-  "HUSH": {
+  "SOUND_STOP_ALL": {
     "de": "Stoppt alle Klänge auf allen Kanälen sofort.",
     "en": "Stops every sound on every channel immediately."
   },
@@ -440,8 +440,8 @@
     "en": "Returns the characters typed since the last call and empties the buffer; with no input it returns an empty string."
   },
   "INLINE": {
-    "de": "Beginnt einen Block mit C++-Code. Auf oberster Ebene (oder mit INLINE DEFINE) sind es Definitionen, die beim Start einmal übersetzt werden; im Code (FUNCTION, IF, Schleife, oder INLINE RUN) laufen die C++-Anweisungen an dieser Stelle und sehen die BASIC-Variablen (klein geschrieben, Texte mit _str, Arrays als a[i], TYPE-Felder als p.x). Arrays lassen sich dort mit push/insert/remove/clear/resize auch in der Größe ändern, und die eingebauten GBX-Befehle (PRINT, DRAWLINE, GETTIMER …) sind direkt aufrufbar. Der Block endet mit ENDINLINE.",
-    "en": "Starts a block of C++ code. At top level (or with INLINE DEFINE) it holds definitions compiled once at startup; inside code (FUNCTION, IF, loop, or INLINE RUN) the C++ statements run at that point and see the BASIC variables (lowercase, text with _str, arrays as a[i], TYPE fields as p.x). Arrays can also be resized there with push/insert/remove/clear/resize, and the built-in GBX commands (PRINT, DRAWLINE, GETTIMER …) can be called directly. The block ends with ENDINLINE."
+    "de": "Beginnt einen Block mit C++-Code. Auf oberster Ebene (oder mit INLINE DEFINE) sind es Definitionen, die beim Start einmal übersetzt werden; im Code (FUNCTION, IF, Schleife, oder INLINE RUN) laufen die C++-Anweisungen an dieser Stelle und sehen die BASIC-Variablen (klein geschrieben, Texte mit _str, Arrays als a[i], TYPE-Felder als p.x). Arrays lassen sich dort mit push/insert/remove/clear/resize auch in der Größe ändern, und die eingebauten GBX-Befehle (PRINT, DRAW_LINE, DELTA_TIME …) sind direkt aufrufbar. Der Block endet mit ENDINLINE.",
+    "en": "Starts a block of C++ code. At top level (or with INLINE DEFINE) it holds definitions compiled once at startup; inside code (FUNCTION, IF, loop, or INLINE RUN) the C++ statements run at that point and see the BASIC variables (lowercase, text with _str, arrays as a[i], TYPE fields as p.x). Arrays can also be resized there with push/insert/remove/clear/resize, and the built-in GBX commands (PRINT, DRAW_LINE, DELTA_TIME …) can be called directly. The block ends with ENDINLINE."
   },
   "INPUT": {
     "de": "Liest eine Eingabezeile an der angegebenen Stelle. Text landet in einem String, eine Zahlvariable bekommt den Zahlenwert.",
@@ -459,23 +459,23 @@
     "de": "Wie INTEGER, rechnet aber mit 64 Bit und trägt deshalb auch sehr große Zahlen.",
     "en": "Like INTEGER but works with 64 bits and therefore carries very large numbers."
   },
-  "ISFULLSCREEN": {
+  "SCREEN_FULLSCREEN": {
     "de": "Liefert 1, wenn das Fenster im Vollbild läuft, sonst 0.",
     "en": "Returns 1 while the window runs fullscreen, otherwise 0."
   },
-  "ISMUSICPLAYING": {
+  "MUSIC_PLAYING": {
     "de": "Liefert 1, solange Musik läuft.",
     "en": "Returns 1 while music is playing."
   },
-  "KEY": {
+  "KEY_DOWN": {
     "de": "Liefert 1, solange die Taste gedrückt ist. Der Parameter ist ein SDL-Scancode, am angenehmsten über die KEY_*-Konstanten.",
     "en": "Returns 1 while the key is held down. The parameter is an SDL scancode, most conveniently given as a KEY_* constant."
   },
-  "KEYHIT": {
+  "KEY_PRESSED": {
     "de": "Liefert 1 nur in dem Frame, in dem die Taste gedrückt wurde.",
     "en": "Returns 1 only in the frame in which the key was pressed."
   },
-  "KEYWAIT": {
+  "KEY_WAIT": {
     "de": "Hält das Programm an, bis eine Taste gedrückt oder losgelassen wird. Es kommt kein Wert zurück.",
     "en": "Holds the program until a key is pressed or released. It returns no value."
   },
@@ -495,27 +495,27 @@
     "de": "Freiwilliger Anfang einer Zuweisung: LET x = 5 ist dasselbe wie x = 5.",
     "en": "Optional start of an assignment: LET x = 5 is the same as x = 5."
   },
-  "LIMITFPS": {
+  "LIMIT_FPS": {
     "de": "Bremst die Hauptschleife auf die angegebene Bildrate. Das zweite Argument schaltet zusätzlich VSYNC ein oder aus; 0 hebt die Begrenzung auf.",
     "en": "Throttles the main loop to the given frame rate. The second argument also turns VSYNC on or off; 0 removes the limit."
   },
-  "LOADANIM": {
+  "ANIM_LOAD": {
     "de": "Lädt ein Bild als Animation und zerlegt es dabei in Kacheln fester Größe.",
     "en": "Loads an image as an animation and splits it into tiles of a fixed size."
   },
-  "LOADBMP": {
+  "BACKGROUND_LOAD": {
     "de": "Lädt ein Bild als Hintergrund, der hinter allen anderen Zeichnungen liegt.",
     "en": "Loads an image as a background that sits behind everything else."
   },
-  "LOADFONT": {
+  "FONT_LOAD": {
     "de": "Lädt eine Bitmap-Schrift aus einem Rasterbild oder eine TrueType-Schrift (.ttf/.otf) in der angegebenen Punktgröße.",
     "en": "Loads a bitmap font from a raster image or a TrueType font (.ttf/.otf) at the given point size."
   },
-  "LOADSOUND": {
+  "SOUND_LOAD": {
     "de": "Lädt einen WAV-Klang unter einer ID. Der optionale Puffer erlaubt, denselben Klang mehrfach gleichzeitig zu spielen.",
     "en": "Loads a WAV sound under an id. The optional buffer count allows the same sound to play several times at once."
   },
-  "LOADSPRITE": {
+  "SPRITE_LOAD": {
     "de": "Lädt ein Bild unter der angegebenen ID, damit die Zeichenbefehle es benutzen können.",
     "en": "Loads an image under the given id so the drawing commands can use it."
   },
@@ -531,7 +531,7 @@
     "de": "Entfernt die angegebenen Zeichen am Anfang; ohne Angabe Leerzeichen und Zeilenumbrüche.",
     "en": "Removes the given characters at the start; without an argument spaces and line breaks."
   },
-  "MAKEDIR": {
+  "DIR_MAKE": {
     "de": "Legt einen Ordner samt fehlender Elternordner an.",
     "en": "Creates a folder including any missing parent folders."
   },
@@ -555,71 +555,71 @@
     "de": "Liefert den Rest einer ganzzahligen Division.",
     "en": "Returns the remainder of an integer division."
   },
-  "MOUSEAXIS": {
+  "MOUSE_AXIS": {
     "de": "Liefert eine Größe der Maus: 0 = x, 1 = y, 2 = Mausrad, 3/4/5 = linke, rechte, mittlere Taste.",
     "en": "Returns one mouse value: 0 = x, 1 = y, 2 = wheel, 3/4/5 = left, right, middle button."
   },
-  "MOUSEHIT": {
+  "MOUSE_PRESSED": {
     "de": "Liefert 1 nur in dem Frame, in dem die Taste gedrückt wurde: 0 links, 1 rechts, 2 mittlere Taste.",
     "en": "Returns 1 only in the frame the button was pressed: 0 left, 1 right, 2 middle."
   },
-  "MOUSESTATE": {
+  "MOUSE_STATE": {
     "de": "Schreibt Position und Tastenzustand der Maus in vier Variablen: x, y, linke Taste, rechte Taste.",
     "en": "Writes the mouse position and button state into four variables: x, y, left button, right button."
   },
-  "MOUSEWAIT": {
+  "MOUSE_WAIT": {
     "de": "Hält das Programm an, bis eine Maustaste gedrückt wird. Es kommt kein Wert zurück.",
     "en": "Holds the program until a mouse button is pressed. It returns no value."
   },
-  "MUSICVOLUME": {
+  "MUSIC_VOLUME": {
     "de": "Setzt die Lautstärke der Musik zwischen 0 und 1.",
     "en": "Sets the music volume between 0 and 1."
   },
-  "NETACCEPT": {
+  "NET_ACCEPT": {
     "de": "Nimmt eine wartende Verbindung an: neues Handle, 0 wenn keine anliegt, -1 bei einem Fehler.",
     "en": "Accepts one waiting connection: a new handle, 0 when none is pending, -1 on error."
   },
-  "NETCLOSE": {
+  "NET_CLOSE": {
     "de": "Schliesst einen TCP-Server oder eine Verbindung und gibt das Handle frei.",
     "en": "Closes a TCP server or connection and releases the handle."
   },
-  "NETCONNECT": {
+  "NET_CONNECT": {
     "de": "Verbindet sich als Client zu host und Port und liefert ein Handle. Das Zeitlimit in Millisekunden (Vorgabe 3000) ist die einzige Stelle, an der das Netzwerk wartet.",
     "en": "Connects as a client to host and port and returns a handle. The timeout in milliseconds (default 3000) is the only place where networking waits."
   },
-  "NETCONNECTED": {
+  "NET_CONNECTED": {
     "de": "1, solange die Verbindung offen ist; 0, nachdem die Gegenstelle geschlossen hat.",
     "en": "1 while the connection is open, 0 after the other side closed it."
   },
-  "NETERROR$": {
+  "NET_ERROR$": {
     "de": "Der letzte Fehler der Netzwerkbefehle, etwa \"Port belegt\" oder \"Verbindung abgelehnt\".",
     "en": "The last network error, for example \"port in use\" or \"connection refused\"."
   },
-  "NETIP$": {
+  "NET_IP$": {
     "de": "Die eigene IPv4-Adresse im lokalen Netz, damit andere Spieler sie eingeben koennen; 127.0.0.1, wenn keine gefunden wird.",
     "en": "The machine's own IPv4 address on the local network so other players can enter it; 127.0.0.1 when none is found."
   },
-  "NETLISTEN": {
-    "de": "Startet einen TCP-Server auf einem Port (0 waehlt einen freien) und liefert ein Handle; 0 bedeutet Fehler, NETERROR$ nennt den Grund.",
-    "en": "Starts a TCP server on a port (0 picks a free one) and returns a handle; 0 means failure and NETERROR$ names the reason."
+  "NET_LISTEN": {
+    "de": "Startet einen TCP-Server auf einem Port (0 waehlt einen freien) und liefert ein Handle; 0 bedeutet Fehler, NET_ERROR$ nennt den Grund.",
+    "en": "Starts a TCP server on a port (0 picks a free one) and returns a handle; 0 means failure and NET_ERROR$ names the reason."
   },
-  "NETPEER$": {
+  "NET_PEER$": {
     "de": "Adresse der Gegenstelle als ip:port.",
     "en": "Address of the other side as ip:port."
   },
-  "NETPENDING": {
+  "NET_PENDING": {
     "de": "Sagt, wie viele Bytes auf einer TCP-Verbindung zum Lesen bereitstehen.",
     "en": "Reports how many bytes are ready to read on a TCP connection."
   },
-  "NETPORT": {
-    "de": "Der lokale Port eines Servers oder einer Verbindung - bei NETLISTEN(0) der tatsaechlich belegte.",
-    "en": "The local port of a server or connection - with NETLISTEN(0) the one that was actually bound."
+  "NET_PORT": {
+    "de": "Der lokale Port eines Servers oder einer Verbindung - bei NET_LISTEN(0) der tatsaechlich belegte.",
+    "en": "The local port of a server or connection - with NET_LISTEN(0) the one that was actually bound."
   },
-  "NETRECV$": {
+  "NET_RECV$": {
     "de": "Liest alles, was seit dem letzten Aufruf angekommen ist, und liefert es als Text; ohne Daten einen leeren String. Kehrt sofort zurueck.",
     "en": "Reads everything that arrived since the last call and returns it as text, an empty string when nothing is buffered. Returns immediately."
   },
-  "NETSEND": {
+  "NET_SEND": {
     "de": "Schickt Text (UTF-8) ueber eine TCP-Verbindung und liefert die gesendeten Bytes.",
     "en": "Sends text (UTF-8) over a TCP connection and returns the bytes written."
   },
@@ -635,7 +635,7 @@
     "de": "Macht aus Text eine Kommazahl; eine Zahl bleibt unverändert.",
     "en": "Turns text into a float; a number is returned unchanged."
   },
-  "OPENFILE": {
+  "FILE_OPEN": {
     "de": "Öffnet eine Datei auf einem Kanal: Modus 1 liest, 0 schreibt neu, -1 hängt an. Liefert 1 bei Erfolg, sonst 0.",
     "en": "Opens a file on a channel: mode 1 reads, 0 writes a new file, -1 appends. Returns 1 on success, otherwise 0."
   },
@@ -643,27 +643,27 @@
     "de": "Logisches ODER in Bedingungen. Es wird nur so weit geprüft, wie nötig, das Ergebnis ist 1 oder 0.",
     "en": "Logical OR in conditions. It stops evaluating as soon as the result is clear and returns 1 or 0."
   },
-  "PAUSEMUSIC": {
+  "MUSIC_PAUSE": {
     "de": "Hält die Musik an (1) oder setzt sie an der Stelle fort (0).",
     "en": "Pauses the music (1) or resumes it where it stopped (0)."
   },
-  "PLATFORMINFO$": {
+  "PLATFORM_INFO$": {
     "de": "Liefert Angaben zur Umgebung: mit „os“ den Systemnamen, mit „version“ die SDL-Version.",
     "en": "Returns information about the platform: “os” gives the system name, “version” the SDL version."
   },
-  "PLAYMUSIC": {
+  "MUSIC_PLAY": {
     "de": "Startet Musik im Hintergrund. Das zweite Argument legt fest, ob sie sich am Ende wiederholt.",
     "en": "Starts background music. The second argument decides whether it repeats at the end."
   },
-  "PLAYSOUND": {
+  "SOUND_PLAY": {
     "de": "Spielt einen geladenen Klang mit Panning und Lautstärke und liefert den Kanal zurück, über den er sich wieder stoppen lässt.",
     "en": "Plays a loaded sound with panning and volume and returns the channel that can be used to stop it again."
   },
-  "POLYNEWSTRIP": {
+  "POLY_STRIP": {
     "de": "Beginnt innerhalb eines Polygons einen neuen Streifen: Die folgenden Ecken schließen nicht mehr an die vorherigen an.",
     "en": "Starts a new strip inside the current polygon: the following corners no longer join the previous ones."
   },
-  "POLYVECTOR": {
+  "POLY_POINT": {
     "de": "Setzt einen Eckpunkt eines Polygons: Bildschirmposition, Texturkoordinate und Farbe.",
     "en": "Adds one corner of a polygon: screen position, texture coordinate and colour."
   },
@@ -671,55 +671,55 @@
     "de": "Rechnet die erste Zahl hoch die zweite.",
     "en": "Raises the first number to the power of the second."
   },
-  "PRESCALER": {
-    "de": "Zeichnet intern in einer festen Auflösung und zieht das Bild auf die Fenstergröße hoch. Ohne Argumente ist der Effekt aus; VIEWPORT rechnet dann in Fensterkoordinaten.",
-    "en": "Draws internally at a fixed resolution and stretches the result to the window. Without arguments the effect is off; VIEWPORT then uses window coordinates."
+  "SCREEN_SCALE": {
+    "de": "Zeichnet intern in einer festen Auflösung und zieht das Bild auf die Fenstergröße hoch. Ohne Argumente ist der Effekt aus; SET_VIEWPORT rechnet dann in Fensterkoordinaten.",
+    "en": "Draws internally at a fixed resolution and stretches the result to the window. Without arguments the effect is off; SET_VIEWPORT then uses window coordinates."
   },
   "PRINT": {
     "de": "Schreibt Text in der aktuellen Schrift und Textfarbe. Der vierte Parameter (Kerning) wird nicht ausgewertet.",
     "en": "Writes text in the current font and text colour. The fourth argument (kerning) is ignored."
   },
-  "PUTENV": {
+  "SET_ENV": {
     "de": "Setzt eine Umgebungsvariable für das laufende Programm.",
     "en": "Sets an environment variable for the running program."
   },
-  "READBYTE": {
+  "FILE_READ_BYTE": {
     "de": "Liest ein Byte mit Vorzeichen (-128 bis 127).",
     "en": "Reads a signed byte (-128 to 127)."
   },
-  "READIEEE": {
+  "FILE_READ_DOUBLE": {
     "de": "Liest eine 8-Byte-Gleitkommazahl (double) – das native Zahlenformat von GameBasiX.",
     "en": "Reads an 8-byte floating point number (double) – the native number format of GameBasiX."
   },
-  "READLINE": {
+  "FILE_READ_LINE": {
     "de": "Liest eine Zeile bis zum Zeilenende und entfernt ein abschließendes CR.",
     "en": "Reads one line up to the line break and strips a trailing CR."
   },
-  "READLONG": {
+  "FILE_READ_LONG": {
     "de": "Liest eine 32-Bit-Zahl mit Vorzeichen (little endian).",
     "en": "Reads a signed 32-bit number (little endian)."
   },
-  "READSHORTIEEE": {
+  "FILE_READ_FLOAT": {
     "de": "Liest eine 4-Byte-Gleitkommazahl (float).",
     "en": "Reads a 4-byte floating point number (float)."
   },
-  "READSTR": {
+  "FILE_READ_STR": {
     "de": "Liest die angegebene Anzahl Zeichen in einen String.",
     "en": "Reads the given number of characters into a string."
   },
-  "READUBYTE": {
+  "FILE_READ_UBYTE": {
     "de": "Liest ein Byte ohne Vorzeichen (0 bis 255).",
     "en": "Reads an unsigned byte (0 to 255)."
   },
-  "READULONG": {
+  "FILE_READ_ULONG": {
     "de": "Liest eine 32-Bit-Zahl ohne Vorzeichen (little endian).",
     "en": "Reads an unsigned 32-bit number (little endian)."
   },
-  "READUWORD": {
+  "FILE_READ_UWORD": {
     "de": "Liest eine 16-Bit-Zahl ohne Vorzeichen (little endian).",
     "en": "Reads an unsigned 16-bit number (little endian)."
   },
-  "READWORD": {
+  "FILE_READ_WORD": {
     "de": "Liest eine 16-Bit-Zahl mit Vorzeichen (little endian).",
     "en": "Reads a signed 16-bit number (little endian)."
   },
@@ -727,7 +727,7 @@
     "de": "Ändert die Größe eines Arrays und behält dabei die vorhandenen Werte.",
     "en": "Resizes an array and keeps the values already stored in it."
   },
-  "RENAMEFILE": {
+  "FILE_RENAME": {
     "de": "Benennt eine Datei um oder verschiebt sie.",
     "en": "Renames a file or moves it."
   },
@@ -743,7 +743,7 @@
     "de": "Verlässt eine FUNCTION und gibt den Wert dahinter zurück; in einem SUB beendet es den Aufruf ohne Wert.",
     "en": "Leaves a FUNCTION and returns the value behind it; inside a SUB it ends the call without a value."
   },
-  "REVINSTR": {
+  "INSTR_REVERSE": {
     "de": "Sucht von hinten und liefert die letzte Fundstelle, sonst -1.",
     "en": "Searches from the end and returns the last match, otherwise -1."
   },
@@ -759,15 +759,15 @@
     "de": "Liefert eine ganze Zufallszahl von 0 bis einschließlich der angegebenen Grenze.",
     "en": "Returns a random integer from 0 up to and including the given limit."
   },
-  "ROTOSPRITE": {
+  "SPRITE_DRAW_ROTATED": {
     "de": "Zeichnet ein Sprite um seinen Mittelpunkt gedreht; der Winkel wird in Grad angegeben.",
     "en": "Draws a sprite rotated around its centre; the angle is given in degrees."
   },
-  "ROTOZOOMANIM": {
+  "ANIM_DRAW_ROTATED_SCALED": {
     "de": "Zeichnet eine Kachel einer Animation gedreht und in Prozent skaliert.",
     "en": "Draws one tile of an animation rotated and scaled by a percentage."
   },
-  "ROTOZOOMSPRITE": {
+  "SPRITE_DRAW_ROTATED_SCALED": {
     "de": "Zeichnet ein Sprite gedreht und in Prozent skaliert.",
     "en": "Draws a sprite rotated and scaled by a percentage."
   },
@@ -775,15 +775,15 @@
     "de": "Entfernt die angegebenen Zeichen am Ende; ohne Angabe Leerzeichen und Zeilenumbrüche.",
     "en": "Removes the given characters at the end; without an argument spaces and line breaks."
   },
-  "SAVEBMP": {
+  "SCREEN_SAVE_BMP": {
     "de": "Speichert den aktuellen Bildschirm als BMP-Datei. Braucht ein echtes Fenster und scheitert im Headless-Modus.",
     "en": "Saves the current screen as a BMP file. Needs a real window and fails in headless mode."
   },
-  "SAVESPRITE": {
+  "SPRITE_SAVE": {
     "de": "Schreibt ein geladenes Sprite als PNG auf die Festplatte.",
     "en": "Writes a loaded sprite to disk as a PNG file."
   },
-  "SEEDRND": {
+  "RND_SEED": {
     "de": "Setzt den Startwert des Zufallsgenerators, damit eine Folge reproduzierbar wird.",
     "en": "Sets the seed of the random generator so that a sequence becomes reproducible."
   },
@@ -795,35 +795,35 @@
     "de": "Das eigene Objekt in einer METHOD. self.x liest oder schreibt ein Feld, self.methode() ruft eine eigene Methode auf.",
     "en": "The object itself inside a METHOD. self.x reads or writes a field, self.method() calls one of its own methods."
   },
-  "SETFONT": {
-    "de": "Wählt die Schrift für PRINT und DRAWTEXT, optional mit Skalierung und neuer Textfarbe.",
-    "en": "Selects the font for PRINT and DRAWTEXT, optionally with a scale factor and a new text colour."
+  "FONT_SET": {
+    "de": "Wählt die Schrift für PRINT und TEXT_DRAW, optional mit Skalierung und neuer Textfarbe.",
+    "en": "Selects the font for PRINT and TEXT_DRAW, optionally with a scale factor and a new text colour."
   },
-  "SETMOUSE": {
+  "MOUSE_MOVE": {
     "de": "Setzt den Mauszeiger auf die angegebene Stelle im Fenster.",
     "en": "Moves the mouse pointer to the given position inside the window."
   },
-  "SETPIXEL": {
+  "PIXEL_SET": {
     "de": "Färbt genau einen Pixel an der angegebenen Stelle.",
     "en": "Colours exactly one pixel at the given position."
   },
-  "SETSCREEN": {
+  "SCREEN_SET": {
     "de": "Öffnet das Spielfenster mit Breite und Höhe in Pixeln. Das dritte Argument erzwingt Vollbild (1) oder Fenster (0); ohne Angabe bleibt der aktuelle Modus.",
     "en": "Opens the game window with a width and height in pixels. The third argument forces fullscreen (1) or windowed (0); without it the current mode stays."
   },
-  "SETSPRITEANIM": {
+  "ANIM_SET_TILES": {
     "de": "Teilt ein bereits geladenes Sprite nachträglich in Kacheln der angegebenen Größe.",
     "en": "Splits an already loaded sprite into tiles of the given size."
   },
-  "SETTEXTCOLOR": {
-    "de": "Setzt die Farbe, die PRINT und DRAWTEXT ohne eigenes Farbargument verwenden.",
-    "en": "Sets the colour PRINT and DRAWTEXT use when no colour argument is given."
+  "TEXT_COLOR": {
+    "de": "Setzt die Farbe, die PRINT und TEXT_DRAW ohne eigenes Farbargument verwenden.",
+    "en": "Sets the colour PRINT and TEXT_DRAW use when no colour argument is given."
   },
-  "SETTRANSPARENCY": {
+  "SET_COLOR_KEY": {
     "de": "Merkt sich eine Farbe, die beim nächsten Laden von Bildern durchsichtig wird. Bereits geladene Sprites bleiben, wie sie sind.",
     "en": "Remembers a colour that becomes transparent the next time images are loaded. Sprites already loaded stay as they are."
   },
-  "SETWINDOWTITLE": {
+  "WINDOW_TITLE": {
     "de": "Ändert den Fenstertitel, während das Programm läuft.",
     "en": "Changes the window title while the program is running."
   },
@@ -831,7 +831,7 @@
     "de": "Liefert -1 bei negativen, 1 bei positiven und 0 bei einem Wert von null.",
     "en": "Returns -1 for negative values, 1 for positive ones and 0 for zero."
   },
-  "SHOWSCREEN": {
+  "SCREEN_SHOW": {
     "de": "Zeigt den fertigen Frame an und beginnt den nächsten. Steht üblicherweise am Ende der Hauptschleife.",
     "en": "Shows the finished frame and starts the next one. Usually the last statement of the main loop."
   },
@@ -843,19 +843,19 @@
     "de": "Pausiert das Programm für die angegebene Zeit in Millisekunden.",
     "en": "Pauses the program for the given time in milliseconds."
   },
-  "SMOOTHSHADING": {
+  "SET_SMOOTHING": {
     "de": "Schaltet weiche Farbübergänge ein oder aus: bei 1 werden Polygone und skalierte Sprites geglättet statt scharf gerechnet.",
     "en": "Turns smooth shading on or off: with 1, polygons and scaled sprites are filtered instead of sampled sharply."
   },
-  "SOUNDPLAYING": {
+  "SOUND_PLAYING": {
     "de": "Liefert 1, solange auf dem Kanal noch ein Klang läuft.",
     "en": "Returns 1 while a sound is still playing on the channel."
   },
-  "SPLITSTR": {
+  "SPLIT_STRING": {
     "de": "Zerlegt einen Text am Trennzeichen und legt die Teile als String-Array ab. Leere Teile fallen weg, sofern das letzte Argument nicht 0 ist.",
     "en": "Splits a string at the separator and stores the parts in a string array. Empty parts are dropped unless the last argument is 0."
   },
-  "SPRCOLL": {
+  "SPRITE_COLLIDE": {
     "de": "Prüft zwei Sprites an ihren Positionen auf Überlappung und liefert 1 bei einem Treffer.",
     "en": "Checks two sprites at their positions for overlap and returns 1 on a hit."
   },
@@ -863,9 +863,9 @@
     "de": "Liefert die Quadratwurzel. Bei einer negativen Zahl meldet der Interpreter einen Laufzeitfehler.",
     "en": "Returns the square root. For a negative number the interpreter raises a runtime error."
   },
-  "STARTPOLY": {
-    "de": "Beginnt ein Polygon, wahlweise mit einem Sprite als Textur. Die folgenden POLYVECTOR-Aufrufe liefern die Ecken, ENDPOLY schließt ab.",
-    "en": "Starts a polygon, optionally textured by a sprite. The following POLYVECTOR calls provide the corners, ENDPOLY finishes it."
+  "POLY_BEGIN": {
+    "de": "Beginnt ein Polygon, wahlweise mit einem Sprite als Textur. Die folgenden POLY_POINT-Aufrufe liefern die Ecken, POLY_END schließt ab.",
+    "en": "Starts a polygon, optionally textured by a sprite. The following POLY_POINT calls provide the corners, POLY_END finishes it."
   },
   "STATIC": {
     "de": "Deklariert eine lokale Variable, die ihren Wert zwischen den Aufrufen behält.",
@@ -883,79 +883,79 @@
     "de": "Schreibt Text ohne Zeilenumbruch auf die Standardausgabe.",
     "en": "Writes text without a line break to standard output."
   },
-  "STEAMAPPID": {
+  "STEAM_APP_ID": {
     "de": "Die App-ID, mit der Steam laeuft.",
     "en": "The app id Steam is running with."
   },
-  "STEAMERROR$": {
+  "STEAM_ERROR$": {
     "de": "Der letzte Steam-Fehler, etwa wenn steam_api fehlt oder Steam nicht laeuft.",
     "en": "The last Steam error, for example when steam_api is missing or Steam is not running."
   },
-  "STEAMFRIENDID$": {
+  "STEAM_FRIEND_ID$": {
     "de": "SteamID des Freundes an dieser Stelle der Liste.",
     "en": "SteamID of the friend at this index in the list."
   },
-  "STEAMFRIENDNAME$": {
+  "STEAM_FRIEND_NAME$": {
     "de": "Anzeigename des Freundes an dieser Stelle.",
     "en": "Persona name of the friend at this index."
   },
-  "STEAMFRIENDS": {
+  "STEAM_FRIENDS": {
     "de": "Anzahl der Freunde in der Steam-Freundesliste.",
     "en": "Number of friends in the Steam friend list."
   },
-  "STEAMFRIENDSTATE": {
+  "STEAM_FRIEND_STATE": {
     "de": "Online-Status des Freundes (0 offline, 1 online, 2 beschaeftigt, 3 weg, ...).",
     "en": "Online state of the friend (0 offline, 1 online, 2 busy, 3 away, ...)."
   },
-  "STEAMID$": {
+  "STEAM_ID$": {
     "de": "Die 64-Bit-SteamID als Text - als Zahl wuerde ein FLOAT Stellen verlieren.",
     "en": "The 64-bit SteamID as text - as a number a FLOAT would lose digits."
   },
-  "STEAMINIT": {
-    "de": "Laedt steam_api (steam_api64.dll bzw. libsteam_api.so) und ruft SteamAPI_Init. Ohne Argument kommt die App-ID aus steam_appid.txt, sonst aus dem Parameter. 0 heisst: nicht verfuegbar, STEAMERROR$ nennt den Grund.",
-    "en": "Loads steam_api (steam_api64.dll or libsteam_api.so) and calls SteamAPI_Init. Without an argument the app id comes from steam_appid.txt, otherwise from the parameter. 0 means unavailable, STEAMERROR$ tells why."
+  "STEAM_INIT": {
+    "de": "Laedt steam_api (steam_api64.dll bzw. libsteam_api.so) und ruft SteamAPI_Init. Ohne Argument kommt die App-ID aus steam_appid.txt, sonst aus dem Parameter. 0 heisst: nicht verfuegbar, STEAM_ERROR$ nennt den Grund.",
+    "en": "Loads steam_api (steam_api64.dll or libsteam_api.so) and calls SteamAPI_Init. Without an argument the app id comes from steam_appid.txt, otherwise from the parameter. 0 means unavailable, STEAM_ERROR$ tells why."
   },
-  "STEAMNAME$": {
+  "STEAM_NAME$": {
     "de": "Der Steam-Name des angemeldeten Spielers.",
     "en": "The Steam name of the signed-in player."
   },
-  "STEAMP2PACCEPT": {
+  "STEAM_P2P_ACCEPT": {
     "de": "Nimmt die P2P-Sitzung eines Spielers ausdruecklich an.",
     "en": "Explicitly accepts a player's P2P session."
   },
-  "STEAMP2PAVAILABLE": {
+  "STEAM_P2P_AVAILABLE": {
     "de": "Wie viele Bytes im Kanal zum Lesen bereitstehen.",
     "en": "How many bytes are ready to read on the channel."
   },
-  "STEAMP2PCLOSE": {
+  "STEAM_P2P_CLOSE": {
     "de": "Beendet die P2P-Sitzung mit einem Spieler.",
     "en": "Ends the P2P session with a player."
   },
-  "STEAMP2PFROM$": {
+  "STEAM_P2P_FROM$": {
     "de": "SteamID des Absenders des zuletzt gelesenen Pakets.",
     "en": "SteamID of the sender of the last packet read."
   },
-  "STEAMP2PRECV$": {
+  "STEAM_P2P_RECV$": {
     "de": "Liest das naechste P2P-Paket aus dem Kanal; leer, wenn keins anliegt.",
     "en": "Reads the next P2P packet from the channel; empty when none is pending."
   },
-  "STEAMP2PSEND": {
+  "STEAM_P2P_SEND": {
     "de": "Schickt ein Paket an eine SteamID (als Text). reliable=1 (Vorgabe) kommt in Reihenfolge an, 0 ist fuer Werte, die das naechste Paket ohnehin ersetzt. Liefert die gesendeten Bytes.",
     "en": "Sends a packet to a SteamID (as text). reliable=1 (default) arrives in order, 0 is for values the next packet replaces anyway. Returns the bytes sent."
   },
-  "STEAMP2PSTATE": {
+  "STEAM_P2P_STATE": {
     "de": "Zustand der P2P-Sitzung: 0 keine, 1 verbindet, 2 direkt, 3 ueber Steams Relay.",
     "en": "State of the P2P session: 0 none, 1 connecting, 2 direct, 3 through Steam's relay."
   },
-  "STEAMREADY": {
-    "de": "1, wenn STEAMINIT erfolgreich war.",
-    "en": "1 when STEAMINIT succeeded."
+  "STEAM_READY": {
+    "de": "1, wenn STEAM_INIT erfolgreich war.",
+    "en": "1 when STEAM_INIT succeeded."
   },
-  "STEAMRUN": {
+  "STEAM_RUN": {
     "de": "Pumpt die Steam-Callbacks; einmal pro Frame aufrufen. Liefert 1, wenn Steam bereit ist.",
     "en": "Pumps Steam's callbacks; call it once per frame. Returns 1 when Steam is ready."
   },
-  "STEAMSHUTDOWN": {
+  "STEAM_SHUTDOWN": {
     "de": "Meldet die Steam-API ab (SteamAPI_Shutdown).",
     "en": "Shuts the Steam API down (SteamAPI_Shutdown)."
   },
@@ -963,11 +963,11 @@
     "de": "Schrittweite einer FOR-Schleife; negative Werte zählen rückwärts.",
     "en": "Step size of a FOR loop; negative values count downwards."
   },
-  "STOPMUSIC": {
+  "MUSIC_STOP": {
     "de": "Beendet die laufende Musik.",
     "en": "Stops the running music."
   },
-  "STOPSOUND": {
+  "SOUND_STOP": {
     "de": "Stoppt den Klang auf dem angegebenen Kanal.",
     "en": "Stops the sound on the given channel."
   },
@@ -975,11 +975,11 @@
     "de": "Macht aus einem Wert einen Text, so wie ihn PRINT ausgeben würde.",
     "en": "Turns a value into text the way PRINT would show it."
   },
-  "STRETCHANIM": {
+  "ANIM_DRAW_STRETCHED": {
     "de": "Zeichnet eine Animationskachel auf eine frei gewählte Breite und Höhe gestreckt.",
     "en": "Draws one animation tile stretched to a freely chosen width and height."
   },
-  "STRETCHSPRITE": {
+  "SPRITE_DRAW_STRETCHED": {
     "de": "Zeichnet ein Sprite auf die angegebene Breite und Höhe gestreckt.",
     "en": "Draws a sprite stretched to the given width and height."
   },
@@ -991,7 +991,7 @@
     "de": "Tauscht die Werte zweier Variablen, Felder oder Array-Elemente.",
     "en": "Swaps the values of two variables, fields or array elements."
   },
-  "SYSTEMPOINTER": {
+  "SET_SYSTEM_POINTER": {
     "de": "Zeigt den Systemmauszeiger an (1) oder versteckt ihn (0).",
     "en": "Shows the system mouse pointer (1) or hides it (0)."
   },
@@ -1027,27 +1027,27 @@
     "de": "Macht aus Kleinbuchstaben Großbuchstaben.",
     "en": "Turns lower case letters into upper case."
   },
-  "UDPCLOSE": {
+  "UDP_CLOSE": {
     "de": "Schliesst einen UDP-Socket und gibt das Handle frei.",
     "en": "Closes a UDP socket and releases the handle."
   },
-  "UDPFROM$": {
+  "UDP_FROM$": {
     "de": "Absender des zuletzt gelesenen Pakets als ip:port.",
     "en": "Sender of the last packet read, as ip:port."
   },
-  "UDPOPEN": {
+  "UDP_OPEN": {
     "de": "Oeffnet einen UDP-Socket auf einem Port (0 waehlt einen freien) und liefert ein Handle.",
     "en": "Opens a UDP socket on a port (0 picks a free one) and returns a handle."
   },
-  "UDPPORT": {
-    "de": "Der lokal belegte UDP-Port, bei UDPOPEN(0) der zufaellig gewaehlte.",
-    "en": "The bound local UDP port; with UDPOPEN(0) the one that was chosen."
+  "UDP_PORT": {
+    "de": "Der lokal belegte UDP-Port, bei UDP_OPEN(0) der zufaellig gewaehlte.",
+    "en": "The bound local UDP port; with UDP_OPEN(0) the one that was chosen."
   },
-  "UDPRECV$": {
+  "UDP_RECV$": {
     "de": "Das naechste anliegende Paket als Text, ohne Paket ein leerer String. Kehrt sofort zurueck.",
     "en": "The next pending packet as text, an empty string when there is none. Returns immediately."
   },
-  "UDPSEND": {
+  "UDP_SEND": {
     "de": "Schickt ein Paket an host:port. UDP ist verbindungslos: Verlust und Reihenfolge liegen beim Programm.",
     "en": "Sends one packet to host:port. UDP is connectionless, so loss and order are up to the program."
   },
@@ -1055,19 +1055,19 @@
     "de": "Beendet eine REPEAT-Schleife, sobald die Bedingung wahr ist.",
     "en": "Ends a REPEAT loop as soon as the condition is true."
   },
-  "USEASBMP": {
+  "SCREEN_TO_BACKGROUND": {
     "de": "Macht den aktuellen Bildschirminhalt zum Hintergrundbild.",
     "en": "Turns the current screen content into the background image."
   },
-  "USESCREEN": {
-    "de": "Schaltet auf einen mit CREATESCREEN angelegten Bildschirm um; 0 kehrt zum Fenster zurück.",
-    "en": "Switches to a screen created with CREATESCREEN; 0 returns to the window."
+  "SCREEN_USE": {
+    "de": "Schaltet auf einen mit SCREEN_CREATE angelegten Bildschirm um; 0 kehrt zum Fenster zurück.",
+    "en": "Switches to a screen created with SCREEN_CREATE; 0 returns to the window."
   },
   "VAL": {
     "de": "Liest eine Zahl aus Text. Was keine Zahl ergibt, wird zu 0.",
     "en": "Parses a number from text. Anything that is not a number becomes 0."
   },
-  "VIEWPORT": {
+  "SET_VIEWPORT": {
     "de": "Legt den Bereich fest, in dem gezeichnet wird. Alles, was darüber hinausgeht, wird abgeschnitten.",
     "en": "Sets the region that is drawn into. Everything outside it is clipped."
   },
@@ -1079,47 +1079,47 @@
     "de": "Schleife, die vor jedem Durchlauf ihre Bedingung prüft und bis WEND läuft.",
     "en": "Loop that checks its condition before each pass and runs until WEND."
   },
-  "WRITEBYTE": {
+  "FILE_WRITE_BYTE": {
     "de": "Schreibt das niederwertige Byte einer Zahl.",
     "en": "Writes the low byte of a number."
   },
-  "WRITEIEEE": {
+  "FILE_WRITE_DOUBLE": {
     "de": "Schreibt eine 8-Byte-Gleitkommazahl (double).",
     "en": "Writes an 8-byte floating point number (double)."
   },
-  "WRITELINE": {
+  "FILE_WRITE_LINE": {
     "de": "Schreibt eine Zeile und hängt CRLF an.",
     "en": "Writes a line and appends CRLF."
   },
-  "WRITELONG": {
+  "FILE_WRITE_LONG": {
     "de": "Schreibt eine 32-Bit-Zahl (little endian).",
     "en": "Writes a 32-bit number (little endian)."
   },
-  "WRITESHORTIEEE": {
+  "FILE_WRITE_FLOAT": {
     "de": "Schreibt eine 4-Byte-Gleitkommazahl (float).",
     "en": "Writes a 4-byte floating point number (float)."
   },
-  "WRITESTR": {
+  "FILE_WRITE_STR": {
     "de": "Schreibt Text ohne zusätzliches Zeilenende.",
     "en": "Writes text without an additional line break."
   },
-  "WRITEUBYTE": {
+  "FILE_WRITE_UBYTE": {
     "de": "Schreibt das niederwertige Byte einer Zahl (ohne Vorzeichen).",
     "en": "Writes the low byte of a number (unsigned)."
   },
-  "WRITEULONG": {
+  "FILE_WRITE_ULONG": {
     "de": "Schreibt eine 32-Bit-Zahl ohne Vorzeichen (little endian).",
     "en": "Writes an unsigned 32-bit number (little endian)."
   },
-  "WRITEUWORD": {
+  "FILE_WRITE_UWORD": {
     "de": "Schreibt eine 16-Bit-Zahl ohne Vorzeichen (little endian).",
     "en": "Writes an unsigned 16-bit number (little endian)."
   },
-  "WRITEWORD": {
+  "FILE_WRITE_WORD": {
     "de": "Schreibt eine 16-Bit-Zahl (little endian).",
     "en": "Writes a 16-bit number (little endian)."
   },
-  "ZOOMSPRITE": {
+  "SPRITE_DRAW_SCALED": {
     "de": "Skaliert ein Sprite in X und Y getrennt; 100 bedeutet Originalgröße.",
     "en": "Scales a sprite in X and Y separately; 100 means the original size."
   }

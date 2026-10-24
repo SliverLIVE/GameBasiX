@@ -32,8 +32,8 @@ struct Runtime {
     FileSet files;
     Net net;
     Steam steam;
-    std::string netError;  // letzter Fehler von NETERROR$
-    std::string netFrom;   // Absender des letzten UDP-Pakets (UDPFROM$)
+    std::string netError;  // letzter Fehler von NET_ERROR$
+    std::string netFrom;   // Absender des letzten UDP-Pakets (UDP_FROM$)
     Program* prog = nullptr;
     Debugger* dbg = nullptr;  // gesetzt bei --debug
 
@@ -50,7 +50,7 @@ struct Runtime {
     std::vector<std::string> warned;
     std::mt19937 rng{std::random_device{}()};
     std::string commandLine;
-    std::string saveDir;  // Ziel fuer SAVEBMP/SAVESPRITE (bei Paketen neben der EXE)
+    std::string saveDir;  // Ziel fuer SCREEN_SAVE_BMP/SPRITE_SAVE (bei Paketen neben der EXE)
     std::string currentFile;
     int currentLine = 0;
     uint32_t textColor = 0xFFFFFF;
