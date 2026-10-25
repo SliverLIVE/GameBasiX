@@ -200,6 +200,143 @@ def test_broken_condition():
         session.close()
 
 
+INSPECT_SCRIPT = """' Wert-Tooltip im Haltepunkt (eval)\nTYPE PUNKT\n  px AS FLOAT\n  py AS FLOAT\n  name$ = "punkt"\nENDTYPE\n\nGLOBAL spieler AS PUNKT\nDIM zahlen[3]\nDIM leute[2] AS PUNKT\nzahlen[0] = 4\nzahlen[1] = 5\nzahlen[2] = 6\nspieler.px = 12.5\nspieler.py = 7\nleute[1].px = 99\nhalt = 1\n"""
+
+
+def test_inspect():
+    """Prueft den Wert-Tooltip: Variablen, Felder, Arrays und TYPEs."""
+    handle, path = tempfile.mkstemp(suffix=".gbx", dir=os.path.join(ROOT, "tests"))
+    os.close(handle)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(INSPECT_SCRIPT)
+    session = Session(path)
+    try:
+        session.event()
+        # Letzte Zeile: dort sind alle Variablen angelegt.
+        session.send(f"bp\t{path}\t17")
+        stop = wait_stop(session)
+        if stop and stop.get("reason") == "start":
+            session.send("run")
+            stop = wait_stop(session)
+        check(bool(stop and stop.get("line") == 17), "Haltepunkt fuer den Tooltip", str(stop and stop.get("line")))
+        if not stop:
+            return
+
+        def evaluate(ident, expression):
+            session.send(f"eval\t{ident}\t{expression}")
+            deadline = time.time() + 10
+            while time.time() < deadline:
+                event = session.event(max(0.1, deadline - time.time()))
+                if event is None:
+                    return None
+                if event.get("t") == "eval" and str(event.get("id")) == str(ident):
+                    return event
+            return None
+
+        record = evaluate(1, "spieler")
+        check(bool(record and record.get("ok")), "TYPE wird ausgewertet", str(record))
+        check(bool(record) and record.get("type") == "PUNKT", "Typ des TYPE", str(record and record.get("type")))
+        detail = (record or {}).get("detail", "")
+        check("PX = 12.5" in detail and "PY = 7" in detail,
+              "Felder des TYPE stehen im Tooltip", detail)
+        check('NAME = "punkt"' in detail, "Stringfeld mit Anfuehrungszeichen", detail)
+
+        array = evaluate(2, "zahlen")
+        check(bool(array) and array.get("type") == "ARRAY[3]", "Array mit Laenge",
+              str(array and array.get("type")))
+        check("[0] = 4" in (array or {}).get("detail", "") and "[2] = 6" in (array or {}).get("detail", ""),
+              "Array-Elemente stehen im Tooltip", str((array or {}).get("detail")))
+
+        records = evaluate(3, "leute")
+        detail = (records or {}).get("detail", "")
+        check("[1] · TYPE PUNKT" in detail, "TYPE-Array wird aufgeklappt", detail)
+        check("PX = 99" in detail, "Feld des zweiten Elements", detail)
+
+        field_expr = evaluate(4, "spieler.px")
+        check(bool(field_expr) and field_expr.get("detail") == "12.5", "Feld ueber Punkt gelesen",
+              str(field_expr and field_expr.get("detail")))
+        check(bool(field_expr) and field_expr.get("expr") == "spieler.px", "Ausdruck kommt zurueck",
+              str(field_expr and field_expr.get("expr")))
+
+        math_expr = evaluate(5, "zahlen[1] + 1")
+        check(bool(math_expr) and math_expr.get("detail") == "6", "Ausdruck mit Index",
+              str(math_expr and math_expr.get("detail")))
+
+        unknown = evaluate(6, "quatsch")
+        check(bool(unknown) and unknown.get("ok") is False, "unbekannter Name wird abgelehnt", str(unknown))
+        keyword = evaluate(7, "PRINT")
+        check(bool(keyword) and keyword.get("ok") is False, "Befehl wird nicht ausgewertet", str(keyword))
+
+        # Ein Wert darf nicht als lokale Variable angelegt werden.
+        session.send("vars")
+        scope = None
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            event = session.event(max(0.1, deadline - time.time()))
+            if event is None:
+                break
+            if event.get("t") == "scope":
+                scope = event.get("scope")
+                break
+        check("QUATSCH" not in variables(scope, "globals") and "QUATSCH" not in variables(scope, "locals"),
+              "unbekannter Name bleibt ohne Nebenwirkung", str(scope))
+        session.send("quit")
+    finally:
+        session.close()
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
+METHOD_SCRIPT = """' Felder einer METHOD im Tooltip\nTYPE BOX\n  w AS FLOAT\n  h AS FLOAT\n  METHOD area\n    flaeche = w * h\n    RETURN flaeche\n  ENDMETHOD\nENDTYPE\n\nLOCAL b AS BOX\nb.w = 4\nb.h = 2\nr = b.area()\nPRINT r, 0, 0\n"""
+
+
+def test_inspect_method():
+    """In einer METHOD sind die eigenen Felder wie Variablen sichtbar."""
+    handle, path = tempfile.mkstemp(suffix=".gbx", dir=os.path.join(ROOT, "tests"))
+    os.close(handle)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(METHOD_SCRIPT)
+    session = Session(path)
+    try:
+        session.event()
+        session.send(f"bp\t{path}\t6")
+        stop = wait_stop(session)
+        if stop and stop.get("reason") == "start":
+            session.send("run")
+            stop = wait_stop(session)
+        check(bool(stop and (stop.get("scope") or {}).get("func") == "BOX.AREA"),
+              "Haltepunkt in der METHOD", str(stop and (stop.get("scope") or {}).get("func")))
+        if not stop:
+            return
+
+        def evaluate(ident, expression):
+            session.send(f"eval\t{ident}\t{expression}")
+            deadline = time.time() + 10
+            while time.time() < deadline:
+                event = session.event(max(0.1, deadline - time.time()))
+                if event is None:
+                    return None
+                if event.get("t") == "eval" and str(event.get("id")) == str(ident):
+                    return event
+            return None
+
+        field = evaluate(1, "w")
+        check(bool(field) and field.get("detail") == "4", "Feld der METHOD als Variable", str(field))
+        own = evaluate(2, "self")
+        check(bool(own) and own.get("type") == "BOX", "self ist das eigene Objekt", str(own))
+        check("H = 2" in (own or {}).get("detail", ""), "Felder des eigenen Objekts",
+              str((own or {}).get("detail")))
+        session.send("quit")
+    finally:
+        session.close()
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
 def test_syntax_error():
     handle, path = tempfile.mkstemp(suffix=".gbx", dir=os.path.join(ROOT, "tests"))
     os.close(handle)
@@ -232,6 +369,8 @@ def main():
     test_session()
     test_condition()
     test_broken_condition()
+    test_inspect()
+    test_inspect_method()
     test_syntax_error()
     print("GESAMT:", "OK" if failures == 0 else f"{failures} Fehler")
     return 0 if failures == 0 else 1

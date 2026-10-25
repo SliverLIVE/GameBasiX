@@ -112,6 +112,20 @@ const TABLE = [
   [' ist belegt, wähle einen freien Port …', ' is in use, choosing a free port …'],
   ['WebStart konnte nicht gestartet werden: ', 'WebStart could not be started: '],
 
+  /* C++-Compiler (g++) */
+  ['Der Compiler-Download ist nur für Windows gedacht – bitte g++ über die Paketverwaltung installieren.',
+   'The compiler download is meant for Windows – please install g++ through your package manager.'],
+  ['g++ ist bereits vorhanden.', 'g++ is already installed.'],
+  ['Suche den aktuellen GCC-Build (WinLibs) …', 'Looking up the current GCC build (WinLibs) …'],
+  ['Kein passender Download gefunden – ist GitHub erreichbar?',
+   'No matching download found – is GitHub reachable?'],
+  ['Lade ', 'Downloading '],
+  ['Der Download ist fehlgeschlagen: ', 'The download failed: '],
+  ['Entpacke …', 'Extracting …'],
+  ['Das Archiv konnte nicht entpackt werden.', 'The archive could not be extracted.'],
+  ['Im Archiv wurde kein g++.exe gefunden.', 'No g++.exe was found in the archive.'],
+  ['g++ ist eingerichtet: ', 'g++ is ready: '],
+
   /* Emscripten SDK */
   ['emsdk ist vorhanden, aber emcc läuft noch nicht (install/activate abgeschlossen?)',
    'emsdk is present, but emcc does not run yet (install/activate finished?)'],

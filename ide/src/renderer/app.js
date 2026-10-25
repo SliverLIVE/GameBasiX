@@ -7,7 +7,8 @@ import {
   findUserTypeRanges,
   EDITOR_THEME_FIELDS,
   EDITOR_THEME_PRESETS,
-  EDITOR_THEME_PRESET_LABELS
+  EDITOR_THEME_PRESET_LABELS,
+  setDebugHover
 } from './gbx-lang.js';
 import { applyAppearance, normalizeAppearance, buildAppPalette, DEFAULT_APPEARANCE } from './theme.js';
 import { t, getLanguage, setLanguage, initI18n, onLanguageChange, availableLanguages } from './i18n.js';
@@ -97,6 +98,8 @@ async function boot() {
   lang = registerGbx(monaco, dataset, { getSymbols, getAnalysis: analysisFor });
   applyAppearance(monaco, state.appearance);
   createEditor();
+  // Zeigt im Haltepunkt den aktuellen Wert unter der Maus.
+  setDebugHover(debugHoverValue);
   bindUi();
   initDock();
   readOutlinePrefs();
@@ -540,6 +543,13 @@ const inlineDecorations = new WeakMap();
 /** Hebt alle Zeilen zwischen INLINE und ENDINLINE als eigenen Block hervor. */
 function updateInlineHighlights(model = editor?.getModel()) {
   if (!model || !editor || editor.getModel() !== model) return;
+  // Eine .h-Datei ist reines C++: dort ist `inline` ein Sprachschlüsselwort
+  // und beginnt keinen GBX-Block.
+  if (model.getLanguageId() !== 'gbx') {
+    const stale = inlineDecorations.get(model) || [];
+    if (stale.length) inlineDecorations.set(model, editor.deltaDecorations(stale, []));
+    return;
+  }
   const blocks = [];
   let inside = false;
   let blockStart = 0;
@@ -1369,7 +1379,28 @@ async function adoptProject(result) {
   updateDebugUi();
   updateButtons();
   indexProjectSymbols();
+  // Befehle aus GBX_INLINE_FN(...) kennenlernen, sobald das Projekt steht.
+  refreshInlineCommands();
   renderRecent();
+}
+
+// Namen aus GBX_INLINE_FN(...) sammelt der Server; der Editor faerbt sie dann
+// wie eingebaute Befehle und schlaegt sie vor.
+let inlineScanTimer = null;
+
+async function refreshInlineCommands() {
+  if (!state.projectDir || !lang) return;
+  try {
+    const result = await get(`/api/inline-commands?dir=${encodeURIComponent(state.projectDir)}`);
+    lang.setInlineCommands?.(result.commands || []);
+  } catch {
+    // Ohne Antwort bleibt die bisherige Liste stehen.
+  }
+}
+
+function scheduleInlineScan() {
+  clearTimeout(inlineScanTimer);
+  inlineScanTimer = setTimeout(refreshInlineCommands, 300);
 }
 
 function closeAllTabs() {
@@ -1907,8 +1938,15 @@ function insertPathAtCursor(rel) {
 /* Tabs / Editor                                                       */
 /* ------------------------------------------------------------------ */
 
+// C++-Dateien bekommen Monacos C++-Tokenizer; im INLINE-Block einer .gbx
+// Datei passiert dasselbe (siehe gbx-lang.js).
+const CPP_FILE = /\.(h|hh|hpp|hxx|inl|ipp|c|cc|cpp|cxx)$/i;
+const INLINE_SOURCE = /\.(gbx|h|hh|hpp|hxx|inl|ipp|c|cc|cpp|cxx)$/i;
+
 function languageFor(file) {
-  return /\.gbx$/i.test(file) ? 'gbx' : 'plaintext';
+  if (/\.gbx$/i.test(file)) return 'gbx';
+  if (CPP_FILE.test(file)) return 'cpp';
+  return 'plaintext';
 }
 
 function absPath(rel) {
@@ -2213,6 +2251,8 @@ async function saveTab(tab) {
     renderTabs();
     renderTree();
     scheduleIndex();
+    // Eine geänderte Anmeldung in einer .h- oder .gbx-Datei wirkt sofort.
+    if (INLINE_SOURCE.test(tab.path)) scheduleInlineScan();
     return true;
   } catch (error) {
     toast(error.message, 'error');
@@ -2548,7 +2588,9 @@ async function settingsDialog() {
         </div>
         <div class="hint" id="set-cxx-info">${cxx.ok ? t('Gefunden: g++ {version}', { version: cxx.version || '' }) : t('g++ wurde nicht gefunden.')}</div>
         ${resolvedHint(cxx)}
-        <div class="hint">${t('Nur für INLINE-Blöcke. Ohne Angabe gilt compiler\\bin\\g++.exe relativ zur Editor-EXE.')}</div>
+        ${cxx.canDownload ? `<div class="path-row" style="margin-top:6px"><button class="btn ghost" id="set-cxx-install">${t('g++ herunterladen …')}</button></div>
+        <div class="hint" id="set-cxx-progress"></div>` : ''}
+        <div class="hint">${t('Nur für INLINE-Blöcke. Ohne Angabe gilt compiler\\bin\\g++.exe relativ zur Editor-EXE; fehlt der Compiler, lädt der Knopf oben einen WinLibs-Build nach compiler\\.')}</div>
       </div>
       <div class="field">
         <label>${t('HTML5 (Emscripten SDK)')}</label>
@@ -2743,6 +2785,44 @@ async function settingsDialog() {
     } catch (error) {
       info.textContent = error.message;
       info.style.color = 'var(--red)';
+    }
+  });
+
+  // Fehlt der Compiler im Projekt, laedt der Knopf einen WinLibs-Build nach
+  // compiler/ – ohne MSYS2-Installation.
+  body.querySelector('#set-cxx-install')?.addEventListener('click', async () => {
+    const button = body.querySelector('#set-cxx-install');
+    const info = body.querySelector('#set-cxx-info');
+    const progress = body.querySelector('#set-cxx-progress');
+    button.disabled = true;
+    progress.style.color = '';
+    progress.textContent = t('g++ wird heruntergeladen …');
+    try {
+      const result = await post('/api/compiler/install');
+      subscribeJob(
+        result.jobId,
+        (event) => {
+          if (event.type === 'log') progress.textContent = event.text.slice(0, 160);
+        },
+        async (done) => {
+          button.disabled = false;
+          progress.textContent = done.ok
+            ? t('Der C++-Compiler ist eingerichtet.')
+            : t('Die Installation ist nicht abgeschlossen.');
+          progress.style.color = done.ok ? 'var(--accent)' : 'var(--red)';
+          const cxx =
+            done.cxx || (await post('/api/compiler/check', { path: body.querySelector('#set-cxx').value.trim() }));
+          if (state.health) state.health.cxx = cxx;
+          info.textContent = cxx.ok ? t('Gefunden: g++ {version}', { version: cxx.version }) : cxx.error;
+          info.style.color = cxx.ok ? 'var(--accent)' : 'var(--red)';
+          const field = body.querySelector('#set-cxx');
+          if (cxx.ok && !field.value.trim()) field.value = 'compiler\\bin\\g++.exe';
+        }
+      );
+    } catch (error) {
+      button.disabled = false;
+      progress.textContent = error.message;
+      progress.style.color = 'var(--red)';
     }
   });
 
@@ -3791,13 +3871,17 @@ function handleDebugEvent(event) {
     state.debug.scope = data.scope;
     renderDebugScope();
   } else if (data.t === 'error') onDebugError(data);
-  else if (data.t === 'note') {
+  else if (data.t === 'eval') {
+    const reply = debugWatchReplies.get(String(data.id));
+    if (reply) reply(data);
+  } else if (data.t === 'note') {
     appendTo($('console'), `${data.text || ''}\n`, data.level === 'error' ? 'error' : 'warning');
   }
 }
 
 function onDebugStop(data) {
   const rel = projectRelative(data.file);
+  clearDebugWatch();
   state.debug.paused = true;
   state.debug.reason = data.reason || 'breakpoint';
   state.debug.file = rel || normalizeRel(data.file);
@@ -3825,6 +3909,7 @@ function onDebugStop(data) {
 }
 
 function onDebugError(data) {
+  clearDebugWatch();
   state.debug.paused = true;
   state.debug.reason = 'error';
   state.debug.error = data.message || '';
@@ -3851,6 +3936,7 @@ function onDebugError(data) {
 function finishDebug(done) {
   if (debugSource) debugSource.close();
   debugSource = null;
+  clearDebugWatch();
   const failed = state.debug.reason === 'error';
   const code = done?.code ?? 0;
   state.debug = emptyDebugState();
@@ -3878,6 +3964,83 @@ function debugCommand(command, extra = {}) {
   post('/api/debug/command', { jobId: state.debug.jobId, command, ...extra }).catch((error) => {
     toast(error.message, 'error');
   });
+}
+
+// ------------------------------------------------- Wert-Tooltip im Haltepunkt
+// Der Editor fragt beim Ueberfahren einer Variablen den Interpreter. Die
+// Antwort kommt ueber den Ereignisstrom; die Kennung ordnet sie der Anfrage zu.
+const debugWatchReplies = new Map();
+const debugWatchCache = new Map();
+let debugWatchSeq = 0;
+let debugWatchEpoch = 0;
+
+// Nach jedem Halt sind alle zwischengespeicherten Werte veraltet.
+function clearDebugWatch() {
+  debugWatchEpoch += 1;
+  debugWatchReplies.clear();
+  debugWatchCache.clear();
+}
+
+function debugEvaluate(expression) {
+  const d = state.debug;
+  if (!d.active || !d.paused || !d.jobId) return Promise.resolve(null);
+  const id = String(++debugWatchSeq);
+  return new Promise((resolve) => {
+    const done = (value) => {
+      debugWatchReplies.delete(id);
+      resolve(value);
+    };
+    const timer = setTimeout(() => done(null), 800);
+    debugWatchReplies.set(id, (data) => {
+      clearTimeout(timer);
+      done(data);
+    });
+    post('/api/debug/command', { jobId: d.jobId, command: 'eval', id, expression }).catch(() => {
+      clearTimeout(timer);
+      done(null);
+    });
+  });
+}
+
+// Kandidaten unter der Maus: der Pfad bis zum Wort (`player.pos`, `feld[i]`),
+// bei `player.pos` zeigt der Zeiger auf `player` also das ganze Objekt.
+function hoverCandidates(model, position) {
+  const word = model.getWordAtPosition(position);
+  if (!word) return null;
+  const line = model.getLineContent(position.lineNumber);
+  const before = line.slice(0, word.endColumn - 1);
+  const head = /((?:[A-Za-z_]\w*[$%#]?\s*(?:\[[^\]]*\]\s*)?\.\s*)*)([A-Za-z_]\w*[$%#]?)$/.exec(before);
+  const path = head ? `${head[1]}${head[2]}`.replace(/\s+/g, '') : '';
+  const list = path && path !== word.word ? [path, word.word] : [word.word];
+  return {
+    list,
+    range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn)
+  };
+}
+
+async function debugHoverValue(model, position) {
+  const d = state.debug;
+  if (!d.active || !d.paused || !d.jobId) return null;
+  if (model.getLanguageId() !== 'gbx') return null;
+  const found = hoverCandidates(model, position);
+  if (!found) return null;
+  const epoch = debugWatchEpoch;
+  for (const expression of found.list) {
+    // Nur waehrend desselben Halts zwischenspeichern: nach einem Schritt sind
+    // alle Werte veraltet.
+    const key = `${epoch}|${expression}`;
+    let data;
+    if (debugWatchCache.has(key)) data = debugWatchCache.get(key);
+    else {
+      data = await debugEvaluate(expression);
+      if (epoch !== debugWatchEpoch) return null;
+      debugWatchCache.set(key, data);
+    }
+    if (data && data.ok && typeof data.detail === 'string') {
+      return { expression, type: data.type || '', detail: data.detail, range: found.range };
+    }
+  }
+  return null;
 }
 
 async function stopDebug() {

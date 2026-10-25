@@ -6,8 +6,8 @@
 IDI_APPICON ICON "@CMAKE_SOURCE_DIR@/ide/assets/icon.ico"
 
 1 VERSIONINFO
-FILEVERSION 1,2,0,0
-PRODUCTVERSION 1,2,0,0
+FILEVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+PRODUCTVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0x0L
 FILEOS 0x40004L
@@ -19,12 +19,12 @@ BEGIN
         BLOCK "040704b0"
         BEGIN
             VALUE "FileDescription", "GBX Studio - Editor"
-            VALUE "FileVersion", "1.2.0"
+            VALUE "FileVersion", "@PROJECT_VERSION@"
             VALUE "InternalName", "GBXStudio"
             VALUE "LegalCopyright", "GameBasiX"
             VALUE "OriginalFilename", "GBXStudio.exe"
             VALUE "ProductName", "GBX Studio"
-            VALUE "ProductVersion", "1.2.0"
+            VALUE "ProductVersion", "@PROJECT_VERSION@"
         END
     END
     BLOCK "VarFileInfo"

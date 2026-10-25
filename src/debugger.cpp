@@ -287,6 +287,36 @@ void Debugger::handleCommand(const std::string& line) {
         emitScope();
         return;
     }
+    // eval\t<id>\t<ausdruck>: Wert fuer den Tooltip im Editor. Die Kennung
+    // kommt unveraendert zurueck, damit die IDE die Antwort zuordnen kann.
+    if (command == "eval") {
+        if (parts.size() < 3 || parts[1].empty()) return;
+        const std::string id = parts[1];
+        const std::string text = parts[2];
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!paused_) {
+            emitJson("{\"t\":\"eval\",\"id\":\"" + debugJsonEscape(id) +
+                     "\",\"ok\":false,\"error\":\"nicht angehalten\"}");
+            return;
+        }
+        bool ok = false;
+        std::string error;
+        std::string body;
+        if (inspect) body = inspect(text, ok, error);
+        else error = "Werte sind nicht verfuegbar";
+        std::string out = "{\"t\":\"eval\",\"id\":\"" + debugJsonEscape(id);
+        if (ok) {
+            out += "\",\"ok\":true,\"expr\":\"" + debugJsonEscape(text) + "\",";
+            // `body` ist ein fertiges Objekt; ohne die oeffnende Klammer passt
+            // es als Fortsetzung in die Antwort.
+            out += body.size() > 2 ? body.substr(1)
+                                   : std::string("\"type\":\"\",\"detail\":\"\"}");
+        } else {
+            out += "\",\"ok\":false,\"error\":\"" + debugJsonEscape(error) + "\"}";
+        }
+        emitJson(out);
+        return;
+    }
 
     std::lock_guard<std::mutex> lock(mutex_);
     if (command == "pause") {

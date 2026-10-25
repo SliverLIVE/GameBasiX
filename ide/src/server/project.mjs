@@ -803,6 +803,80 @@ export async function listTree(projectDir) {
   return items;
 }
 
+// Dateien, in denen ein INLINE-Block oder Header Befehle anmelden kann.
+const INLINE_SCAN_EXT = /\.(gbx|h|hh|hpp|hxx|inl|ipp|c|cc|cpp|cxx)$/i;
+const INLINE_FN_ANY = /GBX_INLINE_FN_ANY\s*\(\s*"([^"]+)"/;
+const INLINE_FN_ARGS = /GBX_INLINE_FN\s*\(\s*"([^"]+)"\s*,\s*(-?\d+)\s*,\s*(-?\d+)/;
+
+function addInlineCommand(found, rawName, min, max, file, line) {
+  const name = String(rawName).trim().toUpperCase();
+  if (!/^[A-Z_][A-Z0-9_$%#]*$/.test(name)) return;
+  // Die erste Anmeldung gewinnt; doppelte Namen gaebe es im Programm ohnehin nur einmal.
+  if (found.has(name)) return;
+  found.set(name, { name, min, max, file, line });
+}
+
+/**
+ * Sammelt die Namen, die ein Projekt per `GBX_INLINE_FN(...)` anmeldet. Der
+ * Editor faerbt sie wie eingebaute Befehle und nimmt sie in Vorschlaege und
+ * Hover auf. `min`/`max` sind die Argumentgrenzen aus der Anmeldung,
+ * `max = -1` heisst beliebig viele.
+ */
+export async function scanInlineCommands(projectDir) {
+  const root = path.resolve(projectDir);
+  const found = new Map();
+  let visited = 0;
+
+  async function walk(dir) {
+    let entries;
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    for (const entry of entries) {
+      if (visited >= 400) return;
+      if (IGNORED.has(entry.name)) continue;
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(abs);
+        continue;
+      }
+      if (!INLINE_SCAN_EXT.test(entry.name)) continue;
+      visited += 1;
+      let text;
+      try {
+        const stat = await fsp.stat(abs);
+        // Ein riesiger Header ist kein INLINE-Block; nicht die ganze Datei lesen.
+        if (stat.size > 512 * 1024) continue;
+        text = await fsp.readFile(abs, 'utf8');
+      } catch {
+        continue;
+      }
+      const rel = path.relative(root, abs).replace(/\\/g, '/');
+      const lines = text.split(/\r?\n/);
+      for (let index = 0; index < lines.length; index += 1) {
+        if (!lines[index].includes('GBX_INLINE_FN')) continue;
+        // Auskommentierte Anmeldungen zaehlen nicht.
+        const code = lines[index].replace(/\/\/.*$/, '');
+        const any = INLINE_FN_ANY.exec(code);
+        if (any) {
+          addInlineCommand(found, any[1], 0, -1, rel, index + 1);
+          continue;
+        }
+        const match = INLINE_FN_ARGS.exec(code);
+        if (match) {
+          addInlineCommand(found, match[1], Number(match[2]), Number(match[3]), rel, index + 1);
+        }
+      }
+    }
+  }
+
+  await walk(root);
+  return [...found.values()];
+}
+
 export async function ensureDir(dir) {
   await fsp.mkdir(dir, { recursive: true });
   return dir;

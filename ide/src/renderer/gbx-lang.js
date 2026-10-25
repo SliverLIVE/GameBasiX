@@ -33,6 +33,31 @@ const THEME_NAME = 'gbx-theme';
 // neu aufgebaut wird.
 let colorProviderRegistered = false;
 
+// Liefert im Haltepunkt den aktuellen Wert einer Variablen (siehe app.js).
+// Der Haken haengt am Editor, damit der Debugger nicht in dieses Modul muss.
+let debugValueFor = null;
+
+// Befehle, die das Projekt selbst per GBX_INLINE_FN(...) anmeldet
+// ({ name, min, max, file, line }). Sie werden wie eingebaute Befehle gefaerbt,
+// vorgeschlagen und im Hover erklaert.
+let inlineCommands = [];
+
+export function setDebugHover(hook) {
+  debugValueFor = typeof hook === 'function' ? hook : null;
+}
+
+// Baut den Tooltip: Ueberschrift mit Name und Typ, darunter der Wert als
+// Codeblock (Arrays und TYPEs sind dort schon aufgeklappt).
+function debugHoverContents(hit) {
+  const head = `**${hit.expression}**${hit.type ? ' · ' + hit.type : ''}`;
+  const detail = String(hit.detail || '');
+  if (!detail) return head;
+  // Ein Wert kann selbst Backticks enthalten; der Zaun muss laenger sein.
+  const longest = (detail.match(/`+/g) || []).reduce((max, run) => Math.max(max, run.length), 0);
+  const fence = '`'.repeat(Math.max(3, longest + 1));
+  return `${head}\n\n${fence}\n${detail}\n${fence}`;
+}
+
 /** Felder des Styling-Menüs – Reihenfolge und Beschriftung der Farbwähler. */
 export const EDITOR_THEME_FIELDS = [
   { group: 'tokens', key: 'comment', label: 'Kommentar' },
@@ -1010,6 +1035,37 @@ export function registerGbx(monaco, dataset, options = {}) {
   const keywordNames = commands.filter((c) => c.kind === 'keyword').map((c) => c.name);
   const operatorNames = commands.filter((c) => c.kind === 'operator').map((c) => c.name);
 
+  // Befehle aus GBX_INLINE_FN(...) sehen wie eingebaute aus – nur mit dem
+  // Hinweis, wo sie angemeldet wurden.
+  function inlineSignature(entry) {
+    const count = entry.max < 0 ? Math.max(entry.min, 1) : Math.max(entry.max, entry.min, 0);
+    const args = Array.from({ length: count }, (_, index) => `arg${index + 1}`);
+    if (entry.max < 0) args.push('…');
+    return `${entry.name}(${args.join(', ')})`;
+  }
+
+  function inlineWhere(entry) {
+    return entry.file ? `${entry.file}${entry.line ? ':' + entry.line : ''}` : t('im INLINE-Block');
+  }
+
+  function inlineEntries() {
+    return inlineCommands.map((entry) => ({
+      name: entry.name,
+      displayName: entry.name,
+      kind: 'inline',
+      category: 'INLINE',
+      signature: inlineSignature(entry),
+      syntax: [inlineSignature(entry)],
+      description: {
+        de: `Befehl aus dem INLINE-Block, angemeldet in ${inlineWhere(entry)}.`,
+        en: `Command from an INLINE block, registered in ${inlineWhere(entry)}.`
+      },
+      sample: '',
+      returnType: 'Wert',
+      params: []
+    }));
+  }
+
   const languages = monaco.languages;
   if (!languages.getLanguages().some((l) => l.id === 'gbx')) {
     languages.register({ id: 'gbx', extensions: ['.gbx'], aliases: ['GameBasiX', 'GBX', 'gbx'] });
@@ -1057,43 +1113,62 @@ export function registerGbx(monaco, dataset, options = {}) {
     });
   }
 
-  languages.setMonarchTokensProvider('gbx', {
-    ignoreCase: true,
-    defaultToken: '',
-    keywords: [...new Set([...CONTROL, ...keywordNames])],
-    types: [...TYPE_NAMES],
-    commands: commandNames,
-    operators: operatorNames,
-    tokenizer: {
-      root: [
-        [/\s+/, 'white'],
-        [/'.*$/, 'comment'],
-        [/\/\/.*$/, 'comment'],
-        [/0x[0-9a-f]+/i, 'number.hex'],
-        [/\b\d+(\.\d+)?([eE][+-]?\d+)?\b/, 'number'],
-        [/"/, { token: 'string.quote', next: '@string' }],
-        [/[A-Za-z_]\w*(?=\s*:)/, 'label'],
-        [
-          /[A-Za-z_]\w*[$%#]?/,
-          {
-            cases: {
-              '@keywords': 'keyword.control',
-              '@types': 'type.identifier',
-              '@commands': 'keyword.command',
-              '@operators': 'operator.word',
-              '@default': 'identifier'
+  // Der Tokenizer kennt die eingebauten Befehle und die Namen, die das Projekt
+  // selbst per GBX_INLINE_FN(...) anmeldet. Aendert sich diese Liste, wird er
+  // neu gesetzt – Monaco faerbt die offenen Dateien dann sofort neu.
+  function monarchSpec() {
+    return {
+      ignoreCase: true,
+      defaultToken: '',
+      keywords: [...new Set([...CONTROL, ...keywordNames])],
+      types: [...TYPE_NAMES],
+      commands: [...new Set([...commandNames, ...inlineCommands.map((entry) => entry.name)])].sort(
+        (a, b) => b.length - a.length
+      ),
+      operators: operatorNames,
+      tokenizer: {
+        root: [
+          // Vor der Leerraum-Regel: sonst ist der Zeilenanfang schon verbraucht
+          // und ein eingerueckter INLINE-Block beginnt nie.
+          [/^\s*INLINE\s*$/, { token: 'keyword.control', next: '@inline', nextEmbedded: 'cpp' }],
+          [/\s+/, 'white'],
+          [/'.*$/, 'comment'],
+          [/\/\/.*$/, 'comment'],
+          [/0x[0-9a-f]+/i, 'number.hex'],
+          [/\b\d+(\.\d+)?([eE][+-]?\d+)?\b/, 'number'],
+          [/"/, { token: 'string.quote', next: '@string' }],
+          [/[A-Za-z_]\w*(?=\s*:)/, 'label'],
+          [
+            /[A-Za-z_]\w*[$%#]?/,
+            {
+              cases: {
+                '@keywords': 'keyword.control',
+                '@types': 'type.identifier',
+                '@commands': 'keyword.command',
+                '@operators': 'operator.word',
+                '@default': 'identifier'
+              }
             }
-          }
+          ],
+          [/<>|<=|>=|==|[=<>+\-*/^&|!~]/, 'operator'],
+          [/[()\[\]{},.:;]/, 'delimiter']
         ],
-        [/<>|<=|>=|==|[=<>+\-*/^&|!~]/, 'operator'],
-        [/[()\[\]{},.:;]/, 'delimiter']
-      ],
-      string: [
-        [/[^"]+/, 'string'],
-        [/"/, { token: 'string.quote', next: '@pop' }]
-      ]
-    }
-  });
+        inline: [
+          // Das Wort ENDINLINE beendet Block und eingebettete Sprache.
+          [/^\s*ENDINLINE\b/, { token: 'keyword.control', next: '@pop', nextEmbedded: '@pop' }]
+        ],
+        string: [
+          [/[^"]+/, 'string'],
+          [/"/, { token: 'string.quote', next: '@pop' }]
+        ]
+      }
+    };
+  }
+
+  function installTokenizer() {
+    languages.setMonarchTokensProvider('gbx', monarchSpec());
+  }
+  installTokenizer();
 
   applyEditorTheme(monaco, options.theme);
 
@@ -1385,7 +1460,7 @@ export function registerGbx(monaco, dataset, options = {}) {
       if (upper || context.triggerKind === languages.CompletionTriggerKind.Invoke || context.triggerKind === 0) {
         // Übersichtsartikel („Sprache und Typen“ …) sind Referenztexte, keine
         // Befehle – sie gehören nicht in die Vorschlagsliste.
-        const pool = commands.filter((command) => command.kind !== 'overview');
+        const pool = [...commands.filter((command) => command.kind !== 'overview'), ...inlineEntries()];
         const { atStart, inside } = matchCommands(pool, upper);
         const snippetRule = languages.CompletionItemInsertTextRule?.InsertAsSnippet;
         const suggestionFor = (command, rank) => {
@@ -1416,135 +1491,155 @@ export function registerGbx(monaco, dataset, options = {}) {
   });
 
   languages.registerHoverProvider('gbx', {
-    provideHover(model, position) {
-      const hit = wordAt(model, position);
-      if (!hit) return null;
-      const word = hit.word;
-      const own = ownTypeAt(model, position);
-      // `self` im Methodenrumpf: eigenes Objekt samt Feldern und Methoden.
-      // Außerhalb einer Methode bleibt es beim Schlüsselwort aus der Referenz.
-      if (norm(word) === 'SELF') {
-        if (own?.type) {
-          const type = own.type;
-          const where = own.method ? `\n\n${own.method.kind} ${type.name}.${own.method.name}` : '';
-          const parts = [
-            `**self** · TYPE ${type.name}${where}\n\n${t('Klein schreiben und ohne Typsuffix: `self.x`.')}`
-          ];
-          const fields = (type.members || [])
-            .map((member) => `- \`${member.name}\`${member.type ? ': ' + member.type : ''}`)
-            .join('\n');
-          const methods = (type.methods || [])
-            .map((method) => `- ${method.kind} ${method.name}(${(method.params || []).map((param) => param.name).join(', ')})`)
-            .join('\n');
-          if (fields) parts.push(`**${t('Felder')}**\n\n${fields}`);
-          if (methods) parts.push(`**${t('Methoden')}**\n\n${methods}`);
-          return { range: hit.range, contents: [{ value: parts.join('\n\n') }] };
-        }
-      }
-      // Member-Ketten: `self.pos` im Methodenrumpf und `b.pos.y` über
-      // Variablen. Gezeigt werden Pfad und Ziel-TYPE mit Feldern/Methoden.
-      {
-        const line = model.getLineContent(position.lineNumber);
-        const before = line.slice(0, hit.range.startColumn - 1);
-        const chain = /((?:[A-Za-z_]\w*[$%#]?\s*(?:\[[^\]]*\]\s*)?\.\s*)+)$/.exec(before);
-        const parts = chain ? chain[1].split('.').map((part) => part.trim()).filter(Boolean) : [];
-        if (parts.length) {
-          const symbols = getSymbols();
-          const parent =
-            norm(parts[0]) === 'SELF'
-              ? own?.type
-                ? resolveSelfChain(symbols, own.type, parts.slice(1))
-                : null
-              : resolveMemberChain(symbols, parts);
-          // Member werden ohne Typsuffix geschrieben (`b.pos.y`, nicht `y#`).
-          const member = (parent?.members || []).find(
-            (item) => norm(memberBaseName(item.name)) === norm(memberBaseName(word))
-          );
-          if (parent && member) {
-            // Der Pfad folgt der Schreibweise im Quelltext (`b.pos.y`, nicht `y#`).
-            const path = parent.path.concat(word).join('.');
-            const typeName = member.type || suffixType(member.name);
-            const target =
-              (getAnalysis(model).types || []).find((item) => norm(item.name) === norm(memberBaseName(typeName))) ||
-              symbols.types.find((item) => norm(item.name) === norm(memberBaseName(typeName)));
-            const lines = [`**${path}** · ${target ? 'TYPE ' : ''}${typeName}`];
-            const fields = (target?.members || [])
-              .map((field) => `- \`${field.name}\`${field.type ? ': ' + field.type : ''}`)
-              .join('\n');
-            const methods = (target?.methods || [])
-              .map((method) => `- ${method.kind} ${method.name}(${(method.params || []).map((param) => param.name).join(', ')})`)
-              .join('\n');
-            if (fields) lines.push(`**${t('Felder')}**\n\n${fields}`);
-            if (methods) lines.push(`**${t('Methoden')}**\n\n${methods}`);
-            return { range: hit.range, contents: [{ value: lines.join('\n\n') }] };
-          }
-        }
-      }
-      const command = byName.get(norm(word));
-      if (command) {
-        return {
-          range: hit.range,
-          contents: [{ value: markdown.forCommand(command) }]
-        };
-      }
-      const symbols = getSymbols();
-      const fn = symbols.functions.find((f) => norm(f.name) === norm(word));
-      if (fn) {
-        const params = fn.params?.length ? fn.params.map((p) => `\`${p.name}\``).join(', ') : t('keine');
-        return {
-          range: hit.range,
-          contents: [{ value: `**${fn.kind} ${fn.name}**\n\n${t('Parameter: {params}', { params })}` }]
-        };
-      }
-      for (const type of symbols.types) {
-        const method = (type.methods || []).find((entry) => norm(entry.name) === norm(word));
-        if (!method) continue;
-        const params = method.params?.length ? method.params.map((p) => `\`${p.name}\``).join(', ') : t('keine');
-        return {
-          range: hit.range,
-          contents: [
-            {
-              value: `**${method.kind} ${type.name}.${method.name}**\n\n${t('Parameter: {params}', { params })}`
-            }
-          ]
-        };
-      }
-      const variable = symbols.variables.find((v) => norm(v.name) === norm(word));
-      if (variable) {
-        return {
-          range: hit.range,
-          contents: [
-            {
-              value: `**${variable.name}**\n\n${t('Typ: `{type}`', { type: variable.type || 'NUMERIC' })}${
-                variable.scope ? ' · ' + variable.scope : ''
-              }`
-            }
-          ]
-        };
-      }
-      const type = symbols.types.find((item) => norm(item.name) === norm(word));
-      if (type) {
-        return {
-          range: hit.range,
-          contents: [
-            {
-              value: `**TYPE ${type.name}**\n\n${(type.members || [])
-                .map((m) => `- \`${m.name}\`${m.type ? ': ' + m.type : ''}`)
-                .join('\n') || t('Keine Member')}${
-                (type.methods || []).length
-                  ? '\n\n' +
-                    type.methods
-                      .map((m) => `- ${m.kind} ${m.name}(${(m.params || []).map((p) => p.name).join(', ')})`)
-                      .join('\n')
-                  : ''
-              }`
-            }
-          ]
-        };
-      }
-      return null;
+    async provideHover(model, position) {
+      const base = staticHover(model, position);
+      // Im Haltepunkt steht der aktuelle Wert ueber der statischen Hilfe.
+      const live = debugValueFor ? await debugValueFor(model, position) : null;
+      if (!live) return base;
+      const value = { value: debugHoverContents(live) };
+      if (!base) return { range: live.range, contents: [value] };
+      return { range: base.range, contents: [value, ...base.contents] };
     }
   });
+
+  function staticHover(model, position) {
+    const hit = wordAt(model, position);
+    if (!hit) return null;
+    const word = hit.word;
+    const own = ownTypeAt(model, position);
+    // `self` im Methodenrumpf: eigenes Objekt samt Feldern und Methoden.
+    // Außerhalb einer Methode bleibt es beim Schlüsselwort aus der Referenz.
+    if (norm(word) === 'SELF') {
+      if (own?.type) {
+        const type = own.type;
+        const where = own.method ? `\n\n${own.method.kind} ${type.name}.${own.method.name}` : '';
+        const parts = [
+          `**self** · TYPE ${type.name}${where}\n\n${t('Klein schreiben und ohne Typsuffix: `self.x`.')}`
+        ];
+        const fields = (type.members || [])
+          .map((member) => `- \`${member.name}\`${member.type ? ': ' + member.type : ''}`)
+          .join('\n');
+        const methods = (type.methods || [])
+          .map((method) => `- ${method.kind} ${method.name}(${(method.params || []).map((param) => param.name).join(', ')})`)
+          .join('\n');
+        if (fields) parts.push(`**${t('Felder')}**\n\n${fields}`);
+        if (methods) parts.push(`**${t('Methoden')}**\n\n${methods}`);
+        return { range: hit.range, contents: [{ value: parts.join('\n\n') }] };
+      }
+    }
+    // Member-Ketten: `self.pos` im Methodenrumpf und `b.pos.y` über
+    // Variablen. Gezeigt werden Pfad und Ziel-TYPE mit Feldern/Methoden.
+    {
+      const line = model.getLineContent(position.lineNumber);
+      const before = line.slice(0, hit.range.startColumn - 1);
+      const chain = /((?:[A-Za-z_]\w*[$%#]?\s*(?:\[[^\]]*\]\s*)?\.\s*)+)$/.exec(before);
+      const parts = chain ? chain[1].split('.').map((part) => part.trim()).filter(Boolean) : [];
+      if (parts.length) {
+        const symbols = getSymbols();
+        const parent =
+          norm(parts[0]) === 'SELF'
+            ? own?.type
+              ? resolveSelfChain(symbols, own.type, parts.slice(1))
+              : null
+            : resolveMemberChain(symbols, parts);
+        // Member werden ohne Typsuffix geschrieben (`b.pos.y`, nicht `y#`).
+        const member = (parent?.members || []).find(
+          (item) => norm(memberBaseName(item.name)) === norm(memberBaseName(word))
+        );
+        if (parent && member) {
+          // Der Pfad folgt der Schreibweise im Quelltext (`b.pos.y`, nicht `y#`).
+          const path = parent.path.concat(word).join('.');
+          const typeName = member.type || suffixType(member.name);
+          const target =
+            (getAnalysis(model).types || []).find((item) => norm(item.name) === norm(memberBaseName(typeName))) ||
+            symbols.types.find((item) => norm(item.name) === norm(memberBaseName(typeName)));
+          const lines = [`**${path}** · ${target ? 'TYPE ' : ''}${typeName}`];
+          const fields = (target?.members || [])
+            .map((field) => `- \`${field.name}\`${field.type ? ': ' + field.type : ''}`)
+            .join('\n');
+          const methods = (target?.methods || [])
+            .map((method) => `- ${method.kind} ${method.name}(${(method.params || []).map((param) => param.name).join(', ')})`)
+            .join('\n');
+          if (fields) lines.push(`**${t('Felder')}**\n\n${fields}`);
+          if (methods) lines.push(`**${t('Methoden')}**\n\n${methods}`);
+          return { range: hit.range, contents: [{ value: lines.join('\n\n') }] };
+        }
+      }
+    }
+    const command = byName.get(norm(word));
+    if (command) {
+      return {
+        range: hit.range,
+        contents: [{ value: markdown.forCommand(command) }]
+      };
+    }
+    // Selbst angemeldete Befehle gibt es nur in diesem Projekt.
+    const inline = inlineCommands.find((entry) => entry.name === norm(word));
+    if (inline) {
+      const english = getLanguage() === 'en';
+      const where = inlineWhere(inline);
+      const value = english
+        ? `**${inlineSignature(inline)}** · INLINE\n\nRegistered in \`${where}\`.`
+        : `**${inlineSignature(inline)}** · INLINE\n\nAngemeldet in \`${where}\`.`;
+      return { range: hit.range, contents: [{ value }] };
+    }
+    const symbols = getSymbols();
+    const fn = symbols.functions.find((f) => norm(f.name) === norm(word));
+    if (fn) {
+      const params = fn.params?.length ? fn.params.map((p) => `\`${p.name}\``).join(', ') : t('keine');
+      return {
+        range: hit.range,
+        contents: [{ value: `**${fn.kind} ${fn.name}**\n\n${t('Parameter: {params}', { params })}` }]
+      };
+    }
+    for (const type of symbols.types) {
+      const method = (type.methods || []).find((entry) => norm(entry.name) === norm(word));
+      if (!method) continue;
+      const params = method.params?.length ? method.params.map((p) => `\`${p.name}\``).join(', ') : t('keine');
+      return {
+        range: hit.range,
+        contents: [
+          {
+            value: `**${method.kind} ${type.name}.${method.name}**\n\n${t('Parameter: {params}', { params })}`
+          }
+        ]
+      };
+    }
+    const variable = symbols.variables.find((v) => norm(v.name) === norm(word));
+    if (variable) {
+      return {
+        range: hit.range,
+        contents: [
+          {
+            value: `**${variable.name}**\n\n${t('Typ: `{type}`', { type: variable.type || 'NUMERIC' })}${
+              variable.scope ? ' · ' + variable.scope : ''
+            }`
+          }
+        ]
+      };
+    }
+    const type = symbols.types.find((item) => norm(item.name) === norm(word));
+    if (type) {
+      return {
+        range: hit.range,
+        contents: [
+          {
+            value: `**TYPE ${type.name}**\n\n${(type.members || [])
+              .map((m) => `- \`${m.name}\`${m.type ? ': ' + m.type : ''}`)
+              .join('\n') || t('Keine Member')}${
+              (type.methods || []).length
+                ? '\n\n' +
+                  type.methods
+                    .map((m) => `- ${m.kind} ${m.name}(${(m.params || []).map((p) => p.name).join(', ')})`)
+                    .join('\n')
+                : ''
+            }`
+          }
+        ]
+      };
+    }
+    return null;
+  }
 
   languages.registerSignatureHelpProvider('gbx', {
     triggerCharacters: ['(', ','],
@@ -1751,5 +1846,25 @@ export function registerGbx(monaco, dataset, options = {}) {
     );
   }
 
-  return { analyzeSource, byName, commands };
+  // Neue Liste aus dem Projekt: Namen farben, Vorschlaege und Hover folgen
+  // sofort, ohne dass die Sprache neu aufgebaut werden muss.
+  function setInlineCommands(list) {
+    const next = (Array.isArray(list) ? list : [])
+      .map((entry) => ({
+        name: String(entry?.name || '').trim().toUpperCase(),
+        min: Number(entry?.min) || 0,
+        max: entry?.max === undefined ? -1 : Number(entry.max),
+        file: String(entry?.file || ''),
+        line: Number(entry?.line) || 0
+      }))
+      .filter((entry) => /^[A-Z_][A-Z0-9_$%#]*$/.test(entry.name))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const changed =
+      next.length !== inlineCommands.length || next.some((entry, index) => entry.name !== inlineCommands[index]?.name);
+    inlineCommands = next;
+    if (changed) installTokenizer();
+    return inlineCommands.length;
+  }
+
+  return { analyzeSource, byName, commands, setInlineCommands };
 }

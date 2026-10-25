@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { checkProject, checkSource, exportGame, inspectGbx, inspectCompiler, runProject, startDebugSession, defaultGbxPath, defaultCxxPath, resolveTool, setCompilerPath, pathExists } from './gbx.mjs';
+import { compilerRoot, installCompiler } from './cxx.mjs';
 import { downloadGoogleFont, fetchGoogleFontFile, listGoogleFonts } from './googlefonts.mjs';
 import { inspectEmsdk, defaultEmsdkPath, emsdkRoot, installEmsdk } from './emsdk.mjs';
 import { buildPlayer, exportHtml5, inspectHtml5 } from './html5.mjs';
@@ -30,6 +31,7 @@ import {
   saveConfig,
   saveProject,
   saveTemplate,
+  scanInlineCommands,
   templatesDir,
   writeProjectFileContent,
   isInside
@@ -445,6 +447,29 @@ async function routeApi(req, res, url) {
     return json(res, 200, inspectCompiler(body.path !== undefined ? body.path : config.cxxPath, ROOT));
   }
 
+  // C++-Compiler nach compiler/ laden: derselbe Weg wie beim Emscripten-SDK,
+  // damit INLINE ohne eine MSYS2-Installation laeuft.
+  if (pathname === '/api/compiler/install' && method === 'POST') {
+    const target = compilerRoot(ROOT);
+    const job = createJob('compiler', {});
+    json(res, 200, { ok: true, jobId: job.id, dir: target });
+    (async () => {
+      try {
+        job.emit({ type: 'started', kind: 'compiler' });
+        const ok = await installCompiler({
+          root: target,
+          onLog: (text) => job.emit({ type: 'log', level: 'info', text })
+        });
+        const config = await loadConfig();
+        job.finish(ok ? 'success' : 'failed', { ok, cxx: inspectCompiler(config.cxxPath, ROOT) });
+      } catch (error) {
+        job.emit({ type: 'log', level: 'error', text: `${errorText(error)}\n` });
+        job.finish('failed', { ok: false, error: errorText(error) });
+      }
+    })();
+    return;
+  }
+
   if (pathname === '/api/emsdk/check') {
     const body = method === 'POST' ? await readBody(req) : {};
     const config = await loadConfig();
@@ -644,6 +669,19 @@ async function routeApi(req, res, url) {
       return res.end(data);
     } catch {
       return json(res, 500, { ok: false, error: tr('Datensatz fehlt. Bitte npm run build:dataset ausführen.') });
+    }
+  }
+
+  // Namen aus GBX_INLINE_FN(...): Der Editor faerbt sie wie eingebaute
+  // Befehle und schlaegt sie vor. Ein Projekt ist klein, deshalb darf der
+  // Scan nach jedem Speichern laufen.
+  if (pathname === '/api/inline-commands' && method === 'GET') {
+    const dir = url.searchParams.get('dir') || '';
+    if (!dir) return fail(res, new Error('Projektordner fehlt.'));
+    try {
+      return json(res, 200, { ok: true, commands: await scanInlineCommands(dir) });
+    } catch (error) {
+      return fail(res, error);
     }
   }
 
@@ -983,6 +1021,18 @@ async function routeApi(req, res, url) {
     const simple = new Set(['run', 'continue', 'step', 'next', 'out', 'pause', 'vars', 'quit']);
     if (simple.has(command)) {
       job.send(command);
+      return json(res, 200, { ok: true });
+    }
+    // Wert-Tooltip im Haltepunkt: Die Kennung kommt mit der Antwort zurueck,
+    // damit der Editor die Anfrage zuordnen kann.
+    if (command === 'eval') {
+      const id = String(body.id ?? '').replace(/[^0-9]/g, '').slice(0, 9);
+      const expression = String(body.expression ?? '')
+        .replace(/[\t\r\n]+/g, ' ')
+        .trim()
+        .slice(0, 200);
+      if (!id || !expression) return fail(res, new Error('Ausdruck fehlt.'));
+      job.send(`eval\t${id}\t${expression}`);
       return json(res, 200, { ok: true });
     }
     if (command === 'bp' || command === 'bpc') {

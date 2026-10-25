@@ -37,7 +37,13 @@ namespace fs = std::filesystem;
 
 namespace {
 
-const char* kVersion = "1.2";
+// Kommt aus CMakeLists.txt (project(... VERSION ...)); der Ersatz gilt fuer
+// Bauwege ohne CMake, etwa den HTML5-Build.
+#ifndef GBX_VERSION
+#define GBX_VERSION "1.2.3"
+#endif
+
+const char* kVersion = GBX_VERSION;
 
 // Ein exportiertes Spiel erkennt sich beim Start am angehaengten Paket.
 bool g_packaged = false;
@@ -417,6 +423,9 @@ int main(int argc, char** argv) {
         dbg->scope = [&interp] { return interp.debugScope(); };
         dbg->condition = [&interp](const std::string& text, bool& ok, std::string& error) {
             return interp.debugEval(text, ok, error).truthy();
+        };
+        dbg->inspect = [&interp](const std::string& text, bool& ok, std::string& error) {
+            return interp.debugInspect(text, ok, error);
         };
     }
     try {

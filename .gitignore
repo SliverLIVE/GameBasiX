@@ -20,6 +20,10 @@ steam_appid.txt
 # Spielstaende des FileIO-Beispiels
 examples/10_fileio/saves/
 
+# C++-Compiler fuer INLINE-Bloecke (GCC/MinGW, mehrere hundert MB): gehoert
+# nicht ins Repo, laesst sich in den Einstellungen nachladen.
+compiler/
+
 # Emscripten-SDK und der daraus gebaute wasm-Player
 emsdk/
 html5/

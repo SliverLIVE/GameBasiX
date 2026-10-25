@@ -27,6 +27,10 @@ public:
     // Haltepunkten). Setzt ok=false und error, wenn der Text nicht lesbar ist.
     Value debugEval(const std::string& text, bool& ok, std::string& error);
 
+    // Dasselbe fuer den Wert-Tooltip im Haltepunkt: liefert den JSON-Ausschnitt
+    // {"type":…,"detail":…} mit aufgeklappten Arrays und TYPEs.
+    std::string debugInspect(const std::string& text, bool& ok, std::string& error);
+
     // Wird von FOREACH benoetigt
     struct Frame {
         std::unordered_map<std::string, Slot> locals;

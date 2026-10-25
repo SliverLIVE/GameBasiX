@@ -2,6 +2,7 @@
 #include "interpreter.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <limits>
@@ -63,6 +64,105 @@ std::string debugTypeName(const Value& v) {
         case VT::Null: break;
     }
     return "";
+}
+
+// ------------------------------------------------- Detail fuer den Wert-Tooltip
+
+constexpr size_t kDetailMaxItems = 12;
+constexpr size_t kDetailMaxLines = 40;
+constexpr int kDetailMaxDepth = 3;
+
+// Kuerzt nach Zeichen, nicht nach Bytes: sonst zerlegt die Laengengrenze
+// einen UTF-8-Folgesequenz und das JSON waere unlesbar.
+std::string clipUtf8(const std::string& text, size_t maxChars) {
+    size_t chars = 0;
+    size_t i = 0;
+    while (i < text.size() && chars < maxChars) {
+        if ((static_cast<unsigned char>(text[i]) & 0xC0) != 0x80) ++chars;
+        ++i;
+    }
+    if (i >= text.size()) return text;
+    return text.substr(0, i) + "…";
+}
+
+std::string debugScalarText(const Value& v) {
+    if (!v.isStr()) return v.text();
+    std::string out;
+    out.reserve(v.s.size() + 2);
+    // Zeilenumbrueche wuerden den Tooltip in echte Zeilen zerlegen.
+    for (char c : v.s) {
+        if (c == '\n') out += "\\n";
+        else if (c == '\r') out += "\\r";
+        else if (c == '\t') out += "\\t";
+        else out += c;
+    }
+    return "\"" + clipUtf8(out, 60) + "\"";
+}
+
+struct DetailWriter {
+    std::vector<std::string> lines;
+
+    void add(const std::string& text) {
+        if (lines.size() >= kDetailMaxLines) {
+            if (lines.size() == kDetailMaxLines) lines.push_back("…");
+            return;
+        }
+        lines.push_back(text);
+    }
+};
+
+std::string detailPad(int indent) { return std::string(static_cast<size_t>(indent) * 2, ' '); }
+
+// Fuehrender Name eines Ausdrucks in Grossschreibung ("spieler.px" → "SPIELER").
+std::string leadingName(const std::string& text) {
+    size_t i = 0;
+    while (i < text.size() && std::isspace(static_cast<unsigned char>(text[i]))) ++i;
+    if (i >= text.size()) return std::string();
+    if (!std::isalpha(static_cast<unsigned char>(text[i])) && text[i] != '_') return std::string();
+    const size_t start = i;
+    while (i < text.size()) {
+        const unsigned char c = static_cast<unsigned char>(text[i]);
+        if (!std::isalnum(c) && c != '_' && c != '$' && c != '%' && c != '#') break;
+        ++i;
+    }
+    std::string name = text.substr(start, i - start);
+    for (char& c : name) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    return name;
+}
+
+// Klappt Arrays und TYPEs auf, damit im Tooltip nicht nur "[VEC]" steht.
+void debugDetail(const Value& v, const std::string& label, int indent, int depth, DetailWriter& w) {
+    const std::string pad = detailPad(indent);
+    const std::string childPad = detailPad(indent + 1);
+    if (v.isRecord() && v.rec && v.rec->def && depth < kDetailMaxDepth) {
+        const TypeDef& def = *v.rec->def;
+        if (!label.empty()) w.add(pad + label + " · TYPE " + def.name);
+        const size_t count = std::min(def.fields.size(), v.rec->fields.size());
+        for (size_t i = 0; i < count; ++i) {
+            const Value& field = v.rec->fields[i];
+            const std::string& name = def.fields[i].name;
+            if (field.isRecord() || field.isArray()) debugDetail(field, name, indent + 1, depth + 1, w);
+            else w.add(childPad + name + " = " + debugScalarText(field));
+        }
+        return;
+    }
+    if (v.isArray() && v.arr && depth < kDetailMaxDepth) {
+        const std::vector<Value>& items = v.arr->items;
+        if (!label.empty()) w.add(pad + label + " · ARRAY[" + std::to_string(items.size()) + "]");
+        const size_t shown = std::min(items.size(), kDetailMaxItems);
+        for (size_t i = 0; i < shown; ++i) {
+            const std::string index = "[" + std::to_string(i) + "]";
+            if (items[i].isRecord() || items[i].isArray()) debugDetail(items[i], index, indent + 1, depth + 1, w);
+            else w.add(childPad + index + " = " + debugScalarText(items[i]));
+        }
+        if (items.size() > shown) w.add(childPad + "… +" + std::to_string(items.size() - shown));
+        return;
+    }
+    if (v.isRecord() || v.isArray()) {
+        w.add(pad + (label.empty() ? std::string("…") : label + " · …"));
+        return;
+    }
+    w.add(label.empty() ? debugScalarText(v) : pad + label + " = " + debugScalarText(v));
 }
 
 std::string debugVarsJson(std::vector<DebugVar> vars) {
@@ -1202,6 +1302,39 @@ Value Interpreter::debugEval(const std::string& text, bool& ok, std::string& err
         error = e.what();
         return Value::mkNull();
     }
+}
+
+std::string Interpreter::debugInspect(const std::string& text, bool& ok, std::string& error) {
+    // Nur echte Variablen auswerten: Ein unbekannter Name legt sonst still
+    // eine neue Variable mit 0 an, und der Tooltip zeigte fuer jedes Wort im
+    // Text eine Zahl.
+    const std::string head = leadingName(text);
+    if (!head.empty()) {
+        bool known = head == "SELF";
+        if (!known && frame_) known = frame_->locals.count(head) > 0 || frame_->aliases.count(head) > 0;
+        // In einer METHOD sind die Felder des eigenen Objekts wie Variablen sichtbar.
+        if (!known) known = selfField(head) != nullptr;
+        if (!known) known = rt_.globals.count(head) > 0;
+        if (!known) {
+            ok = false;
+            error = "Unbekannter Name";
+            return std::string();
+        }
+    }
+
+    Value value = debugEval(text, ok, error);
+    if (!ok) return std::string();
+
+    DetailWriter w;
+    debugDetail(value, "", 0, 0, w);
+    // Ein leerer TYPE hat keine Felder; dann bleibt wenigstens die Kurzform.
+    if (w.lines.empty()) w.add(debugValueText(value));
+    std::string out = "{\"type\":\"" + debugJsonEscape(debugTypeName(value)) + "\",\"detail\":\"";
+    for (size_t i = 0; i < w.lines.size(); ++i) {
+        if (i) out += "\\n";
+        out += debugJsonEscape(w.lines[i]);
+    }
+    return out + "\"}";
 }
 
 Value Interpreter::eval(const Expr& e) {

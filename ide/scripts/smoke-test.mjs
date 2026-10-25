@@ -105,6 +105,15 @@ try {
   });
   if (!health.gbx.ok) throw new Error('Ohne gbx.exe sind Prüfen und Starten nicht testbar.');
 
+  await check('C++-Compiler wird geprüft und ist nachladbar', async () => {
+    const cxx = await request('/api/compiler/check', {}, 'POST');
+    assert.equal(typeof cxx.canDownload, 'boolean', 'canDownload fehlt');
+    assert.ok(cxx.path, 'kein Pfad');
+    assert.ok(cxx.resolved, 'kein aufgelöster Pfad');
+    if (cxx.ok) assert.match(cxx.version, /^\d+\.\d+/, 'Version fehlt');
+    else assert.ok(cxx.error, 'keine Fehlermeldung');
+  });
+
   await check('Datensatz deckt den Befehlssatz ab', () => {
     const ideRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
     const dataset = JSON.parse(fs.readFileSync(path.join(ideRoot, 'data', 'gbx-dataset.json'), 'utf8'));
@@ -222,6 +231,31 @@ try {
   await check('Projekt geöffnet', () => {
     assert.equal(opened.project.name, 'Smoke');
     assert.deepEqual(opened.project.sources, ['main.gbx']);
+  });
+
+  await check('Befehle aus GBX_INLINE_FN werden gesammelt', async () => {
+    await request(
+      '/api/file',
+      {
+        dir,
+        file: 'curve.h',
+        content:
+          'inline void roseX(const GbxValue* a, int n, GbxValue* r) {}\n' +
+          'GBX_INLINE_FN("ROSE_X", 3, 3, roseX);\n' +
+          'GBX_INLINE_FN_ANY("ROSE_ANY", roseX);\n' +
+          '// GBX_INLINE_FN("AUSKOMMENTIERT", 0, 0, roseX);\n'
+      },
+      'POST'
+    );
+    const found = await request(`/api/inline-commands?dir=${encodeURIComponent(dir)}`);
+    const byName = Object.fromEntries(found.commands.map((entry) => [entry.name, entry]));
+    assert.ok(byName.ROSE_X, 'ROSE_X fehlt');
+    assert.equal(byName.ROSE_X.min, 3);
+    assert.equal(byName.ROSE_X.max, 3);
+    assert.equal(byName.ROSE_X.file, 'curve.h');
+    assert.equal(byName.ROSE_X.line, 2);
+    assert.equal(byName.ROSE_ANY?.max, -1, 'GBX_INLINE_FN_ANY fehlt oder hat falsche Grenzen');
+    assert.ok(!byName.AUSKOMMENTIERT, 'Kommentar wurde mitgezaehlt');
   });
 
   await request('/api/file', { dir, file: 'main.gbx', content: `' Smoke\nPRINT "Hallo", 10, 10\nDEBUG "MARKE" + CHR$(10)\nEND\n` }, 'POST');
@@ -393,7 +427,8 @@ try {
     }
     return null;
   };
-  const debugCommand = (command) => request('/api/debug/command', { jobId: debug.jobId, command }, 'POST');
+  const debugCommand = (command, extra = {}) =>
+    request('/api/debug/command', { jobId: debug.jobId, command, ...extra }, 'POST');
 
   await check('Debugger hält am Haltepunkt', async () => {
     const stop = await waitFor((event) => event.type === 'debug' && event.event.t === 'stop' && event.event.reason === 'breakpoint');
@@ -402,6 +437,25 @@ try {
     assert.equal(stop.event.scope.func, 'ADD');
     const locals = Object.fromEntries(stop.event.scope.locals.map((variable) => [variable.name, variable.value]));
     assert.equal(locals.TOTAL, '3');
+  });
+
+  await check('Wert-Tooltip liest Variablen im Haltepunkt', async () => {
+    await debugCommand('eval', { id: 11, expression: 'TOTAL' });
+    const reply = await waitFor(
+      (event) => event.type === 'debug' && event.event.t === 'eval' && String(event.event.id) === '11'
+    );
+    assert.ok(reply, 'keine Antwort auf eval');
+    assert.equal(reply.event.ok, true, reply.event.error);
+    assert.equal(reply.event.detail, '3');
+    assert.equal(reply.event.type, 'INTEGER');
+    assert.equal(reply.event.expr, 'TOTAL');
+
+    await debugCommand('eval', { id: 12, expression: 'GIBTESNICHT' });
+    const unknown = await waitFor(
+      (event) => event.type === 'debug' && event.event.t === 'eval' && String(event.event.id) === '12'
+    );
+    assert.ok(unknown, 'keine Antwort auf den unbekannten Namen');
+    assert.equal(unknown.event.ok, false, 'unbekannter Name liefert einen Wert');
   });
 
   await check('Debugger geht schrittweise weiter', async () => {

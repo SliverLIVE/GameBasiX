@@ -95,6 +95,8 @@ export function inspectCompiler(candidate, appRoot = APP_ROOT) {
     ok,
     version: ok ? readCompilerVersion(resolved) : '',
     bundled: pathExists(bundled),
+    // Nur unter Windows laesst sich der WinLibs-Build einfach ablegen.
+    canDownload: process.platform === 'win32',
     error: ok ? '' : tr(`g++ wurde nicht gefunden: ${resolved}`)
   };
 }

@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
-project(gbx LANGUAGES C CXX)
+
+# Eine Versionsnummer fuer alles: ide/package.json ist die Quelle (npm paketiert
+# damit), CMake uebernimmt sie fuer gbx.exe, die Statuszeile der IDE und die
+# Dateieigenschaften des Startprogramms.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/ide/package.json" GBX_PACKAGE_JSON)
+string(REGEX MATCH "\"version\"[ \t\r\n]*:[ \t\r\n]*\"([0-9]+\\.[0-9]+\\.[0-9]+)\"" GBX_VERSION_MATCH "${GBX_PACKAGE_JSON}")
+if(NOT CMAKE_MATCH_1)
+  message(FATAL_ERROR "Keine Version in ide/package.json gefunden")
+endif()
+project(gbx VERSION ${CMAKE_MATCH_1} LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -84,6 +93,8 @@ add_executable(gbx
 )
 
 target_include_directories(gbx PRIVATE src third_party inline)
+# Eine Quelle fuer die Versionsnummer: CMake reicht sie als Definition durch.
+target_compile_definitions(gbx PRIVATE GBX_VERSION="${PROJECT_VERSION}")
 
 # INLINE-Code bindet <gbx_inline.h> ein; die Datei muss neben gbx.exe liegen.
 # Der Kopierschritt haengt am Build, damit Aenderungen am Header ankommen.

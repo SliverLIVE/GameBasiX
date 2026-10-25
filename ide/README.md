@@ -16,9 +16,16 @@ program's window one key press away.</sub>
 
 ## Features
 
-* **Editor** – Monaco with GameBasiX syntax highlighting, autocompletion,
-  `INLINE` blocks highlighted as their own region, and colour swatches in front
-  of literal `RGB(...)` calls.
+* **Editor** – Monaco with GameBasiX syntax highlighting, autocompletion and
+  colour swatches in front of literal `RGB(...)` calls. The code between
+  `INLINE` and `ENDINLINE` is highlighted by Monaco's C++ tokenizer, and
+  `.h`/`.cpp` files open as C++ instead of plain text. The `INLINE` region
+  itself keeps its own background, but only in `.gbx` sources.
+* **Project commands** – names a project registers with `GBX_INLINE_FN(...)`
+  (in an `INLINE` block or in a header) are coloured like built-in commands,
+  appear in the completion list with their arity and explain themselves on
+  hover with the file and line of their registration. The list is read when a
+  project opens and refreshed after every save.
 * **Live checking** – half a second after you stop typing, the *unsaved*
   buffer goes through `gbx --check --stdin`. Errors and unknown names appear as
   markers in the line and as a count in the status bar; no temporary files are
@@ -29,7 +36,8 @@ program's window one key press away.</sub>
   description and example, in German and English, searchable and filterable by
   category.
 * **Debugger** – breakpoints (also conditional), step in/over/out, locals,
-  globals, call stack and pause-while-running.
+  globals, call stack, pause-while-running and current values as a tooltip when
+  hovering a variable.
 * **Build** – a single-file Windows EXE or a self-contained HTML5 folder,
   chosen in the platform dropdown next to **Build**.
 * **Themes** – dark and light, plus Google Fonts download straight into the
@@ -69,6 +77,12 @@ their default as a path relative to the editor EXE (`build\gbx.exe`,
 compiler therefore lives at `compiler\bin\g++.exe` with nothing to install.
 Absolute paths work as well. The server passes the compiler to every
 interpreter start as `GBX_CXX`.
+
+A source checkout has no `compiler` folder, because the toolchain is far too
+large for the repository. **Download g++ …** fetches a MinGW-w64 build (WinLibs,
+about 260 MB) from GitHub, unpacks it into `compiler\` and reports the version –
+the same way **Download** fetches the Emscripten SDK. The folder is reusable:
+a second click finds `g++` already in place and does nothing.
 
 When opening or creating a project, folders can be browsed right in the dialog
 (up one level, drives, double click on a `.gbxproj` opens it). In the desktop
@@ -141,13 +155,25 @@ statement.
 * The **Debugger** panel shows the current function's locals, the globals, the
   call stack and every breakpoint of the project while paused. Clicking a
   breakpoint jumps to its line.
+* **Values on hover**: while paused, pointing at a variable in the editor shows
+  its current value in the tooltip. Arrays are listed with their indices, a
+  `TYPE` with all fields, and a `DIM … AS TYPE` array one element after the
+  other (three levels deep, long ones abbreviated, so the tooltip stays
+  readable). `player.pos` and `feld[i].name` work as well – the editor takes
+  the whole path up to the word under the pointer and has the interpreter
+  evaluate it. Names that do not exist at that point show nothing; hovering a
+  command never has side effects.
 * The paused line is marked in the editor; the file opens automatically, even
   when the breakpoint sits in an included file.
 
 The debugger attaches directly to the interpreter: gbx stops before every
 statement and reports position and values as JSON lines on standard output
 (prefix `@@gbxdbg `), while commands arrive line by line on standard input. No
-separate debug backend or GDB is involved.
+separate debug backend or GDB is involved. The value tooltip uses the command
+`eval <id> <expression>`: the interpreter answers with `{"t":"eval", …}` and
+repeats the id, so the editor can match reply and request. Only names that
+exist in the paused frame are evaluated – an unknown name is refused instead of
+quietly creating a variable.
 
 **Syntax errors** show up before the start: the debugger already runs while
 parsing, reports the error with file and line to the IDE and ends the session.

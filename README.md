@@ -61,6 +61,11 @@ cmake --build build
 Result: `build/gbx.exe` and `GBXStudio.exe` in the project folder. The small
 launcher opens the editor from `ide/` on double click (see [IDE](#ide)).
 
+The version lives in one place: CMake reads `version` from `ide/package.json`
+and passes it to `gbx.exe` (`--version`, the status bar of the editor) and to
+the file properties of `GBXStudio.exe`. Bumping it there is enough for the next
+build; only the lockfile keeps its own copy.
+
 TTF fonts are included through FreeType when it is found
 (MSYS2: `pacman -S mingw-w64-ucrt-x86_64-freetype`). Without FreeType
 everything still builds, just without TTF:
@@ -651,7 +656,10 @@ ENDFUNCTION
   (the package ships one), then `g++` in `PATH` and in the MSYS2 folders;
   `GBX_CXX` sets a different path, `GBX_INLINE_INCLUDE` a different folder for
   `gbx_inline.h`. The DLLs are linked with `-static` and therefore need no
-  compiler DLLs on the target machine.
+  compiler DLLs on the target machine. A source checkout has no `compiler`
+  folder – **⚙ Settings → General → Download g++ …** fetches a MinGW-w64 build
+  (about 260 MB) into `compiler\` and the IDE uses it from then on; the folder
+  is ignored by git.
 * **Cache**: the DLL is named after the hash of the generated C++ text and
   lives in `%TEMP%\gbx-inline`; unchanged blocks are not recompiled.
   Compilation errors appear with file and line from the `.gbx` file.
@@ -795,8 +803,8 @@ build/gbx.exe examples/02_breakout/breakout.gbxproj
 
 The `ide/` folder contains **GBX Studio**, an IDE for GameBasiX with syntax
 highlighting, autocompletion, a command reference, syntax checking (F7),
-direct launch with `F5`, a runtime debugger (F6) and export as a single EXE
-(the **Build** button with platform **Windows EXE**, Ctrl+E):
+direct launch with `F5`, a runtime debugger (F6) with values on hover and export
+as a single EXE (the **Build** button with platform **Windows EXE**, Ctrl+E):
 
 While you type, the IDE already checks the **unsaved** code: half a second
 after you stop, the editor content goes to the interpreter through `gbx --check
@@ -893,6 +901,17 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 ## Changelog
 
 **October 2026**
+
+* **Values on hover in the debugger**: while paused at a breakpoint, pointing at
+  a variable shows its current value in the editor. Arrays are listed by index,
+  a `TYPE` with all fields, arrays of `TYPE` element by element – including
+  `player.pos` and `feld[i].name`. Unknown names stay silent, so hovering a
+  command never evaluates anything.
+* **C++ in the editor**: the code inside `INLINE … ENDINLINE` is highlighted by
+  Monaco's C++ tokenizer, and `.h`/`.cpp` files open as C++ instead of plain
+  text. Commands a project registers with `GBX_INLINE_FN(...)` are coloured like
+  built-in ones, offered in completion and explained on hover with file and
+  line – the IDE collects them from the project on open and after every save.
 
 * **Networking**: `NET_LISTEN`, `NET_ACCEPT`, `NET_CONNECT`, `NET_SEND`,
   `NET_RECV$`, `NET_PENDING`, `NET_CONNECTED`, `NET_PEER$`, `NET_PORT`, `NET_IP$`,

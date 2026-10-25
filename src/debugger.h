@@ -42,6 +42,10 @@ struct Debugger {
     // wenn der Ausdruck nicht lesbar ist.
     std::function<bool(const std::string&, bool&, std::string&)> condition;
 
+    // Liefert den Wert eines Ausdrucks fuer den Tooltip im Editor als
+    // JSON-Ausschnitt {"type":…,"detail":…}.
+    std::function<std::string(const std::string&, bool&, std::string&)> inspect;
+
     // Vor jeder Anweisung aufrufen. Blockiert, solange angehalten wird.
     void atStatement(const SrcPos& pos, int depth, const std::string& func);
 
