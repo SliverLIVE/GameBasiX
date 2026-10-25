@@ -353,6 +353,7 @@ export const en = {
   "Herunterladen …": "Download …",
   "Player bauen": "Build player",
   "Der wasm-Player ist gebaut.": "The wasm player is built.",
+  "Der wasm-Player ist veraltet – er wird beim nächsten Export neu gebaut.": "The wasm player is outdated – it will be rebuilt on the next export.",
   "Der wasm-Player fehlt noch.": "The wasm player has not been built yet.",
   "emsdk wird heruntergeladen …": "Downloading emsdk …",
   "emsdk ist eingerichtet.": "emsdk is ready.",

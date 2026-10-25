@@ -30,13 +30,57 @@ export function sourceRoot(appRoot) {
   return '';
 }
 
+/** Rezept des fertigen Players: hochziehen, wenn sich die em++-Optionen ändern. */
+const PLAYER_BUILD = 'player-2';
+
+/** Datei mit dem Stempel des Players (Quell-Hash und Bauzeit). */
+function playerStampFile(appRoot) {
+  return path.join(playerDir(appRoot), 'gbx.js.build.json');
+}
+
+/**
+ * Kennung der Interpreter-Quellen. Der Player traegt sie als Stempel: nur so
+ * faellt auf, wenn gbx.js aus einer aelteren Version stammt als src/ - genau
+ * das laesst Exports sonst mit "Unbekannter Befehl" scheitern.
+ */
+function interpreterSourceHash(sourceDir) {
+  const hash = createHash('sha1');
+  hash.update(PLAYER_BUILD);
+  if (!sourceDir) return hash.digest('hex');
+  for (const file of interpreterFiles(sourceDir)) {
+    // Nur der relative Pfad: derselbe Quellstand in einem anderen Ordner
+    // (Repo und Paket) muss denselben Stempel ergeben.
+    hash.update(path.relative(sourceDir, file).replace(/\\/g, '/'));
+    try {
+      hash.update(fs.readFileSync(file));
+    } catch {
+      hash.update('?');
+    }
+  }
+  return hash.digest('hex');
+}
+
+/** Gespeicherter Stempel des Players, oder null. */
+function readPlayerStamp(appRoot) {
+  try {
+    return JSON.parse(fs.readFileSync(playerStampFile(appRoot), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
 /** Zustand von Player und Quellen. */
 export function inspectHtml5(appRoot) {
   const player = playerDir(appRoot);
   const sources = sourceRoot(appRoot);
+  const ready = pathExists(path.join(player, 'gbx.js'));
+  const stamp = readPlayerStamp(appRoot);
+  const sourceHash = sources ? interpreterSourceHash(sources) : '';
   return {
     playerDir: player,
-    playerReady: pathExists(path.join(player, 'gbx.js')),
+    playerReady: ready,
+    // Ohne Quellen laesst sich nichts vergleichen; dann bleibt der Player gueltig.
+    playerStale: Boolean(ready && sources && (!stamp || stamp.recipe !== PLAYER_BUILD || stamp.sourceHash !== sourceHash)),
     sourceDir: sources,
     sourcesReady: Boolean(sources)
   };
@@ -151,6 +195,24 @@ export async function buildPlayer({
   // Eine alte gbx.wasm aus früheren Builds würde nur verwirren.
   const staleWasm = out.replace(/\.js$/, '.wasm');
   if (pathExists(staleWasm)) await fsp.rm(staleWasm, { force: true });
+  // Nur der Player neben der Editor-EXE bekommt einen Stempel; die Player im
+  // Zwischenspeicher (INLINE) sind ueber ihren Hash-Namen schon eindeutig.
+  const playerOut = path.join(playerDir(appRoot), 'gbx.js');
+  if (path.resolve(out) === path.resolve(playerOut)) {
+    await fsp.writeFile(
+      playerStampFile(appRoot),
+      `${JSON.stringify(
+        {
+          recipe: PLAYER_BUILD,
+          sourceHash: interpreterSourceHash(info.sourceDir),
+          builtAt: new Date().toISOString()
+        },
+        null,
+        2
+      )}\n`,
+      'utf8'
+    );
+  }
   const seconds = Math.round((Date.now() - started) / 1000);
   onLog?.(`Fertig in ${seconds} s: ${out} (${(fs.statSync(out).size / 1e6).toFixed(1)} MB, wasm eingebettet)`);
   return { ok: true, files: [out], path: out };
@@ -468,9 +530,24 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
       await fsp.rm(tmp, { recursive: true, force: true });
     }
   } else {
-    if (!info.playerReady) {
-      onLog?.('Der wasm-Player fehlt noch (Einstellungen → HTML5: Player bauen).');
-      return { ok: false, error: 'Player fehlt' };
+    if (!info.playerReady || info.playerStale) {
+      if (info.sourcesReady && emsdk) {
+        onLog?.(
+          info.playerReady
+            ? 'Der wasm-Player ist aelter als die Quellen - er wird jetzt neu gebaut …'
+            : 'Der wasm-Player fehlt - er wird jetzt gebaut …'
+        );
+        const built = await buildPlayer({ appRoot, emsdk, onLog });
+        if (!built.ok) return { ok: false, error: built.error || 'Player-Build fehlgeschlagen' };
+      } else if (!info.playerReady) {
+        onLog?.('Der wasm-Player fehlt noch (Einstellungen → HTML5: Player bauen).');
+        return { ok: false, error: 'Player fehlt' };
+      } else {
+        onLog?.(
+          'Achtung: der wasm-Player stammt aus einer aelteren Version und kennt ' +
+            'womoeglich nicht alle Befehle. Einstellungen → HTML5: "Player bauen" erneuert ihn.'
+        );
+      }
     }
     await fsp.copyFile(path.join(info.playerDir, 'gbx.js'), playerOut);
     // Ältere Player liegen als zwei Dateien vor; die wasm-Datei wird dann

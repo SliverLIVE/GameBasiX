@@ -730,6 +730,10 @@ game-web/
   (`gbx-inline-player`), named after a hash of blocks, project headers,
   interpreter sources and emsdk. Without changes the next export is done in
   seconds; the last eight players are kept.
+* **Fresh player**: `html5/gbx.js.build.json` records a hash of `src/`,
+  `inline/` and `third_party/`. When the sources are newer than the player, the
+  export rebuilds `html5/gbx.js` first (with the SDK); without the SDK it warns
+  instead of silently shipping an outdated interpreter.
 * **What works**: graphics through SDL3 (WebGL), keyboard/mouse, audio after
   the first user gesture, `LIMIT_FPS` (through `emscripten_sleep`), `SCREEN_SAVE_BMP`
   into the virtual file system, TrueType fonts.

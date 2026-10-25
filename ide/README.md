@@ -194,6 +194,13 @@ minutes), **Check** shows the version and **Build player** compiles `src/` to
 `html5/gbx.js`. If `html5/gbx.js` already ships with the package, the IDE
 exports without the SDK.
 
+`html5/gbx.js.build.json` stores a hash of `src/`, `inline/` and
+`third_party/` next to the player. An export compares it: if the sources are
+newer than the player, the IDE rebuilds `html5/gbx.js` before copying it (needs
+the SDK; without it the export only warns). That way a package never ships a
+player that does not know the current commands – the symptom would be a blank
+canvas with *unknown command* in the console.
+
 Projects with `INLINE` blocks get their own player on export: the blocks are
 compiled with Emscripten and linked in (about 30 s, needs the SDK). The browser
 itself has neither a compiler nor `dlopen`.

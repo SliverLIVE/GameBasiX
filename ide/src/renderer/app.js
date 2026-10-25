@@ -2605,7 +2605,7 @@ async function settingsDialog() {
           <button class="btn ghost" id="set-emsdk-install">${t('Herunterladen …')}</button>
           <button class="btn ghost" id="set-emsdk-build">${t('Player bauen')}</button>
         </div>
-        <div class="hint" id="set-emsdk-progress">${html5.playerReady ? t('Der wasm-Player ist gebaut.') : t('Der wasm-Player fehlt noch.')}</div>
+        <div class="hint" id="set-emsdk-progress">${!html5.playerReady ? t('Der wasm-Player fehlt noch.') : html5.playerStale ? t('Der wasm-Player ist veraltet – er wird beim nächsten Export neu gebaut.') : t('Der wasm-Player ist gebaut.')}</div>
       </div>
       <div class="field">
         <label>${t('Google Fonts (API-Key)')}</label>
