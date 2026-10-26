@@ -383,7 +383,7 @@ try {
   await request('/api/file', {
     dir,
     file: 'main.gbx',
-    content: `x = 1\ny = 2\nFUNCTION add\n  total = x + y\n  RETURN total\nENDFUNCTION\nz = add()\nPRINT "z=" + z, 0, 0\nEND\n`
+    content: `x = 1\ny = 2\nFUNCTION add:\n  total = x + y\n  RETURN total\nENDFUNCTION\nz = add()\nPRINT "z=" + z, 0, 0\nEND\n`
   }, 'POST');
 
   const debug = await request('/api/debug/start', {

@@ -257,7 +257,7 @@ TYPE BOX
   w AS FLOAT
   h AS FLOAT
 
-  METHOD area
+  METHOD area:
     RETURN w * h
   ENDMETHOD
 
