@@ -1,0 +1,40 @@
+{
+  "name": "includes",
+  "appName": "INCLUDE test",
+  "title": "GameBasiX - INCLUDE test",
+  "entry": "main.gbx",
+  "width": 640,
+  "height": 360,
+  "fullscreen": false,
+  "resizable": false,
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "sources": [
+    "core/constants.gbx",
+    "core/mathx.gbx",
+    "core/round.gbx",
+    "core/text.gbx",
+    "deep/a.gbx",
+    "deep/b.gbx",
+    "deep/c.gbx",
+    "game/entities.gbx",
+    "game/level.gbx",
+    "game/rules.gbx",
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx",
+    "core/round.gbx",
+    "game/entities.gbx",
+    "deep/a.gbx",
+    "core/constants.gbx",
+    "core/mathx.gbx",
+    "core/text.gbx",
+    "deep/b.gbx",
+    "game/level.gbx"
+  ],
+  "createdAt": "2026-10-26T09:10:00.000Z"
+}

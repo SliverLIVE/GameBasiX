@@ -76,7 +76,7 @@ ASSERT DREIFACH(14) = 42, "INLINE aus dem Paket"
 
 GLOBAL zaehler
 zaehler = 0
-FUNCTION schritt
+FUNCTION schritt:
   INLINE
     zaehler = zaehler + 2;
   ENDINLINE

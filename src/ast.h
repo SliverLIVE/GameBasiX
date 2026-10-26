@@ -141,5 +141,6 @@ struct Program {
     std::unordered_map<std::string, std::vector<ExprP>> typeDefaults;
     std::string mainFile;
     std::string baseDir;
-    std::vector<std::string> includedFiles;  // gegen INCLUDE-Rekursion
+    std::vector<std::string> includedFiles;  // bereits eingebundene Dateien
+    std::vector<std::string> includeStack;   // gerade in Arbeit (Zyklen)
 };

@@ -289,7 +289,7 @@ def test_inspect():
             pass
 
 
-METHOD_SCRIPT = """' Felder einer METHOD im Tooltip\nTYPE BOX\n  w AS FLOAT\n  h AS FLOAT\n  METHOD area\n    flaeche = w * h\n    RETURN flaeche\n  ENDMETHOD\nENDTYPE\n\nLOCAL b AS BOX\nb.w = 4\nb.h = 2\nr = b.area()\nPRINT r, 0, 0\n"""
+METHOD_SCRIPT = """' Felder einer METHOD im Tooltip\nTYPE BOX\n  w AS FLOAT\n  h AS FLOAT\n  METHOD area:\n    flaeche = w * h\n    RETURN flaeche\n  ENDMETHOD\nENDTYPE\n\nLOCAL b AS BOX\nb.w = 4\nb.h = 2\nr = b.area()\nPRINT r, 0, 0\n"""
 
 
 def test_inspect_method():

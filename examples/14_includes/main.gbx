@@ -1,0 +1,113 @@
+' ============================================================
+' INCLUDE - several files in a row and files that include
+' further files (nested), with a diamond that is loaded once.
+' Run: gbx examples/14_includes/includes.gbxproj
+'
+' What gets loaded, in this order:
+'   main.gbx
+'     core/constants.gbx
+'     game/level.gbx    ->  game/entities.gbx  ->  ../core/constants.gbx
+'                                              ->  ../core/mathx.gbx
+'                                                       ->  round.gbx
+'     core/text.gbx     ->  round.gbx          (already loaded, skipped)
+'     game/rules.gbx    ->  ../core/text.gbx   (already loaded, skipped)
+'     deep/a.gbx        ->  deep/b.gbx         ->  deep/c.gbx
+'     core/round.gbx                           (already loaded, skipped)
+'
+' An INCLUDE is relative to the file that contains it, so
+' game/entities.gbx reaches the maths with "../core/mathx.gbx".
+' Constants, FUNCTIONs, SUBs and TYPEs are shared by all files:
+' the whole program is parsed before the first line runs.
+' ============================================================
+
+' The included files append their name while they are loaded, so the
+' report shows the real order.
+GLOBAL loadOrder$ = ""
+
+INCLUDE "core/constants.gbx"
+INCLUDE "game/level.gbx"
+INCLUDE "core/text.gbx"
+INCLUDE "game/rules.gbx"
+INCLUDE "deep/a.gbx"
+INCLUDE "core/round.gbx"
+
+' ---------------------------------------------------------- program
+STDOUT CHR$(10)
+STDOUT "GameBasiX - INCLUDE test" + CHR$(10)
+STDOUT "=========================" + CHR$(10)
+STDOUT "load order: " + loadOrder$ + CHR$(10)
+STDOUT CHR$(10)
+
+' ---- a chain of three files: a -> b -> c
+STDOUT "chain      aValue(2)        = " + FORMAT$(4, 0, aValue(2)) + CHR$(10)
+STDOUT "           bValue(2)        = " + FORMAT$(4, 0, bValue(2)) + CHR$(10)
+STDOUT "           cValue(2)        = " + FORMAT$(4, 0, cValue(2)) + CHR$(10)
+ASSERT aValue(2) = 15, "a.gbx -> b.gbx -> c.gbx"
+ASSERT bValue(2) = 5, "b.gbx calls c.gbx"
+ASSERT cValue(2) = 4, "the deepest file still answers"
+
+' ---- the deepest file is shared by two parents (diamond)
+STDOUT "roundTo    (12.7, 5)      = " + FORMAT$(6, 1, roundTo(12.7, 5)) + CHR$(10)
+STDOUT "clampTo    (120, 0, 100)  = " + FORMAT$(6, 0, clampTo(120, 0, 100)) + CHR$(10)
+ASSERT roundTo(12.7, 5) = 15, "round.gbx from the bottom of the tree"
+ASSERT clampTo(120, 0, 100) = 100, "clampTo from the bottom of the tree"
+ASSERT countIn(loadOrder$, "round") = 1, "round.gbx is loaded exactly once"
+ASSERT countIn(loadOrder$, "constants") = 1, "constants.gbx is loaded exactly once"
+
+' ---- maths that wraps round.gbx
+STDOUT "distance   (0,0 -> 3,4)   = " + FORMAT$(6, 2, distance(0, 0, 3, 4)) + CHR$(10)
+ASSERT distance(0, 0, 3, 4) = 5, "mathx.gbx includes round.gbx"
+ASSERT middleOf(2, 5) = 3.5, "middleOf rounds to half steps"
+ASSERT wrapAngle(370) = 10, "wrapAngle"
+
+' ---- text helpers from another folder
+STDOUT "padLeft$   7 / 3          = [" + padLeft$("7", 3) + "]" + CHR$(10)
+STDOUT "repeatText$ ab / 3        = " + repeatText$("ab", 3) + CHR$(10)
+STDOUT "shorten$   22 chars / 12  = " + shorten$("GameBasiX likes INCLUDE", 12) + CHR$(10)
+ASSERT padLeft$("7", 3) = "  7", "padLeft$"
+ASSERT repeatText$("ab", 3) = "ababab", "repeatText$"
+ASSERT shorten$("GameBasiX likes INCLUDE", 12) = "GameBasiX...", "shorten$"
+ASSERT countIn("a-b-a-b-a", "a") = 3, "countIn counts without overlapping"
+
+' ---- constants and a TYPE that live two folders deep
+STDOUT "constants  MAX_HP%        = " + FORMAT$(4, 0, MAX_HP%) + CHR$(10)
+STDOUT "           MOB_COUNT      = " + FORMAT$(4, 0, MOB_COUNT) + CHR$(10)
+ASSERT MAX_HP% = 20, "constant from core/constants.gbx"
+ASSERT MOB_COUNT = 3, "constant from core/constants.gbx"
+ASSERT WORLD_WIDTH = 640, "constant used inside a METHOD"
+ASSERT levelName$() = "Training Ground 7", "function from game/level.gbx"
+
+GLOBAL wave = spawnWave()
+STDOUT "spawnWave  mobs           = " + FORMAT$(4, 0, wave) + CHR$(10)
+ASSERT wave = MOB_COUNT, "spawnWave fills the TYPE array"
+
+STDOUT "mobs[1]    describe$      = " + mobs[1].describe$() + CHR$(10)
+ASSERT mobs[0].name$ = "Slime 1", "TYPE array from game/entities.gbx"
+ASSERT mobs[1].hurt(7) = 13, "METHOD hurt across files"
+ASSERT mobs[1].hp% = MAX_HP% - 7, "METHOD changes the field"
+ASSERT LEFT$(mobs[1].describe$(), 6) = "Slime ", "METHOD describe$"
+
+' ---- a METHOD that calls functions from three other files
+GLOBAL moved = mobs[2].moveTo(999, 999)
+STDOUT "mobs[2]    moveTo(999,999) = " + FORMAT$(7, 2, moved) + CHR$(10)
+STDOUT "           x / y           = " + FORMAT$(6, 0, mobs[2].x) + " / " + FORMAT$(6, 0, mobs[2].y) + CHR$(10)
+ASSERT ABS(moved - 501.2) < 0.05, "moveTo uses clampTo, distance and roundTo"
+ASSERT mobs[2].x = WORLD_WIDTH, "clamped to the right edge"
+ASSERT mobs[2].y = WORLD_HEIGHT, "clamped to the bottom edge"
+
+' ---- SUBs from game/rules.gbx, called with GOSUB from main.gbx
+ruleTitle$ = "first rule, written in main.gbx"
+GOSUB setTitle
+GOSUB addRule
+ruleTitle$ = "second rule, numbered by padLeft$"
+GOSUB setTitle
+GOSUB addRule
+STDOUT CHR$(10)
+STDOUT "rules" + CHR$(10)
+STDOUT ruleLog$
+ASSERT ruleCount = 2, "two GOSUB calls"
+ASSERT countIn(ruleLog$, "rule") = 2, "each rule is logged once"
+
+STDOUT CHR$(10)
+STDOUT "all include checks passed" + CHR$(10)
+END

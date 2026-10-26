@@ -25,7 +25,7 @@ GBXARRAY_ADD Names, "Berta"
 GBXARRAY_ADD Names, "Cem"
 GBXARRAY_ADD Names, "Dana"
 
-FUNCTION FillValues()
+FUNCTION FillValues:
   LOCAL i
   FOR i = 1 TO 8
     GBXARRAY_ADD Values, RND(10) + 1

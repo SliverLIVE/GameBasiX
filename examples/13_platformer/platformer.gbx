@@ -1,0 +1,497 @@
+' ============================================================
+' GameBasiX - platformer engine
+' Tile collision, player physics, enemies and pickups.
+'
+' This part draws nothing. main.gbx fills map$ and does the
+' rendering; tests/platformer_tests.gbx includes the same file
+' and checks the physics without a window.
+' ============================================================
+
+CONSTANT TILE = 48
+CONSTANT ROWS = 12
+CONSTANT PW = 30
+CONSTANT PH = 44
+
+CONSTANT GRAVITY = 2100.0
+CONSTANT MAX_FALL = 1000.0
+CONSTANT WALK_SPEED = 225.0
+CONSTANT RUN_SPEED = 340.0
+CONSTANT GROUND_ACCEL = 2200.0
+CONSTANT AIR_ACCEL = 1500.0
+CONSTANT FRICTION = 2800.0
+CONSTANT JUMP_SPEED = 760.0
+CONSTANT JUMP_CUT = 260.0
+CONSTANT COYOTE_TIME = 0.09
+CONSTANT JUMP_BUFFER_TIME = 0.12
+CONSTANT STOMP_BOUNCE = 430.0
+CONSTANT FOE_SPEED = 58.0
+CONSTANT START_LIVES = 3
+CONSTANT ROUND_TIME = 300.0
+CONSTANT MAX_FOES = 64
+CONSTANT MAX_COINS = 256
+
+CONSTANT SFX_NONE = 0
+CONSTANT SFX_JUMP = 1
+CONSTANT SFX_COIN = 2
+CONSTANT SFX_STOMP = 3
+CONSTANT SFX_HURT = 4
+CONSTANT SFX_BUMP = 5
+CONSTANT SFX_WIN = 6
+
+TYPE FOE
+  x AS FLOAT
+  y AS FLOAT
+  vx AS FLOAT
+  vy AS FLOAT
+  ax AS FLOAT
+  ay AS FLOAT
+  w AS FLOAT
+  h AS FLOAT
+  alive AS INTEGER
+  squash AS FLOAT
+ENDTYPE
+
+TYPE PICKUP
+  x AS FLOAT
+  y AS FLOAT
+  taken AS INTEGER
+ENDTYPE
+
+' Level: one string per row. '#' ground, 'b' brick, '*' question
+' block, 'u' used block, '=' platform, '[]{}' pipe, 'o' coin,
+' 'e' enemy, 'S' start, 'P' goal, 'T' sign, ' ' air.
+DIM map$[ROWS]
+DIM backup$[ROWS]
+DIM foes[MAX_FOES] AS FOE
+DIM coins[MAX_COINS] AS PICKUP
+
+mapW = 0
+foeCount = 0
+coinCount = 0
+
+' player
+px = 0.0
+py = 0.0
+pvx = 0.0
+pvy = 0.0
+paccX = 0.0
+paccY = 0.0
+plFace = 1
+plOnGround = FALSE
+plHurt = 0.0
+coyote = 0.0
+jumpBuffer = 0.0
+spawnX = 0.0
+spawnY = 0.0
+
+' round
+score = 0
+lives = START_LIVES
+collected = 0
+levelTime = ROUND_TIME
+levelDone = FALSE
+gameOver = FALSE
+goalX = 0.0
+goalY = 0.0
+hasGoal = FALSE
+sfx = SFX_NONE
+
+' scratch values for the shared body mover
+bx = 0.0
+by = 0.0
+bw = 0.0
+bh = 0.0
+accX = 0.0
+accY = 0.0
+hitX = FALSE
+landed = FALSE
+headHit = FALSE
+
+
+' ---------------------------------------------------------- level
+FUNCTION TILE_AT: c, r
+  IF r < 0 OR r >= ROWS THEN RETURN " "
+  IF c < 0 OR c >= mapW THEN RETURN " "
+  RETURN MID$(map$[r], c, 1)
+ENDFUNCTION
+
+FUNCTION REPLACE_TILE: row$, c, ch$
+  IF c < 0 OR c >= LEN(row$) THEN RETURN row$
+  RETURN LEFT$(row$, c) + ch$ + MID$(row$, c + 1)
+ENDFUNCTION
+
+FUNCTION SOLID: c, r
+  t$ = TILE_AT(c, r)
+  IF t$ = "#" OR t$ = "b" OR t$ = "*" OR t$ = "u" THEN RETURN TRUE
+  IF t$ = "=" OR t$ = "[" OR t$ = "]" OR t$ = "{" OR t$ = "}" THEN RETURN TRUE
+  RETURN FALSE
+ENDFUNCTION
+
+' rows may be shorter than the level: pad them with air
+FUNCTION LEVEL_BEGIN:
+  mapW = 0
+  FOR r = 0 TO ROWS - 1
+    IF LEN(map$[r]) > mapW THEN mapW = LEN(map$[r])
+  NEXT
+  FOR r = 0 TO ROWS - 1
+    WHILE LEN(map$[r]) < mapW
+      map$[r] = map$[r] + " "
+    WEND
+  NEXT
+
+  foeCount = 0
+  coinCount = 0
+  hasGoal = FALSE
+  FOR r = 0 TO ROWS - 1
+    FOR c = 0 TO mapW - 1
+      t$ = MID$(map$[r], c, 1)
+      IF t$ = "S"
+        spawnX = c * TILE + (TILE - PW) / 2
+        spawnY = r * TILE + TILE - PH
+        map$[r] = REPLACE_TILE(map$[r], c, " ")
+      ELSEIF t$ = "e"
+        foes[foeCount].x = c * TILE + (TILE - 34) / 2
+        foes[foeCount].y = r * TILE + TILE - 32
+        foes[foeCount].vx = 0 - FOE_SPEED
+        foes[foeCount].vy = 0.0
+        foes[foeCount].ax = 0.0
+        foes[foeCount].ay = 0.0
+        foes[foeCount].w = 34.0
+        foes[foeCount].h = 32.0
+        foes[foeCount].alive = 1
+        foes[foeCount].squash = 0.0
+        foeCount = foeCount + 1
+        map$[r] = REPLACE_TILE(map$[r], c, " ")
+      ELSEIF t$ = "o"
+        coins[coinCount].x = c * TILE + TILE / 2
+        coins[coinCount].y = r * TILE + TILE / 2
+        coins[coinCount].taken = 0
+        coinCount = coinCount + 1
+        map$[r] = REPLACE_TILE(map$[r], c, " ")
+      ELSEIF t$ = "P"
+        goalX = c * TILE + TILE / 2
+        goalY = r * TILE + TILE
+        hasGoal = TRUE
+        map$[r] = REPLACE_TILE(map$[r], c, " ")
+      ENDIF
+    NEXT
+  NEXT
+ENDFUNCTION
+
+' called by main once the level rows are in map$
+FUNCTION LEVEL_LOAD:
+  FOR r = 0 TO ROWS - 1
+    backup$[r] = map$[r]
+  NEXT
+  LEVEL_BEGIN()
+ENDFUNCTION
+
+' restores bricks, coins and enemies (R or a new round)
+FUNCTION LEVEL_RESTART:
+  FOR r = 0 TO ROWS - 1
+    map$[r] = backup$[r]
+  NEXT
+  LEVEL_BEGIN()
+  PLAYER_RESET()
+ENDFUNCTION
+
+
+' ---------------------------------------------------------- bodies
+FUNCTION BOX_FREE: x, y, w, h
+  c0 = FLOOR(x / TILE)
+  c1 = FLOOR((x + w - 0.001) / TILE)
+  r0 = FLOOR(y / TILE)
+  r1 = FLOOR((y + h - 0.001) / TILE)
+  FOR c = c0 TO c1
+    FOR r = r0 TO r1
+      IF SOLID(c, r) THEN RETURN FALSE
+    NEXT
+  NEXT
+  RETURN TRUE
+ENDFUNCTION
+
+FUNCTION BODY_SET: x, y, w, h
+  bx = x
+  by = y
+  bw = w
+  bh = h
+  hitX = FALSE
+  landed = FALSE
+  headHit = FALSE
+ENDFUNCTION
+
+' moves one pixel at a time, so a blocked body stops flush on the tile
+FUNCTION BODY_MOVE_X: dx
+  accX = accX + dx
+  steps = INTEGER(ABS(accX))
+  IF steps < 1 THEN RETURN 0
+  dir = SGN(accX)
+  accX = accX - steps * dir
+  FOR i = 1 TO steps
+    IF BOX_FREE(bx + dir, by, bw, bh)
+      bx = bx + dir
+    ELSE
+      hitX = TRUE
+      EXIT
+    ENDIF
+  NEXT
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION BODY_MOVE_Y: dy
+  accY = accY + dy
+  steps = INTEGER(ABS(accY))
+  IF steps < 1 THEN RETURN 0
+  dir = SGN(accY)
+  accY = accY - steps * dir
+  FOR i = 1 TO steps
+    IF BOX_FREE(bx, by + dir, bw, bh)
+      by = by + dir
+    ELSE
+      IF dir > 0 THEN
+        landed = TRUE
+      ELSE
+        headHit = TRUE
+      ENDIF
+      EXIT
+    ENDIF
+  NEXT
+  RETURN 0
+ENDFUNCTION
+
+
+' ---------------------------------------------------------- player
+FUNCTION PLAYER_RESET:
+  px = spawnX
+  py = spawnY
+  pvx = 0.0
+  pvy = 0.0
+  paccX = 0.0
+  paccY = 0.0
+  plFace = 1
+  plOnGround = FALSE
+  plHurt = 0.0
+  coyote = 0.0
+  jumpBuffer = 0.0
+ENDFUNCTION
+
+FUNCTION NEW_GAME:
+  lives = START_LIVES
+  score = 0
+  collected = 0
+  levelTime = ROUND_TIME
+  levelDone = FALSE
+  gameOver = FALSE
+  LEVEL_RESTART()
+ENDFUNCTION
+
+FUNCTION PLAYER_RESPAWN:
+  py = spawnY
+  px = spawnX
+  pvx = 0.0
+  pvy = 0.0
+  paccX = 0.0
+  paccY = 0.0
+  plHurt = 1.6
+  plOnGround = FALSE
+ENDFUNCTION
+
+FUNCTION HEAD_BUMP:
+  r = FLOOR((py - 1) / TILE)
+  c0 = FLOOR((px + 3) / TILE)
+  c1 = FLOOR((px + PW - 3) / TILE)
+  FOR c = c0 TO c1
+    t$ = TILE_AT(c, r)
+    IF t$ = "*"
+      map$[r] = REPLACE_TILE(map$[r], c, "u")
+      collected = collected + 1
+      score = score + 200
+      sfx = SFX_COIN
+      RETURN 0
+    ELSEIF t$ = "b"
+      map$[r] = REPLACE_TILE(map$[r], c, " ")
+      score = score + 50
+      sfx = SFX_BUMP
+      RETURN 0
+    ENDIF
+  NEXT
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION PLAYER_MOVE: dx, dy
+  BODY_SET(px, py, PW, PH)
+  accX = paccX
+  accY = paccY
+  BODY_MOVE_X(dx)
+  BODY_MOVE_Y(dy)
+  paccX = accX
+  paccY = accY
+  px = bx
+  py = by
+  plOnGround = landed
+  ' standing still: gravity is under one pixel, so probe below the feet
+  IF plOnGround = FALSE
+    IF BOX_FREE(px, py + 1, PW, PH) = FALSE
+      plOnGround = TRUE
+      pvy = 0.0
+      accY = 0.0
+      paccY = 0.0
+    ENDIF
+  ENDIF
+  IF hitX THEN pvx = 0.0
+  IF headHit THEN
+    pvy = 0.0
+    HEAD_BUMP()
+  ENDIF
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION PLAYER_UPDATE: dt, goLeft, goRight, jumpHeld, jumpPressed, run
+  maxSpeed = WALK_SPEED
+  IF run THEN maxSpeed = RUN_SPEED
+  accel = GROUND_ACCEL
+  IF plOnGround = FALSE THEN accel = AIR_ACCEL
+
+  IF goLeft AND goRight = 0
+    IF pvx > 0 THEN accel = accel * 2
+    pvx = pvx - accel * dt
+    IF pvx < 0 - maxSpeed THEN pvx = 0 - maxSpeed
+    plFace = -1
+  ELSEIF goRight AND goLeft = 0
+    IF pvx < 0 THEN accel = accel * 2
+    pvx = pvx + accel * dt
+    IF pvx > maxSpeed THEN pvx = maxSpeed
+    plFace = 1
+  ELSE
+    IF pvx > 0
+      pvx = pvx - FRICTION * dt
+      IF pvx < 0 THEN pvx = 0
+    ELSEIF pvx < 0
+      pvx = pvx + FRICTION * dt
+      IF pvx > 0 THEN pvx = 0
+    ENDIF
+  ENDIF
+
+  IF jumpPressed THEN jumpBuffer = JUMP_BUFFER_TIME
+  IF jumpBuffer > 0 THEN jumpBuffer = jumpBuffer - dt
+  IF plOnGround THEN
+    coyote = COYOTE_TIME
+  ELSE
+    coyote = coyote - dt
+  ENDIF
+  IF jumpBuffer > 0 AND coyote > 0
+    pvy = 0 - JUMP_SPEED
+    jumpBuffer = 0
+    coyote = 0
+    plOnGround = FALSE
+    sfx = SFX_JUMP
+  ENDIF
+  IF jumpHeld = 0 AND pvy < 0 - JUMP_CUT THEN pvy = 0 - JUMP_CUT
+
+  pvy = pvy + GRAVITY * dt
+  IF pvy > MAX_FALL THEN pvy = MAX_FALL
+
+  PLAYER_MOVE(pvx * dt, pvy * dt)
+  IF plOnGround THEN pvy = 0.0
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION PLAYER_DIE:
+  lives = lives - 1
+  IF lives < 0 THEN lives = 0
+  sfx = SFX_HURT
+  IF lives <= 0
+    gameOver = TRUE
+  ELSE
+    PLAYER_RESPAWN()
+  ENDIF
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION PLAYER_HURT:
+  IF plHurt > 0 THEN RETURN 0
+  PLAYER_DIE()
+  RETURN 0
+ENDFUNCTION
+
+
+' ---------------------------------------------------------- world
+FUNCTION FOES_UPDATE: dt
+  FOR i = 0 TO foeCount - 1
+    IF foes[i].alive
+      IF foes[i].squash > 0
+        foes[i].squash = foes[i].squash - dt
+        IF foes[i].squash <= 0 THEN foes[i].alive = 0
+      ELSE
+        foes[i].vy = foes[i].vy + GRAVITY * dt
+        IF foes[i].vy > MAX_FALL THEN foes[i].vy = MAX_FALL
+        BODY_SET(foes[i].x, foes[i].y, foes[i].w, foes[i].h)
+        accX = foes[i].ax
+        accY = foes[i].ay
+        BODY_MOVE_X(foes[i].vx * dt)
+        BODY_MOVE_Y(foes[i].vy * dt)
+        foes[i].ax = accX
+        foes[i].ay = accY
+        foes[i].x = bx
+        foes[i].y = by
+        IF hitX THEN foes[i].vx = 0 - foes[i].vx
+        IF landed THEN
+          foes[i].vy = 0.0
+          ' turn around instead of walking off the ledge
+          probeX = foes[i].x - 2
+          IF foes[i].vx > 0 THEN probeX = foes[i].x + foes[i].w + 2
+          probeR = FLOOR((foes[i].y + foes[i].h + 4) / TILE)
+          IF SOLID(FLOOR(probeX / TILE), probeR) = 0 THEN foes[i].vx = 0 - foes[i].vx
+        ENDIF
+        IF foes[i].y > ROWS * TILE + 80 THEN foes[i].alive = 0
+      ENDIF
+    ENDIF
+  NEXT
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION PLAYER_HITS: dt
+  IF plHurt > 0 THEN plHurt = plHurt - dt
+
+  FOR i = 0 TO coinCount - 1
+    IF coins[i].taken = 0
+      IF RECT_COLLIDE(px - 2, py - 2, PW + 4, PH + 4, coins[i].x - 12, coins[i].y - 12, 24, 24)
+        coins[i].taken = 1
+        collected = collected + 1
+        score = score + 100
+        sfx = SFX_COIN
+      ENDIF
+    ENDIF
+  NEXT
+
+  FOR i = 0 TO foeCount - 1
+    IF foes[i].alive AND foes[i].squash <= 0
+      IF RECT_COLLIDE(px, py, PW, PH, foes[i].x, foes[i].y, foes[i].w, foes[i].h)
+        IF pvy > 40 AND py + PH < foes[i].y + 20
+          foes[i].squash = 0.35
+          pvy = 0 - STOMP_BOUNCE
+          score = score + 100
+          sfx = SFX_STOMP
+        ELSE
+          PLAYER_HURT()
+        ENDIF
+      ENDIF
+    ENDIF
+  NEXT
+
+  IF hasGoal AND levelDone = FALSE
+    IF px + PW > goalX
+      levelDone = TRUE
+      score = score + 500 + INTEGER(levelTime) * 5
+      sfx = SFX_WIN
+    ENDIF
+  ENDIF
+
+  IF py > ROWS * TILE + 100 THEN PLAYER_DIE()
+  RETURN 0
+ENDFUNCTION
+
+' walking speed in px/s, used for the run animation
+FUNCTION PLAYER_SPEED:
+  RETURN ABS(pvx)
+ENDFUNCTION

@@ -312,8 +312,8 @@
     "en": "Formats a number with a fixed total width and a fixed number of decimals. A width of 0 leaves the width open."
   },
   "FUNCTION": {
-    "de": "Definiert eine Funktion mit Rückgabewert: FUNCTION name: parameter … ENDFUNCTION, Rückgabe mit RETURN.",
-    "en": "Defines a function with a return value: FUNCTION name: parameter … ENDFUNCTION, return with RETURN."
+    "de": "Definiert eine Funktion mit Rückgabewert: FUNCTION name: parameter … ENDFUNCTION, Rückgabe mit RETURN. Der Doppelpunkt nach dem Namen ist Pflicht, auch ohne Parameter: FUNCTION name:",
+    "en": "Defines a function with a return value: FUNCTION name: parameter … ENDFUNCTION, return with RETURN. The colon after the name is mandatory, even without parameters: FUNCTION name:"
   },
   "FONT_NEW": {
     "de": "Vergibt die nächste freie Font-ID.",
@@ -540,8 +540,8 @@
     "en": "Returns the larger of the two values; two strings can be compared the same way."
   },
   "METHOD": {
-    "de": "Definiert eine Methode eines TYPEs. Aufgerufen wird sie als objekt.name(...); ihre Felder sind im Rumpf wie Variablen sichtbar.",
-    "en": "Defines a method of a TYPE. It is called as object.name(...); its fields are visible in the body like variables."
+    "de": "Definiert eine Methode eines TYPEs: METHOD name: parameter … ENDMETHOD. Der Doppelpunkt nach dem Namen ist Pflicht. Aufgerufen wird sie als objekt.name(...); ihre Felder sind im Rumpf wie Variablen sichtbar.",
+    "en": "Defines a method of a TYPE: METHOD name: parameter … ENDMETHOD. The colon after the name is mandatory. It is called as object.name(...); its fields are visible in the body like variables."
   },
   "MID$": {
     "de": "Schneidet einen Teil des Textes ab der Startstelle heraus, ohne Länge bis zum Ende. Der Start beginnt bei 0.",
@@ -984,8 +984,8 @@
     "en": "Draws a sprite stretched to the given width and height."
   },
   "SUB": {
-    "de": "Definiert eine parameterlose Prozedur, die mit GOSUB aufgerufen wird.",
-    "en": "Defines a parameterless procedure called with GOSUB."
+    "de": "Definiert eine parameterlose Prozedur, die mit GOSUB aufgerufen wird: SUB name: … ENDSUB. Der Doppelpunkt nach dem Namen ist Pflicht.",
+    "en": "Defines a parameterless procedure called with GOSUB: SUB name: … ENDSUB. The colon after the name is mandatory."
   },
   "SWAP": {
     "de": "Tauscht die Werte zweier Variablen, Felder oder Array-Elemente.",

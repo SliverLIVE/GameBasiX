@@ -1,0 +1,42 @@
+' Level 2 - a TYPE with METHODs. It pulls the maths from a folder above
+' itself ("../core/**") and the constants it needs, which the main file
+' already loaded - so the include below is a no-op.
+INCLUDE "../core/constants.gbx"
+INCLUDE "../core/mathx.gbx"
+
+TYPE MOB
+  name$
+  hp%
+  x
+  y
+  alive%
+
+  METHOD describe$:
+    RETURN name$ + " " + FORMAT$(2, 0, hp%) + "/" + FORMAT$(2, 0, MAX_HP%) + " hp"
+  ENDMETHOD
+
+  METHOD hurt: amount
+    hp% = hp% - amount
+    IF hp% <= 0
+      hp% = 0
+      alive% = 0
+    ENDIF
+    RETURN hp%
+  ENDMETHOD
+
+  ' Uses clampTo, roundTo and distance from core/mathx.gbx.
+  METHOD moveTo: tx, ty
+    nx = clampTo(tx, 0, WORLD_WIDTH)
+    ny = clampTo(ty, 0, WORLD_HEIGHT)
+    moved = roundTo(distance(x, y, nx, ny), 0.01)
+    x = nx
+    y = ny
+    RETURN moved
+  ENDMETHOD
+ENDTYPE
+
+' The array lives here and is filled by spawnWave in game/level.gbx.
+DIM mobs[MOB_COUNT] AS MOB
+
+loadOrder$ = loadOrder$ + "entities "
+STDOUT "  loaded  game/entities.gbx" + CHR$(10)

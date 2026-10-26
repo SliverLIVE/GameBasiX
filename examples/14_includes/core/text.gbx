@@ -1,0 +1,48 @@
+' Level 3 - includes round.gbx as well. game/entities.gbx already
+' pulled it in through mathx.gbx, so this line is a no-op and the
+' report shows "round" only once.
+
+INCLUDE "round.gbx"
+
+FUNCTION padLeft$: text$, width
+  result$ = text$
+  WHILE LEN(result$) < width
+    result$ = " " + result$
+  WEND
+  RETURN result$
+ENDFUNCTION
+
+FUNCTION repeatText$: text$, count
+  out$ = ""
+  FOR i = 1 TO count
+    out$ = out$ + text$
+  NEXT
+  RETURN out$
+ENDFUNCTION
+
+FUNCTION shorten$: text$, maxLen
+  IF LEN(text$) <= maxLen THEN RETURN text$
+  IF maxLen <= 3 THEN RETURN LEFT$(text$, maxLen)
+  RETURN LEFT$(text$, maxLen - 3) + "..."
+ENDFUNCTION
+
+' Counts non-overlapping hits - used by the report to prove that a
+' file was loaded exactly once.
+FUNCTION countIn: hay$, needle$
+  total = 0
+  pos = 0
+  n = LEN(needle$)
+  IF n = 0 THEN RETURN 0
+  WHILE pos <= LEN(hay$) - n
+    IF MID$(hay$, pos, n) = needle$
+      total = total + 1
+      pos = pos + n
+    ELSE
+      pos = pos + 1
+    ENDIF
+  WEND
+  RETURN total
+ENDFUNCTION
+
+loadOrder$ = loadOrder$ + "text "
+STDOUT "  loaded  core/text.gbx" + CHR$(10)

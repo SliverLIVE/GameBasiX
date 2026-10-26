@@ -1,0 +1,31 @@
+{
+  "name": "platformer",
+  "appName": "Pip and the Golden Coins",
+  "title": "GameBasiX - Pip and the Golden Coins",
+  "entry": "main.gbx",
+  "width": 960,
+  "height": 576,
+  "fullscreen": false,
+  "resizable": false,
+  "frameRate": 60,
+  "vsync": true,
+  "audio": true,
+  "volume": 1,
+  "assetDir": "assets",
+  "sources": [
+    "main.gbx",
+    "platformer.gbx"
+  ],
+  "openFiles": [
+    "main.gbx",
+    "platformer.gbx",
+    "assets/atlas.png",
+    "assets/bump.wav",
+    "assets/coin.wav",
+    "assets/hurt.wav",
+    "assets/jump.wav",
+    "assets/stomp.wav",
+    "assets/win.wav"
+  ],
+  "createdAt": "2026-10-26T00:45:56.327Z"
+}

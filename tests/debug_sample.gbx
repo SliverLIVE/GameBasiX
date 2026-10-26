@@ -2,7 +2,7 @@
 x = 1
 y = 2
 
-FUNCTION add
+FUNCTION add:
   total = x + y
   RETURN total
 ENDFUNCTION

@@ -181,6 +181,19 @@ set_tests_properties(net PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
 
+# Plattformspiel: Schwerkraft, Tile-Kollision, Gegner, Muenzen, Ziel
+add_test(NAME platformer
+         COMMAND gbx --headless --tests tests/platformer_tests.gbx)
+set_tests_properties(platformer PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+
+# INCLUDE: Dateien in einer Reihe, verschachtelt und als Raute (Beispiel)
+add_test(NAME includes
+         COMMAND gbx --headless examples/14_includes/main.gbx)
+set_tests_properties(includes PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # Pixelpruefung der Zeichenbefehle (offscreen ueber den SDL-dummy-Treiber)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)

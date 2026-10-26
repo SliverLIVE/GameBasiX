@@ -38,7 +38,7 @@ TYPE BOX
 
   ' Center and rotation come straight from the physics world. The four
   ' corners are rotated in C++ and drawn as a filled polygon.
-  METHOD draw
+  METHOD draw:
     INLINE
       const int index = static_cast<int>(id);
       const double px = gbxbox2d::x(index);

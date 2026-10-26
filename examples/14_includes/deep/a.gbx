@@ -1,0 +1,11 @@
+' Level 1 - includes the level 2 file. main.gbx includes this one, so the
+' chain a -> b -> c is three files deep.
+
+INCLUDE "b.gbx"
+
+FUNCTION aValue: n
+  RETURN bValue(n) * 3
+ENDFUNCTION
+
+loadOrder$ = loadOrder$ + "deep/a "
+STDOUT "  loaded  deep/a.gbx" + CHR$(10)

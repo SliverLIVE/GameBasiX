@@ -69,7 +69,7 @@ GLOBAL action$ = "Ready - drag a window or click a widget."
 GLOBAL currentTheme = 0
 
 ' ---------------------------------------------------- helpers
-FUNCTION themeName$
+FUNCTION themeName$:
   SELECT currentTheme
     CASE 1
       RETURN "Light"
@@ -81,7 +81,7 @@ FUNCTION themeName$
   RETURN "Dark"
 ENDFUNCTION
 
-FUNCTION applyTheme
+FUNCTION applyTheme:
   app.theme("dark")
   IF currentTheme = 1 THEN app.theme("light")
   IF currentTheme = 2 THEN
@@ -124,7 +124,7 @@ FUNCTION loadPreset: i
   app.setText(lInfo, "Selected: " + app.text$(lPresets))
 ENDFUNCTION
 
-FUNCTION drawBackground
+FUNCTION drawBackground:
   LOCAL sw = SCREEN_WIDTH()
   LOCAL sh = SCREEN_HEIGHT()
   LOCAL g = 0

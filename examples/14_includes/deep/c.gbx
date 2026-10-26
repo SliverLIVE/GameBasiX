@@ -1,0 +1,8 @@
+' Level 3 - the deepest file of the deep/ chain, no INCLUDE of its own.
+
+FUNCTION cValue: n
+  RETURN n * 2
+ENDFUNCTION
+
+loadOrder$ = loadOrder$ + "deep/c "
+STDOUT "  loaded  deep/c.gbx" + CHR$(10)

@@ -27,7 +27,7 @@ ballR = 9.0
 velX = 3.6
 velY = -4.8
 
-FUNCTION newRound
+FUNCTION newRound:
   FOR cx = 0 TO COLS - 1
     FOR cy = 0 TO ROWS - 1
       bricks[cx][cy] = 1
@@ -35,7 +35,7 @@ FUNCTION newRound
   NEXT
 ENDFUNCTION
 
-FUNCTION resetBall
+FUNCTION resetBall:
   ballX = 450
   ballY = 520
   velX = 3.6
@@ -43,7 +43,7 @@ FUNCTION resetBall
   paddleX = 450 - PADDLEW / 2
 ENDFUNCTION
 
-FUNCTION drawHud
+FUNCTION drawHud:
   TEXT_COLOR RGB(200, 220, 255)
   PRINT "Score: " + score, 30, 20
   PRINT "Lives: " + lives, 780, 20

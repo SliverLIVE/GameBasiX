@@ -1,0 +1,10 @@
+' Level 2 - includes the level 3 file and calls it.
+
+INCLUDE "c.gbx"
+
+FUNCTION bValue: n
+  RETURN cValue(n) + 1
+ENDFUNCTION
+
+loadOrder$ = loadOrder$ + "deep/b "
+STDOUT "  loaded  deep/b.gbx" + CHR$(10)

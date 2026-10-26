@@ -43,10 +43,12 @@ Ready to try it? `cmake -S . -B build -G Ninja && cmake --build build`, then
 |:--:|:--:|
 | <img src="docs/screenshots/ui.png" width="430" alt="UI demo with windows and widgets"> | <img src="docs/screenshots/box2d.png" width="430" alt="Box2D-Lite physics demo"> |
 | **UI toolkit** – windows, widgets and themes in pure BASIC (`examples/09_ui`) | **Physics** – Box2D-Lite through `INLINE` (`examples/08_box2d`) |
-| <img src="docs/screenshots/breakout.png" width="430" alt="Breakout game"> | <img src="docs/screenshots/sparks.png" width="430" alt="Sparks demo"> |
-| **Breakout** – a complete game in `examples/02_breakout` | **900 sparks** – C++ steps moving a `TYPE` array (`examples/06_sparks`) |
-| <img src="docs/screenshots/net.png" width="430" alt="LAN chat with a shared dot"> | <img src="docs/screenshots/steam.png" width="430" alt="Steam P2P chat"> |
-| **LAN link** – TCP chat, UDP cursor (`examples/11_net`) | **Steam link** – friends and P2P packets (`examples/12_steam`) |
+| <img src="docs/screenshots/platformer.png" width="430" alt="Platformer with coins, pipes and enemies"> | <img src="docs/screenshots/breakout.png" width="430" alt="Breakout game"> |
+| **Pip and the Golden Coins** – a platformer with tiles, enemies and sound (`examples/13_platformer`) | **Breakout** – a complete game in `examples/02_breakout` |
+| <img src="docs/screenshots/sparks.png" width="430" alt="Sparks demo"> | <img src="docs/screenshots/net.png" width="430" alt="LAN chat with a shared dot"> |
+| **900 sparks** – C++ steps moving a `TYPE` array (`examples/06_sparks`) | **LAN link** – TCP chat, UDP cursor (`examples/11_net`) |
+| <img src="docs/screenshots/steam.png" width="430" alt="Steam P2P chat"> | <img src="docs/screenshots/ide.png" width="430" alt="GBX Studio"> |
+| **Steam link** – friends and P2P packets (`examples/12_steam`) | **GBX Studio** – editor, debugger, checks and export (`ide/`) |
 
 ## Building
 
@@ -168,7 +170,16 @@ Asset paths are searched in this order: project directory,
 additionally looked up in `%WINDIR%\Fonts` (so `"arial.ttf"` works directly).
 
 A project can consist of several files: `INCLUDE "lib.gbx"` pulls in more
-source (path relative to the including file, duplicate includes are ignored).
+source at that place. The path is relative to the file that contains the
+`INCLUDE`, so a file in a subfolder reaches its neighbours with
+`"../core/lib.gbx"`. Included files may include further files to any depth, and
+a file that is already part of the program is skipped - a diamond loads once.
+Top-level code of an included file runs in include order; constants, `FUNCTION`s,
+`SUB`s and `TYPE`s are shared by all files. A file that includes one that is
+still being parsed is a cycle: the error names the chain
+(`Cyclic INCLUDE: main.gbx -> a.gbx -> main.gbx`) instead of piling up duplicate
+definitions. See
+[`examples/14_includes`](#examples) for a console test of that.
 
 ## The language at a glance
 
@@ -222,7 +233,9 @@ use `$`; `#` forces `FLOAT`. On assignment the suffix converts the value
 **Functions.** `FUNCTION name: p1, p2 = 0 … ENDFUNCTION` with `RETURN`, `EXIT`
 for an early return, `STATIC` for persistent locals, `BYREF` for reference
 parameters (also to array elements and TYPE fields). `SUB name: … ENDSUB` is a
-parameterless procedure for `GOSUB`.
+parameterless procedure for `GOSUB`. The colon after the name is part of the
+syntax and required, also without parameters: `FUNCTION name:` and `SUB name:`.
+The same holds for `METHOD name:` inside a `TYPE`.
 
 **Arrays.** `DIM a[10]`, up to 4 dimensions, `DIM a[10] AS TYPE`, `REDIM`
 (keeps data; for TYPE arrays `REDIM a[10] AS TYPE`), `DIMPUSH`, `DIMDEL`,
@@ -398,6 +411,9 @@ Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
   inclusive. `SIN/COS/TAN` and `ATAN` work in degrees.
 * **Arrays**: `DIM a[n]` gives the indices `0…n-1`, negative indices count from
   the end, at most 4 dimensions, `DIM a[0]` frees the memory.
+* **Function headers**: `FUNCTION`, `SUB` and `METHOD` always take a colon
+  after the name, also without parameters: `FUNCTION draw:`, `SUB reset:`,
+  `METHOD clear:`. A missing colon is a syntax error with the line number.
 * **GOTO/GOSUB**: `GOTO` only jumps inside the current scope (main program,
   `SUB` or `FUNCTION`) and only to labels on its top level. `GOSUB` calls
   `SUB`s; there are no return labels.
@@ -793,6 +809,8 @@ platform- or security-related; the 2D core is complete.
 | `examples/10_fileio` | a save slot in binary, a text log, backup, rotate and delete: every file command in one small demo |
 | `examples/11_net` | two windows on one board: host or join, chat over TCP and the dot position over UDP |
 | `examples/12_steam` | Steam P2P chat with friend list, relay state, and a setup panel when `steam_api` is missing |
+| `examples/13_platformer` | **Pip and the Golden Coins**: a complete side-scrolling platformer – arrows to move, space to jump, shift to run; tile collision, a following camera, parallax background, enemies, coins, pipes, goal flag, HUD and sound effects. The physics live in `platformer.gbx`, the level is an editable block of ASCII rows, and `tests/platformer_tests.gbx` covers the engine |
+| `examples/14_includes` | `INCLUDE` in every shape: several files in a row, a chain four files deep, a diamond that is loaded once, paths into other folders (`../`), and a console report that proves the order |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
@@ -852,6 +870,7 @@ python tools/check_debug.py                          # debugger protocol
 python tools/check_export.py                         # game as a single EXE
 python tools/check_steam.py                          # STEAM* against a mock library
 ./build/gbx.exe --tests tests/inline_tests.gbx        # 84 INLINE checks
+./build/gbx.exe --tests tests/platformer_tests.gbx   # platformer physics
 ```
 
 `tests/render_check.gbx` draws a rectangle, line, circle, border, sprite and
@@ -869,6 +888,12 @@ file. A new command without a test makes the CTest run `commands` fail;
 `tests/net_tests.gbx` runs the whole socket path inside one process over
 `127.0.0.1`: a server accepts its own connection, data flows both ways, a
 closed port fails cleanly, and a UDP socket sends a packet to itself.
+
+`tests/platformer_tests.gbx` includes `examples/13_platformer/platformer.gbx`
+unchanged and builds small maps for it: gravity and landing, walls stopping a
+run flush on the tile, jump height with and without a held button, question
+blocks and bricks hit from below, coins, stomping and side hits, the goal, pits
+and the restart that restores broken bricks.
 
 `tools/check_steam.py` builds `tools/mock_steam_api.cpp` into a stand-in
 `steam_api`, points `GBX_STEAM_LIB` at it and runs `tests/steam_tests.gbx`.
@@ -906,6 +931,15 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 
 **October 2026**
 
+* **Jump to the definition**: right click a `FUNCTION`, `SUB`, `METHOD`, `TYPE` or
+  `CONSTANT` in the editor (or press `F12`) and it opens where it is defined –
+  also when the definition lives in another file. The hover shows the origin
+  (`Defined in game/level.gbx:14`), completion adds the file for symbols from
+  other files, and own functions and methods are coloured in the code with the
+  same colour as their heading.
+* **Cyclic `INCLUDE`** is reported with the chain
+  (`Cyclic INCLUDE: main.gbx -> a.gbx -> main.gbx`) at the line that closes the
+  circle, instead of producing duplicate definitions.
 * **Values on hover in the debugger**: while paused at a breakpoint, pointing at
   a variable shows its current value in the editor. Arrays are listed by index,
   a `TYPE` with all fields, arrays of `TYPE` element by element – including

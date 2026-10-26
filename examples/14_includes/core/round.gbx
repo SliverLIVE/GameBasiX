@@ -1,0 +1,17 @@
+' Level 4 - the deepest file. core/mathx.gbx and core/text.gbx both
+' include it; the second one is skipped because the file is already
+' part of the program.
+
+FUNCTION roundTo: value, step
+  IF step = 0 THEN RETURN value
+  RETURN FLOOR(value / step + 0.5) * step
+ENDFUNCTION
+
+FUNCTION clampTo: value, low, high
+  IF value < low THEN RETURN low
+  IF value > high THEN RETURN high
+  RETURN value
+ENDFUNCTION
+
+loadOrder$ = loadOrder$ + "round "
+STDOUT "  loaded  core/round.gbx" + CHR$(10)

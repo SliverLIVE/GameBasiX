@@ -1010,8 +1010,9 @@ pre.output .l-stderr { color: var(--red); }
 .tpl-row .tpl-meta { font-size: 10.5px; color: var(--muted); }
 .tpl-row .tpl-delete { margin-left: auto; padding: 2px 7px; font-size: 11px; }
 
-/* Eigene TYPEs – Farbe kommt aus den Editor-Einstellungen. */
+/* Eigene TYPEs und FUNCTIONs – Farben kommen aus den Editor-Einstellungen. */
 .monaco-editor .gbx-user-type { color: var(--gbx-user-type, #4fd6be) !important; }
+.monaco-editor .gbx-user-func { color: var(--gbx-func, #82aaff) !important; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .check { display: flex; gap: 8px; align-items: center; color: var(--text); font-size: 12px; }
 .check input { accent-color: var(--accent); }

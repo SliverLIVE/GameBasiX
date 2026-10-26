@@ -1,0 +1,20 @@
+' Level 3 - includes the level 4 file and builds on it.
+
+INCLUDE "round.gbx"
+
+FUNCTION distance: ax, ay, bx, by
+  dx = bx - ax
+  dy = by - ay
+  RETURN roundTo(SQR(dx * dx + dy * dy), 0.01)
+ENDFUNCTION
+
+FUNCTION middleOf: a, b
+  RETURN roundTo((a + b) / 2, 0.5)
+ENDFUNCTION
+
+FUNCTION wrapAngle: angle
+  RETURN MOD(angle + 360, 360)
+ENDFUNCTION
+
+loadOrder$ = loadOrder$ + "mathx "
+STDOUT "  loaded  core/mathx.gbx" + CHR$(10)

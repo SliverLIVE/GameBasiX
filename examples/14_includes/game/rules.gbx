@@ -1,0 +1,20 @@
+' Level 2 - SUBs for GOSUB, and they use the text helpers, which are
+' included here (already loaded by main.gbx, so nothing happens).
+INCLUDE "../core/text.gbx"
+
+GLOBAL ruleTitle$ = ""
+GLOBAL ruleLog$ = ""
+GLOBAL ruleCount = 0
+
+' Prefixes the number and trims the text with helpers from core/text.gbx.
+SUB setTitle:
+  ruleTitle$ = padLeft$(FORMAT$(0, 0, ruleCount + 1) + ".", 4) + " " + shorten$(ruleTitle$, 34)
+ENDSUB
+
+SUB addRule:
+  ruleCount = ruleCount + 1
+  ruleLog$ = ruleLog$ + ruleTitle$ + CHR$(10)
+ENDSUB
+
+loadOrder$ = loadOrder$ + "rules "
+STDOUT "  loaded  game/rules.gbx" + CHR$(10)

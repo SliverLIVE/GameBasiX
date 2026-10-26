@@ -1104,10 +1104,23 @@ Value Interpreter::evalCall(const std::string& name, const std::vector<ExprP>& a
     refs.reserve(args.size());
     for (const auto& a : args) {
         if (a->kind == EK::Var) {
-            Slot* slot = findSlot(a->text);
-            if (!slot) slot = createAssignmentSlot(a->text, a->hint);
-            refs.push_back(&slot->v);
-            vals.push_back(slot->v);
+            // Wie readVar: in einer METHOD meint ein nackter Name auch ein
+            // eigenes Feld. Ohne diesen Blick entstuende eine neue Variable
+            // mit 0 und ein Ausgabeparameter schriebe ins Leere.
+            Slot* local = findLocalSlot(a->text);
+            Value* field = local ? nullptr : selfField(a->text);
+            if (local) {
+                refs.push_back(&local->v);
+                vals.push_back(local->v);
+            } else if (field) {
+                refs.push_back(field);
+                vals.push_back(*field);
+            } else {
+                Slot* slot = findSlot(a->text);
+                if (!slot) slot = createAssignmentSlot(a->text, a->hint);
+                refs.push_back(&slot->v);
+                vals.push_back(slot->v);
+            }
         } else if (a->kind == EK::Index || a->kind == EK::Field) {
             // Referenz auf Array-Element / TYPE-Feld
             if (a->kind == EK::Index) {
@@ -1161,9 +1174,18 @@ Value Interpreter::callUserFunction(const FuncDef& def, const std::vector<ExprP>
         if (byref) {
             const Expr& a = *args[i];
             if (a.kind == EK::Var) {
-                Slot* slot = findSlot(a.text);
-                if (!slot) slot = createAssignmentSlot(a.text, a.hint);
-                backRefs[i] = &slot->v;
+                // Auch hier gilt: eigene Felder duerfen BYREF sein.
+                Slot* local = findLocalSlot(a.text);
+                Value* field = local ? nullptr : selfField(a.text);
+                if (local) {
+                    backRefs[i] = &local->v;
+                } else if (field) {
+                    backRefs[i] = field;
+                } else {
+                    Slot* slot = findSlot(a.text);
+                    if (!slot) slot = createAssignmentSlot(a.text, a.hint);
+                    backRefs[i] = &slot->v;
+                }
             } else if (a.kind == EK::Index) {
                 Value base = eval(*a.a);
                 if (base.isArray() && base.arr) {

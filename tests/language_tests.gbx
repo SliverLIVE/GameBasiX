@@ -300,7 +300,7 @@ FUNCTION early: v
   RETURN 99
 ENDFUNCTION
 
-FUNCTION counter
+FUNCTION counter:
   STATIC n
   INC n
   RETURN n
@@ -312,7 +312,7 @@ FUNCTION shadow: dummy
   RETURN globalVar
 ENDFUNCTION
 
-FUNCTION setGlobal
+FUNCTION setGlobal:
   GLOBAL globalVar = 42
 ENDFUNCTION
 
@@ -403,7 +403,7 @@ TYPE METHODKISTE
   w AS FLOAT
   h AS FLOAT
 
-  METHOD flaeche
+  METHOD flaeche:
     RETURN w * h
   ENDMETHOD
 
@@ -412,13 +412,22 @@ TYPE METHODKISTE
     h = h * faktor
   ENDMETHOD
 
-  METHOD doppelt
+  METHOD doppelt:
     skalieren(2)
     RETURN flaeche()
   ENDMETHOD
 
   METHOD mitLokal: w
     RETURN w + 1
+  ENDMETHOD
+
+  ' Felder als Argument eingebauter Befehle (frueher kam dort 0 an).
+  METHOD abstand%:
+    RETURN ABS(w - h)
+  ENDMETHOD
+
+  METHOD beschreibung$:
+    RETURN "w=" + FORMAT$(4, 0, w) + " h=" + FORMAT$(4, 0, h)
   ENDMETHOD
 ENDTYPE
 
@@ -436,6 +445,8 @@ ASSERT box.h = 6, "METHOD schreibt zweites Feld"
 ASSERT box.doppelt() = 288, "METHOD ruft eigene METHOD auf"
 ASSERT box.mitLokal(5) = 6, "Parameter verdeckt das Feld"
 ASSERT box.w = 24, "doppelt hat weiterskaliert"
+ASSERT box.abstand%() = 12, "Feld als Argument eines Befehls"
+ASSERT box.beschreibung$() = "w=  24 h=  12", "Feld in einer String-METHOD"
 
 DIM kisten[2] AS METHODKISTE
 kisten[1].w = 3
@@ -456,7 +467,7 @@ TYPE METHODPUNKT
   x AS FLOAT
   y AS FLOAT
 
-  METHOD summe
+  METHOD summe:
     RETURN self.x + self.y
   ENDMETHOD
 

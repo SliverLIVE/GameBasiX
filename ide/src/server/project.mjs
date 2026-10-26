@@ -82,7 +82,7 @@ export async function saveConfig(config) {
 }
 
 const EDITOR_THEME_TOKEN_KEYS = [
-  'comment', 'keyword', 'command', 'directive', 'type', 'userType',
+  'comment', 'keyword', 'command', 'directive', 'type', 'userType', 'func',
   'number', 'string', 'operator', 'delimiter', 'identifier', 'label'
 ];
 const EDITOR_THEME_COLOR_KEYS = ['background', 'foreground', 'cursor', 'selection', 'lineHighlight', 'lineNumber'];

@@ -76,6 +76,41 @@ def main():
             work, "unbekanntes Unterprogramm", "GOSUB gibtEsNicht\nEND\n", 1, "Unbekanntes Unterprogramm: GIBTESNICHT"
         )
 
+        # ------------------------------------------------- Include-Zyklen
+        def write_file(name, text):
+            with open(os.path.join(work, name), "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(text)
+
+        write_file("ring_a.gbx", 'INCLUDE "ring_b.gbx"\nEND\n')
+        write_file("ring_b.gbx", 'INCLUDE "ring_a.gbx"\nEND\n')
+        result = subprocess.run(
+            [GBX, "--check", os.path.join(work, "ring_a.gbx")],
+            cwd=work,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+        )
+        chain = "ring_a.gbx -> ring_b.gbx -> ring_a.gbx"
+        check(
+            result.returncode == 2 and "Zyklischer INCLUDE: " + chain in result.stderr,
+            "Include-Zyklus wird gemeldet",
+            result.stderr.strip(),
+        )
+
+        write_file("selbst.gbx", 'INCLUDE "selbst.gbx"\nEND\n')
+        result = subprocess.run(
+            [GBX, "--check", os.path.join(work, "selbst.gbx")],
+            cwd=work,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+        )
+        check(
+            result.returncode == 2 and "Zyklischer INCLUDE: selbst.gbx -> selbst.gbx" in result.stderr,
+            "Include auf sich selbst wird gemeldet",
+            result.stderr.strip(),
+        )
+
         # ------------------------------------------- bekannte Namen bleiben ruhig
         expect_clean(
             work,
@@ -129,7 +164,7 @@ weiter:
 PRINT gesamt, summe, p.x, punkte[0].y, 0, 0
 END
 
-SUB zaehle
+SUB zaehle:
   summe = summe + 1
 ENDSUB
 """,
@@ -219,13 +254,13 @@ TYPE B
   bx AS FLOAT
 ENDTYPE
 
-FUNCTION eins
+FUNCTION eins:
   LOCAL p AS A
   p.ax = 1
   RETURN 1
 ENDFUNCTION
 
-FUNCTION zwei
+FUNCTION zwei:
   LOCAL p AS B
   p.bx = 2
   RETURN 2
@@ -241,7 +276,7 @@ END
   w AS FLOAT
   h AS FLOAT
 
-  METHOD flaeche
+  METHOD flaeche:
     RETURN w * h
   ENDMETHOD
 
@@ -250,7 +285,7 @@ END
     h = h * faktor
   ENDMETHOD
 
-  METHOD doppelt
+  METHOD doppelt:
     skalieren(2)
     RETURN flaeche()
   ENDMETHOD
@@ -287,7 +322,7 @@ END
         )
 
         code, stderr, path = run_check(
-            work, "TYPE T\n  x AS FLOAT\n  FUNCTION f\n    RETURN 1\n  ENDFUNCTION\nENDTYPE\nEND\n"
+            work, "TYPE T\n  x AS FLOAT\n  FUNCTION f:\n    RETURN 1\n  ENDFUNCTION\nENDTYPE\nEND\n"
         )
         check(
             code == 2 and f"{path}:3: Syntaxfehler:" in stderr and "METHOD" in stderr,
@@ -348,7 +383,7 @@ INLINE RUN
   zaehler = zaehler + 1;
 ENDINLINE
 
-FUNCTION schritt
+FUNCTION schritt:
   LOCAL wert
   wert = 0
   INLINE

@@ -1,0 +1,257 @@
+' ============================================================
+' GameBasiX - physics tests for examples/13_platformer
+' Run: gbx --tests tests/platformer_tests.gbx
+'
+' The engine is included unchanged; every test builds a small
+' map, sets the player up and checks the result of the physics.
+' ============================================================
+
+INCLUDE "../examples/13_platformer/platformer.gbx"
+
+FUNCTION round_reset:
+  score = 0
+  lives = START_LIVES
+  collected = 0
+  levelTime = ROUND_TIME
+  levelDone = FALSE
+  gameOver = FALSE
+  sfx = SFX_NONE
+  PLAYER_RESET()
+ENDFUNCTION
+
+' runs frames of the game loop without drawing or sound
+FUNCTION sim: frames, goLeft, goRight, jumpHeld, jump, run
+  FOR i = 1 TO frames
+    pressed = 0
+    IF i = 1 THEN pressed = jump
+    PLAYER_UPDATE(1.0 / 60.0, goLeft, goRight, jumpHeld, pressed, run)
+    FOES_UPDATE(1.0 / 60.0)
+    PLAYER_HITS(1.0 / 60.0)
+  NEXT
+ENDFUNCTION
+
+FUNCTION empty_rows:
+  FOR r = 0 TO ROWS - 1
+    map$[r] = ""
+  NEXT
+ENDFUNCTION
+
+FUNCTION build_flat:
+  empty_rows()
+  map$[9] = "  S"
+  map$[10] = "####################"
+  map$[11] = "####################"
+  LEVEL_LOAD()
+  round_reset()
+ENDFUNCTION
+
+FUNCTION build_wall:
+  empty_rows()
+  map$[8] = "      #"
+  map$[9] = "  S   #"
+  map$[10] = "####################"
+  map$[11] = "####################"
+  LEVEL_LOAD()
+  round_reset()
+ENDFUNCTION
+
+FUNCTION build_block: ch$
+  empty_rows()
+  map$[9] = "  S"
+  map$[7] = "  " + ch$
+  map$[10] = "####################"
+  map$[11] = "####################"
+  LEVEL_LOAD()
+  round_reset()
+ENDFUNCTION
+
+FUNCTION build_coin:
+  empty_rows()
+  map$[9] = "  S   o"
+  map$[10] = "####################"
+  map$[11] = "####################"
+  LEVEL_LOAD()
+  round_reset()
+ENDFUNCTION
+
+FUNCTION build_foe:
+  empty_rows()
+  map$[9] = "  S  e"
+  map$[10] = "####################"
+  map$[11] = "####################"
+  LEVEL_LOAD()
+  round_reset()
+ENDFUNCTION
+
+FUNCTION build_goal:
+  empty_rows()
+  map$[9] = "  S      P"
+  map$[10] = "####################"
+  map$[11] = "####################"
+  LEVEL_LOAD()
+  round_reset()
+ENDFUNCTION
+
+FUNCTION build_pit:
+  empty_rows()
+  map$[9] = "  S"
+  map$[10] = "#####  #############"
+  map$[11] = "#####  #############"
+  LEVEL_LOAD()
+  round_reset()
+ENDFUNCTION
+
+
+' ---------------------------------------------------------- level
+build_flat()
+ASSERT mapW = 20, "level width comes from the longest row"
+ASSERT ABS(spawnX - 105) < 0.01, "spawn x from the S marker"
+ASSERT ABS(spawnY - 436) < 0.01, "spawn y stands on the ground"
+ASSERT ABS(px - 105) < 0.01, "player starts at the spawn"
+ASSERT foeCount = 0 AND coinCount = 0, "empty map has no pickup"
+
+' ---------------------------------------------------------- ground
+sim(30, 0, 0, 0, 0, 0)
+ASSERT plOnGround, "the player lands on the ground"
+ASSERT ABS(py - 436) < 1.01, "feet rest on the tile top"
+ASSERT ABS(pvy) < 1, "standing does not accumulate fall speed"
+sim(30, 0, 0, 0, 0, 0)
+ASSERT plOnGround, "still on the ground after more frames"
+
+' ---------------------------------------------------------- walking
+x0 = px
+sim(60, 0, 1, 0, 0, 0)
+ASSERT px > x0 + 100, "walking right moves the player"
+ASSERT ABS(pvx) > 100, "walking builds up speed"
+ASSERT plFace = 1, "walking right turns the sprite right"
+x1 = px
+sim(60, 1, 0, 0, 0, 0)
+ASSERT px < x1, "walking left moves back"
+ASSERT plFace = -1, "walking left turns the sprite left"
+
+' ---------------------------------------------------------- wall
+build_wall()
+sim(90, 0, 1, 0, 0, 0)
+ASSERT px + PW <= 288.01, "the wall stops the player"
+ASSERT px + PW > 287.5, "the player stops flush on the wall"
+ASSERT ABS(pvx) < 1, "hitting the wall kills the speed"
+
+' ---------------------------------------------------------- jump
+build_flat()
+sim(10, 0, 0, 0, 0, 0)
+y0 = py
+sim(1, 0, 0, 1, 1, 0)
+ASSERT pvy < -600, "a jump starts with upward speed"
+ASSERT plOnGround = FALSE, "the player leaves the ground"
+sim(12, 0, 0, 1, 0, 0)
+ASSERT py < y0 - 60, "the jump gains height"
+sim(80, 0, 0, 0, 0, 0)
+ASSERT plOnGround, "the jump comes back down"
+ASSERT ABS(py - 436) < 1.01, "landing on the same tile"
+
+' a short tap jumps lower than a held jump
+build_flat()
+sim(10, 0, 0, 0, 0, 0)
+sim(1, 0, 0, 0, 1, 0)
+sim(10, 0, 0, 0, 0, 0)
+lowY = py
+build_flat()
+sim(10, 0, 0, 0, 0, 0)
+sim(1, 0, 0, 1, 1, 0)
+sim(10, 0, 0, 1, 0, 0)
+highY = py
+ASSERT highY < lowY - 20, "holding jump reaches higher"
+
+' ---------------------------------------------------------- blocks
+build_block("*")
+sim(40, 0, 0, 1, 1, 0)
+ASSERT collected = 1, "a question block gives a coin"
+ASSERT MID$(map$[7], 2, 1) = "u", "the question block is used afterwards"
+ASSERT score >= 200, "the block coin scores"
+
+build_block("b")
+sim(40, 0, 0, 1, 1, 0)
+ASSERT MID$(map$[7], 2, 1) = " ", "a brick breaks from below"
+ASSERT score >= 50, "breaking a brick scores"
+ASSERT ABS(py - 436) < 60, "the player falls back after the bump"
+
+' ---------------------------------------------------------- coins
+build_coin()
+sim(60, 0, 1, 0, 0, 0)
+ASSERT collected = 1, "walking into a coin collects it"
+ASSERT coins[0].taken = 1, "the coin is marked as taken"
+ASSERT score >= 100, "a coin scores"
+sim(30, 0, 1, 0, 0, 0)
+ASSERT collected = 1, "a coin cannot be collected twice"
+
+' ---------------------------------------------------------- enemies
+build_foe()
+sim(1, 0, 0, 0, 0, 0)
+ASSERT foeCount = 1, "the enemy comes from the e marker"
+ASSERT foes[0].vx < 0, "the enemy starts walking left"
+x0 = foes[0].x
+sim(30, 0, 0, 0, 0, 0)
+ASSERT foes[0].x < x0, "the enemy walks"
+ASSERT ABS(foes[0].y - 448) < 1.01, "the enemy stands on the ground"
+
+' stomp from above
+px = foes[0].x
+py = foes[0].y - PH + 6
+pvy = 300
+PLAYER_HITS(1.0 / 60.0)
+ASSERT foes[0].squash > 0, "landing on the enemy squashes it"
+ASSERT pvy < 0, "the stomp bounces the player up"
+ASSERT score >= 100, "the stomp scores"
+
+' from the side it hurts
+build_foe()
+py = 436
+pvy = 0
+px = foes[0].x
+before = lives
+PLAYER_HITS(1.0 / 60.0)
+ASSERT lives = before - 1, "touching the enemy costs a life"
+ASSERT plHurt > 0, "the player is briefly invulnerable"
+before = lives
+PLAYER_HITS(1.0 / 60.0)
+ASSERT lives = before, "no second hit while invulnerable"
+
+' ---------------------------------------------------------- goal
+build_goal()
+ASSERT hasGoal, "the P marker defines the goal"
+px = goalX
+score = 0
+PLAYER_HITS(1.0 / 60.0)
+ASSERT levelDone, "reaching the goal finishes the round"
+ASSERT score > 500, "finishing scores with a time bonus"
+
+' ---------------------------------------------------------- pits
+build_pit()
+before = lives
+frames = 0
+WHILE lives = before AND frames < 240
+  sim(1, 0, 1, 0, 0, 0)
+  INC frames
+WEND
+ASSERT lives = before - 1, "falling into the pit costs a life"
+ASSERT ABS(px - spawnX) < 1, "the player respawns at the start"
+ASSERT plHurt > 0, "respawn grants a moment of protection"
+
+' game over after the last life
+build_flat()
+lives = 1
+py = 700
+Pvy = 0
+PLAYER_HITS(1.0 / 60.0)
+ASSERT gameOver, "the last life ends the game"
+ASSERT lives = 0, "lives cannot go below zero"
+
+' ---------------------------------------------------------- restart
+build_block("b")
+sim(40, 0, 0, 1, 1, 0)
+LEVEL_RESTART()
+ASSERT MID$(map$[7], 2, 1) = "b", "restart restores broken bricks"
+ASSERT ABS(px - spawnX) < 0.01, "restart puts the player back"
+
+STDOUT "Platformer tests done." + CHR$(10)
+END

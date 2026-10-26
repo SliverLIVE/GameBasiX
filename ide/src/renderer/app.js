@@ -5,6 +5,8 @@ import {
   attachBlockAutoClose,
   attachKeywordCasing,
   findUserTypeRanges,
+  findUserFunctionRanges,
+  findUserMethodRanges,
   EDITOR_THEME_FIELDS,
   EDITOR_THEME_PRESETS,
   EDITOR_THEME_PRESET_LABELS,
@@ -98,6 +100,7 @@ async function boot() {
   lang = registerGbx(monaco, dataset, { getSymbols, getAnalysis: analysisFor });
   applyAppearance(monaco, state.appearance);
   createEditor();
+  registerGoToDefinition();
   // Zeigt im Haltepunkt den aktuellen Wert unter der Maus.
   setDebugHover(debugHoverValue);
   bindUi();
@@ -193,7 +196,7 @@ function createEditor() {
     lineErrors = shiftLineNumbers(errorsForModel(model), event.changes);
     modelLineErrors.set(model, lineErrors);
     refreshLineCheck();
-    scheduleTypeColors();
+    scheduleCodeColors();
     scheduleLiveCheck(model);
   });
   editor.onDidChangeModel(() => {
@@ -201,7 +204,7 @@ function createEditor() {
     lineErrors = model ? errorsForModel(model) : new Map();
     revalidateLineErrors();
     refreshLineCheck();
-    scheduleTypeColors();
+    scheduleCodeColors();
     scheduleLiveCheck(model, 120);
   });
   // Klick auf den Rand setzt oder entfernt einen Haltepunkt.
@@ -577,36 +580,54 @@ function updateInlineHighlights(model = editor?.getModel()) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Eigene TYPEs einfärben                                              */
+/* Eigene TYPEs und FUNCTIONs einfärben                                */
 /* ------------------------------------------------------------------ */
 
-// Die Farbe steht in den Editor-Einstellungen (CSS-Variable --gbx-user-type).
-const typeDecorations = new WeakMap();
-let typeColorTimer = null;
+// Die Farben stehen in den Editor-Einstellungen (CSS-Variablen
+// --gbx-user-type und --gbx-func, gesetzt in applyEditorTheme).
+const codeDecorations = new WeakMap();
+let codeColorTimer = null;
 
-function refreshTypeColors() {
+function codeColorDecorations(model, symbols) {
+  const text = model.getValue();
+  const decorations = [];
+  const add = (ranges, className) => {
+    for (const range of ranges.slice(0, 4000)) {
+      decorations.push({
+        range: new monaco.Range(range.line, range.startColumn, range.line, range.endColumn),
+        options: { inlineClassName: className }
+      });
+    }
+  };
+  add(findUserTypeRanges(text, symbols.types.map((type) => type.name).filter(Boolean)), 'gbx-user-type');
+  add(
+    findUserFunctionRanges(text, symbols.functions.map((fn) => fn.name).filter(Boolean)),
+    'gbx-user-func'
+  );
+  // METHODs wie obj.button(...) und self.run(...) - nur echte Aufrufe.
+  const methodNames = symbols.types.flatMap((type) => (type.methods || []).map((method) => method.name));
+  add(findUserMethodRanges(text, methodNames), 'gbx-user-func');
+  return decorations;
+}
+
+function refreshCodeColors() {
   if (!monaco || !editor) return;
-  let names = [];
+  let symbols;
   try {
-    names = getSymbols().types.map((type) => type.name).filter(Boolean);
+    symbols = getSymbols();
   } catch {
     return;
   }
   for (const model of monaco.editor.getModels()) {
     if (model.getLanguageId() !== 'gbx') continue;
-    const ranges = findUserTypeRanges(model.getValue(), names).slice(0, 4000);
-    const decorations = ranges.map((range) => ({
-      range: new monaco.Range(range.line, range.startColumn, range.line, range.endColumn),
-      options: { inlineClassName: 'gbx-user-type' }
-    }));
-    const previous = typeDecorations.get(model) || [];
-    typeDecorations.set(model, model.deltaDecorations(previous, decorations));
+    const previous = codeDecorations.get(model) || [];
+    codeDecorations.set(model, model.deltaDecorations(previous, codeColorDecorations(model, symbols)));
   }
 }
 
-function scheduleTypeColors() {
-  clearTimeout(typeColorTimer);
-  typeColorTimer = setTimeout(refreshTypeColors, 200);
+function scheduleCodeColors() {
+  clearTimeout(codeColorTimer);
+  codeColorTimer = setTimeout(refreshCodeColors, 200);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1957,6 +1978,106 @@ function activeTab() {
   return state.tabs.find((t) => t.path === state.activePath) || null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Gehe zu Definition                                                  */
+/* ------------------------------------------------------------------ */
+
+/** Wort unter dem Cursor (Buchstaben, Ziffern und die Typsuffixe $ % #). */
+function wordAtCursor(model, position) {
+  const line = model.getLineContent(position.lineNumber);
+  const word = /[A-Za-z_]\w*[$%#]?/g;
+  let match;
+  while ((match = word.exec(line))) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (position.column - 1 >= start && position.column - 1 <= end) return match[0];
+  }
+  return '';
+}
+
+/** Name ohne Typsuffix, gross geschrieben - BASIC vergleicht ohne Rucksicht. */
+function bareName(name) {
+  return String(name || '').replace(/[$%#]$/, '').toUpperCase();
+}
+
+/** Definition zu einem Namen im ganzen Projekt (Datei und Zeile). */
+function definitionFor(name) {
+  const wanted = bareName(name);
+  if (!wanted || !state.projectDir) return null;
+  const symbols = getSymbols();
+  const fn = symbols.functions.find((item) => bareName(item.name) === wanted && item.file);
+  if (fn) return { file: fn.file, line: fn.line || 1 };
+  for (const type of symbols.types) {
+    const method = (type.methods || []).find((item) => bareName(item.name) === wanted);
+    if (method && type.file) return { file: type.file, line: method.line || type.line || 1 };
+  }
+  const type = symbols.types.find((item) => bareName(item.name) === wanted && item.file);
+  if (type) return { file: type.file, line: type.line || 1 };
+  const constant = symbols.constants.find((item) => bareName(item.name) === wanted && item.file);
+  if (constant) return { file: constant.file, line: constant.line || 1 };
+  return null;
+}
+
+/** Macht aus einer Monaco-URI wieder einen Pfad im geoeffneten Projekt. */
+function projectPathOf(uri) {
+  const key = uri.toString();
+  const open = state.tabs.find((tab) => tab.model && tab.model.uri.toString() === key);
+  if (open) return open.path;
+  const root = String(state.projectDir || '').replace(/\\/g, '/').replace(/\/$/, '');
+  const full = String(uri.fsPath || '').replace(/\\/g, '/');
+  if (!root || !full.toLowerCase().startsWith(root.toLowerCase() + '/')) return '';
+  return full.slice(root.length + 1);
+}
+
+function registerGoToDefinition() {
+  // F12 und Rechtsklick -> Gehe zu Definition. Der Provider liefert Ziel und
+  // Zeile, der Editor-Opener oeffnet die Datei als Tab an dieser Stelle.
+  monaco.languages.registerDefinitionProvider('gbx', {
+    provideDefinition(model, position) {
+      if (model.getLanguageId() !== 'gbx') return null;
+      const target = definitionFor(wordAtCursor(model, position));
+      if (!target) return null;
+      return [
+        {
+          uri: monaco.Uri.file(absPath(target.file)),
+          range: new monaco.Range(target.line, 1, target.line, 1)
+        }
+      ];
+    }
+  });
+
+  // Eigener Eintrag im Rechtsklick-Menue: eigener Text statt der englischen
+  // Monaco-Beschriftung, und er funktioniert auch ohne den internen Opener.
+  editor.addAction({
+    id: 'gbx.goToDefinition',
+    label: t('Gehe zu Definition'),
+    contextMenuGroupId: 'navigation',
+    contextMenuOrder: 1,
+    run: (instance) => {
+      const model = instance.getModel();
+      const position = instance.getPosition();
+      if (!model || !position) return;
+      const target = definitionFor(wordAtCursor(model, position));
+      if (!target) {
+        toast(t('Keine eigene Definition unter dem Cursor.'), 'warn');
+        return;
+      }
+      openFile(target.file, { line: target.line });
+    }
+  });
+
+  monaco.editor.registerEditorOpener({
+    openCodeEditor(source, resource, selectionOrPosition) {
+      const file = projectPathOf(resource);
+      if (!file) return false;
+      const line =
+        (selectionOrPosition && (selectionOrPosition.lineNumber || selectionOrPosition.startLineNumber)) || 0;
+      openFile(file, { line });
+      return true;
+    }
+  });
+}
+
 async function openFile(rel, { focus = true, line = 0 } = {}) {
   if (!state.projectDir) return;
   const existing = state.tabs.find((t) => t.path === rel);
@@ -2688,6 +2809,7 @@ async function settingsDialog() {
       </div>
       <div class="theme-preview" id="set-preview">
         <div class="tp-line"><span data-tp="keyword">TYPE</span> <span data-tp="userType">PUNKT</span></div>
+        <div class="tp-line"><span data-tp="keyword">FUNCTION</span> <span data-tp="func">DRAW_HUD:</span></div>
         <div class="tp-line"><span data-tp="command">PRINT</span> <span data-tp="string">"Hallo"</span>, <span data-tp="number">42</span></div>
         <div class="tp-line"><span data-tp="comment">' ${t('Kommentar')}</span></div>
         <div class="tp-ui">
@@ -4498,7 +4620,7 @@ function getSymbols() {
   if (tab) {
     const current = analysisFor(tab.model);
     for (const bucket of ['functions', 'types', 'variables', 'constants']) {
-      for (const item of current[bucket] || []) push(bucket, item);
+      for (const item of current[bucket] || []) push(bucket, { ...item, file: tab.path });
     }
   }
   for (const bucket of ['functions', 'types', 'constants']) {
@@ -4512,7 +4634,7 @@ function getSymbols() {
 
 async function indexProjectSymbols() {
   if (!state.tree.length) {
-    refreshTypeColors();
+    refreshCodeColors();
     return;
   }
   const files = state.tree.filter((item) => item.type === 'file' && /\.gbx$/i.test(item.name)).slice(0, 80);
@@ -4536,12 +4658,14 @@ async function indexProjectSymbols() {
         const key = item.name.toUpperCase();
         if (seen[bucket].has(key)) continue;
         seen[bucket].add(key);
-        aggregate[bucket].push(item);
+        // Die Herkunft gehoert zum Symbol: Hover und Gehe-zu-Definition
+        // zeigen damit Datei und Zeile an.
+        aggregate[bucket].push({ ...item, file: file.path });
       }
     }
   }
   state.projectSymbols = aggregate;
-  refreshTypeColors();
+  refreshCodeColors();
 }
 
 /* ------------------------------------------------------------------ */

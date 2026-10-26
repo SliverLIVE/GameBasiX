@@ -160,7 +160,7 @@ FUNCTION schritt: wert
 ENDFUNCTION
 ASSERT schritt(21) = 42, "Schritt in einer FUNCTION"
 
-FUNCTION mehrfach
+FUNCTION mehrfach:
   INLINE
     laeufe = laeufe + 1;
   ENDINLINE
@@ -169,7 +169,7 @@ mehrfach()
 mehrfach()
 ASSERT laeufe = 3, "jeder Aufruf fuehrt den Block aus"
 
-FUNCTION zaehle
+FUNCTION zaehle:
   LOCAL i, summe
   summe = 0
   FOR i = 1 TO 3
@@ -182,7 +182,7 @@ ENDFUNCTION
 ASSERT zaehle() = 6, "Schritt in einer Schleife laeuft jedes Mal"
 
 text$ = "Welt"
-FUNCTION gruss
+FUNCTION gruss:
   INLINE
     text_str = std::string("Hallo ") + text_str;
   ENDINLINE
@@ -192,7 +192,7 @@ ASSERT text$ = "Hallo Welt", "Text-Variable"
 
 DIM zahlen[4]
 zahlen[2] = 7
-FUNCTION rechnen
+FUNCTION rechnen:
   INLINE
     zahlen[1] = zahlen[2] * 2;
   ENDINLINE
@@ -213,7 +213,7 @@ ENDTYPE
 TYPE TESTKISTE
   breite AS FLOAT
 
-  METHOD doppelt
+  METHOD doppelt:
     INLINE
       breite = breite * 2;
     ENDINLINE
@@ -229,7 +229,7 @@ tp.x = 1
 tl.a.x = 5
 tk.breite = 3
 
-FUNCTION typen
+FUNCTION typen:
   INLINE
     tp.x = tp.x + 1;
     tp.name_str = "Punkt";
@@ -248,7 +248,7 @@ tk.doppelt()
 ASSERT tk.breite = 6, "METHOD-Feld im Schritt"
 
 CONSTANT FAKTOR = 5
-FUNCTION mitKonstante
+FUNCTION mitKonstante:
   LOCAL wert
   wert = 0
   INLINE
@@ -259,7 +259,7 @@ ENDFUNCTION
 ASSERT mitKonstante() = 10, "Konstante lesen"
 
 ' Zuweisungen im Block kopieren Werte, sie haengen keine Namen um.
-FUNCTION kopieren
+FUNCTION kopieren:
   LOCAL a, b
   a = 1
   b = 2
@@ -273,7 +273,7 @@ ASSERT kopieren() = 1202, "Zahl-Zuweisung kopiert den Wert"
 
 text1$ = "A"
 text2$ = "B"
-FUNCTION texte
+FUNCTION texte:
   INLINE
     text1_str = text2_str;
     text2_str = "C";
@@ -288,7 +288,7 @@ ASSERT text1$ = "B" AND text2$ = "C", "Text-Zuweisung kopiert den Wert"
 DIM liste[3]
 liste[0] = 10 : liste[1] = 20 : liste[2] = 30
 
-FUNCTION listeWachsen
+FUNCTION listeWachsen:
   INLINE
     liste.push(40);
     liste.push(50);
@@ -301,7 +301,7 @@ listeWachsen()
 ASSERT ARRAY_BOUNDS(liste[], 0) = 5, "push/insert/remove aendern die Groesse"
 ASSERT liste[0] = 5 AND liste[1] = 10 AND liste[2] = 20 AND liste[3] = 40 AND liste[4] = 50, "Reihenfolge nach den Aenderungen"
 
-FUNCTION letztesWeg
+FUNCTION letztesWeg:
   INLINE
     liste.remove(-1);
   ENDINLINE
@@ -309,7 +309,7 @@ ENDFUNCTION
 letztesWeg()
 ASSERT ARRAY_BOUNDS(liste[], 0) = 4 AND liste[-1] = 40, "remove mit negativem Index"
 
-FUNCTION hintenAnfuegen
+FUNCTION hintenAnfuegen:
   INLINE
     liste.insert(-1, 99);      // -1 haengt an
   ENDINLINE
@@ -320,7 +320,7 @@ ASSERT ARRAY_BOUNDS(liste[], 0) = 5 AND liste[-1] = 99, "insert(-1) haengt an"
 ' resize entspricht REDIM: bestehende Werte bleiben, neue Plaetze sind 0.
 DIM form[3]
 form[0] = 1 : form[1] = 2 : form[2] = 3
-FUNCTION formWachsen
+FUNCTION formWachsen:
   INLINE
     form.resize(6);
     form[3] = form[2] + 2;
@@ -331,7 +331,7 @@ ASSERT ARRAY_BOUNDS(form[], 0) = 6, "resize vergroessert"
 ASSERT form[0] = 1 AND form[2] = 3 AND form[3] = 5, "resize behaelt die Werte"
 ASSERT form[5] = 0, "neue Plaetze sind 0"
 
-FUNCTION formSchrumpfen
+FUNCTION formSchrumpfen:
   INLINE
     form.resize(2);
   ENDINLINE
@@ -341,7 +341,7 @@ ASSERT ARRAY_BOUNDS(form[], 0) = 2 AND form[1] = 2, "resize verkleinert"
 
 DIM woerter$[2]
 woerter$[0] = "Ada" : woerter$[1] = "Blaise"
-FUNCTION woerterWachsen
+FUNCTION woerterWachsen:
   INLINE
     woerter.push("Grace");
     woerter.insert(0, "Zora");
@@ -353,7 +353,7 @@ ASSERT ARRAY_BOUNDS(woerter$[], 0) = 4, "Text-Array waechst"
 ASSERT woerter$[0] = "Zora" AND woerter$[1] = "Ada L." AND woerter$[3] = "Grace", "Text-Array Inhalt"
 
 ' Ein Element aus demselben Array laesst sich kopieren (auch wenn es umzieht).
-FUNCTION wortKopie
+FUNCTION wortKopie:
   INLINE
     woerter.push(woerter[0]);
   ENDINLINE
@@ -364,7 +364,7 @@ ASSERT woerter$[4] = "Zora", "Element in dasselbe Array kopieren"
 ' TYPE-Arrays: push() legt einen Standard-Datensatz an, push(tp) kopiert.
 DIM neuPunkte[2] AS TESTPUNKT
 neuPunkte[0].x = 1
-FUNCTION punkteWachsen
+FUNCTION punkteWachsen:
   INLINE
     neupunkte.push();
     neupunkte.push(tp);
@@ -378,7 +378,7 @@ punkteWachsen()
 ASSERT ARRAY_BOUNDS(neuPunkte[], 0) = 6, "TYPE-Array waechst"
 ASSERT neuPunkte[0].x = 0 AND neuPunkte[2].x = 2 AND neuPunkte[3].x = 9 AND neuPunkte[5].x = 0, "Werte im TYPE-Array"
 
-FUNCTION punkteLeeren
+FUNCTION punkteLeeren:
   INLINE
     neupunkte.clear();
   ENDINLINE
@@ -391,7 +391,7 @@ DIM raster[2][3]
 raster[1][2] = 8
 GLOBAL Dimensionen
 Dimensionen = 0
-FUNCTION rasterWachsen
+FUNCTION rasterWachsen:
   INLINE
     raster.resize(4, 5);
     raster[3][4] = 7;
@@ -405,7 +405,7 @@ ASSERT ARRAY_BOUNDS(raster[], 0) = 4 AND ARRAY_BOUNDS(raster[], 1) = 5, "resize 
 ASSERT raster[3][4] = 7 AND raster[1][2] = 9, "Werte bleiben beim Wachsen"
 
 ' Eine einzelne Zeile ist selbst ein Array (Element::asArray).
-FUNCTION reiheWachsen
+FUNCTION reiheWachsen:
   INLINE
     raster[0].asArray().push(42);
   ENDINLINE
@@ -419,7 +419,7 @@ GLOBAL RufText$
 GLOBAL Mx, My, Mlinks, Mrechts
 RufText$ = ""
 
-FUNCTION rufeBefehle
+FUNCTION rufeBefehle:
   INLINE
     mx = 0; my = 0; mlinks = 0; mrechts = 0;
     MOUSE_STATE(mx, my, mlinks, mrechts);
@@ -435,7 +435,7 @@ ASSERT RufText$ = "Hallo", "Text-Rueckgabe eines Befehls"
 ASSERT Mx = 0 AND My = 0 AND Mlinks = 0 AND Mrechts = 0, "BYREF-Ausgaben landen in den Variablen"
 
 DIM teile$[0]
-FUNCTION teileText
+FUNCTION teileText:
   INLINE
     SPLIT_STRING("a,b,c", teile);
   ENDINLINE
@@ -444,7 +444,7 @@ teileText()
 ASSERT LEN(teile$[]) = 3 AND teile$[1] = "b", "Array als BYREF-Ziel"
 
 ' Fehler im Schritt nennen die Stelle im BASIC-Code.
-FUNCTION zuWeit
+FUNCTION zuWeit:
   INLINE
     zahlen[99] = 1;
   ENDINLINE
@@ -457,7 +457,7 @@ CATCH fehler$
 FINALLY
 
 ' push/insert/remove pruefen ihre Grenzen und melden den Grund.
-FUNCTION falscherIndex
+FUNCTION falscherIndex:
   INLINE
     liste.remove(99);
   ENDINLINE
@@ -469,7 +469,7 @@ CATCH fehler$
   ASSERT INSTR(fehler$, "ausserhalb") >= 0, "remove meldet den Index"
 FINALLY
 
-FUNCTION rasterPush
+FUNCTION rasterPush:
   INLINE
     raster.push(1.0);
   ENDINLINE
@@ -482,7 +482,7 @@ CATCH fehler$
 FINALLY
 
 ' Auch GBX-Befehle pruefen ihre Argumente.
-FUNCTION rufeFalsch
+FUNCTION rufeFalsch:
   INLINE
     LEN();
   ENDINLINE
@@ -494,7 +494,7 @@ CATCH fehler$
   ASSERT INSTR(fehler$, "Argumente") >= 0, "falsche Argumentzahl wird gemeldet"
 FINALLY
 
-FUNCTION rufeUnbekannt
+FUNCTION rufeUnbekannt:
   INLINE
     call("GIBTSNICHT");
   ENDINLINE
@@ -506,7 +506,7 @@ CATCH fehler$
   ASSERT INSTR(fehler$, "Unbekannter GBX-Befehl") >= 0, "unbekannter Befehl wird gemeldet"
 FINALLY
 
-FUNCTION rufeLiteral
+FUNCTION rufeLiteral:
   INLINE
     MOUSE_STATE(0, 0, 0, 0);
   ENDINLINE

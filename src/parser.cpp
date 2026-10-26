@@ -447,6 +447,13 @@ ExprP Parser::parseLValue() {
 // ---------------------------------------------------------------- Anweisungen
 
 void Parser::parseFile() {
+    // Diese Datei steht ab jetzt auf dem Stapel: ein INCLUDE, das wieder
+    // hierher zurueckfuehrt, ist ein Zyklus und keine Dublette.
+    prog_.includeStack.push_back(path_);
+    struct StackGuard {
+        std::vector<std::string>* stack;
+        ~StackGuard() { stack->pop_back(); }
+    } guard{&prog_.includeStack};
     while (cur().kind != Tok::Eof) {
         if (cur().kind == Tok::Newline) {
             advance();
@@ -523,6 +530,20 @@ void Parser::parseInclude() {
     std::string full = target.lexically_normal().string();
 
     std::error_code ec;
+    // Zyklus: die Zieldatei wird gerade selbst geparst (a.gbx -> main.gbx).
+    for (const auto& active : prog_.includeStack) {
+        const bool same = active == full ||
+                          (fs::exists(active, ec) && fs::exists(full, ec) &&
+                           fs::equivalent(active, full, ec));
+        if (!same) continue;
+        std::string chain;
+        for (const auto& step : prog_.includeStack) {
+            if (!chain.empty()) chain += " -> ";
+            chain += fs::path(step).filename().string();
+        }
+        chain += " -> " + fs::path(full).filename().string();
+        throw BasicError("Zyklischer INCLUDE: " + chain, p, true);
+    }
     for (const auto& seen : prog_.includedFiles) {
         if (seen == full) return;
         if (fs::exists(seen, ec) && fs::exists(full, ec) && fs::equivalent(seen, full, ec))
@@ -1067,8 +1088,9 @@ StmtP Parser::parseSwap() {
  * Parameterliste einer Funktion oder Methode: `NAME: a, b$` oder `NAME(a, b)`.
  * Ein optionales ':' davor wird hier geschluckt.
  */
+// Der Doppelpunkt hinter dem Namen ist Pflicht und wurde vom Aufrufer schon
+// gelesen - er gehoert damit zur Kopfzeile von FUNCTION, SUB und METHOD.
 void Parser::parseParamList(std::vector<Param>& params) {
-    acceptSym(":");
     const bool parens = acceptSym("(");
     if (parens && acceptSym(")")) return;
     if (!parens && (cur().kind == Tok::Newline || cur().kind == Tok::Eof)) return;
@@ -1107,6 +1129,8 @@ void Parser::parseMethod(const std::string& typeName) {
     const std::string methodName = stripSuffix(cur().text);
     def.name = methodName;
     advance();
+    if (!acceptSym(":"))
+        error("Nach dem Methodennamen wird ':' erwartet - METHOD name: parameter");
     parseParamList(def.params);
     expectLineEnd();
     const std::string key = typeName + "." + methodName;
@@ -1137,9 +1161,13 @@ void Parser::parseFunction(bool isSub) {
     if (cur().kind != Tok::Ident) error("Funktionsname erwartet");
     def.name = stripSuffix(cur().text);
     advance();
+    // Kopfzeile immer mit Doppelpunkt: FUNCTION name: ... / SUB name: ...
     if (isSub) {
-        acceptSym(":");  // SUBs haben keine Parameter
+        if (!acceptSym(":")) error("Nach dem SUB-Namen wird ':' erwartet - SUB name:");
+        parseParamList(def.params);  // SUBs haben keine Parameter
     } else {
+        if (!acceptSym(":"))
+            error("Nach dem Funktionsnamen wird ':' erwartet - FUNCTION name: parameter");
         parseParamList(def.params);
     }
 

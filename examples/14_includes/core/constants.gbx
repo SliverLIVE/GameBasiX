@@ -1,0 +1,12 @@
+' Level 1 - plain constants, no INCLUDE of its own.
+' Loaded first, but the other files also include it; the second
+' INCLUDE finds the file already in the program and does nothing.
+
+CONSTANT MAX_HP% = 20
+CONSTANT GRAVITY = 9.81
+CONSTANT MOB_COUNT = 3
+CONSTANT WORLD_WIDTH = 640
+CONSTANT WORLD_HEIGHT = 360
+
+loadOrder$ = loadOrder$ + "constants "
+STDOUT "  loaded  core/constants.gbx" + CHR$(10)

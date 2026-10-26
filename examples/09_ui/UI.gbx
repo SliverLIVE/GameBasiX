@@ -114,12 +114,12 @@ TYPE UIWIDGET
   z = 0             ' drawing order; the highest z is on top
 
   ' --- absolute position on screen ---
-  METHOD ax
+  METHOD ax:
     IF win% >= 0 THEN RETURN x + UI_WIDGETS[win%].x
     RETURN x
   ENDMETHOD
 
-  METHOD ay
+  METHOD ay:
     IF win% >= 0 THEN RETURN y + UI_WIDGETS[win%].y + UI_WIDGETS[win%].insetY
     RETURN y
   ENDMETHOD
@@ -232,7 +232,7 @@ TYPE UI
   ENDMETHOD
 
   ' Remove every widget and start a new screen.
-  METHOD clear
+  METHOD clear:
     REDIM UI_WIDGETS[0] AS UIWIDGET
     REDIM UI_OPTS$[0]
     curWin% = -1
@@ -296,7 +296,7 @@ TYPE UI
     RETURN id
   ENDMETHOD
 
-  METHOD endWindow
+  METHOD endWindow:
     curWin% = -1
   ENDMETHOD
 
@@ -562,7 +562,7 @@ TYPE UI
     vtype$ = vtype$ + s$
   ENDMETHOD
 
-  METHOD flushKeys
+  METHOD flushKeys:
     LOCAL c$ = ""
     IF vm% = 1 THEN
       vtype$ = ""
@@ -574,7 +574,7 @@ TYPE UI
     WEND
   ENDMETHOD
 
-  METHOD takeText$
+  METHOD takeText$:
     LOCAL s$ = ""
     LOCAL out$ = ""
     LOCAL c$ = ""
@@ -632,7 +632,7 @@ TYPE UI
   ENDMETHOD
 
   ' ------------------------------------------------------ keyboard
-  METHOD handleKeys
+  METHOD handleKeys:
     LOCAL tab = 0
     LOCAL enter = 0
     LOCAL space = 0
@@ -806,7 +806,7 @@ TYPE UI
 
   ' Topmost widget under the mouse, windows included (a window body
   ' blocks everything below it).
-  METHOD pick
+  METHOD pick:
     LOCAL i = 0
     LOCAL k = 0
     LOCAL best = -1
@@ -831,7 +831,7 @@ TYPE UI
   ENDMETHOD
 
   ' ------------------------------------------------------ mouse
-  METHOD handleMouse
+  METHOD handleMouse:
     LOCAL fresh = 0
     LOCAL up = 0
     LOCAL skip = 0
@@ -1236,7 +1236,7 @@ TYPE UI
     NEXT
   ENDMETHOD
 
-  METHOD drawAll
+  METHOD drawAll:
     LOCAL i = 0
     LOCAL pass = 0
     LOCAL best = 0
@@ -1270,7 +1270,7 @@ TYPE UI
   ENDMETHOD
 
   ' ------------------------------------------------------ frame
-  METHOD run
+  METHOD run:
     LOCAL px = 0
     LOCAL py = 0
     LOCAL l = 0

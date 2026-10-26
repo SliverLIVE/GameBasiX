@@ -66,6 +66,7 @@ export const EDITOR_THEME_FIELDS = [
   { group: 'tokens', key: 'directive', label: 'Präprozessor' },
   { group: 'tokens', key: 'type', label: 'Eingebauter Typ' },
   { group: 'tokens', key: 'userType', label: 'Eigener Typ' },
+  { group: 'tokens', key: 'func', label: 'Funktionsname' },
   { group: 'tokens', key: 'number', label: 'Zahl' },
   { group: 'tokens', key: 'string', label: 'Zeichenkette' },
   { group: 'tokens', key: 'operator', label: 'Operator' },
@@ -96,7 +97,8 @@ export const DEFAULT_EDITOR_THEMES = {
       operator: '#89ddff',
       delimiter: '#8b98a8',
       identifier: '#d7e0ea',
-      label: '#ffb454'
+      label: '#ffb454',
+      func: '#82aaff'
     },
     colors: {
       background: '#0e1116',
@@ -121,7 +123,8 @@ export const DEFAULT_EDITOR_THEMES = {
       operator: '#0b6f8a',
       delimiter: '#6b7280',
       identifier: '#1f2733',
-      label: '#a15c00'
+      label: '#a15c00',
+      func: '#0b57a4'
     },
     colors: {
       background: '#ffffff',
@@ -164,7 +167,8 @@ export const EDITOR_THEME_PRESETS = {
           operator: '#9be7ff',
           delimiter: '#b6c2cf',
           identifier: '#ffffff',
-          label: '#ffc16b'
+          label: '#ffc16b',
+          func: '#8fd7ff'
         },
         colors: {
           background: '#07090c',
@@ -192,7 +196,8 @@ export const EDITOR_THEME_PRESETS = {
           operator: '#8fb8c7',
           delimiter: '#7f8a96',
           identifier: '#c8d2dc',
-          label: '#d9a864'
+          label: '#d9a864',
+          func: '#8fb0cf'
         },
         colors: {
           background: '#12161b',
@@ -223,7 +228,8 @@ export const EDITOR_THEME_PRESETS = {
           operator: '#005f7a',
           delimiter: '#4a5560',
           identifier: '#000000',
-          label: '#8a4a00'
+          label: '#8a4a00',
+          func: '#004a99'
         },
         colors: {
           background: '#ffffff',
@@ -251,7 +257,8 @@ export const EDITOR_THEME_PRESETS = {
           operator: '#5f7f8f',
           delimiter: '#8a949c',
           identifier: '#3b4650',
-          label: '#8a6a3a'
+          label: '#8a6a3a',
+          func: '#3f6b8a'
         },
         colors: {
           background: '#fbfbf8',
@@ -323,7 +330,8 @@ export function editorThemeData(spec, mode = 'dark') {
       { token: 'operator.word', foreground: bare(tokens.operator) },
       { token: 'delimiter', foreground: bare(tokens.delimiter) },
       { token: 'identifier', foreground: bare(tokens.identifier) },
-      { token: 'label', foreground: bare(tokens.label), fontStyle: 'italic' }
+      { token: 'label', foreground: bare(tokens.label), fontStyle: 'italic' },
+      { token: 'function.name', foreground: bare(tokens.func), fontStyle: 'bold' }
     ],
     colors: {
       'editor.background': c.background,
@@ -346,13 +354,14 @@ export function editorThemeData(spec, mode = 'dark') {
   };
 }
 
-/** Setzt Theme und die CSS-Farbe für eigene TYPEs. */
+/** Setzt Theme und die CSS-Farben für eigene TYPEs und FUNCTIONs. */
 export function applyEditorTheme(monaco, spec, mode = 'dark') {
   const theme = normalizeEditorTheme(spec, mode);
   monaco.editor.defineTheme(THEME_NAME, editorThemeData(theme, mode));
   monaco.editor.setTheme(THEME_NAME);
   if (typeof document !== 'undefined') {
     document.documentElement.style.setProperty('--gbx-user-type', theme.tokens.userType);
+    document.documentElement.style.setProperty('--gbx-func', theme.tokens.func);
   }
   return theme;
 }
@@ -625,6 +634,63 @@ export function findUserTypeRanges(text, names) {
     while ((match = word.exec(line))) {
       if (!wanted.has(match[0].toUpperCase())) continue;
       ranges.push({ line: index + 1, startColumn: match.index + 1, endColumn: match.index + match[0].length + 1 });
+    }
+  });
+  return ranges;
+}
+
+/**
+ * Bereiche eigener FUNCTION-Namen im Code. Eigene Funktionen duerfen wie
+ * Befehle ohne Klammern geschrieben werden (`DRAW_HUD`) - deshalb wird jeder
+ * Treffer gefaerbt, ausser einem Feldzugriff (obj.name).
+ */
+export function findUserFunctionRanges(text, names) {
+  const wanted = new Set();
+  for (const name of names || []) {
+    const clean = String(name || '').trim();
+    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean.toUpperCase());
+  }
+  if (!wanted.size) return [];
+  const ranges = [];
+  stripCommentsAndStrings(String(text || '')).split(/\r?\n/).forEach((line, index) => {
+    if (!line) return;
+    const word = /[A-Za-z_]\w*[%$#]?/g;
+    let match;
+    while ((match = word.exec(line))) {
+      if (!wanted.has(match[0].toUpperCase())) continue;
+      if (match.index > 0 && line[match.index - 1] === '.') continue;
+      ranges.push({ line: index + 1, startColumn: match.index + 1, endColumn: match.index + match[0].length + 1 });
+    }
+  });
+  return ranges;
+}
+
+/**
+ * Bereiche von METHOD-Aufrufen (`obj.name(...)`, `self.name(...)`). Gefaerbt
+ * wird nur der Methodenname und nur, wenn wirklich eine Klammer folgt und der
+ * Name zu einer METHOD eines TYPEs gehoert - Variablen bleiben unberuehrt.
+ */
+export function findUserMethodRanges(text, names) {
+  const wanted = new Set();
+  for (const name of names || []) {
+    const clean = String(name || '').trim();
+    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean.toUpperCase());
+  }
+  if (!wanted.size) return [];
+  const ranges = [];
+  // Empfaenger (auch Feld/Index wie liste[2]) . Methode (Leerraum) (
+  const call = /[A-Za-z_]\w*(?:\s*\[[^\]]*\])*\s*\.\s*([A-Za-z_]\w*[%$#]?)(\s*)\(/g;
+  stripCommentsAndStrings(String(text || '')).split(/\r?\n/).forEach((line, index) => {
+    if (!line) return;
+    call.lastIndex = 0;
+    let match;
+    while ((match = call.exec(line))) {
+      const method = match[1];
+      if (!wanted.has(method.toUpperCase())) continue;
+      // Spalte des Methodennamens: hinter dem Namen stehen nur Leerzeichen
+      // und die Klammer.
+      const start = match.index + match[0].length - 1 - match[2].length - method.length;
+      ranges.push({ line: index + 1, startColumn: start + 1, endColumn: start + method.length + 1 });
     }
   });
   return ranges;
@@ -1131,6 +1197,18 @@ export function registerGbx(monaco, dataset, options = {}) {
           // Vor der Leerraum-Regel: sonst ist der Zeilenanfang schon verbraucht
           // und ein eingerueckter INLINE-Block beginnt nie.
           [/^\s*INLINE\s*$/, { token: 'keyword.control', next: '@inline', nextEmbedded: 'cpp' }],
+          // Kopfzeile von FUNCTION/SUB/METHOD: der Name hinter dem Schluesselwort
+          // und der Doppelpunkt bekommen eine eigene Farbe (FUNCTION name: …).
+          // Der Doppelpunkt ist Pflicht; Zeilen ohne ihn werden trotzdem als
+          // Name gefaerbt, den Fehler meldet der Parser.
+          [
+            /^(\s*)(FUNCTION|SUB|METHOD)(\s+)([A-Za-z_]\w*[$%#]?)(\s*:)/,
+            ['white', 'keyword.control', 'white', 'function.name', 'function.name']
+          ],
+          [
+            /^(\s*)(FUNCTION|SUB|METHOD)(\s+)([A-Za-z_]\w*[$%#]?)(?!\s*:)/,
+            ['white', 'keyword.control', 'white', 'function.name']
+          ],
           [/\s+/, 'white'],
           [/'.*$/, 'comment'],
           [/\/\/.*$/, 'comment'],
@@ -1374,11 +1452,17 @@ export function registerGbx(monaco, dataset, options = {}) {
       }
 
       const symbols = getSymbols();
+      // Eigene Funktionen aus einer anderen Datei zeigen ihren Fundort.
+      const currentFile = decodeURIComponent(model.uri.path || '').replace(/\\/g, '/');
+      const fileHint = (file) =>
+        file && !currentFile.endsWith('/' + String(file).replace(/\\/g, '/')) ? ` · ${file}` : '';
       for (const fn of symbols.functions) {
         suggestions.push({
           label: fn.name,
           kind: fn.kind === 'SUB' ? languages.CompletionItemKind.Method : languages.CompletionItemKind.Function,
-          detail: `${fn.kind}${fn.params?.length ? ' · ' + fn.params.map((p) => p.name).join(', ') : ''}`,
+          detail: `${fn.kind}${
+            fn.params?.length ? ' · ' + fn.params.map((p) => p.name).join(', ') : ''
+          }${fileHint(fn.file)}`,
           documentation: `**${fn.kind} ${fn.name}**${
             fn.params?.length
               ? `\n\n${t('Parameter: {params}', { params: fn.params.map((p) => `\`${p.name}\``).join(', ') })}`
@@ -1502,6 +1586,14 @@ export function registerGbx(monaco, dataset, options = {}) {
     }
   });
 
+  /** Herkunft eines eigenen Symbols: "Definiert in datei.gbx:12 · F12". */
+  function originText(symbol) {
+    if (!symbol?.file) return '';
+    return `\n\n${t('Definiert in {file}:{line}', { file: symbol.file, line: symbol.line })}\n\nF12 · ${t(
+      'Rechtsklick → Gehe zu Definition'
+    )}`;
+  }
+
   function staticHover(model, position) {
     const hit = wordAt(model, position);
     if (!hit) return null;
@@ -1589,7 +1681,9 @@ export function registerGbx(monaco, dataset, options = {}) {
       const params = fn.params?.length ? fn.params.map((p) => `\`${p.name}\``).join(', ') : t('keine');
       return {
         range: hit.range,
-        contents: [{ value: `**${fn.kind} ${fn.name}**\n\n${t('Parameter: {params}', { params })}` }]
+        contents: [
+          { value: `**${fn.kind} ${fn.name}**\n\n${t('Parameter: {params}', { params })}${originText(fn)}` }
+        ]
       };
     }
     for (const type of symbols.types) {
@@ -1600,7 +1694,9 @@ export function registerGbx(monaco, dataset, options = {}) {
         range: hit.range,
         contents: [
           {
-            value: `**${method.kind} ${type.name}.${method.name}**\n\n${t('Parameter: {params}', { params })}`
+            value: `**${method.kind} ${type.name}.${method.name}**\n\n${t('Parameter: {params}', {
+              params
+            })}${originText({ file: type.file, line: method.line })}`
           }
         ]
       };
@@ -1624,7 +1720,7 @@ export function registerGbx(monaco, dataset, options = {}) {
         range: hit.range,
         contents: [
           {
-            value: `**TYPE ${type.name}**\n\n${(type.members || [])
+            value: `**TYPE ${type.name}**${originText(type)}\n\n${(type.members || [])
               .map((m) => `- \`${m.name}\`${m.type ? ': ' + m.type : ''}`)
               .join('\n') || t('Keine Member')}${
               (type.methods || []).length

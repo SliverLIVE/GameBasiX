@@ -1,0 +1,26 @@
+' Level 1 - includes the entity file, which itself includes maths and
+' constants. Everything lands in the same program, so level.gbx can use
+' the TYPE and the array from game/entities.gbx right away.
+INCLUDE "entities.gbx"
+
+FUNCTION levelRows:
+  RETURN 7
+ENDFUNCTION
+
+FUNCTION levelName$:
+  RETURN "Training Ground " + FORMAT$(0, 0, levelRows())
+ENDFUNCTION
+
+FUNCTION spawnWave:
+  FOR i = 0 TO MOB_COUNT - 1
+    mobs[i].name$ = "Slime " + FORMAT$(0, 0, i + 1)
+    mobs[i].hp% = MAX_HP%
+    mobs[i].alive% = 1
+    mobs[i].x = 40 + i * 80
+    mobs[i].y = 120
+  NEXT
+  RETURN MOB_COUNT
+ENDFUNCTION
+
+loadOrder$ = loadOrder$ + "level "
+STDOUT "  loaded  game/level.gbx" + CHR$(10)
