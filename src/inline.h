@@ -49,6 +49,16 @@ struct StepScope {
 /** Fuehrt den Schritt-Block mit diesem Index aus (er muss uebersetzt sein). */
 void runStep(const Program& prog, size_t index, StepScope& scope);
 
+/**
+ * Zusaetzliche C++-Bibliotheken aus der Projektdatei ([native]): Archive
+ * (.a/.o), Suchordner (-L) und weitere Flags. Sie landen in der Kommandozeile
+ * des Compilers, der die INLINE-Bloecke uebersetzt, und gehen in den
+ * Cache-Namen ein. Pfade muessen absolut sein; main.cpp loest die Angaben der
+ * Projektdatei gegen den Projektordner auf.
+ */
+void setNativeOptions(std::vector<std::string> libs, std::vector<std::string> libDirs,
+                      std::vector<std::string> flags);
+
 /** Uebersetzt die Bloecke (mit Cache) und meldet ihre Funktionen an.
  *  Wirft BasicError mit der Compilermeldung, wenn das Uebersetzen scheitert.
  *  Ist eine fertige Bibliothek im Spielpaket (neben den Quellen), wird sie

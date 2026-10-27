@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #include "common.h"
 
@@ -31,6 +32,24 @@ std::string unquote(const std::string& s) {
                           (s.front() == '\'' && s.back() == '\'')))
         return s.substr(1, s.size() - 2);
     return s;
+}
+
+/** Eine Werteliste an Leerzeichen zerlegen: "a.a b.a" -> {a.a, b.a}. */
+std::vector<std::string> splitList(const std::string& value) {
+    std::vector<std::string> out;
+    std::string item;
+    for (char c : value) {
+        if (c == ' ' || c == '\t') {
+            if (!item.empty()) {
+                out.push_back(item);
+                item.clear();
+            }
+        } else {
+            item.push_back(c);
+        }
+    }
+    if (!item.empty()) out.push_back(item);
+    return out;
 }
 
 bool toBool(const std::string& v) {
@@ -90,6 +109,11 @@ ProjectConfig loadProject(const std::string& path) {
             else if (key == "VOLUME") cfg.musicVolume = std::atof(val.c_str());
         } else if (section == "ASSETS" || section == "PATHS") {
             if (key == "ROOT" || key == "DIR") cfg.assetDir = val;
+        } else if (section == "NATIVE") {
+            // Bibliotheken fuer die INLINE-Bloecke: Archive, Suchordner, Flags.
+            if (key == "LIBS" || key == "LIB" || key == "LIBRARIES") cfg.nativeLibs = splitList(val);
+            else if (key == "LIBDIRS" || key == "LIBDIR" || key == "LIBPATH") cfg.nativeLibDirs = splitList(val);
+            else if (key == "FLAGS" || key == "FLAG") cfg.nativeFlags = splitList(val);
         }
     }
 

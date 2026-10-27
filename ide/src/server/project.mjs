@@ -48,6 +48,10 @@ function defaultProject(name, sources) {
     audio: true,
     volume: 1,
     assetDir: 'assets',
+    // [native]: C++-Bibliotheken fuer die INLINE-Bloecke (siehe projectFileText).
+    nativeLibs: [],
+    nativeLibDirs: [],
+    nativeFlags: '',
     sources,
     openFiles: [...sources],
     createdAt: new Date().toISOString()
@@ -202,6 +206,7 @@ function parseProjectFile(text) {
   const graphics = ini.GRAPHICS || {};
   const audio = ini.AUDIO || {};
   const assets = ini.ASSETS || ini.PATHS || {};
+  const native = ini.NATIVE || {};
   const out = {};
   if (project.NAME) out.appName = project.NAME;
   if (project.MAIN || project.ENTRY) out.entry = project.MAIN || project.ENTRY;
@@ -215,7 +220,22 @@ function parseProjectFile(text) {
   out.audio = iniBool(audio.ENABLED, true);
   if (audio.VOLUME !== undefined) out.volume = Math.min(1, Math.max(0, iniNumber(audio.VOLUME, 1)));
   if (assets.ROOT || assets.DIR) out.assetDir = assets.ROOT || assets.DIR;
+  // [native]: Bibliotheken, Suchordner (-L) und weitere Flags der INLINE-Bloecke.
+  const libs = native.LIBS ?? native.LIB ?? native.LIBRARIES;
+  if (libs !== undefined) out.nativeLibs = splitWords(libs);
+  const libDirs = native.LIBDIRS ?? native.LIBDIR ?? native.LIBPATH;
+  if (libDirs !== undefined) out.nativeLibDirs = splitWords(libDirs);
+  const flags = native.FLAGS ?? native.FLAG;
+  if (flags !== undefined) out.nativeFlags = String(flags).trim();
   return out;
+}
+
+/** Eine Werteliste an Leerzeichen zerlegen (so schreibt sie die Projektdatei). */
+function splitWords(value) {
+  return String(value ?? '')
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function iniValue(value) {
@@ -251,9 +271,20 @@ export function projectFileText(project) {
     `volume = ${Math.min(1, Math.max(0, Number(p.volume ?? 1)))}`,
     '',
     '[assets]',
-    `root = ${iniValue(p.assetDir || 'assets')}`,
-    ''
+    `root = ${iniValue(p.assetDir || 'assets')}`
   ];
+  // [native] nur schreiben, wenn es gefuellt ist: Projekte ohne eigene
+  // Bibliotheken behalten ihre gewohnte Datei.
+  const libs = (Array.isArray(p.nativeLibs) ? p.nativeLibs : splitWords(p.nativeLibs)).filter(Boolean);
+  const libDirs = (Array.isArray(p.nativeLibDirs) ? p.nativeLibDirs : splitWords(p.nativeLibDirs)).filter(Boolean);
+  const flags = String(p.nativeFlags || '').trim();
+  if (libs.length || libDirs.length || flags) {
+    lines.push('', '[native]');
+    if (libs.length) lines.push(`libs = ${iniValue(libs.join(' '))}`);
+    if (libDirs.length) lines.push(`libdirs = ${iniValue(libDirs.join(' '))}`);
+    if (flags) lines.push(`flags = ${iniValue(flags)}`);
+  }
+  lines.push('');
   return lines.join('\r\n');
 }
 

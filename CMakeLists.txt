@@ -215,6 +215,14 @@ if(Python3_Interpreter_FOUND)
                    $<TARGET_FILE:gbx>)
   set_tests_properties(export PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+  # Fremde Bibliotheken ([native]): .a mitlinken, Cache, Flags, Export
+  add_test(NAME native
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/check_native.py
+                   $<TARGET_FILE:gbx>)
+  set_tests_properties(native PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    ENVIRONMENT "GBX_CXX=${CMAKE_CXX_COMPILER}")
+
   # Steam-Befehle gegen eine Mock-steam_api (kein Steam noetig)
   add_test(NAME steam
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/check_steam.py

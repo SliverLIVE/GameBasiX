@@ -2647,6 +2647,20 @@ function resolvedHint(info) {
   return `<div class="hint">${t('Liegt unter: {path}', { path: escapeAttr(resolved) })}</div>`;
 }
 
+/** Liste aus der Projektdatei als Inhalt eines Textfelds (Leerzeichen getrennt). */
+function listText(value) {
+  if (Array.isArray(value)) return value.join(' ');
+  return String(value ?? '');
+}
+
+/** Inhalt eines Textfelds als Liste - so schreibt die Projektdatei sie. */
+function splitWords(value) {
+  return String(value || '')
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 async function settingsDialog() {
   const gbx = state.gbx || {};
   const cxx = state.cxx || state.health?.cxx || {};
@@ -2788,6 +2802,21 @@ async function settingsDialog() {
         <label>${t('Asset-Ordner')}</label>
         <input type="text" id="set-assets" value="${escapeAttr(p.assetDir || 'assets')}" spellcheck="false" ${state.project ? '' : 'disabled'}>
         <div class="hint">${t('Zusätzlicher Suchpfad für Bilder, Schriften und Sounds. Relative Pfade gelten ab dem Projektordner.')}</div>
+      </div>
+      <div class="field">
+        <label>${t('C++-Bibliotheken (INLINE)')}</label>
+        <input type="text" id="set-native-libs" value="${escapeAttr(listText(p.nativeLibs))}" spellcheck="false" placeholder="lib/mylib.a" ${state.project ? '' : 'disabled'}>
+        <div class="hint">${t('Archive (.a) und Objektdateien (.o) für die INLINE-Blöcke, durch Leerzeichen getrennt. Sie werden beim Übersetzen der Blöcke mitgelinkt; relative Pfade gelten ab dem Projektordner.')}</div>
+      </div>
+      <div class="field">
+        <label>${t('Bibliotheks-Ordner')}</label>
+        <input type="text" id="set-native-libdirs" value="${escapeAttr(listText(p.nativeLibDirs))}" spellcheck="false" placeholder="lib" ${state.project ? '' : 'disabled'}>
+        <div class="hint">${t('Suchordner für Bibliotheken; sie gehen als -L an den Compiler.')}</div>
+      </div>
+      <div class="field">
+        <label>${t('Compiler-Flags')}</label>
+        <input type="text" id="set-native-flags" value="${escapeAttr(p.nativeFlags || '')}" spellcheck="false" placeholder="-lmy -DMY_FLAG=1" ${state.project ? '' : 'disabled'}>
+        <div class="hint">${t('Weitere Flags für den g++-Aufruf der INLINE-Blöcke, zum Beispiel -lmeine-lib oder -DFOO=1.')}</div>
       </div>
     </section>
 
@@ -3258,6 +3287,9 @@ async function settingsDialog() {
               state.project.vsync = body.querySelector('#set-vsync').checked;
               state.project.audio = body.querySelector('#set-audio').checked;
               state.project.assetDir = body.querySelector('#set-assets').value.trim();
+              state.project.nativeLibs = splitWords(body.querySelector('#set-native-libs').value);
+              state.project.nativeLibDirs = splitWords(body.querySelector('#set-native-libdirs').value);
+              state.project.nativeFlags = body.querySelector('#set-native-flags').value.trim();
               await post('/api/project/save', { projectDir: state.projectDir, project: state.project });
               updateStatus();
             }

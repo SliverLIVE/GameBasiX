@@ -138,6 +138,7 @@ Instead of `.gbas`, GBX uses two clearly separated files:
 
 * **`.gbx`** – source text (UTF-8, one statement per line, `'` or `//` as comment)
 * **`.gbxproj`** – project file in INI style: window, entry point, FPS, asset folder
+  and optionally C++ libraries for the `INLINE` blocks
 
 Example `hello.gbxproj`:
 
@@ -180,6 +181,51 @@ still being parsed is a cycle: the error names the chain
 (`Cyclic INCLUDE: main.gbx -> a.gbx -> main.gbx`) instead of piling up duplicate
 definitions. See
 [`examples/14_includes`](#examples) for a console test of that.
+
+### Foreign C++ libraries
+
+A project that uses `INLINE` can link libraries that are already built –
+`mylib.a` from another project, a helper object file, or an import library for
+a DLL. The optional `[native]` section puts them into the `g++` call that
+compiles the blocks:
+
+```ini
+[native]
+libs = lib/mylib.a lib/native.a   ; archives (.a) and object files (.o)
+libdirs = lib                     ; search folders, passed as -L
+flags = -lmy -DFOO=1              ; further flags for the call
+```
+
+* Values are separated by spaces, relative paths start at the project folder.
+* The archives are placed **behind** the source file, because a linker only
+  pulls an archive apart once it knows the need for it. From two archives on
+  they are wrapped in `-Wl,--start-group … --end-group`, so mutual references
+  between them resolve in any order.
+* The flags go behind the source as well: `-D`/`-I` apply to all files anyway,
+  a link flag like `-lmy` has to stand after the object that uses it.
+* Archives have to match the toolchain that compiles the blocks (MinGW-w64 GCC
+  for the Windows build; an MSVC `.lib` does not fit). A C header needs
+  `extern "C"`, a C++ `.a` built with the same compiler needs no wrapper.
+* A missing archive is reported with its path instead of a bare linker error.
+* Size and time stamp of the archives are part of the cache key: rebuilding a
+  `.a` compiles the blocks again instead of reusing the old DLL.
+* `--check` starts no compiler, and `--export` bakes the archives into the
+  embedded DLL – a shipped game still needs no compiler and no `.a`.
+* The HTML5 build compiles the blocks with Emscripten, so `[native]` applies to
+  the desktop build only.
+
+A header that registers commands from a library looks like any other `INLINE`
+definition – it just calls into the archive:
+
+```cpp
+#include <gbx_inline.h>
+#include "mylib.h"                     // declares my_add(int, int)
+
+static void add(const GbxValue* args, int argc, GbxValue* ret) {
+    gbxinline::retNum(ret, my_add(gbxinline::argNum(args, argc, 0), 2));
+}
+GBX_INLINE_FN("ADD2", 1, 1, add);
+```
 
 ## The language at a glance
 
@@ -434,8 +480,10 @@ Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
   coordinates.
 * **`INLINE`** compiles the C++ blocks with `g++` (the package ships one):
   definitions are loaded as a DLL at startup, steps run in the middle of the
-  code (see [INLINE](#inline-c-inside-the-basic-program)). There is no
-  `IMPORT` or `REQUIRE`.
+  code (see [INLINE](#inline-c-inside-the-basic-program)). Prebuilt libraries
+  come from the `[native]` section of the project file
+  ([Foreign C++ libraries](#foreign-c-libraries)). There is no `IMPORT` or
+  `REQUIRE`.
 * **Network**: sockets never block. `NET_ACCEPT`, `NET_RECV$`, `UDP_RECV$` and
   `NET_PENDING` return immediately; only `NET_CONNECT` waits, at most for its
   timeout (default 3000 ms). Handles are positive integers and shared by TCP
@@ -643,7 +691,9 @@ ENDFUNCTION
   `.gbx` file and to the project folder) and register functions with
   `GBX_INLINE_FN("NAME", minArgs, maxArgs, function)`. Numbers arrive as
   `double` (`gbxinline::argNum`), texts as UTF-8 (`gbxinline::argText`);
-  arrays/TYPEs cannot be passed that way.
+  arrays/TYPEs cannot be passed that way. Ready-built `.a` archives are linked
+  in through the `[native]` section of the project file
+  ([Foreign C++ libraries](#foreign-c-libraries)).
 * **Arrays** can also be resized inside a step – like `GBXArray`, but directly
   on the BASIC array: `list.push(42)`, `list.insert(0, 7)`, `list.remove(-1)`,
   `list.clear()` and `list.resize(20)` (like `REDIM`, existing values stay).
@@ -869,6 +919,7 @@ python tools/check_commands.py                       # every command once
 python tools/check_debug.py                          # debugger protocol
 python tools/check_export.py                         # game as a single EXE
 python tools/check_steam.py                          # STEAM* against a mock library
+python tools/check_native.py                         # foreign .a in INLINE blocks
 ./build/gbx.exe --tests tests/inline_tests.gbx        # 84 INLINE checks
 ./build/gbx.exe --tests tests/platformer_tests.gbx   # platformer physics
 ```
@@ -931,6 +982,12 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 
 **October 2026**
 
+* **Foreign C++ libraries**: the new `[native]` section of the `.gbxproj` links
+  prebuilt archives (`.a`, `.o`) into the `INLINE` blocks – plus search folders
+  (`libdirs`) and extra flags. Size and time stamp of every archive go into the
+  cache key, so a rebuilt library is picked up; a missing one is reported by
+  name. The export bakes them into the embedded DLL, and the IDE has fields for
+  all three values in the project settings.
 * **Jump to the definition**: right click a `FUNCTION`, `SUB`, `METHOD`, `TYPE` or
   `CONSTANT` in the editor (or press `F12`) and it opens where it is defined –
   also when the definition lives in another file. The hover shows the origin
@@ -989,6 +1046,7 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 * **Network and Steam**: `NET*`/`UDP*` sockets and `STEAM*` P2P packets, friend
   list and relay state, loaded from `steam_api` at runtime – the build needs no
   SDK, and the IDE shows both groups in its command reference.
-* **Test status**: 133 language checks, 84 INLINE checks, 79 UI checks, 47 file
+* **Test status**: 133 language checks, 84 INLINE checks, 10 library checks
+  (`tools/check_native.py`), 79 UI checks, 47 file
   checks, 28 network checks, 26 Steam checks (against a mock `steam_api`),
   24 IDE checks (`ide: npm test`), 219 built-in commands/functions.

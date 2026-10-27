@@ -291,6 +291,25 @@ int main(int argc, char** argv) {
         return 2;
     }
 
+    // Sektion [native] der Projektdatei: fremde C++-Bibliotheken (.a/.o) fuer
+    // die INLINE-Bloecke. Relative Angaben gelten ab dem Projektordner.
+    {
+        const auto resolveAll = [&cfg](const std::vector<std::string>& items) {
+            std::vector<std::string> out;
+            out.reserve(items.size());
+            for (const auto& item : items) {
+                fs::path where(item);
+                if (!where.is_absolute()) where = fs::path(cfg.projectDir) / where;
+                std::error_code ec;
+                const fs::path full = fs::absolute(where, ec);
+                out.push_back((ec ? where : full).lexically_normal().string());
+            }
+            return out;
+        };
+        gbxinline_runtime::setNativeOptions(resolveAll(cfg.nativeLibs), resolveAll(cfg.nativeLibDirs),
+                                           cfg.nativeFlags);
+    }
+
     // Der Debugger laeuft schon waehrend des Uebersetzens, damit auch
     // Syntaxfehler als Debug-Meldung bei der IDE ankommen.
     std::unique_ptr<Debugger> dbg;

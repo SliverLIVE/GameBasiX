@@ -233,6 +233,35 @@ try {
     assert.deepEqual(opened.project.sources, ['main.gbx']);
   });
 
+  await check('Sektion [native] round-trip', async () => {
+    const project = {
+      ...opened.project,
+      nativeLibs: ['lib/mylib.a'],
+      nativeLibDirs: ['lib'],
+      nativeFlags: '-lmy -DFOO=1'
+    };
+    await request('/api/project/save', { projectDir: dir, project }, 'POST');
+    const file = path.join(dir, 'Smoke.gbxproj');
+    const text = fs.readFileSync(file, 'utf8');
+    assert.ok(text.includes('[native]'), '[native] fehlt');
+    assert.ok(text.includes('libs = lib/mylib.a'), 'libs fehlt');
+    assert.ok(text.includes('libdirs = lib'), 'libdirs fehlt');
+    assert.ok(text.includes('-lmy -DFOO=1'), 'flags fehlen');
+
+    const again = await request('/api/project/open', { path: dir }, 'POST');
+    assert.deepEqual(again.project.nativeLibs, ['lib/mylib.a']);
+    assert.deepEqual(again.project.nativeLibDirs, ['lib']);
+    assert.equal(again.project.nativeFlags, '-lmy -DFOO=1');
+
+    // Ohne Einträge bleibt die Datei wie vorher: kein leerer Abschnitt.
+    await request(
+      '/api/project/save',
+      { projectDir: dir, project: { ...project, nativeLibs: [], nativeLibDirs: [], nativeFlags: '' } },
+      'POST'
+    );
+    assert.ok(!fs.readFileSync(file, 'utf8').includes('[native]'), '[native] blieb stehen');
+  });
+
   await check('Befehle aus GBX_INLINE_FN werden gesammelt', async () => {
     await request(
       '/api/file',

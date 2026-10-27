@@ -2,6 +2,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 struct ProjectConfig {
     std::string name = "GBX Programm";
@@ -22,6 +23,14 @@ struct ProjectConfig {
     double musicVolume = 1.0;
 
     std::string assetDir = "assets";
+
+    // Sektion [native]: C++-Bibliotheken fuer die INLINE-Bloecke. Ein Archiv
+    // (.a) oder eine Objektdatei (.o) wird beim Uebersetzen mitgelinkt; dazu
+    // Suchordner (-L) und weitere Flags. Relative Angaben gelten ab dem
+    // Projektordner. Siehe README, Abschnitt "Native libraries".
+    std::vector<std::string> nativeLibs;
+    std::vector<std::string> nativeLibDirs;
+    std::vector<std::string> nativeFlags;
 };
 
 // Liest eine .gbxproj-Datei. Wirft BasicError bei Fehlern.

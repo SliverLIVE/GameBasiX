@@ -401,6 +401,71 @@ std::string inlineIncludeDir() {
 
 std::string quote(const std::string& text) { return "\"" + text + "\""; }
 
+// ---------------------------------------- Fremde Bibliotheken ([native])
+
+/** Angaben aus der Projektdatei: Archive, Suchordner und weitere Flags. */
+struct NativeOptions {
+    std::vector<std::string> libs;
+    std::vector<std::string> libDirs;
+    std::vector<std::string> flags;
+};
+
+NativeOptions g_native;
+
+/** Suchordner (-L) und die freien Flags der Projektdatei. */
+std::string nativeArguments() {
+    std::string out;
+    for (const auto& dir : g_native.libDirs) out += " -L" + quote(dir);
+    return out;
+}
+
+/**
+ * Freie Flags aus [native]. Sie stehen hinter der Quelldatei: -D und -I gelten
+ * ohnehin fuer alle Dateien, ein Link-Flag wie -lmylib muss aber nach dem
+ * Objekt stehen, das das Symbol braucht.
+ */
+std::string nativeFlags() {
+    std::string out;
+    for (const auto& flag : g_native.flags) out += " " + flag;
+    return out;
+}
+
+/**
+ * Die Archive fuer die Kommandozeile. Sie stehen hinter der Quelldatei, weil
+ * ein Linker ein Archiv nur aufloest, wenn er den Bedarf schon kennt. Ab zwei
+ * Archiven klammert --start-group sie zusammen: sonst bliebe bei gegenseitigen
+ * Verweisen ein Rest offen.
+ */
+std::string nativeInputs() {
+    if (g_native.libs.empty()) return std::string();
+    const bool group = g_native.libs.size() > 1;
+    std::string out = group ? " -Wl,--start-group" : "";
+    for (const auto& lib : g_native.libs) out += " " + quote(lib);
+    if (group) out += " -Wl,--end-group";
+    return out;
+}
+
+/**
+ * Kennung der Bibliotheken fuer den Cache-Namen: Pfad, Groesse und
+ * Zeitstempel. Ohne den Fingerabdruck bliebe nach einem Neubau der .a die alte
+ * Bibliothek liegen und das Programm liefe mit dem alten Code.
+ */
+std::string nativeKey() {
+    std::string key;
+    for (const auto& dir : g_native.libDirs) key += "L" + dir + "|";
+    for (const auto& flag : g_native.flags) key += "F" + flag + "|";
+    for (const auto& lib : g_native.libs) {
+        key += "A" + lib;
+        std::error_code ec;
+        const fs::file_time_type stamp = fs::last_write_time(lib, ec);
+        if (!ec) key += ":" + std::to_string(static_cast<long long>(stamp.time_since_epoch().count()));
+        const std::uintmax_t size = fs::file_size(lib, ec);
+        if (!ec) key += ":" + std::to_string(static_cast<unsigned long long>(size));
+        key += "|";
+    }
+    return key;
+}
+
 /** Ein Programm starten und seine Ausgabe (stdout+stderr) einsammeln. */
 bool runTool(const std::string& program, const std::string& args, std::string& output) {
     output.clear();
@@ -963,7 +1028,8 @@ fs::path libraryPath(const Program& prog, const std::string& compiler, const std
     const std::string source = generatedSource(prog);
     // "build-2": Die Windows-Bloecke werden seit dieser Fassung mit -static
     // gelinkt. Der Zusatz macht alte DLLs im Cache ungueltig.
-    const std::string key = source + "|" + compiler + "|" + includeDir + "|build-2";
+    const std::string key =
+        source + "|" + compiler + "|" + includeDir + "|build-2|" + nativeKey();
     std::error_code ec;
     fs::path dir = fs::temp_directory_path(ec) / "gbx-inline";
     fs::create_directories(dir, ec);
@@ -977,6 +1043,15 @@ fs::path libraryPath(const Program& prog, const std::string& compiler, const std
 /** Uebersetzt den Blocktext; liefert false und die Compilermeldung. */
 bool build(const Program& prog, const std::string& compiler, const std::string& includeDir,
            const fs::path& library, std::string& report) {
+    // Fehlende Archive vorher melden: sonst kommt nur ein Linkerfehler ohne
+    // Hinweis darauf, wo der Eintrag fehlt.
+    for (const auto& lib : g_native.libs) {
+        std::error_code missing;
+        if (!fs::exists(lib, missing)) {
+            report = "Bibliothek nicht gefunden: " + lib + " (LIBS in [native] der Projektdatei)";
+            return false;
+        }
+    }
     std::error_code ec;
     const fs::path work = library.parent_path();
     fs::create_directories(work, ec);
@@ -1015,7 +1090,9 @@ bool build(const Program& prog, const std::string& compiler, const std::string& 
 #ifdef _WIN32
     command += " -static-libgcc -static-libstdc++";
 #endif
-    command += " " + quote(source.string()) + " -o " + quote(library.string());
+    command += nativeArguments();
+    command += " " + quote(source.string()) + nativeFlags() + nativeInputs() + " -o " +
+               quote(library.string());
 
     std::string output;
     const bool ok = runTool(compiler, command, output);
@@ -1194,6 +1271,13 @@ void scanNames(const std::string& code, const std::vector<fs::path>& searchDirs,
 }  // namespace
 
 namespace gbxinline_runtime {
+
+void setNativeOptions(std::vector<std::string> libs, std::vector<std::string> libDirs,
+                      std::vector<std::string> flags) {
+    g_native.libs = std::move(libs);
+    g_native.libDirs = std::move(libDirs);
+    g_native.flags = std::move(flags);
+}
 
 bool present(const Program& prog) { return !prog.inlines.empty(); }
 

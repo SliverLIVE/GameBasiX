@@ -247,9 +247,17 @@ volume = 1
 
 [assets]
 root = "assets"
+
+[native]                        ; optional: C++ libraries for the INLINE blocks
+libs = lib/mylib.a              ; archives (.a) and object files (.o)
+libdirs = lib                   ; search folders, passed as -L
+flags = -lmy -DFOO=1            ; further flags for the call
 ```
 
-The same fields are available under **Settings → Project**. Editor state (open
+The same fields are available under **Settings → Project**, including the three
+`[native]` fields (libraries, library folders and compiler flags, each space
+separated). The section is only written when it is filled, so projects without
+libraries keep their usual file. Editor state (open
 tabs) lives in `.gbxide/project.json`; that folder does not belong in the
 project archive.
 
