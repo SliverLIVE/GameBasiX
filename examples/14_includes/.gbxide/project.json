@@ -12,6 +12,9 @@
   "audio": false,
   "volume": 1,
   "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeFlags": "",
   "sources": [
     "core/constants.gbx",
     "core/mathx.gbx",
@@ -33,8 +36,7 @@
     "core/constants.gbx",
     "core/mathx.gbx",
     "core/text.gbx",
-    "deep/b.gbx",
-    "game/level.gbx"
+    "deep/b.gbx"
   ],
   "createdAt": "2026-10-26T09:10:00.000Z"
 }

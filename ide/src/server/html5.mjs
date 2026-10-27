@@ -121,6 +121,7 @@ export async function buildPlayer({
   onChild,
   extraSources = [],
   extraIncludes = [],
+  extraFlags = [],
   defines = [],
   out: target
 }) {
@@ -170,6 +171,7 @@ export async function buildPlayer({
     '-sENVIRONMENT=web',
     ...defines.map((name) => `-D${name}`),
     ...extraIncludes.map((dir) => `-I${dir}`),
+    ...extraFlags,
     ...files,
     ...extraSources,
     '-o',
@@ -309,13 +311,14 @@ function interpreterFiles(sourceDir) {
  * Kennung des fertigen Players: alles, was das Übersetzen beeinflusst,
  * steckt im Hash - Blöcke, Projekt-Header, Interpreter-Quellen und emsdk.
  */
-function inlinePlayerKey({ appRoot, projectDir, generated, emsdk, emsdkVersion, defines }) {
+function inlinePlayerKey({ appRoot, projectDir, generated, emsdk, emsdkVersion, defines, extras = '' }) {
   const info = inspectHtml5(appRoot);
   const emcc = emsdk ? emxxCommand(emsdk) : null;
   const hash = createHash('sha1');
   hash.update(PLAYER_RECIPE);
   hash.update(JSON.stringify(defines));
   hash.update(generated);
+  hash.update(extras);
   hash.update(String(emsdkVersion || ''));
   hash.update(String(emcc ? emcc.cmd : ''));
   for (const file of [...interpreterFiles(info.sourceDir), ...projectHeaders(projectDir)]) {
@@ -448,6 +451,43 @@ function htmlTemplate({ title, width, height }) {
 }
 
 /**
+ * Sektion [native] fuer den Browser: Archive lassen sich nicht linken (sie
+ * sind fuer den Desktop uebersetzt), ihre C++-Quellen dagegen schon. -D, -U
+ * und -I gelten auch hier; -l und -L zeigen auf genau diese Archive.
+ */
+function nativeSettings(projectDir, project) {
+  const words = (value) =>
+    (Array.isArray(value) ? value : String(value ?? '').split(/\s+/))
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+  const sources = words(project?.nativeSources).map((file) => path.resolve(projectDir, file));
+  const flags = [];
+  const dropped = [];
+  for (const flag of words(project?.nativeFlags)) {
+    if (/^-(D|U|I)/.test(flag)) flags.push(flag);
+    else dropped.push(flag);
+  }
+  return {
+    libs: words(project?.nativeLibs),
+    sources,
+    missing: sources.filter((file) => !pathExists(file)),
+    flags,
+    dropped,
+    // Alles, was den Player beeinflusst: Quelle plus Flags und Quellstand.
+    key: [
+      flags.join(' '),
+      ...sources.map((file) => {
+        try {
+          return `${path.basename(file)}:${createHash('sha1').update(fs.readFileSync(file)).digest('hex')}`;
+        } catch {
+          return `${path.basename(file)}:?`;
+        }
+      })
+    ].join('|')
+  };
+}
+
+/**
  * Spiel als HTML5-Ordner schreiben: index.html, gbx.js, game.js mit den
  * Quellen und den Assets daneben.
  */
@@ -486,6 +526,19 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
       onLog?.('INLINE im Browser braucht emsdk (Einstellungen → HTML5).');
       return { ok: false, error: 'emsdk fehlt' };
     }
+    const native = nativeSettings(projectDir, project);
+    if (native.missing.length) {
+      onLog?.(`HTML5: diese [native]-Quellen fehlen: ${native.missing.join(', ')}`);
+      return { ok: false, error: '[native] sources fehlen' };
+    }
+    if (native.libs.length && !native.sources.length) {
+      onLog?.('HTML5 kann keine .a-Archive einbinden: sie enthalten Code fuer den Desktop.');
+      onLog?.('Trage die C++-Dateien der Bibliothek in [native] sources ein - sie werden fuer den Browser uebersetzt.');
+      return { ok: false, error: 'C++-Quellen der Bibliothek fehlen' };
+    }
+    if (native.dropped.length) {
+      onLog?.(`HTML5: ohne Wirkung im Browser (nur fuer Archive): ${native.dropped.join(' ')}`);
+    }
     onLog?.(`${withInline}: INLINE-Blöcke werden mit Emscripten in den Player übersetzt (dauert etwas) …`);
     const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'gbx-inline-export-'));
     const cpp = path.join(tmp, 'inline_static.cpp');
@@ -498,7 +551,15 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
       const defines = ['GBX_INLINE_STATIC'];
       const extraIncludes = headerDirs(projectDir).map((dir) => path.join(projectDir, dir));
       const generated = await fsp.readFile(cpp, 'utf8');
-      const key = inlinePlayerKey({ appRoot, projectDir, generated, emsdk, emsdkVersion, defines });
+      const key = inlinePlayerKey({
+        appRoot,
+        projectDir,
+        generated,
+        emsdk,
+        emsdkVersion,
+        defines,
+        extras: native.key
+      });
       const cached = path.join(inlinePlayerCache(), `${key}.js`);
       if (pathExists(cached)) {
         onLog?.('Player aus dem Zwischenspeicher übernommen – am Projekt hat sich nichts geändert.');
@@ -513,8 +574,9 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
           appRoot,
           emsdk,
           onLog,
-          extraSources: [cpp],
+          extraSources: [cpp, ...native.sources],
           extraIncludes,
+          extraFlags: native.flags,
           defines,
           out: part
         });

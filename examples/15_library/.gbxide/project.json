@@ -18,21 +18,17 @@
   "nativeLibDirs": [
     "lib"
   ],
+  "nativeSources": [
+    "native/game.cpp",
+    "native/spline.cpp"
+  ],
   "nativeFlags": "-lcurve -Inative -DGAIN=1.6",
   "sources": [
     "main.gbx",
     "scene.gbx"
   ],
   "openFiles": [
-    "main.gbx",
-    "scene.gbx",
-    "lib/libgame.a",
-    "lib/libcurve.a",
-    "README.md",
-    "native/game.cpp",
-    "native/game.h",
-    "native/spline.cpp",
-    "native/spline.h"
+    "main.gbx"
   ],
   "createdAt": "2026-10-27T01:50:00.000Z"
 }

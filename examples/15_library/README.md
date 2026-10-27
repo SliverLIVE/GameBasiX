@@ -19,6 +19,7 @@ all the work:
 [native]
 libs = lib/libgame.a              ; archive by path
 libdirs = lib                     ; search folder, passed as -L
+sources = native/game.cpp native/spline.cpp   ; the C++ behind the archives, for HTML5
 flags = "-lcurve -Inative -DGAIN=1.6"   ; -l from libdirs, an -I and a define
 ```
 
@@ -28,11 +29,18 @@ when the block is compiled, so the flag can only change the header. The
 `.gbxproj` loses hand written comments when the program runs, so this README and
 the header of `main.gbx` keep the explanation.
 
+`sources` is what makes the example work in the browser: a `.a` holds x86 code,
+which Emscripten cannot link into wasm. The HTML5 export compiles the listed
+`.cpp` files itself, keeps the `-D`/`-I` flags of `[native]` and drops `-l`/`-L`
+with a note. On the desktop the archives are used and `sources` stays unused;
+without `sources` an INLINE project with `libs` refuses to export for the web
+and says so instead of failing inside `wasm-ld`.
+
 | Path | What it is |
 | --- | --- |
 | `main.gbx` | the program: `INLINE` include, self check, main loop |
 | `scene.gbx` | drawing, uses the same commands through `INCLUDE` |
-| `library.gbxproj` | `[native]` with `libs`, `libdirs` and `flags` |
+| `library.gbxproj` | `[native]` with `libs`, `libdirs`, `sources` and `flags` |
 | `native/commands.h` | registers the eight GBX commands |
 | `native/game.h`, `native/game.cpp` | plain C++ → `lib/libgame.a` |
 | `native/spline.h`, `native/spline.cpp` | plain C++ → `lib/libcurve.a` |

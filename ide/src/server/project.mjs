@@ -51,6 +51,7 @@ function defaultProject(name, sources) {
     // [native]: C++-Bibliotheken fuer die INLINE-Bloecke (siehe projectFileText).
     nativeLibs: [],
     nativeLibDirs: [],
+    nativeSources: [],
     nativeFlags: '',
     sources,
     openFiles: [...sources],
@@ -225,6 +226,9 @@ function parseProjectFile(text) {
   if (libs !== undefined) out.nativeLibs = splitWords(libs);
   const libDirs = native.LIBDIRS ?? native.LIBDIR ?? native.LIBPATH;
   if (libDirs !== undefined) out.nativeLibDirs = splitWords(libDirs);
+  // sources: das C++ hinter den Archiven, fuer den HTML5-Export.
+  const nativeSources = native.SOURCES ?? native.SOURCE ?? native.SRC;
+  if (nativeSources !== undefined) out.nativeSources = splitWords(nativeSources);
   const flags = native.FLAGS ?? native.FLAG;
   if (flags !== undefined) out.nativeFlags = String(flags).trim();
   return out;
@@ -277,11 +281,13 @@ export function projectFileText(project) {
   // Bibliotheken behalten ihre gewohnte Datei.
   const libs = (Array.isArray(p.nativeLibs) ? p.nativeLibs : splitWords(p.nativeLibs)).filter(Boolean);
   const libDirs = (Array.isArray(p.nativeLibDirs) ? p.nativeLibDirs : splitWords(p.nativeLibDirs)).filter(Boolean);
+  const sources = (Array.isArray(p.nativeSources) ? p.nativeSources : splitWords(p.nativeSources)).filter(Boolean);
   const flags = String(p.nativeFlags || '').trim();
-  if (libs.length || libDirs.length || flags) {
+  if (libs.length || libDirs.length || sources.length || flags) {
     lines.push('', '[native]');
     if (libs.length) lines.push(`libs = ${iniValue(libs.join(' '))}`);
     if (libDirs.length) lines.push(`libdirs = ${iniValue(libDirs.join(' '))}`);
+    if (sources.length) lines.push(`sources = ${iniValue(sources.join(' '))}`);
     if (flags) lines.push(`flags = ${iniValue(flags)}`);
   }
   lines.push('');

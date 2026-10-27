@@ -26,4 +26,5 @@ root = assets
 [native]
 libs = lib/libgame.a
 libdirs = lib
+sources = native/game.cpp native/spline.cpp
 flags = "-lcurve -Inative -DGAIN=1.6"

@@ -20,13 +20,17 @@
 '                ar rcs lib/libgame.a game.o
 '
 ' On export the archives are baked into the INLINE library, so the
-' finished game needs neither a compiler nor the .a files.
+' finished game needs neither a compiler nor the .a files. For HTML5 the
+' .a cannot be used (x86 code): [native] sources names the .cpp files and
+' they are compiled with Emscripten instead.
 ' ============================================================
 
 INLINE
 #include "native/commands.h"
 ENDINLINE
 
+
+SET_SYSTEM_POINTER TRUE 
 CONSTANT HISTORY = 240          ' samples on the plot
 CONSTANT PLOT_X0 = 60
 CONSTANT PLOT_X1 = 840
