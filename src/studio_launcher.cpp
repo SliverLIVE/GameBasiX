@@ -1,13 +1,34 @@
 // GBX Studio - kleines Startprogramm
 //
-// Startet das Electron-Fenster der IDE aus dem Ordner "ide" neben dieser EXE.
-// Ist Electron nicht installiert, laeuft die Web-Variante im Standardbrowser.
+// GBXStudio.exe      startet das Electron-Fenster der IDE aus dem Ordner "ide".
+//                    Ist Electron nicht installiert, laeuft die Web-Variante im
+//                    Standardbrowser.
+// GBXStudio_web.exe  startet immer die Web-Variante: lokaler Server im eigenen
+//                    Konsolenfenster, die Oberflaeche im Standardbrowser - auch
+//                    wenn Electron daneben installiert ist.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include <string>
 
 namespace {
+
+// Beide EXEn entstehen aus dieser Datei; GBX_STUDIO_WEB=1 macht daraus die
+// Browser-Variante (siehe CMakeLists.txt).
+#ifdef GBX_STUDIO_WEB
+constexpr bool kWebOnly = true;
+constexpr const wchar_t* kTitle = L"GBX Studio (Web)";
+constexpr const wchar_t* kExe = L"GBXStudio_web.exe";
+constexpr const wchar_t* kHint =
+    L"Danach oeffnet GBXStudio_web.exe die Oberflaeche im Standardbrowser.";
+#else
+constexpr bool kWebOnly = false;
+constexpr const wchar_t* kTitle = L"GBX Studio";
+constexpr const wchar_t* kExe = L"GBXStudio.exe";
+constexpr const wchar_t* kHint =
+    L"Danach oeffnet GBXStudio.exe den Editor im eigenen Fenster "
+    L"(ohne Electron im Browser).";
+#endif
 
 std::wstring exeDir() {
     wchar_t buf[MAX_PATH];
@@ -49,7 +70,7 @@ bool launch(const std::wstring& program, const std::wstring& args,
 }
 
 void fail(const std::wstring& message) {
-    MessageBoxW(nullptr, message.c_str(), L"GBX Studio", MB_ICONERROR | MB_OK);
+    MessageBoxW(nullptr, message.c_str(), kTitle, MB_ICONERROR | MB_OK);
 }
 
 }  // namespace
@@ -59,19 +80,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const std::wstring ide = root + L"\\ide";
 
     if (!dirExists(ide) || !fileExists(ide + L"\\package.json")) {
-        fail(L"Der Ordner \"ide\" mit der IDE wurde neben GBXStudio.exe nicht gefunden.\n\n"
-             L"Erwartet: " + ide);
+        fail(L"Der Ordner \"ide\" mit der IDE wurde neben " + std::wstring(kExe) +
+             L" nicht gefunden.\n\nErwartet: " + ide);
         return 1;
     }
 
+    // Eigenes Fenster, wenn Electron da ist - die Web-Variante ueberspringt das.
     const std::wstring electron = ide + L"\\node_modules\\electron\\dist\\electron.exe";
-    if (fileExists(electron)) {
+    if (!kWebOnly && fileExists(electron)) {
         if (launch(electron, quoted(ide), ide, CREATE_NO_WINDOW)) return 0;
         fail(L"Electron ließ sich nicht starten:\n" + electron);
         return 1;
     }
 
-    // Ohne Electron: Webserver starten, der den Browser selbst oeffnet.
+    // Webserver starten, der den Browser selbst oeffnet.
     wchar_t nodePath[MAX_PATH] = L"";
     const bool hasNode =
         SearchPathW(nullptr, L"node.exe", nullptr, MAX_PATH, nodePath, nullptr) > 0;
@@ -88,8 +110,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     }
 
     fail(L"GBX Studio ist nicht startklar.\n\n"
-         L"Einmalig im Ordner \"ide\" ausführen:\n    npm install\n\n"
-         L"Danach öffnet GBXStudio.exe den Editor im eigenen Fenster "
-         L"(ohne Electron im Browser).");
+         L"Einmalig im Ordner \"ide\" ausführen:\n    npm install\n\n" +
+         std::wstring(kHint));
     return 1;
 }

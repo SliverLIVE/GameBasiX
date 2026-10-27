@@ -124,25 +124,36 @@ else()
   target_compile_options(gbx PRIVATE -Wall -Wextra -Wno-unused-parameter)
 endif()
 
-# Kleines Startprogramm fuer die IDE: GBXStudio.exe landet im Projektordner
-# und oeffnet den Editor aus ide/ (Electron, sonst Browser).
+# Kleine Startprogramme fuer die IDE; beide landen im Projektordner und
+# oeffnen den Editor aus ide/:
+#   GBXStudio.exe      Electron-Fenster, ohne Electron der Browser
+#   GBXStudio_web.exe  immer der Browser (Server im eigenen Konsolenfenster)
 if(WIN32)
   enable_language(RC)
-  configure_file(src/studio_launcher.rc.in ${CMAKE_BINARY_DIR}/studio_launcher.rc @ONLY)
-  add_executable(GBXStudio WIN32
-    src/studio_launcher.cpp
-    ${CMAKE_BINARY_DIR}/studio_launcher.rc
-  )
-  set_target_properties(GBXStudio PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
-  target_link_libraries(GBXStudio PRIVATE user32)
-  # wWinMain als Einstiegspunkt (MinGW)
-  if(NOT MSVC)
-    target_link_options(GBXStudio PRIVATE -municode)
-  endif()
-  if(GBX_STATIC_RUNTIME AND NOT MSVC)
-    target_link_options(GBXStudio PRIVATE -static -static-libgcc -static-libstdc++)
-  endif()
+  function(gbx_studio_launcher target description)
+    set(GBX_STUDIO_DESCRIPTION "${description}")
+    set(GBX_STUDIO_INTERNAL_NAME "${target}")
+    set(GBX_STUDIO_ORIGINAL_NAME "${target}.exe")
+    configure_file(src/studio_launcher.rc.in ${CMAKE_BINARY_DIR}/${target}.rc @ONLY)
+    add_executable(${target} WIN32
+      src/studio_launcher.cpp
+      ${CMAKE_BINARY_DIR}/${target}.rc
+    )
+    set_target_properties(${target} PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
+    target_link_libraries(${target} PRIVATE user32)
+    # wWinMain als Einstiegspunkt (MinGW)
+    if(NOT MSVC)
+      target_link_options(${target} PRIVATE -municode)
+    endif()
+    if(GBX_STATIC_RUNTIME AND NOT MSVC)
+      target_link_options(${target} PRIVATE -static -static-libgcc -static-libstdc++)
+    endif()
+  endfunction()
+
+  gbx_studio_launcher(GBXStudio "GBX Studio - Editor")
+  gbx_studio_launcher(GBXStudio_web "GBX Studio - Editor (Browser)")
+  target_compile_definitions(GBXStudio_web PRIVATE GBX_STUDIO_WEB=1)
 endif()
 
 enable_testing()
@@ -198,6 +209,15 @@ set_tests_properties(includes PROPERTIES
 add_test(NAME library
          COMMAND gbx --headless --tests lib_checks.gbxproj)
 set_tests_properties(library PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests/library
+  ENVIRONMENT "GBX_CXX=${CMAKE_CXX_COMPILER}"
+  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+
+# Dasselbe ueber die Quelldatei gestartet, so wie es die IDE macht: die
+# [native]-Angaben der Projektdatei daneben muessen trotzdem greifen.
+add_test(NAME library-entry
+         COMMAND gbx --headless --tests lib_checks.gbx)
+set_tests_properties(library-entry PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests/library
   ENVIRONMENT "GBX_CXX=${CMAKE_CXX_COMPILER}"
   PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")

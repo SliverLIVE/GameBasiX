@@ -18,11 +18,11 @@ BEGIN
     BEGIN
         BLOCK "040704b0"
         BEGIN
-            VALUE "FileDescription", "GBX Studio - Editor"
+            VALUE "FileDescription", "@GBX_STUDIO_DESCRIPTION@"
             VALUE "FileVersion", "@PROJECT_VERSION@"
-            VALUE "InternalName", "GBXStudio"
+            VALUE "InternalName", "@GBX_STUDIO_INTERNAL_NAME@"
             VALUE "LegalCopyright", "GameBasiX"
-            VALUE "OriginalFilename", "GBXStudio.exe"
+            VALUE "OriginalFilename", "@GBX_STUDIO_ORIGINAL_NAME@"
             VALUE "ProductName", "GBX Studio"
             VALUE "ProductVersion", "@PROJECT_VERSION@"
         END
