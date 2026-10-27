@@ -220,6 +220,21 @@ TrueType fonts (`FONT_LOAD "x.ttf", …`) run through Emscripten's FreeType port
 so the file has to be part of the project (`assets/` folder or a path in the
 `.gbxproj`) – the browser has no Windows font directory.
 
+## Building a library
+
+**Tools → Build library …** compiles C++ files of the project into a static
+library. The dialog lists every `.cpp`, `.cc`, `.cxx` and `.c` in the project
+(without `build/`, `node_modules/` and `html5/`), lets you tick the sources, name
+the library and choose the target – `lib/lib<name>.a` by default. **Build** runs
+`g++ -c` for every file and then `ar rcs` for the archive in the bundled
+compiler, and prints every line in the dialog. After a successful run the
+archive is appended to `[native] libs` of the project file (the rest of the file
+is left as it is), so the next start links it into the `INLINE` blocks.
+
+`.c` files are compiled as C++, because the bundled compiler ships only the C++
+frontend (`cc1plus`, no `cc1`). Their headers therefore must not ask for
+`extern "C"`; a library built with a real `gcc` needs it.
+
 ## Project file
 
 On save the IDE writes a `.gbxproj` in INI style. It is the same file `gbx.exe`

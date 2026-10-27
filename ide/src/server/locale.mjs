@@ -173,6 +173,22 @@ const TABLE = [
   ['Zum Starten genügt ein Doppelklick auf index.html; ein Webserver geht auch.',
    'A double-click on index.html is enough to start; a web server works too.'],
 
+  /* Bibliothek bauen (.a) */
+  ['Keine Quelldatei ausgewählt.', 'No source file selected.'],
+  ['Kein C++-Compiler eingestellt.', 'No C++ compiler configured.'],
+  ['Der Pfad liegt außerhalb des Projekts: ', 'The path is outside the project: '],
+  ['Quelldatei fehlt: ', 'Source file missing: '],
+  ['Das Ziel liegt außerhalb des Projekts: ', 'The target is outside the project: '],
+  ['Keine .gbxproj im Projekt gefunden.', 'No .gbxproj found in the project.'],
+  ['Compiler: ', 'Compiler: '],
+  ['Archiv: ', 'Archive: '],
+  ['C-Quelle wird als C++ übersetzt (kein C-Frontend im mitgelieferten Compiler): ',
+   'C source compiled as C++ (the bundled compiler has no C frontend): '],
+  ['Übersetzen fehlgeschlagen: ', 'Compilation failed: '],
+  ['ar konnte das Archiv nicht schreiben: ', 'ar could not write the archive: '],
+  ['Fertig: ', 'Finished: '],
+  ['Eingetragen in [native] libs:', 'Added to [native] libs:'],
+
 ];
 
 let current = 'en';

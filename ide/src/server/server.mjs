@@ -11,8 +11,10 @@ import { compilerRoot, installCompiler } from './cxx.mjs';
 import { downloadGoogleFont, fetchGoogleFontFile, listGoogleFonts } from './googlefonts.mjs';
 import { inspectEmsdk, defaultEmsdkPath, emsdkRoot, installEmsdk } from './emsdk.mjs';
 import { buildPlayer, exportHtml5, inspectHtml5 } from './html5.mjs';
+import { buildLibrary, libraryFileName, listLibrarySources } from './library.mjs';
 import { setLanguage, tr } from './locale.mjs';
 import {
+  addNativeLibrary,
   createFile,
   createProject,
   deleteFile,
@@ -733,6 +735,58 @@ async function routeApi(req, res, url) {
     } catch (error) {
       return fail(res, error);
     }
+  }
+
+  // C++-Bibliothek bauen: Quellen des Projekts uebersetzen und als .a ablegen.
+  if (pathname === '/api/library/sources' && method === 'GET') {
+    const dir = url.searchParams.get('dir');
+    if (!dir) return fail(res, new Error('Kein Projektordner angegeben.'));
+    try {
+      const sources = await listLibrarySources(dir);
+      const config = await loadConfig();
+      return json(res, 200, { ok: true, sources, cxx: inspectCompiler(config.cxxPath, ROOT) });
+    } catch (error) {
+      return fail(res, error);
+    }
+  }
+
+  if (pathname === '/api/library/build' && method === 'POST') {
+    const body = await readBody(req);
+    if (!body.projectDir) return fail(res, new Error('Kein Projektordner angegeben.'));
+    const config = await loadConfig();
+    const info = inspectCompiler(config.cxxPath, ROOT);
+    if (!info.ok) return fail(res, new Error(info.error));
+    const job = createJob('library', { projectDir: body.projectDir });
+    json(res, 200, { ok: true, jobId: job.id });
+    (async () => {
+      try {
+        job.emit({ type: 'started', kind: 'library' });
+        const target =
+          String(body.target || '').trim() || path.join('lib', libraryFileName(body.name));
+        const result = await buildLibrary({
+          compiler: info.resolved,
+          projectDir: body.projectDir,
+          sources: body.sources,
+          target,
+          onLog: (text) => job.emit({ type: 'log', level: 'info', text })
+        });
+        let nativeLibs = null;
+        if (result.ok && body.addToNative !== false) {
+          const added = await addNativeLibrary(body.projectDir, result.target);
+          nativeLibs = added.libs;
+          job.emit({
+            type: 'log',
+            level: 'info',
+            text: `${tr('Eingetragen in [native] libs:')} ${added.libs.join(' ')}\n`
+          });
+        }
+        job.finish(result.ok ? 'success' : 'failed', { ...result, nativeLibs });
+      } catch (error) {
+        job.emit({ type: 'log', level: 'error', text: `${errorText(error)}\n` });
+        job.finish('failed', { ok: false, error: errorText(error) });
+      }
+    })();
+    return;
   }
 
   if (pathname === '/api/tree' && method === 'GET') {

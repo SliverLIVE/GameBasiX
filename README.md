@@ -835,6 +835,15 @@ public font list; under **Settings → General** a Google Fonts API key can be
 stored, then the list comes through the official Webfonts API. The key is only
 stored locally.
 
+**Tools → Build library …** turns C++ files of the project into a static
+library for `INLINE`. The dialog lists the `.cpp`/`.cc`/`.cxx` files, lets you
+tick the sources, name the library and choose the target (`lib/lib<name>.a` by
+default), then runs `g++ -c` and `ar rcs` with the bundled compiler and shows
+the output. The finished archive is appended to `[native] libs` of the project
+file, so the next run links it in – no copying sources into a header and no
+command line. `.c` files go through the C++ frontend, because the bundled
+compiler has no C one.
+
 ## Deliberately not included
 
 3D (`X_*`), pulling in C++ templates (`IMPORT`, `REQUIRE`), preprocessor
@@ -984,6 +993,11 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 
 **October 2026**
 
+* **Building libraries in the IDE**: **Tools → Build library …** compiles the
+  chosen C++ files of the project with the bundled `g++`, bundles them into
+  `lib/<name>.a` with `ar rcs` and appends the archive to `[native] libs` of the
+  project file. The dialog shows every compiler line, and the next start of the
+  program links the library into the `INLINE` blocks.
 * **Foreign C++ libraries**: the new `[native]` section of the `.gbxproj` links
   prebuilt archives (`.a`, `.o`) into the `INLINE` blocks – plus search folders
   (`libdirs`) and extra flags. Size and time stamp of every archive go into the

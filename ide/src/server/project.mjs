@@ -295,6 +295,52 @@ export async function writeProjectFile(project, projectDir) {
   return file;
 }
 
+/**
+ * Eine Bibliothek in [native] eintragen, ohne den Rest der Projektdatei
+ * anzufassen: Handgemachte Kommentare, Reihenfolge und Werte bleiben so, wie
+ * sie sind. Liefert die vollstaendige Liste zurueck.
+ */
+export async function addNativeLibrary(projectDir, relativePath) {
+  const dir = path.resolve(projectDir);
+  let entries = [];
+  try {
+    entries = await fsp.readdir(dir);
+  } catch {
+    throw new Error(`Pfad nicht gefunden: ${dir}`);
+  }
+  const name = entries.find((entry) => new RegExp(`\\.${PROJECT_EXT}$`, 'i').test(entry));
+  if (!name) throw new Error('Keine .gbxproj im Projekt gefunden.');
+  const file = path.join(dir, name);
+
+  const text = (await fsp.readFile(file, 'utf8')).replace(/\r\n?/g, '\n');
+  const entry = String(relativePath || '').replace(/\\/g, '/').trim();
+  const before = parseProjectFile(text).nativeLibs;
+  const libs = Array.isArray(before) ? [...before] : splitWords(before);
+  if (!entry) return { file: name, libs, changed: false };
+  if (libs.some((item) => item.replace(/\\/g, '/') === entry)) {
+    return { file: name, libs, changed: false };
+  }
+
+  const all = [...libs, entry];
+  const line = `libs = ${iniValue(all.join(' '))}`;
+  const lines = text.split('\n');
+  const start = lines.findIndex((row) => /^\s*\[native]\s*$/i.test(row));
+  if (start >= 0) {
+    let end = lines.findIndex((row, index) => index > start && /^\s*\[/.test(row));
+    if (end < 0) end = lines.length;
+    const key = lines.findIndex(
+      (row, index) => index > start && index < end && /^\s*(libs|lib|libraries)\s*=/i.test(row)
+    );
+    if (key >= 0) lines[key] = line;
+    else lines.splice(start + 1, 0, line);
+  } else {
+    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+    lines.push('', '[native]', line, '');
+  }
+  await fsp.writeFile(file, lines.join('\r\n'), 'utf8');
+  return { file: name, libs: all, changed: true };
+}
+
 function readEntry(project, projectDir) {
   const entry = String(project.entry || '').replace(/\\/g, '/');
   if (entry) {

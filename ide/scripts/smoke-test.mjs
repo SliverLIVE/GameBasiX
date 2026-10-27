@@ -84,6 +84,34 @@ async function eventsUntilDone(jobId) {
   return events;
 }
 
+/** Absoluten Pfad zu einem C++-Compiler suchen (das mitgelieferte g++ fehlt im Test). */
+function findCompiler() {
+  const which = (name) => {
+    const cmd = process.platform === 'win32' ? 'where' : 'which';
+    try {
+      const result = spawnSync(cmd, [name], { encoding: 'utf8' });
+      return (
+        String(result.stdout || '')
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)[0] || ''
+      );
+    } catch {
+      return '';
+    }
+  };
+  for (const candidate of [process.env.GBX_CXX, which('g++'), which('c++'), which('clang++')]) {
+    if (!candidate) continue;
+    try {
+      const result = spawnSync(candidate, ['--version'], { encoding: 'utf8', timeout: 20000 });
+      if (result.status === 0) return candidate;
+    } catch {
+      /* nächster Kandidat */
+    }
+  }
+  return '';
+}
+
 let failures = 0;
 async function check(name, run) {
   try {
@@ -260,6 +288,53 @@ try {
       'POST'
     );
     assert.ok(!fs.readFileSync(file, 'utf8').includes('[native]'), '[native] blieb stehen');
+  });
+
+  await check('Bibliothek bauen legt eine .a an und trägt sie ein', async () => {
+    const compiler = findCompiler();
+    if (!compiler) {
+      console.log('       (übersprungen: kein g++ gefunden)');
+      return;
+    }
+    await request('/api/settings', { cxxPath: compiler }, 'POST');
+
+    fs.mkdirSync(path.join(dir, 'libsrc'), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'libsrc', 'calc.cpp'),
+      'int calc_double(int v) { return v * 2; }\n',
+      'utf8'
+    );
+    const found = await request(`/api/library/sources?dir=${encodeURIComponent(dir)}`);
+    assert.ok(found.cxx.ok, `Compiler nicht erkannt: ${found.cxx.error}`);
+    assert.ok(
+      found.sources.some((item) => item.path === 'libsrc/calc.cpp'),
+      'Quelle fehlt in der Liste'
+    );
+
+    const { jobId } = await request(
+      '/api/library/build',
+      {
+        projectDir: dir,
+        sources: ['libsrc/calc.cpp'],
+        name: 'calc',
+        target: 'lib/libcalc.a',
+        addToNative: true
+      },
+      'POST'
+    );
+    const events = await eventsUntilDone(jobId);
+    const done = events.find((event) => event.type === 'done') || {};
+    assert.ok(done.ok, done.error || 'Bauen fehlgeschlagen');
+    const archive = path.join(dir, 'lib', 'libcalc.a');
+    assert.ok(fs.existsSync(archive), 'lib/libcalc.a fehlt');
+    assert.ok(fs.statSync(archive).size > 0, 'Archiv ist leer');
+
+    const reopened = await request('/api/project/open', { path: dir }, 'POST');
+    assert.deepEqual(reopened.project.nativeLibs, ['lib/libcalc.a']);
+    assert.ok(
+      fs.readFileSync(path.join(dir, 'Smoke.gbxproj'), 'utf8').includes('libs = lib/libcalc.a'),
+      'Eintrag fehlt in der Projektdatei'
+    );
   });
 
   await check('Befehle aus GBX_INLINE_FN werden gesammelt', async () => {

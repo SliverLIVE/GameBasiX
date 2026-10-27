@@ -16,6 +16,7 @@ import { applyAppearance, normalizeAppearance, buildAppPalette, DEFAULT_APPEARAN
 import { t, getLanguage, setLanguage, initI18n, onLanguageChange, availableLanguages } from './i18n.js';
 import { buildFileTree, countFiles } from './tree-model.js';
 import { openGoogleFonts } from './google-fonts-tool.js';
+import { openLibraryTool } from './library-tool.js';
 import { createMediaView, mediaKind } from './media-preview.js';
 import { checkLine, shiftLineNumbers } from './line-check.js';
 import { createDock, DOCK_PANEL_IDS } from './dock.js';
@@ -708,6 +709,24 @@ function bindUi() {
             post,
             projectDir: () => state.projectDir,
             project: () => state.project
+          })
+      },
+      {
+        label: t('Bibliothek bauen…'),
+        action: () =>
+          openLibraryTool({
+            t,
+            openModal,
+            toast,
+            get,
+            post,
+            subscribeJob,
+            projectDir: () => state.projectDir,
+            onAdded: (nativeLibs) => {
+              // Die Projektdatei hat den Eintrag schon; die Oberfläche zieht nach.
+              if (nativeLibs && state.project) state.project.nativeLibs = nativeLibs;
+              refreshTree();
+            }
           })
       }
     ]);
