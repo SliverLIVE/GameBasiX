@@ -1,0 +1,95 @@
+' ============================================================
+' scene.gbx - the drawing of the library example
+'
+' Nothing special is needed here: the INLINE block in main.gbx
+' already registered the commands, so FILTER_STEP, SPLINE and the
+' rest are ordinary commands in this file too.
+' ============================================================
+
+' Signal value -> pixel row inside the plot.
+FUNCTION scopeY: value
+  RETURN PLOT_MID - value * PLOT_SCALE
+ENDFUNCTION
+
+FUNCTION drawGrid:
+  DRAW_RECT_BORDER PLOT_X0, 80, PLOT_X1 - PLOT_X0, 340, RGB(34, 44, 60)
+  FOR i = 1 TO 3
+    y = 80 + i * 85
+    DRAW_LINE PLOT_X0, y, PLOT_X1, y, RGB(22, 30, 42)
+  NEXT
+  FOR i = 1 TO 11
+    x = PLOT_X0 + i * 65
+    DRAW_LINE x, 80, x, 420, RGB(20, 27, 38)
+  NEXT
+  DRAW_LINE PLOT_X0, PLOT_MID, PLOT_X1, PLOT_MID, RGB(44, 58, 78)
+ENDFUNCTION
+
+' which = 0: the raw noise, which = 1: the filtered signal.
+FUNCTION drawTrace: which, color
+  IF which = 0
+    value = RawHistory[0]
+  ELSE
+    value = SmoothHistory[0]
+  ENDIF
+  lastX = PLOT_X0
+  lastY = scopeY(value)
+  FOR i = 1 TO HISTORY - 1
+    IF which = 0
+      value = RawHistory[i]
+    ELSE
+      value = SmoothHistory[i]
+    ENDIF
+    x = PLOT_X0 + i * (PLOT_X1 - PLOT_X0) / (HISTORY - 1)
+    y = scopeY(value)
+    DRAW_LINE lastX, lastY, x, y, color
+    lastX = x
+    lastY = y
+  NEXT
+ENDFUNCTION
+
+' SPLINE comes out of libcurve.a; the amplitude is GAIN from the
+' project file (-DGAIN=1.6), so this curve is 1.6 times as high as
+' the control points inside the archive.
+FUNCTION drawSpline: start
+  lastX = PLOT_X0
+  lastY = 520 - SPLINE(start) * 28
+  FOR i = 1 TO 240
+    x = PLOT_X0 + i * (PLOT_X1 - PLOT_X0) / 240
+    y = 520 - SPLINE(start + i / 240.0) * 28
+    DRAW_LINE lastX, lastY, x, y, RGB(240, 168, 76)
+    lastX = x
+    lastY = y
+  NEXT
+  TEXT_COLOR RGB(150, 110, 60)
+  PRINT "libcurve.a  SPLINE(u) * GAIN(" + FORMAT$(4, 1, GAIN()) + ")   -lcurve", PLOT_X0, 570
+ENDFUNCTION
+
+FUNCTION drawHud:
+  TEXT_COLOR RGB(130, 160, 200)
+  PRINT "libgame.a   FILTER_STEP, FILTER_ALPHA, FILTER_RESET, FILTER_CALLS, NOISE, WORD$", 60, 428
+
+  TEXT_COLOR RGB(150, 230, 170)
+  PRINT "alpha " + FORMAT$(5, 2, FILTER_ALPHA()) + "   calls " + FILTER_CALLS() + "   signal is " + LastWord$ + "   gain " + FORMAT$(4, 1, GAIN()), 60, 450
+
+  TEXT_COLOR RGB(120, 140, 165)
+  PRINT "SPACE reset filter    +/- amplitude " + Amplitude + "    ESC quit", 60, 470
+ENDFUNCTION
+
+FUNCTION drawFrame:
+  SCREEN_CLEAR RGB(8, 10, 16)
+
+  TEXT_COLOR RGB(235, 242, 255)
+  PRINT "GameBasiX - [native] libraries", 60, 18
+  TEXT_COLOR RGB(120, 140, 165)
+  PRINT "two C++ archives as ordinary GBX commands", 60, 40
+
+  drawGrid()
+  drawTrace(0, RGB(52, 70, 98))
+  drawTrace(1, RGB(92, 232, 138))
+
+  ' newest sample
+  DRAW_CIRCLE_FILLED PLOT_X1, scopeY(SmoothHistory[HISTORY - 1]), 4, RGB(200, 255, 215)
+
+  drawSpline(Frame * 0.0025)
+  drawHud()
+ENDFUNCTION

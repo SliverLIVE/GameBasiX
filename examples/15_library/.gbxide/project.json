@@ -1,0 +1,38 @@
+{
+  "name": "library",
+  "appName": "Library",
+  "title": "GameBasiX - Library",
+  "entry": "main.gbx",
+  "width": 900,
+  "height": 600,
+  "fullscreen": false,
+  "resizable": true,
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "nativeLibs": [
+    "lib/libgame.a"
+  ],
+  "nativeLibDirs": [
+    "lib"
+  ],
+  "nativeFlags": "-lcurve -Inative -DGAIN=1.6",
+  "sources": [
+    "main.gbx",
+    "scene.gbx"
+  ],
+  "openFiles": [
+    "main.gbx",
+    "scene.gbx",
+    "lib/libgame.a",
+    "lib/libcurve.a",
+    "README.md",
+    "native/game.cpp",
+    "native/game.h",
+    "native/spline.cpp",
+    "native/spline.h"
+  ],
+  "createdAt": "2026-10-27T01:50:00.000Z"
+}

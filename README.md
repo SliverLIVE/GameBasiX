@@ -229,6 +229,16 @@ static void add(const GbxValue* args, int argc, GbxValue* ret) {
 GBX_INLINE_FN("ADD2", 1, 1, add);
 ```
 
+Keep the archive free of GBX types: `mylib.h` declares plain C++ and stays
+usable from any program, a second header (`commands.h`) includes it plus
+`gbx_inline.h` and holds the registrations. An `INLINE` step can then call
+`my_add()` directly, without a registered command in between.
+
+[`examples/15_library`](#examples) is the complete picture: two archives, one
+named by path and one as `-l`, a `-D` flag that reaches the header, a self check
+at startup, and `tests/library/lib_checks.gbxproj`, which checks the shipped
+archives value by value in CTest.
+
 ## The language at a glance
 
 ```basic
@@ -872,6 +882,7 @@ platform- or security-related; the 2D core is complete.
 | `examples/12_steam` | Steam P2P chat with friend list, relay state, and a setup panel when `steam_api` is missing |
 | `examples/13_platformer` | **Pip and the Golden Coins**: a complete side-scrolling platformer – arrows to move, space to jump, shift to run; tile collision, a following camera, parallax background, enemies, coins, pipes, goal flag, HUD and sound effects. The physics live in `platformer.gbx`, the level is an editable block of ASCII rows, and `tests/platformer_tests.gbx` covers the engine |
 | `examples/14_includes` | `INCLUDE` in every shape: several files in a row, a chain four files deep, a diamond that is loaded once, paths into other folders (`../`), and a console report that proves the order |
+| `examples/15_library` | `[native]` in full: two C++ archives (`lib/libgame.a` by path, `lib/libcurve.a` as `-lcurve`) become eight ordinary GBX commands. Live scope with hash noise and a one-pole filter from the first archive, a Catmull-Rom curve from the second, a `-DGAIN` flag that changes the curve, an `INLINE` step that calls the archive directly, and the C++ sources in `native/` to rebuild both |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
@@ -951,6 +962,11 @@ file. A new command without a test makes the CTest run `commands` fail;
 `127.0.0.1`: a server accepts its own connection, data flows both ways, a
 closed port fails cleanly, and a UDP socket sends a packet to itself.
 
+`tests/library/lib_checks.gbxproj` links the two archives of
+`examples/15_library` (one through `libs`, one through `-lcurve`) and checks
+every command they register against fixed values, so an archive that no longer
+matches its header fails the run.
+
 `tests/platformer_tests.gbx` includes `examples/13_platformer/platformer.gbx`
 unchanged and builds small maps for it: gravity and landing, walls stopping a
 run flush on the tile, jump height with and without a held button, question
@@ -993,6 +1009,10 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 
 **October 2026**
 
+* **`[native]` example**: `examples/15_library` uses the section in full –
+  `libs` with a path, `libdirs` plus `-lcurve`, and `-DGAIN` for the `INLINE`
+  header – and turns two small C++ archives into eight commands. Version
+  1.2.15.
 * **Building libraries in the IDE**: **Tools → Build library …** compiles the
   chosen C++ files of the project with the bundled `g++`, bundles them into
   `lib/<name>.a` with `ar rcs` and appends the archive to `[native] libs` of the

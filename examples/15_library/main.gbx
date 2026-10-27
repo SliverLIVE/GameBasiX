@@ -1,0 +1,101 @@
+' ============================================================
+' [native] - C++ archives as GBX commands
+' Run: cd examples/15_library && ../../build/gbx.exe library.gbxproj
+'
+' What this example shows:
+'   native/commands.h    8 commands registered for BASIC
+'   native/game.h/.cpp   code behind FILTER_*, NOISE and WORD$
+'   native/spline.h/.cpp code behind SPLINE, in a second archive
+'   lib/libgame.a        named with its path in [native] libs
+'   lib/libcurve.a       linked as -lcurve from [native] flags
+'
+' The BASIC side does not know any of that: FILTER_STEP(1) is an
+' ordinary command. Everything below is drawn with data from the two
+' archives - noise as the input, a one-pole filter as the smoothing,
+' and a Catmull-Rom curve from the second archive.
+'
+' The archive is built from the C++ files in native/:
+'   GBX Studio   Tools > Build library
+'   by hand      g++ -O2 -c native/game.cpp -o game.o
+'                ar rcs lib/libgame.a game.o
+'
+' On export the archives are baked into the INLINE library, so the
+' finished game needs neither a compiler nor the .a files.
+' ============================================================
+
+INLINE
+#include "native/commands.h"
+ENDINLINE
+
+CONSTANT HISTORY = 240          ' samples on the plot
+CONSTANT PLOT_X0 = 60
+CONSTANT PLOT_X1 = 840
+CONSTANT PLOT_MID = 250         ' pixel row of the zero line
+CONSTANT PLOT_SCALE = 0.26      ' signal units per pixel
+
+DIM RawHistory[HISTORY]
+DIM SmoothHistory[HISTORY]
+
+GLOBAL Amplitude = 340
+GLOBAL Frame = 0
+GLOBAL LastWord$ = ""
+
+INCLUDE "scene.gbx"
+
+SCREEN_SET 900, 600, 0
+WINDOW_TITLE "GameBasiX - Library"
+LIMIT_FPS 60
+
+' ---- the archives answer before the first frame is drawn
+ASSERT NOISE(42) = NOISE(42), "NOISE aus libgame.a ist reproduzierbar"
+ASSERT ABS(NOISE(42)) <= 1, "NOISE bleibt in -1 … 1"
+FILTER_RESET()
+ASSERT FILTER_CALLS() = 0, "FILTER_RESET setzt den Zaehler"
+ASSERT ABS(FILTER_STEP(1000) - 1000 * FILTER_ALPHA()) < 0.001, "FILTER_STEP folgt alpha"
+ASSERT FILTER_CALLS() = 1, "die Bibliothek zaehlt ihre Aufrufe"
+ASSERT ABS(SPLINE(0)) < 0.001, "SPLINE trifft ihren ersten Stuetzpunkt"
+ASSERT ABS(GAIN() - 1.6) < 0.001, "-DGAIN aus [native] flags"
+ASSERT WORD$(0.9) = "lively", "WORD$ liefert Text aus C++"
+FILTER_RESET()
+
+raw = 0
+smooth = 0
+FOR i = 0 TO HISTORY - 1
+  RawHistory[i] = 0
+  SmoothHistory[i] = 0
+NEXT
+
+WHILE TRUE
+  ' --------------------------------------------------------- Input
+  IF KEY_PRESSED(KEY_ESC) THEN END
+  IF KEY_PRESSED(KEY_SPACE)
+    FILTER_RESET()
+    FOR i = 0 TO HISTORY - 1
+      SmoothHistory[i] = 0
+    NEXT
+  ENDIF
+  IF KEY_DOWN(KEY_EQUALS) THEN Amplitude = MIN(520, Amplitude + 8)
+  IF KEY_DOWN(KEY_MINUS) THEN Amplitude = MAX(60, Amplitude - 8)
+
+  Frame = Frame + 1
+  raw = NOISE(Frame * 37) * Amplitude
+
+  ' A step calls the archive directly: same C++, no command, and the
+  ' result lands in the BASIC variable smooth.
+  INLINE
+    smooth = game_filter_step(raw);
+  ENDINLINE
+
+  ' scroll both traces one sample to the left
+  FOR i = 0 TO HISTORY - 2
+    RawHistory[i] = RawHistory[i + 1]
+    SmoothHistory[i] = SmoothHistory[i + 1]
+  NEXT
+  RawHistory[HISTORY - 1] = raw
+  SmoothHistory[HISTORY - 1] = smooth
+
+  LastWord$ = WORD$(smooth)
+
+  drawFrame()
+  SCREEN_SHOW
+WEND

@@ -1,0 +1,50 @@
+' ============================================================
+' The C++ archives of examples/15_library, value by value.
+' Run: gbx --headless --tests lib_checks.gbxproj
+'
+' libgame.a comes from LIBS (a path), libcurve.a from -lcurve.
+' Both are the archives that ship with the example, so this test
+' also notices when an archive and its headers drift apart.
+' ============================================================
+
+INLINE
+#include "commands.h"
+ENDINLINE
+
+' ---------------------------------------------------------- libgame.a
+FILTER_RESET()
+ASSERT FILTER_CALLS() = 0, "FILTER_RESET setzt den Zaehler"
+ASSERT ABS(FILTER_ALPHA() - 0.18) < 0.0001, "alpha kommt aus der .a"
+ASSERT ABS(FILTER_STEP(1000) - 180) < 0.01, "erster Schritt: alpha * Wert"
+ASSERT ABS(FILTER_STEP(1000) - 327.6) < 0.01, "zweiter Schritt: 180 + alpha * 820"
+ASSERT FILTER_CALLS() = 2, "zwei Aufrufe gezaehlt"
+FILTER_RESET()
+ASSERT FILTER_CALLS() = 0, "Zuruecksetzen loescht den Zaehler"
+ASSERT ABS(FILTER_STEP(0)) < 0.0001, "leerer Zustand bleibt bei 0"
+
+ASSERT NOISE(1) = NOISE(1), "gleiche Saat, gleicher Wert"
+ASSERT ABS(NOISE(1) - NOISE(2)) > 0.000001, "andere Saat, anderer Wert"
+ASSERT NOISE(1) >= -1 AND NOISE(1) <= 1, "NOISE bleibt in -1 … 1"
+ASSERT NOISE(-5) >= -1 AND NOISE(-5) <= 1, "auch negative Saaten"
+
+ASSERT WORD$(0) = "calm", "WORD$ ruhig"
+ASSERT WORD$(0.3) = "moving", "WORD$ bewegt"
+ASSERT WORD$(-0.9) = "lively", "WORD$ lebhaft"
+
+' --------------------------------------------------------- libcurve.a
+ASSERT ABS(SPLINE(0)) < 0.0001, "SPLINE trifft den Stuetzpunkt 0"
+ASSERT ABS(SPLINE(0.2) - 0.85 * GAIN()) < 0.0001, "SPLINE trifft den Stuetzpunkt 1"
+ASSERT ABS(SPLINE(0.4) + 0.55 * GAIN()) < 0.0001, "SPLINE trifft den Stuetzpunkt 2"
+ASSERT ABS(SPLINE(1.2) - SPLINE(0.2)) < 0.0001, "SPLINE wiederholt sich nach 1"
+ASSERT ABS(SPLINE(-0.8) - SPLINE(0.2)) < 0.0001, "SPLINE laeuft rueckwaerts weiter"
+
+' -DGAIN=1.6 aus [native] flags: der einzige Unterschied zur .a
+ASSERT ABS(GAIN() - 1.6) < 0.0001, "-DGAIN kommt beim Uebersetzen an"
+
+' ------------------------------------------------- auch aus BASIC nutzbar
+DIM peak[4]
+FOR i = 0 TO 3
+  peak[i] = NOISE(i * 11) * 500
+NEXT
+ASSERT peak[0] <> peak[1], "NOISE in einer BASIC-Schleife"
+ASSERT ABS(FILTER_STEP(peak[2]) - peak[2] * FILTER_ALPHA()) < 0.01, "Aufruf mit BASIC-Daten"

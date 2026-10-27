@@ -194,6 +194,14 @@ add_test(NAME includes
 set_tests_properties(includes PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+# C++-Bibliotheken des Beispiels 15_library: .a aus LIBS und -lcurve aus FLAGS
+add_test(NAME library
+         COMMAND gbx --headless --tests lib_checks.gbxproj)
+set_tests_properties(library PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests/library
+  ENVIRONMENT "GBX_CXX=${CMAKE_CXX_COMPILER}"
+  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+
 # Pixelpruefung der Zeichenbefehle (offscreen ueber den SDL-dummy-Treiber)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)

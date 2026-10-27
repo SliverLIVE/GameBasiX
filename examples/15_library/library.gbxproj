@@ -1,0 +1,29 @@
+; GameBasiX project file
+; Written by the IDE, but you can also edit it by hand.
+
+[project]
+name = Library
+main = main.gbx
+
+[window]
+title = GameBasiX - Library
+width = 900
+height = 600
+fullscreen = 0
+resizable = 1
+
+[graphics]
+fps = 60
+vsync = 1
+
+[audio]
+enabled = 0
+volume = 1
+
+[assets]
+root = assets
+
+[native]
+libs = lib/libgame.a
+libdirs = lib
+flags = "-lcurve -Inative -DGAIN=1.6"

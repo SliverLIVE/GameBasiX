@@ -1,0 +1,11 @@
+; C++ archives of examples/15_library, used by ctest.
+; Started from this folder, so every path is relative to it.
+
+[project]
+name = Library checks
+main = lib_checks.gbx
+
+[native]
+libs = ../../examples/15_library/lib/libgame.a
+libdirs = ../../examples/15_library/lib
+flags = -lcurve -I../../examples/15_library/native -DGAIN=1.6
