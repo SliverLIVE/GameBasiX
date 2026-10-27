@@ -25,7 +25,8 @@ and a runtime debugger right next to the code.</sub>
   render targets, software alpha modes
 * Text: built-in 8×8 bitmap font, bitmap fonts on a 16×8 grid and
   **TrueType through FreeType** (optional)
-* Sound: a small software mixer for WAV sounds and music
+* Sound: a small software mixer for **WAV and MP3** sounds and music (MP3
+  through the bundled minimp3 decoder)
 * Inline C++: `INLINE` definitions and steps with direct access to BASIC
   variables, compiled once and cached
 * Network: non-blocking TCP and UDP sockets (`NET*`/`UDP*`) plus Steam P2P
@@ -60,12 +61,14 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-Result: `build/gbx.exe` and `GBXStudio.exe` in the project folder. The small
-launcher opens the editor from `ide/` on double click (see [IDE](#ide)).
+Result: `build/gbx.exe`, `GBXStudio.exe` and `GBXStudio_web.exe` in the project
+folder. The two small launchers open the editor from `ide/` on double click:
+`GBXStudio.exe` in the Electron window, `GBXStudio_web.exe` always in the
+browser (see [IDE](#ide)).
 
 The version lives in one place: CMake reads `version` from `ide/package.json`
 and passes it to `gbx.exe` (`--version`, the status bar of the editor) and to
-the file properties of `GBXStudio.exe`. Bumping it there is enough for the next
+the file properties of both launchers. Bumping it there is enough for the next
 build; only the lockfile keeps its own copy.
 
 TTF fonts are included through FreeType when it is found
@@ -193,6 +196,7 @@ compiles the blocks:
 [native]
 libs = lib/mylib.a lib/native.a   ; archives (.a) and object files (.o)
 libdirs = lib                     ; search folders, passed as -L
+sources = native/my.cpp           ; the C++ behind the archives, for HTML5
 flags = -lmy -DFOO=1              ; further flags for the call
 ```
 
@@ -213,8 +217,13 @@ flags = -lmy -DFOO=1              ; further flags for the call
   `.a` compiles the blocks again instead of reusing the old DLL.
 * `--check` starts no compiler, and `--export` bakes the archives into the
   embedded DLL – a shipped game still needs no compiler and no `.a`.
-* The HTML5 build compiles the blocks with Emscripten, so `[native]` applies to
-  the desktop build only.
+* For the browser the archives are useless: a `.a` holds x86 code, and
+  `wasm-ld` cannot link it. `sources` names the `.cpp` files the archive was
+  built from; the HTML5 export compiles them with Emscripten, keeps the
+  `-D`/`-I` flags of `[native]` and ignores `-l`/`-L` with a note. On the
+  desktop the archives are linked and `sources` stays unused. Without `sources`
+  an export with INLINE and `libs` stops with that explanation instead of a
+  wall of `undefined symbol` lines.
 
 A header that registers commands from a library looks like any other `INLINE`
 definition – it just calls into the archive:
@@ -407,8 +416,11 @@ Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
 **Sound**
 `SOUND_LOAD "sound.wav",id[,buffer]` · `SOUND_PLAY(id,pan,volume)` → channel ·
 `SOUND_STOP channel` · `SOUND_PLAYING(channel)` · `SOUND_STOP_ALL` · `SOUND_NEW()` ·
-`MUSIC_PLAY "music.wav",loop` · `MUSIC_STOP` · `MUSIC_PAUSE on` ·
+`MUSIC_PLAY "music.mp3",loop` · `MUSIC_STOP` · `MUSIC_PAUSE on` ·
 `MUSIC_VOLUME v` · `MUSIC_PLAYING()`
+
+Both commands take `.wav` and `.mp3`; a file whose format is neither is
+reported by name instead of playing silence.
 
 **Math**
 `ABS` · `SGN` · `SQR` · `SIN` · `COS` · `TAN` (degrees) · `ASIN` · `ACOS` ·
@@ -476,8 +488,10 @@ Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
   `SUB` or `FUNCTION`) and only to labels on its top level. `GOSUB` calls
   `SUB`s; there are no return labels.
 * **TRY/CATCH**: `FINALLY` ends the `TRY` block (no separate FINALLY body).
-* **Music**: WAV only (no MP3/OGG), because no decoder is shipped.
-  `MUSIC_PLAY` uses the same mixer.
+* **Audio**: WAV and MP3, both through the same mixer – MP3 is decoded to the
+  same float samples while loading, so `SOUND_*` and `MUSIC_*` accept either
+  format. Other formats (OGG, FLAC, M4A) have no decoder and are reported as
+  unrecognised.
 * **Fonts**: `FONT_LOAD` loads `.bmp` fonts on a grid with 16 characters per
   row and 8 rows (characters 0–127) or – for `.ttf`/`.otf` or when a size is
   given – a TrueType font through FreeType. `FONT_SET id,scale` scales it.
@@ -922,6 +936,9 @@ After the one-time `npm install`, a double click on **`GBXStudio.exe`** in the
 project folder is enough: the slim EXE (no editor of its own, just a launcher)
 finds `ide/node_modules/electron` next to it and opens the editor window. If
 Electron is missing, it starts the web server and opens the browser instead.
+**`GBXStudio_web.exe`** next to it always takes that second path: it opens the
+server in its own console window (Ctrl+C stops it) and the editor in the default
+browser, which is handy when Electron should stay out of the way.
 
 The icon (dark background, green initials "GBX", "STUDIO" below) ships as
 `ide/assets/icon.ico` and is embedded in the EXE, the editor window and the
@@ -991,11 +1008,11 @@ src/lint.cpp        name checking for --check (commands, variables, fields, meth
 src/debugger.cpp    runtime debugger (breakpoints, steps, values)
 src/builtins.cpp    all commands/functions
 src/graphics.cpp    SDL3 renderer, sprites, text (bitmap + FreeType), input
-src/audio.cpp       WAV loading and software mixer
+src/audio.cpp       WAV and MP3 loading and the software mixer
 src/project.cpp     reading .gbxproj
 src/main.cpp        command line, startup, constants
-src/studio_launcher.cpp  GBXStudio.exe: starts the editor from ide/
-third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
+src/studio_launcher.cpp  GBXStudio.exe / GBXStudio_web.exe: start the editor from ide/
+third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/MIT)
 ```
 
 ## Third-party
@@ -1004,11 +1021,47 @@ third_party/        stb_image, stb_image_write, font8x8 (public domain/MIT)
 * FreeType (FTL/GPLv2), optional for TTF
 * `stb_image.h`, `stb_image_write.h` (public domain/MIT)
 * `font8x8_basic.h` by Daniel Hepper (public domain)
+* `minimp3.h`, `minimp3_ex.h` by lieff (CC0/public domain) – the MP3 decoder
 
 ## Changelog
 
 **October 2026**
 
+* **The window layout belongs to the project**: docking a panel into another
+  zone, collapsing it or dragging a column edge is stored with the project –
+  panel order, heights, collapsed state and the widths of the side and bottom
+  columns land in `.gbxide/project.json`. Opening a project (also the automatic
+  start with the last one) brings back the arrangement it was left in. Without
+  an open project the last arrangement stays the global default, and a narrow
+  window still starts without the right zone. Version 1.2.18.
+* **`GBXStudio_web.exe`**: the same slim launcher, built from the same source,
+  but it always starts the browser variant – local server in its own console
+  window, editor in the default browser – even when Electron sits next to it.
+  `GBXStudio.exe` keeps opening the Electron window and only falls back to the
+  browser when Electron is missing. Both land in the project folder. Version
+  1.2.17.
+* **MP3**: `SOUND_LOAD` and `MUSIC_PLAY` now also take `.mp3` files. The decoder
+  (minimp3, public domain, in `third_party/`) runs once while loading and hands
+  the mixer the same float samples as WAV, so panning, volume, channels and
+  `MUSIC_*` work unchanged – also in the HTML5 player. A file that is neither
+  WAV nor MP3 is reported by name (`Format nicht erkannt, WAV oder MP3
+  erwartet`) instead of playing silence. Version 1.2.16.
+* **Docked panels no longer push the editor aside**: a zone without a visible
+  panel is hidden with `display: none`; without fixed columns the remaining
+  elements slipped into the wrong grid tracks – with the reference docked on the
+  left, clicking `Reference` moved the Files/Outline zone to the far left and
+  left the editor, tab bar and bottom panel 0 px wide. Every child of the
+  workspace now sits in its own column, so only the panel you hide disappears
+  (in windows under 900 px the same rules cover the two-column layout).
+* **`[native]` libraries in the browser**: the `[native]` section got `sources`.
+  The HTML5 export cannot link a `.a` (x86 code), so it compiles the listed
+  `.cpp` files with Emscripten instead and keeps the `-D`/`-I` flags. Without
+  `sources` the export now says what is missing instead of running into
+  `wasm-ld`. `examples/15_library` exports for the browser again.
+* **Project files are found from the source file**: starting a `.gbx` that a
+  `.gbxproj` in the same folder names as its entry now reads that project file
+  – so **Run** and **Debug** in the IDE get window settings and `[native]`
+  libraries; before, only the project file as argument did.
 * **`[native]` example**: `examples/15_library` uses the section in full –
   `libs` with a path, `libdirs` plus `-lcurve`, and `-DGAIN` for the `INLINE`
   header – and turns two small C++ archives into eight commands. Version

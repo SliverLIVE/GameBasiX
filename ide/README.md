@@ -35,6 +35,10 @@ program's window one key press away.</sub>
 * **Reference** – every command, keyword and `KEY_*` constant with signature,
   description and example, in German and English, searchable and filterable by
   category.
+* **Workspace** – files, outline, reference, problems, output, console and
+  debugger dock where you drag them, and the columns are resized by dragging
+  their edge. The arrangement and the widths belong to the project
+  (`.gbxide/project.json`), so a project opens the way you left it.
 * **Debugger** – breakpoints (also conditional), step in/over/out, locals,
   globals, call stack, pause-while-running and current values as a tooltip when
   hovering a variable.
@@ -58,8 +62,10 @@ npm start          # desktop window (Electron)
 After that, a double click on **`GBXStudio.exe`** in the project folder is
 enough: the slim EXE is only a launcher, finds Electron next to it and opens the
 editor window. If Electron is missing it starts the web server and opens the
-browser instead. The launcher is built with the rest of the project
-(`cmake --build build`) and lands directly in the project folder.
+browser instead. **`GBXStudio_web.exe`** skips Electron entirely and always
+starts the web server (its console window closes with Ctrl+C) plus the browser.
+Both launchers are built with the rest of the project (`cmake --build build`)
+and land directly in the project folder.
 
 Without Electron, in any browser:
 
@@ -281,8 +287,8 @@ The same fields are available under **Settings → Project**, including the thre
 `[native]` fields (libraries, library folders and compiler flags, each space
 separated). The section is only written when it is filled, so projects without
 libraries keep their usual file. Editor state (open
-tabs) lives in `.gbxide/project.json`; that folder does not belong in the
-project archive.
+tabs, the docked panel layout and the column widths) lives in
+`.gbxide/project.json`; that folder does not belong in the project archive.
 
 ## Command reference and completion
 
@@ -298,7 +304,7 @@ because the IDE sets `GBX_LANG` accordingly. Signature argument names switch
 too (`farbe` → `colour`).
 
 Language details (0-based string functions, inclusive `RND`, SDL scancodes,
-WAV-only music, `SCREEN_SCALE`) are noted in the respective entry and in the
+WAV/MP3 audio, `SCREEN_SCALE`) are noted in the respective entry and in the
 “Language details” overview.
 
 Rebuild the dataset after changing the command list in the main README:

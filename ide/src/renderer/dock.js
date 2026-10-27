@@ -562,6 +562,15 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
     changed();
   }
 
+  /**
+   * Übernimmt eine gespeicherte Ablage, z. B. die eines Projekts. Unbekannte
+   * Panels ergänzt `normalizeDock`, damit die Oberfläche vollständig bleibt.
+   */
+  function apply(saved, { persist = true } = {}) {
+    layout = normalizeDock(saved);
+    changed(persist);
+  }
+
   function editorLayout() {
     // Monaco braucht nach jeder Größenänderung der Zonen ein layout().
     onChange?.();
@@ -585,6 +594,7 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
     setZoneOpen,
     setMeta,
     reset,
+    apply,
     zoneOf,
     isCollapsed,
     get layout() {

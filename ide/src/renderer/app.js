@@ -63,6 +63,9 @@ let lang = null;
 let dock = null;
 let persistTimer = null;
 let indexTimer = null;
+// Während eine gespeicherte Fensteraufteilung gesetzt wird, darf sie nicht
+// sofort wieder in das Projekt zurückgeschrieben werden.
+let restoringLayout = false;
 
 /* ------------------------------------------------------------------ */
 /* Start                                                               */
@@ -1046,7 +1049,11 @@ function initDock() {
     },
     sources,
     title: dockTitle,
-    onChange: () => editor?.layout()
+    onChange: () => {
+      editor?.layout();
+      // Die Ablage der Panels gehört zum Projekt (siehe rememberLayoutInProject).
+      if (!restoringLayout) rememberLayoutInProject();
+    }
   });
   dock.render();
 }
@@ -1089,16 +1096,64 @@ function readLayout() {
   }
 }
 
-function persistLayout() {
-  const layout = {
+/** Die Breiten der Spalten, wie sie gerade auf dem Schirm stehen. */
+function currentLayout() {
+  return {
     sidebar: Math.round($('sidebar').getBoundingClientRect().width),
     reference: Math.round($('reference').getBoundingClientRect().width),
     bottom: Math.round($('bottom-panel').getBoundingClientRect().height)
   };
+}
+
+function persistLayout() {
+  const layout = currentLayout();
   try {
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
   } catch {
     /* Speicher nicht verfügbar */
+  }
+  if (!restoringLayout) rememberLayoutInProject(layout);
+}
+
+/**
+ * Die Fensteraufteilung gehört zum Projekt: Sortierung der Panels und Breiten
+ * der Spalten landen in .gbxide/project.json und stehen beim nächsten Start
+ * dieses Projekts wieder genauso da. Ohne offenes Projekt merkt sich die IDE
+ * die Aufteilung weiterhin global (localStorage).
+ */
+function rememberLayoutInProject(layout = currentLayout()) {
+  if (!state.project) return;
+  state.project.layout = layout;
+  if (dock) state.project.dock = dock.layout;
+  schedulePersist();
+}
+
+/** Gespeicherte Aufteilung eines Projekts anwenden. */
+function applyProjectLayout(project) {
+  const saved = project?.layout;
+  restoringLayout = true;
+  try {
+    if (saved && typeof saved === 'object') {
+      if (Number.isFinite(saved.sidebar)) {
+        setLayoutVar('--sidebar', clamp(saved.sidebar, 160, Math.min(560, window.innerWidth * 0.5)));
+      }
+      if (Number.isFinite(saved.reference)) {
+        setLayoutVar('--reference', clamp(saved.reference, 230, Math.min(720, window.innerWidth * 0.6)));
+      }
+      if (Number.isFinite(saved.bottom) && saved.bottom >= 90) {
+        const max = Math.max(160, (document.querySelector('.main-area')?.clientHeight || 0) - 140);
+        setLayoutVar('--bottom-panel', clamp(saved.bottom, 90, max));
+      }
+    }
+    // Ein Panel, das es in der gespeicherten Ablage noch nicht gab, ordnet
+    // `normalizeDock` selbst ein – die Oberfläche bleibt also vollständig.
+    if (project?.dock && dock) {
+      dock.apply(project.dock, { persist: false });
+      // Schmale Fenster starten weiterhin ohne rechte Zone (siehe boot).
+      if (window.innerWidth < 1100) dock.setZoneOpen('right', false, { persist: false });
+    }
+  } finally {
+    restoringLayout = false;
   }
 }
 
@@ -1386,6 +1441,9 @@ async function adoptProject(result) {
   state.project = result.project;
   state.projectDir = result.dir;
   state.tree = result.tree || [];
+  // Die Aufteilung dieses Projekts wiederherstellen, bevor die Panels Inhalte
+  // bekommen – so steht das Fenster sofort wie beim letzten Mal.
+  applyProjectLayout(result.project);
   state.diagnostics = [];
   cancelLiveCheck();
   state.checked = false;
@@ -2435,6 +2493,10 @@ function scheduleIndex() {
 async function persistProjectNow() {
   if (!state.project || !state.projectDir) return;
   state.project.openFiles = state.tabs.map((t) => t.path);
+  if (!restoringLayout) {
+    state.project.layout = currentLayout();
+    if (dock) state.project.dock = dock.layout;
+  }
   try {
     await post('/api/project/save', { projectDir: state.projectDir, project: state.project });
   } catch {

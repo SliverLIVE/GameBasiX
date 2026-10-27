@@ -266,6 +266,7 @@ try {
       ...opened.project,
       nativeLibs: ['lib/mylib.a'],
       nativeLibDirs: ['lib'],
+      nativeSources: ['native/mylib.cpp'],
       nativeFlags: '-lmy -DFOO=1'
     };
     await request('/api/project/save', { projectDir: dir, project }, 'POST');
@@ -274,20 +275,51 @@ try {
     assert.ok(text.includes('[native]'), '[native] fehlt');
     assert.ok(text.includes('libs = lib/mylib.a'), 'libs fehlt');
     assert.ok(text.includes('libdirs = lib'), 'libdirs fehlt');
+    assert.ok(text.includes('sources = native/mylib.cpp'), 'sources fehlt');
     assert.ok(text.includes('-lmy -DFOO=1'), 'flags fehlen');
 
     const again = await request('/api/project/open', { path: dir }, 'POST');
     assert.deepEqual(again.project.nativeLibs, ['lib/mylib.a']);
     assert.deepEqual(again.project.nativeLibDirs, ['lib']);
+    assert.deepEqual(again.project.nativeSources, ['native/mylib.cpp']);
     assert.equal(again.project.nativeFlags, '-lmy -DFOO=1');
 
     // Ohne Einträge bleibt die Datei wie vorher: kein leerer Abschnitt.
     await request(
       '/api/project/save',
-      { projectDir: dir, project: { ...project, nativeLibs: [], nativeLibDirs: [], nativeFlags: '' } },
+      {
+        projectDir: dir,
+        project: { ...project, nativeLibs: [], nativeLibDirs: [], nativeSources: [], nativeFlags: '' }
+      },
       'POST'
     );
     assert.ok(!fs.readFileSync(file, 'utf8').includes('[native]'), '[native] blieb stehen');
+  });
+
+  await check('Fensteraufteilung bleibt im Projekt', async () => {
+    // Panels und Spaltenbreiten sind Editorzustand: sie stehen in der
+    // Metadatei und sind beim nächsten Öffnen wieder da.
+    const dock = {
+      zones: { left: ['files'], right: ['outline', 'reference'], bottom: ['console', 'problems'] },
+      heights: { files: 300, reference: 420 },
+      collapsed: { outline: true },
+      open: { left: true, right: true, bottom: false },
+      active: 'console'
+    };
+    const layout = { sidebar: 260, reference: 380, bottom: 240 };
+    await request(
+      '/api/project/save',
+      { projectDir: dir, project: { ...opened.project, dock, layout } },
+      'POST'
+    );
+    const again = await request('/api/project/open', { path: dir }, 'POST');
+    assert.deepEqual(again.project.layout, layout);
+    assert.deepEqual(again.project.dock, dock);
+    // Die Projektdatei bleibt unberührt: dort steht nur, was das Spiel braucht.
+    assert.ok(
+      !fs.readFileSync(path.join(dir, 'Smoke.gbxproj'), 'utf8').includes('sidebar'),
+      'Aufteilung steht in der .gbxproj'
+    );
   });
 
   await check('Bibliothek bauen legt eine .a an und trägt sie ein', async () => {
