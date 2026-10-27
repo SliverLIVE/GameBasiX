@@ -235,6 +235,14 @@ is left as it is), so the next start links it into the `INLINE` blocks.
 frontend (`cc1plus`, no `cc1`). Their headers therefore must not ask for
 `extern "C"`; a library built with a real `gcc` needs it.
 
+The folder with `gbx_inline.h` is on the include path automatically, so a source
+that talks to the interpreter (`#include <gbx_inline.h>`) builds too.
+`gbx.exe --inline-cpp bridge.cpp project.gbxproj` writes the C++ of a project's
+`INLINE` blocks; drop that file into the project and the dialog turns it into a
+`.a`. A C++ program outside GameBasiX can then call those functions – it has to
+provide a `GbxHost` itself. The BASIC statements stay interpreted either way;
+there is no compiler for them.
+
 ## Project file
 
 On save the IDE writes a `.gbxproj` in INI style. It is the same file `gbx.exe`

@@ -299,9 +299,18 @@ try {
     await request('/api/settings', { cxxPath: compiler }, 'POST');
 
     fs.mkdirSync(path.join(dir, 'libsrc'), { recursive: true });
+    // gbx_inline.h muss der Bau finden, sonst lässt sich kein C++ mit
+    // Anbindung an den Interpreter als Bibliothek bauen.
     fs.writeFileSync(
       path.join(dir, 'libsrc', 'calc.cpp'),
-      'int calc_double(int v) { return v * 2; }\n',
+      '#include <gbx_inline.h>\n' +
+        '\n' +
+        'int calc_double(int v) { return v * 2; }\n' +
+        '\n' +
+        'static void fnDouble(const GbxValue* args, int argc, GbxValue* ret) {\n' +
+        '    gbxinline::retNum(ret, calc_double(static_cast<int>(gbxinline::argNum(args, argc, 0))));\n' +
+        '}\n' +
+        'GBX_INLINE_FN("CALC_DOUBLE", 1, 1, fnDouble);\n',
       'utf8'
     );
     const found = await request(`/api/library/sources?dir=${encodeURIComponent(dir)}`);

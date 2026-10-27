@@ -11,7 +11,7 @@ import { compilerRoot, installCompiler } from './cxx.mjs';
 import { downloadGoogleFont, fetchGoogleFontFile, listGoogleFonts } from './googlefonts.mjs';
 import { inspectEmsdk, defaultEmsdkPath, emsdkRoot, installEmsdk } from './emsdk.mjs';
 import { buildPlayer, exportHtml5, inspectHtml5 } from './html5.mjs';
-import { buildLibrary, libraryFileName, listLibrarySources } from './library.mjs';
+import { buildLibrary, findInlineInclude, libraryFileName, listLibrarySources } from './library.mjs';
 import { setLanguage, tr } from './locale.mjs';
 import {
   addNativeLibrary,
@@ -768,6 +768,7 @@ async function routeApi(req, res, url) {
           projectDir: body.projectDir,
           sources: body.sources,
           target,
+          includes: [findInlineInclude(ROOT)].filter(Boolean),
           onLog: (text) => job.emit({ type: 'log', level: 'info', text })
         });
         let nativeLibs = null;

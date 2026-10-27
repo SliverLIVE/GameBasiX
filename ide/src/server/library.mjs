@@ -51,6 +51,19 @@ export async function listLibrarySources(projectDir) {
   return out.sort((a, b) => a.path.localeCompare(b.path, 'en'));
 }
 
+/**
+ * Ordner mit gbx_inline.h (neben der IDE bzw. eine Ebene hher). Ohne diesen
+ * Include-Pfad liesse sich nicht einmal der C++-Teil eines GBX-Projekts als
+ * Bibliothek bauen: der erzeugte Code beginnt mit #include <gbx_inline.h>.
+ */
+export function findInlineInclude(appRoot) {
+  const candidates = [path.resolve(appRoot, '..', 'inline'), path.resolve(appRoot, 'inline')];
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, 'gbx_inline.h'))) return dir;
+  }
+  return '';
+}
+
 /** Dateiname der Bibliothek auf harmlose Zeichen bringen (libmylib.a). */
 export function libraryFileName(name) {
   const clean = String(name || '')
@@ -112,7 +125,7 @@ function run(command, args, { cwd, onLog }) {
  * Quellen übersetzen und als Archiv ablegen.
  * `target` ist relativ zum Projektordner (z. B. lib/libmylib.a).
  */
-export async function buildLibrary({ compiler, projectDir, sources, target, onLog }) {
+export async function buildLibrary({ compiler, projectDir, sources, target, includes = [], onLog }) {
   const root = path.resolve(projectDir);
   const log = (text) => onLog?.(String(text));
   const list = (Array.isArray(sources) ? sources : []).map((item) => String(item || '').trim()).filter(Boolean);
@@ -154,6 +167,10 @@ export async function buildLibrary({ compiler, projectDir, sources, target, onLo
       args.push(file.full, '-o', object, '-I', root);
       const dir = path.dirname(file.full);
       if (dir !== root) args.push('-I', dir);
+      // gbx_inline.h u. a. aus dem Editor-Ordner.
+      for (const include of includes) {
+        if (include && include !== root && include !== dir) args.push('-I', include);
+      }
       if (process.platform !== 'win32') args.push('-fPIC');
       log(`g++ ${args.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg)).join(' ')}`);
       const done = await run(compiler, args, { cwd: root, onLog: log });
