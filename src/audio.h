@@ -1,4 +1,4 @@
-// GameBasiX - Software-Mixer fuer WAV-Sounds und Musik (SDL3-Audio)
+// GameBasiX - Software-Mixer fuer WAV- und MP3-Sounds und Musik (SDL3-Audio)
 #pragma once
 
 #include <SDL3/SDL.h>

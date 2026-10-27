@@ -194,6 +194,26 @@ MUSIC_PAUSE 0
 MUSIC_STOP
 ASSERT MUSIC_PLAYING() = 0, "MUSIC_STOP"
 
+' MP3 laeuft durch denselben Mixer (Dekoder: minimp3, derselbe Weg wie WAV)
+SOUND_LOAD "assets/beep.mp3", 2
+kanal = SOUND_PLAY(2, 0, 1)
+ASSERT kanal >= 0, "SOUND_PLAY mit MP3"
+SOUND_STOP kanal
+MUSIC_PLAY "assets/beep.mp3", 0
+ASSERT MUSIC_PLAYING() = 1, "MUSIC_PLAY mit MP3"
+MUSIC_VOLUME 0.25
+MUSIC_STOP
+ASSERT MUSIC_PLAYING() = 0, "MUSIC_STOP nach MP3"
+
+' Eine Datei ohne Audio muss eine Meldung bringen, die die Formate nennt
+fehler$ = ""
+TRY
+  SOUND_LOAD "assets/notaudio.txt", 3
+CATCH e$
+  fehler$ = e$
+FINALLY
+ASSERT INSTR(fehler$, "WAV") >= 0 OR INSTR(fehler$, "MP3") >= 0, "SOUND_LOAD lehnt Nicht-Audio ab"
+
 ' ------------------------------------------------------------------ Mathe
 ASSERT ABS(-3) = 3, "ABS"
 ASSERT SGN(-2) = -1, "SGN"

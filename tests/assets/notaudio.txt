@@ -1,0 +1,2 @@
+This file is not audio. It exists so the tests can check that SOUND_LOAD
+and MUSIC_PLAY report a clear message instead of loading garbage.

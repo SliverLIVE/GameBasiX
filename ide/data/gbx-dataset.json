@@ -2,7 +2,7 @@
  "meta": {
   "app": "GameBasiX",
   "version": 1,
-  "generatedAt": "2026-10-26T23:43:44.282Z",
+  "generatedAt": "2026-10-27T10:08:35.081Z",
   "commands": 281,
   "note": "Aus der Befehlsliste der README erzeugt; die Beschreibungen sind eigene Texte auf Deutsch und Englisch. Spracheigenschaften stehen im Eintrag „Sprachdetails“. "
  },
@@ -6713,15 +6713,15 @@
    "displayName": "MUSIC_PLAY",
    "kind": "command",
    "category": "Sound",
-   "signature": "MUSIC_PLAY \"music.wav\",loop",
+   "signature": "MUSIC_PLAY \"music.mp3\",loop",
    "syntax": [
-    "MUSIC_PLAY \"music.wav\",loop"
+    "MUSIC_PLAY \"music.mp3\",loop"
    ],
    "description": {
-    "de": "Startet Musik im Hintergrund. Das zweite Argument legt fest, ob sie sich am Ende wiederholt.\n\nHinweis: GameBasiX spielt nur WAV-Dateien über den eingebauten Mixer.",
-    "en": "Starts background music. The second argument decides whether it repeats at the end.\n\nNote: GameBasiX only plays WAV files through its built-in mixer."
+    "de": "Startet Musik im Hintergrund (.wav oder .mp3). Das zweite Argument legt fest, ob sie sich am Ende wiederholt.\n\nHinweis: WAV und MP3 laufen über denselben Mixer; andere Formate werden abgelehnt.",
+    "en": "Starts background music (.wav or .mp3). The second argument decides whether it repeats at the end.\n\nNote: WAV and MP3 use the same mixer; other formats are rejected."
    },
-   "sample": "MUSIC_PLAY \"assets/musik.wav\", TRUE",
+   "sample": "MUSIC_PLAY \"assets/musik.mp3\", TRUE",
    "returnType": "Befehl",
    "returnCode": "v",
    "params": [
@@ -6742,9 +6742,9 @@
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "MUSIC_PLAY \"music.wav\",loop",
+   "signatureEn": "MUSIC_PLAY \"music.mp3\",loop",
    "syntaxEn": [
-    "MUSIC_PLAY \"music.wav\",loop"
+    "MUSIC_PLAY \"music.mp3\",loop"
    ]
   },
   {
@@ -9067,8 +9067,8 @@
     "SOUND_LOAD \"sound.wav\",id[,buffer]"
    ],
    "description": {
-    "de": "Lädt einen WAV-Klang unter einer ID. Der optionale Puffer erlaubt, denselben Klang mehrfach gleichzeitig zu spielen.",
-    "en": "Loads a WAV sound under an id. The optional buffer count allows the same sound to play several times at once."
+    "de": "Lädt einen Klang (.wav oder .mp3) unter einer ID. Der optionale Puffer erlaubt, denselben Klang mehrfach gleichzeitig zu spielen.",
+    "en": "Loads a sound (.wav or .mp3) under an id. The optional buffer count allows the same sound to play several times at once."
    },
    "sample": "SOUND_LOAD \"assets/blip.wav\", 0\nkanal = SOUND_PLAY(0, 0, 1)",
    "returnType": "Befehl",
@@ -9370,8 +9370,8 @@
    "signature": "Sprachdetails",
    "syntax": [],
    "description": {
-    "de": "KEY_DOWN() und KEY_PRESSED() nehmen SDL-Scancodes (KEY_*-Konstanten). MID$, ASC und INSTR sind 0-basiert, RND(max) ist inklusiv. SIN/COS/TAN und ATAN rechnen in Grad. DIM a[n] ergibt die Indizes 0…n-1, negative Indizes zählen von hinten. GOTO springt nur innerhalb des aktuellen Abschnitts. FINALLY beendet den TRY-Block. Musik ist auf WAV beschränkt, SCREEN_SCALE nutzt SDL-Logical-Presentation. 3D, Netzwerk, INLINE und Datei-Streams fehlen bewusst.",
-    "en": "KEY_DOWN() and KEY_PRESSED() take SDL scancodes (KEY_* constants). MID$, ASC and INSTR are 0-based, RND(max) is inclusive. SIN/COS/TAN and ATAN work in degrees. DIM a[n] yields indices 0…n-1, negative indices count from the end. GOTO only jumps within the current section. FINALLY ends the TRY block. Music is WAV only, SCREEN_SCALE uses SDL logical presentation. 3D, networking, INLINE and file streams are intentionally absent."
+    "de": "KEY_DOWN() und KEY_PRESSED() nehmen SDL-Scancodes (KEY_*-Konstanten). MID$, ASC und INSTR sind 0-basiert, RND(max) ist inklusiv. SIN/COS/TAN und ATAN rechnen in Grad. DIM a[n] ergibt die Indizes 0…n-1, negative Indizes zählen von hinten. GOTO springt nur innerhalb des aktuellen Abschnitts. FINALLY beendet den TRY-Block. Musik spielt WAV und MP3, SCREEN_SCALE nutzt SDL-Logical-Presentation. 3D, Netzwerk, INLINE und Datei-Streams fehlen bewusst.",
+    "en": "KEY_DOWN() and KEY_PRESSED() take SDL scancodes (KEY_* constants). MID$, ASC and INSTR are 0-based, RND(max) is inclusive. SIN/COS/TAN and ATAN work in degrees. DIM a[n] yields indices 0…n-1, negative indices count from the end. GOTO only jumps within the current section. FINALLY ends the TRY block. Music plays WAV and MP3, SCREEN_SCALE uses SDL logical presentation. 3D, networking, INLINE and file streams are intentionally absent."
    },
    "sample": "",
    "returnType": "Übersicht",

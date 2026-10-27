@@ -155,8 +155,8 @@ const NOTES = {
     en: 'Note: returns the channel expected by SOUND_STOP and SOUND_PLAYING.'
   },
   MUSIC_PLAY: {
-    de: 'Hinweis: GameBasiX spielt nur WAV-Dateien über den eingebauten Mixer.',
-    en: 'Note: GameBasiX only plays WAV files through its built-in mixer.'
+    de: 'Hinweis: WAV und MP3 laufen über denselben Mixer; andere Formate werden abgelehnt.',
+    en: 'Note: WAV and MP3 use the same mixer; other formats are rejected.'
   },
   SCREEN_SCALE: {
     de: 'Hinweis: Nutzt SDL-Logical-Presentation; SET_VIEWPORT rechnet dann in Fensterkoordinaten.',
@@ -193,7 +193,7 @@ const SAMPLES = {
   KEY_PRESSED: 'IF KEY_PRESSED(KEY_SPACE) THEN schuss()',
   SOUND_LOAD: 'SOUND_LOAD "assets/blip.wav", 0\nkanal = SOUND_PLAY(0, 0, 1)',
   SOUND_PLAY: 'kanal = SOUND_PLAY(0, 0, 1)',
-  MUSIC_PLAY: 'MUSIC_PLAY "assets/musik.wav", TRUE',
+  MUSIC_PLAY: 'MUSIC_PLAY "assets/musik.mp3", TRUE',
   FONT_LOAD: 'FONT_LOAD "assets/font.png", 0\nSETFONT 0',
   RND: 'wurf = RND(6) + 1',
   RGB: 'farbe = RGB(255, 128, 0)',
@@ -468,8 +468,8 @@ function overviewEntries() {
     ),
     entry(
       'Sprachdetails',
-      'KEY_DOWN() und KEY_PRESSED() nehmen SDL-Scancodes (KEY_*-Konstanten). MID$, ASC und INSTR sind 0-basiert, RND(max) ist inklusiv. SIN/COS/TAN und ATAN rechnen in Grad. DIM a[n] ergibt die Indizes 0…n-1, negative Indizes zählen von hinten. GOTO springt nur innerhalb des aktuellen Abschnitts. FINALLY beendet den TRY-Block. Musik ist auf WAV beschränkt, SCREEN_SCALE nutzt SDL-Logical-Presentation. 3D, Netzwerk, INLINE und Datei-Streams fehlen bewusst.',
-      'KEY_DOWN() and KEY_PRESSED() take SDL scancodes (KEY_* constants). MID$, ASC and INSTR are 0-based, RND(max) is inclusive. SIN/COS/TAN and ATAN work in degrees. DIM a[n] yields indices 0…n-1, negative indices count from the end. GOTO only jumps within the current section. FINALLY ends the TRY block. Music is WAV only, SCREEN_SCALE uses SDL logical presentation. 3D, networking, INLINE and file streams are intentionally absent.'
+      'KEY_DOWN() und KEY_PRESSED() nehmen SDL-Scancodes (KEY_*-Konstanten). MID$, ASC und INSTR sind 0-basiert, RND(max) ist inklusiv. SIN/COS/TAN und ATAN rechnen in Grad. DIM a[n] ergibt die Indizes 0…n-1, negative Indizes zählen von hinten. GOTO springt nur innerhalb des aktuellen Abschnitts. FINALLY beendet den TRY-Block. Musik spielt WAV und MP3, SCREEN_SCALE nutzt SDL-Logical-Presentation. 3D, Netzwerk, INLINE und Datei-Streams fehlen bewusst.',
+      'KEY_DOWN() and KEY_PRESSED() take SDL scancodes (KEY_* constants). MID$, ASC and INSTR are 0-based, RND(max) is inclusive. SIN/COS/TAN and ATAN work in degrees. DIM a[n] yields indices 0…n-1, negative indices count from the end. GOTO only jumps within the current section. FINALLY ends the TRY block. Music plays WAV and MP3, SCREEN_SCALE uses SDL logical presentation. 3D, networking, INLINE and file streams are intentionally absent.'
     )
   ];
 }

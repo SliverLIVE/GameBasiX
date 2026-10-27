@@ -1,4 +1,4 @@
-// GameBasiX - Software-Mixer fuer WAV-Sounds und Musik
+// GameBasiX - Software-Mixer fuer WAV- und MP3-Sounds und Musik
 #include "audio.h"
 
 #include "i18n.h"
@@ -6,7 +6,15 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+
+// MP3-Dekoder (minimp3, gemeinfrei). Er liefert die Samples als Float, genau
+// wie der Mixer sie braucht; der Rest der Datei bleibt unveraendert.
+#define MINIMP3_IMPLEMENTATION
+#define MINIMP3_FLOAT_OUTPUT
+#define MINIMP3_NO_STDIO
+#include "minimp3_ex.h"
 
 namespace {
 constexpr int kSampleRate = 48000;
@@ -19,6 +27,105 @@ SDL_AudioSpec deviceSpec() {
     spec.channels = kChannels;
     spec.freq = kSampleRate;
     return spec;
+}
+
+/** Ganzes File in den Speicher lesen - minimp3 arbeitet auf einem Puffer. */
+bool readFileBytes(const std::string& file, std::vector<uint8_t>& out) {
+    SDL_IOStream* io = SDL_IOFromFile(file.c_str(), "rb");
+    if (!io) return false;
+    uint8_t block[64 * 1024];
+    size_t got = 0;
+    while ((got = SDL_ReadIO(io, block, sizeof(block))) > 0)
+        out.insert(out.end(), block, block + got);
+    const bool ok = SDL_GetIOStatus(io) != SDL_IO_STATUS_ERROR && !out.empty();
+    SDL_CloseIO(io);
+    return ok;
+}
+
+/**
+ * Beliebiges Format auf Geraeteformat bringen (Float, stereo, 48 kHz).
+ * SDL rechnet dabei Abtastrate und Kanalzahl um; leere Ausgabe = Fehler.
+ */
+bool convertToDevice(const void* data, size_t bytes, const SDL_AudioSpec& src,
+                     std::vector<float>& out, std::string& err) {
+    SDL_AudioSpec dst = deviceSpec();
+    SDL_AudioStream* conv = SDL_CreateAudioStream(&src, &dst);
+    if (!conv) {
+        err = "Audiokonvertierung fehlgeschlagen";
+        return false;
+    }
+    SDL_PutAudioStreamData(conv, data, static_cast<int>(bytes));
+    SDL_FlushAudioStream(conv);
+    const int avail = SDL_GetAudioStreamAvailable(conv);
+    if (avail > 0) {
+        out.resize(static_cast<size_t>(avail) / sizeof(float));
+        const int got = SDL_GetAudioStreamData(conv, out.data(), avail);
+        if (got <= 0) out.clear();
+        else out.resize(static_cast<size_t>(got) / sizeof(float));
+    }
+    SDL_DestroyAudioStream(conv);
+    if (out.empty()) {
+        err = "Datei ohne Audiodaten";
+        return false;
+    }
+    return true;
+}
+
+/** Sieht der Anfang nach MP3 aus (ID3-Tag oder Frame-Sync)? */
+bool looksLikeMp3(const std::vector<uint8_t>& bytes) {
+    if (bytes.size() >= 3 && bytes[0] == 'I' && bytes[1] == 'D' && bytes[2] == '3') return true;
+    const size_t end = std::min<size_t>(bytes.size(), 4096);
+    for (size_t i = 0; i + 1 < end; ++i)
+        if (bytes[i] == 0xFF && (bytes[i + 1] & 0xE0) == 0xE0) return true;
+    return false;
+}
+
+/** MP3 (mit oder ohne ID3-Tags) zu Float-Samples dekodieren. */
+bool decodeMp3(const std::vector<uint8_t>& bytes, std::vector<float>& samples, std::string& err) {
+    size_t size = bytes.size();
+    // ID3v1-Tag am Ende abschneiden, sonst sucht der Dekoder darin nach Frames.
+    if (size > 128 && std::memcmp(bytes.data() + size - 128, "TAG", 3) == 0) size -= 128;
+
+    mp3dec_t decoder;
+    mp3dec_file_info_t info{};
+    const int result = mp3dec_load_buf(&decoder, bytes.data(), size, &info, nullptr, nullptr);
+    if (result != 0 || !info.buffer || !info.samples || info.channels <= 0 || info.hz <= 0) {
+        std::free(info.buffer);
+        err = "MP3 konnte nicht dekodiert werden";
+        return false;
+    }
+
+    SDL_AudioSpec src;
+    src.format = SDL_AUDIO_F32;
+    src.channels = info.channels;
+    src.freq = info.hz;
+    const size_t values = info.samples;  // inkl. Kanaele
+    const bool ok = convertToDevice(info.buffer, values * sizeof(mp3d_sample_t), src, samples, err);
+    std::free(info.buffer);
+    return ok;
+}
+
+/** WAV oder MP3 laden und fertig fuer den Mixer zurueckgeben. */
+bool loadAudio(const std::string& file, std::vector<float>& samples, std::string& err) {
+    SDL_AudioSpec src;
+    Uint8* buf = nullptr;
+    Uint32 len = 0;
+    if (SDL_LoadWAV(file.c_str(), &src, &buf, &len)) {
+        const bool ok = convertToDevice(buf, len, src, samples, err);
+        SDL_free(buf);
+        return ok;
+    }
+
+    std::vector<uint8_t> bytes;
+    if (!readFileBytes(file, bytes)) {
+        err = "Datei nicht lesbar";
+        return false;
+    }
+    if (!looksLikeMp3(bytes)) {
+        err = "Format nicht erkannt, WAV oder MP3 erwartet";
+        return false;
+    }
+    return decodeMp3(bytes, samples, err);
 }
 }  // namespace
 
@@ -60,37 +167,10 @@ int Audio::nextId() const {
 }
 
 bool Audio::loadSound(const std::string& file, int id, int buffers, std::string& err) {
-    SDL_AudioSpec src;
-    Uint8* buf = nullptr;
-    Uint32 len = 0;
-    if (!SDL_LoadWAV(file.c_str(), &src, &buf, &len)) {
-        err = "Sound konnte nicht geladen werden: " + file + " (" + SDL_GetError() + ")";
-        return false;
-    }
-
-    SDL_AudioSpec dst = deviceSpec();
-    SDL_AudioStream* conv = SDL_CreateAudioStream(&src, &dst);
-    if (!conv) {
-        SDL_free(buf);
-        err = "Audiokonvertierung fehlgeschlagen";
-        return false;
-    }
-    SDL_PutAudioStreamData(conv, buf, static_cast<int>(len));
-    SDL_FlushAudioStream(conv);
-    SDL_free(buf);
-
     std::vector<float> samples;
-    int avail = SDL_GetAudioStreamAvailable(conv);
-    if (avail > 0) {
-        samples.resize(static_cast<size_t>(avail) / sizeof(float));
-        int got = SDL_GetAudioStreamData(conv, samples.data(), avail);
-        if (got < 0) got = 0;
-        samples.resize(static_cast<size_t>(got) / sizeof(float));
-    }
-    SDL_DestroyAudioStream(conv);
-
-    if (samples.empty()) {
-        err = "Sound enthaelt keine Audiodaten: " + file;
+    std::string detail;
+    if (!loadAudio(file, samples, detail)) {
+        err = "Sound konnte nicht geladen werden: " + file + " - " + detail;
         return false;
     }
 
@@ -184,35 +264,13 @@ void Audio::hush() {
 
 bool Audio::playMusic(const std::string& file, bool loop, std::string& err) {
     Sound s;
-    SDL_AudioSpec src;
-    Uint8* buf = nullptr;
-    Uint32 len = 0;
-    if (!SDL_LoadWAV(file.c_str(), &src, &buf, &len)) {
-        err = "Musik konnte nicht geladen werden (nur WAV): " + file;
+    std::vector<float> samples;
+    std::string detail;
+    if (!loadAudio(file, samples, detail)) {
+        err = "Musik konnte nicht geladen werden: " + file + " - " + detail;
         return false;
     }
-    SDL_AudioSpec dst = deviceSpec();
-    SDL_AudioStream* conv = SDL_CreateAudioStream(&src, &dst);
-    if (!conv) {
-        SDL_free(buf);
-        err = "Audiokonvertierung fehlgeschlagen";
-        return false;
-    }
-    SDL_PutAudioStreamData(conv, buf, static_cast<int>(len));
-    SDL_FlushAudioStream(conv);
-    SDL_free(buf);
-    int avail = SDL_GetAudioStreamAvailable(conv);
-    if (avail > 0) {
-        s.samples.resize(static_cast<size_t>(avail) / sizeof(float));
-        int got = SDL_GetAudioStreamData(conv, s.samples.data(), avail);
-        if (got > 0) s.samples.resize(static_cast<size_t>(got) / sizeof(float));
-        else s.samples.clear();
-    }
-    SDL_DestroyAudioStream(conv);
-    if (s.samples.empty()) {
-        err = "Musikdatei enthaelt keine Audiodaten: " + file;
-        return false;
-    }
+    s.samples = std::move(samples);
     s.frames = s.samples.size() / kChannels;
 
     if (headless) {
