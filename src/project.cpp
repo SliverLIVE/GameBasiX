@@ -135,5 +135,25 @@ ProjectConfig configForEntry(const std::string& path) {
     cfg.name = fs::path(path).stem().string();
     cfg.title = cfg.name;
     cfg.assetDir = ".";
+
+    // A bare .gbx carries no window settings and no [native] libraries. If a
+    // project file next to it names exactly this file as its entry, it belongs
+    // to the file: the studio starts a project through its source file.
+    std::vector<fs::path> projects;
+    std::error_code ec;
+    for (fs::directory_iterator it(cfg.projectDir, ec), end; !ec && it != end; it.increment(ec)) {
+        if (upper(it->path().extension().string()) == ".GBXPROJ") projects.push_back(it->path());
+    }
+    std::sort(projects.begin(), projects.end(), [](const fs::path& a, const fs::path& b) {
+        return a.filename().string() < b.filename().string();
+    });
+    for (const fs::path& file : projects) {
+        try {
+            ProjectConfig owner = loadProject(file.string());
+            if (upper(fs::path(owner.entry).filename().string()) == upper(cfg.entry)) return owner;
+        } catch (const BasicError&) {
+            // A broken project file must not keep the source from running.
+        }
+    }
     return cfg;
 }
