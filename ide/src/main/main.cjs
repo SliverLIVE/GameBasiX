@@ -36,13 +36,16 @@ function registerIpc() {
     return result.canceled ? null : result.filePaths[0];
   });
 
-  ipcMain.handle('dialog:openProject', async () => {
+  // Windows kann Datei- und Ordnerauswahl nicht in einem Dialog: mit
+  // openFile + openDirectory zeigt es nur Ordner. Deshalb eine reine
+  // Dateiauswahl - die Projektdatei ist der Einstieg, nicht ihr Ordner.
+  ipcMain.handle('dialog:openProject', async (_event, defaultPath) => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: 'GBX-Projekt öffnen',
-      properties: ['openFile', 'openDirectory'],
+      defaultPath: typeof defaultPath === 'string' && defaultPath ? defaultPath : undefined,
+      properties: ['openFile'],
       filters: [
-        { name: 'GBX-Projekt', extensions: ['gbxproj'] },
-        { name: 'GBX-Quelle', extensions: ['gbx'] },
+        { name: 'GBX-Projekt oder Quelle', extensions: ['gbxproj', 'gbx'] },
         { name: 'Alle Dateien', extensions: ['*'] }
       ]
     });

@@ -1195,7 +1195,7 @@ function bindSplitter(el, { axis, invert = false, start, apply }) {
 
 async function chooseProject() {
   if (desktop) {
-    const picked = await desktop.openProject();
+    const picked = await desktop.openProject(state.health?.config?.lastProject || '');
     if (picked) {
       try {
         await openPath(picked);

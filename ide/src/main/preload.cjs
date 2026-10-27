@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('gbxStudioDesktop', {
   isElectron: true,
   openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
-  openProject: () => ipcRenderer.invoke('dialog:openProject'),
+  openProject: (defaultPath) => ipcRenderer.invoke('dialog:openProject', defaultPath),
   chooseLocation: () => ipcRenderer.invoke('dialog:chooseLocation'),
   openFile: (options) => ipcRenderer.invoke('dialog:openFile', options),
   saveFile: (options) => ipcRenderer.invoke('dialog:saveFile', options),
