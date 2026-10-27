@@ -167,6 +167,14 @@ kbd {
 .workspace.ref-collapsed { grid-template-columns: var(--sidebar) var(--splitter) minmax(0, 1fr) 0 0; }
 .workspace.sidebar-collapsed { grid-template-columns: 0 0 minmax(0, 1fr) var(--splitter) var(--reference); }
 .workspace.sidebar-collapsed.ref-collapsed { grid-template-columns: 0 0 minmax(0, 1fr) 0 0; }
+/* Jedes Kind sitzt in seiner Spalte. Eine ausgeblendete Zone faellt per
+   display: none aus dem Raster; ohne feste Spalten ruecken die uebrigen
+   Elemente nach - Editor und unteres Panel waeren dann 0 px breit. */
+.workspace > .sidebar { grid-column: 1; }
+.workspace > .split-left { grid-column: 2; }
+.workspace > .main-area { grid-column: 3; }
+.workspace > .split-right { grid-column: 4; }
+.workspace > .reference { grid-column: 5; }
 .workspace.ref-collapsed .reference,
 .workspace.ref-collapsed .split-right,
 .workspace.sidebar-collapsed .sidebar,
@@ -1139,7 +1147,14 @@ pre.output .l-stderr { color: var(--red); }
   .topbar::-webkit-scrollbar { height: 0; }
 }
 @media (max-width: 900px) {
-  .workspace { grid-template-columns: 190px minmax(0, 1fr); }
+  /* Schmal: linke Zone und Editor, die Referenz liegt als Overlay darueber.
+     Die eingeklappten Raster aus dem Breitfall gelten hier nicht. */
+  .workspace,
+  .workspace.ref-collapsed { grid-template-columns: 190px minmax(0, 1fr); }
+  .workspace.sidebar-collapsed,
+  .workspace.sidebar-collapsed.ref-collapsed { grid-template-columns: 0 minmax(0, 1fr); }
+  .workspace > .sidebar { grid-column: 1; }
+  .workspace > .main-area { grid-column: 2; }
   .splitter { display: none; }
   .reference { display: none; }
   .workspace:not(.ref-collapsed) .reference {
