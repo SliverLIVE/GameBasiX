@@ -204,8 +204,10 @@ flags = -lmy -DFOO=1              ; further flags for the call
 * The flags go behind the source as well: `-D`/`-I` apply to all files anyway,
   a link flag like `-lmy` has to stand after the object that uses it.
 * Archives have to match the toolchain that compiles the blocks (MinGW-w64 GCC
-  for the Windows build; an MSVC `.lib` does not fit). A C header needs
-  `extern "C"`, a C++ `.a` built with the same compiler needs no wrapper.
+  for the Windows build; an MSVC `.lib` does not fit). The bundled compiler has
+  only the C++ frontend, so build the archive from `.cpp` with `g++.exe -c`; a
+  library from a real C compiler (`gcc`) needs `extern "C"` in the header,
+  C++ symbols need no wrapper.
 * A missing archive is reported with its path instead of a bare linker error.
 * Size and time stamp of the archives are part of the cache key: rebuilding a
   `.a` compiles the blocks again instead of reusing the old DLL.

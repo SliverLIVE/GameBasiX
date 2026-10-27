@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Prueft fremde C++-Bibliotheken fuer die INLINE-Bloecke ([native]).
 
-Baut zwei kleine C-Bibliotheken (libcalc.a, libextra.a), bindet sie ueber die
+Baut zwei kleine C++-Bibliotheken (libcalc.a, libextra.a), bindet sie ueber die
 Projektdatei ein und prueft, was daraus folgen muss:
+
+Das mitgelieferte g++ hat nur das C++-Frontend (cc1plus, kein cc1); der Test
+baut die Archive deshalb aus .cpp-Quellen, so wie es im Paket auch ein Nutzer
+muesste. Eine C-Bibliothek (gcc) braucht im Header extern "C".
 
   * LIBS: die Archive landen hinter der Quelldatei in der Compilerzeile, die
     zweite Bibliothek liefert ein Symbol fuer die erste.
@@ -74,13 +78,13 @@ def write(file, text):
 
 
 def build_library(compiler, ar, work, name, source, body):
-    """C-Quelle uebersetzen (ohne Namensmanipulation) und als .a ablegen."""
+    """C++-Quelle uebersetzen und als .a ablegen (ar gehoert zum Compiler)."""
     origin = os.path.join(work, "lib", source)
     write(origin, body)
     obj = os.path.join(work, "lib", f"{name}.o")
     archive = os.path.join(work, "lib", f"lib{name}.a")
     done = subprocess.run(
-        [compiler, "-x", "c", "-c", origin, "-o", obj], capture_output=True, text=True, timeout=120
+        [compiler, "-O2", "-c", origin, "-o", obj], capture_output=True, text=True, timeout=120
     )
     if done.returncode != 0:
         return False, (done.stderr or done.stdout).strip()
@@ -97,7 +101,9 @@ HEADER = """\
 
 #include <gbx_inline.h>
 
-extern "C" int calc_double(int value);
+/* C++-Symbole: die .a wird mit demselben g++ gebaut. Eine C-Bibliothek (gcc)
+ * braucht hier extern "C". */
+int calc_double(int value);
 
 inline void fnCalcDouble(const GbxValue* args, int argc, GbxValue* ret) {
     gbxinline::retNum(ret, calc_double(static_cast<int>(gbxinline::argNum(args, argc, 0))));
@@ -183,10 +189,10 @@ def main():
         print(f"  Compiler: {compiler}")
         print(f"  ar:       {ar}")
 
-        ok, detail = build_library(compiler, ar, work, "extra", "extra.c", "int extra_scale(int v) { return v; }\n")
+        ok, detail = build_library(compiler, ar, work, "extra", "extra.cpp", "int extra_scale(int v) { return v; }\n")
         check(ok, "libextra.a gebaut", detail)
         ok, detail = build_library(
-            compiler, ar, work, "calc", "calc.c",
+            compiler, ar, work, "calc", "calc.cpp",
             "int extra_scale(int v);\nint calc_double(int v) { return extra_scale(v) * 2; }\n",
         )
         check(ok, "libcalc.a gebaut", detail)
@@ -210,7 +216,7 @@ def main():
 
         # -------------------------------------------------------- Cache
         ok, detail = build_library(
-            compiler, ar, work, "calc", "calc.c",
+            compiler, ar, work, "calc", "calc.cpp",
             "int extra_scale(int v);\nint calc_double(int v) { return extra_scale(v) * 3; }\n",
         )
         check(ok, "libcalc.a neu gebaut", detail)
