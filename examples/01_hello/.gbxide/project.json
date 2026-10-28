@@ -12,9 +12,59 @@
   "audio": true,
   "volume": 1,
   "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeSources": [],
+  "nativeFlags": "",
   "sources": [
     "main.gbx"
   ],
   "openFiles": [],
-  "createdAt": "2026-10-24T01:40:18.394Z"
+  "createdAt": "2026-10-24T01:40:18.394Z",
+  "layout": {
+    "sidebar": 425,
+    "reference": 352,
+    "bottom": 208
+  },
+  "dock": {
+    "zones": {
+      "left": [
+        "reference"
+      ],
+      "right": [
+        "files",
+        "outline"
+      ],
+      "bottom": [
+        "problems",
+        "output",
+        "console",
+        "debug"
+      ]
+    },
+    "collapsed": {
+      "files": false,
+      "outline": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "heights": {
+      "files": 850,
+      "outline": 815,
+      "reference": 340,
+      "problems": 220,
+      "output": 220,
+      "console": 220,
+      "debug": 260
+    },
+    "open": {
+      "left": true,
+      "right": true,
+      "bottom": true
+    },
+    "active": "console"
+  }
 }

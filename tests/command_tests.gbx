@@ -381,6 +381,8 @@ STEAM_SHUTDOWN
 DIM teile$[0]
 cnt = SPLIT_STRING("a,b,c", teile$[], ",")
 ASSERT cnt = 3 AND teile$[1] = "b", "SPLIT_STRING"
+ASSERT JOIN$(teile$[], "-") = "a-b-c", "JOIN$"
+ASSERT JOIN$(teile$[], "-", 1, 1) = "b", "JOIN$ ab Start mit Anzahl"
 DIM zahlen[4]
 ASSERT ARRAY_BOUNDS(zahlen[], 0) = 4, "ARRAY_BOUNDS"
 DIMDATA werte[], 3, 4, 5

@@ -15,7 +15,8 @@ const CONTROL = new Set([
   'DEFAULT', 'ENDSELECT', 'BREAK', 'CONTINUE', 'GOTO', 'GOSUB', 'RETURN',
   'EXIT', 'FUNCTION', 'ENDFUNCTION', 'SUB', 'ENDSUB', 'TYPE', 'ENDTYPE',
   'METHOD', 'ENDMETHOD',
-  'GLOBAL', 'LOCAL', 'STATIC', 'CONSTANT', 'CONST', 'DIM', 'REDIM',
+  'GLOBAL', 'LOCAL', 'STATIC', 'CONSTANT', 'CONST', 'ENUM', 'ENDENUM',
+  'DIM', 'REDIM',
   'DIMDEL', 'DIMPUSH', 'BYREF', 'AS', 'LET', 'END', 'INCLUDE', 'SWAP',
   'INC', 'DEC', 'TRY', 'CATCH', 'FINALLY', 'ENDTRY', 'THROW',
   'AND', 'OR', 'NOT', 'TRUE', 'FALSE'
@@ -67,6 +68,8 @@ export const EDITOR_THEME_FIELDS = [
   { group: 'tokens', key: 'type', label: 'Eingebauter Typ' },
   { group: 'tokens', key: 'userType', label: 'Eigener Typ' },
   { group: 'tokens', key: 'func', label: 'Funktionsname' },
+  { group: 'tokens', key: 'constant', label: 'Konstante' },
+  { group: 'tokens', key: 'enum', label: 'ENUM' },
   { group: 'tokens', key: 'number', label: 'Zahl' },
   { group: 'tokens', key: 'string', label: 'Zeichenkette' },
   { group: 'tokens', key: 'operator', label: 'Operator' },
@@ -98,7 +101,9 @@ export const DEFAULT_EDITOR_THEMES = {
       delimiter: '#8b98a8',
       identifier: '#d7e0ea',
       label: '#ffb454',
-      func: '#82aaff'
+      func: '#82aaff',
+      constant: '#f2799f',
+      enum: '#9d7bff'
     },
     colors: {
       background: '#0e1116',
@@ -124,7 +129,9 @@ export const DEFAULT_EDITOR_THEMES = {
       delimiter: '#6b7280',
       identifier: '#1f2733',
       label: '#a15c00',
-      func: '#0b57a4'
+      func: '#0b57a4',
+      constant: '#b0245f',
+      enum: '#6b3fd6'
     },
     colors: {
       background: '#ffffff',
@@ -168,7 +175,9 @@ export const EDITOR_THEME_PRESETS = {
           delimiter: '#b6c2cf',
           identifier: '#ffffff',
           label: '#ffc16b',
-          func: '#8fd7ff'
+          func: '#8fd7ff',
+          constant: '#ff8fbf',
+          enum: '#c4a6ff'
         },
         colors: {
           background: '#07090c',
@@ -197,7 +206,9 @@ export const EDITOR_THEME_PRESETS = {
           delimiter: '#7f8a96',
           identifier: '#c8d2dc',
           label: '#d9a864',
-          func: '#8fb0cf'
+          func: '#8fb0cf',
+          constant: '#cf8fa8',
+          enum: '#a996d2'
         },
         colors: {
           background: '#12161b',
@@ -229,7 +240,9 @@ export const EDITOR_THEME_PRESETS = {
           delimiter: '#4a5560',
           identifier: '#000000',
           label: '#8a4a00',
-          func: '#004a99'
+          func: '#004a99',
+          constant: '#8f0f4e',
+          enum: '#4a21b0'
         },
         colors: {
           background: '#ffffff',
@@ -258,7 +271,9 @@ export const EDITOR_THEME_PRESETS = {
           delimiter: '#8a949c',
           identifier: '#3b4650',
           label: '#8a6a3a',
-          func: '#3f6b8a'
+          func: '#3f6b8a',
+          constant: '#9c5470',
+          enum: '#6b5a92'
         },
         colors: {
           background: '#fbfbf8',
@@ -362,6 +377,8 @@ export function applyEditorTheme(monaco, spec, mode = 'dark') {
   if (typeof document !== 'undefined') {
     document.documentElement.style.setProperty('--gbx-user-type', theme.tokens.userType);
     document.documentElement.style.setProperty('--gbx-func', theme.tokens.func);
+    document.documentElement.style.setProperty('--gbx-const', theme.tokens.constant);
+    document.documentElement.style.setProperty('--gbx-enum', theme.tokens.enum);
   }
   return theme;
 }
@@ -377,11 +394,12 @@ const OPEN_BLOCKS = {
   WHILE: 'WEND',
   REPEAT: 'UNTIL',
   SELECT: 'ENDSELECT',
-  TYPE: 'ENDTYPE'
+  TYPE: 'ENDTYPE',
+  ENUM: 'ENDENUM'
 };
 const CLOSERS = new Set(Object.values(OPEN_BLOCKS));
 // Blöcke, bei denen ein Abschluss automatisch ergänzt werden darf.
-const AUTO_CLOSE_BLOCKS = new Set(['FUNCTION', 'SUB', 'METHOD', 'IF', 'FOR', 'FOREACH', 'WHILE', 'REPEAT', 'SELECT', 'TYPE']);
+const AUTO_CLOSE_BLOCKS = new Set(['FUNCTION', 'SUB', 'METHOD', 'IF', 'FOR', 'FOREACH', 'WHILE', 'REPEAT', 'SELECT', 'TYPE', 'ENUM']);
 
 const norm = (s) => String(s || '').toUpperCase();
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -392,14 +410,21 @@ const DECL_SCOPES = new Set(['GLOBAL', 'LOCAL', 'STATIC', 'PARAM', 'DIM', 'FOREA
 export function analyzeSource(text) {
   const src = String(text || '');
   const codeLines = stripCommentsAndStrings(src).split(/\r?\n/);
+  // Dieselben Zeilen mit Zeichenketten: der Wert einer CONSTANT steht nur dort
+  // (stripCommentsAndStrings() ersetzt ihn durch Leerzeichen).
+  const rawLines = src.split(/\r?\n/);
   const functions = new Map();
   const types = new Map();
   const variables = new Map();
   const constants = new Map();
+  const enums = new Map();
   const labels = new Set();
   const labelDefs = [];
   let currentType = null;
   let currentMethod = null;
+  let currentEnum = null;
+  // Letzter Wert des offenen ENUM: ohne "=" zaehlt der naechste eins weiter.
+  let enumLastValue = '';
 
   const addVar = (name, type = '', scope = '', line = 0, extra = {}) => {
     const clean = String(name || '').trim();
@@ -425,6 +450,34 @@ export function analyzeSource(text) {
     const line = rawLine.trim();
     const lineNo = index + 1;
     if (!line) return;
+
+    // ENUM … ENDENUM: jeder Wert heisst ENUM.WERT - wie eine Konstante,
+    // aber mit dem ENUM davor, damit zwei ENUMs denselben Namen haben dürfen.
+    if (currentEnum) {
+      if (/^ENDENUM\b/i.test(line)) {
+        currentEnum = null;
+        return;
+      }
+      const member = /^([A-Za-z_]\w*[$%#]?)\s*(?:=\s*(.*))?$/i.exec(line);
+      if (member) {
+        const explicit = member[2] === undefined ? '' : member[2].trim();
+        // Wie im Parser: ohne "=" zaehlt der Wert eins weiter, der erste ist 0.
+        const value = explicit || (enumLastValue ? `${enumLastValue}+1` : '0');
+        enumLastValue = value;
+        const owner = enums.get(norm(currentEnum));
+        if (owner) {
+          owner.values.push({ name: member[1], type: 'INTEGER', line: lineNo, value });
+        }
+        constants.set(norm(`${currentEnum}.${member[1]}`), {
+          name: `${currentEnum}.${member[1]}`,
+          value,
+          type: 'INTEGER',
+          line: lineNo,
+          enum: currentEnum
+        });
+      }
+      return;
+    }
 
     if (currentType) {
       if (/^ENDTYPE\b/i.test(line)) {
@@ -489,7 +542,21 @@ export function analyzeSource(text) {
       return;
     }
 
-    let m = /^TYPE\s+([A-Za-z_]\w*)/i.exec(line);
+    let m = /^ENUM\s+([A-Za-z_]\w*)/i.exec(line);
+    if (m) {
+      currentEnum = m[1];
+      enumLastValue = '';
+      enums.set(norm(m[1]), { name: m[1], values: [], line: lineNo });
+      return;
+    }
+    if (/^ENUM\b/i.test(line)) {
+      currentEnum = 'ENUM';
+      enumLastValue = '';
+      enums.set(norm('ENUM'), { name: 'ENUM', values: [], line: lineNo });
+      return;
+    }
+
+    m = /^TYPE\s+([A-Za-z_]\w*)/i.exec(line);
     if (m) {
       currentType = norm(m[1]);
       types.set(currentType, { name: m[1], members: [], methods: [], line: lineNo });
@@ -529,9 +596,18 @@ export function analyzeSource(text) {
       return;
     }
 
-    m = /^CONSTANT\s+([A-Za-z_]\w*[$%#]?)\s*=/i.exec(line);
+    m = /^(?:CONSTANT|CONST)\s+([A-Za-z_]\w*[$%#]?)\s*(?:AS\s+([A-Za-z_]\w*)\s*)?=\s*(.*)$/i.exec(line);
     if (m) {
-      constants.set(norm(m[1]), { name: m[1], type: suffixType(m[1]), line: lineNo });
+      // Den Wert aus der Rohzeile holen: `"Hallo"` ist in `line` ausgeleert.
+      const raw = rawLines[index] || '';
+      const eq = raw.indexOf('=');
+      const value = eq >= 0 ? stripLineComment(raw.slice(eq + 1)).trim() : m[3].trim();
+      constants.set(norm(m[1]), {
+        name: m[1],
+        type: m[2] ? m[2].toUpperCase() : suffixType(m[1]),
+        value,
+        line: lineNo
+      });
       return;
     }
 
@@ -562,7 +638,8 @@ export function analyzeSource(text) {
       return;
     }
 
-    m = /^([A-Za-z_]\w*[$%#]?)\s*(?:\[[^\]]*\]\s*)*=\s*[^=]/i.exec(line);
+    // Zuweisung, auch in der Kurzform `x += 1`.
+    m = /^([A-Za-z_]\w*[$%#]?)\s*(?:\[[^\]]*\]\s*)*(?:\+=|-=|\*=|\/=|=)\s*[^=]/i.exec(line);
     if (m) {
       addVar(m[1], suffixType(m[1]), 'variable', lineNo);
     }
@@ -575,11 +652,17 @@ export function analyzeSource(text) {
     }
   }
 
+  // Der Block endet mit seinem letzten Wert - für Outline und Sprungmarken.
+  for (const entry of enums.values()) {
+    entry.endLine = entry.values.length ? entry.values[entry.values.length - 1].line : entry.line;
+  }
+
   return {
     functions: [...functions.values()],
     types: [...types.values()],
     variables: [...variables.values()],
     constants: [...constants.values()],
+    enums: [...enums.values()],
     labels: [...labels],
     labelDefs
   };
@@ -696,6 +779,109 @@ export function findUserMethodRanges(text, names) {
   return ranges;
 }
 
+/**
+ * Bereiche von CONSTANT-Namen. Ein Feldzugriff (`obj.NAME`) bleibt aussen vor,
+ * und ENUM-Werte kommen hier nicht an - die stehen in findEnumRanges().
+ */
+export function findConstantRanges(text, names) {
+  const wanted = new Set();
+  for (const name of names || []) {
+    const clean = String(name || '').trim();
+    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean.toUpperCase());
+  }
+  if (!wanted.size) return [];
+  const ranges = [];
+  stripCommentsAndStrings(String(text || '')).split(/\r?\n/).forEach((line, index) => {
+    if (!line) return;
+    const word = /[A-Za-z_]\w*[%$#]?/g;
+    let match;
+    while ((match = word.exec(line))) {
+      if (!wanted.has(match[0].toUpperCase())) continue;
+      if (match.index > 0 && line[match.index - 1] === '.') continue;
+      ranges.push({ line: index + 1, startColumn: match.index + 1, endColumn: match.index + match[0].length + 1 });
+    }
+  });
+  return ranges;
+}
+
+/**
+ * Bereiche von ENUMs: der ENUM-Name selbst (`kind: 'enum'`) und der Wert hinter
+ * dem Punkt (`kind: 'constant'`, z. B. STOP in PHASE.STOP). Nur die qualifizierte
+ * Schreibweise wird gefaerbt - ein nackter Wert ist ein Fehler der Pruefung.
+ */
+export function findEnumRanges(text, enums) {
+  const wanted = new Map();
+  for (const entry of enums || []) {
+    const name = String(entry?.name || '').trim().toUpperCase();
+    if (!/^[A-Z_]\w*$/.test(name)) continue;
+    const values = new Set(
+      (entry.values || [])
+        .map((item) => String(item?.name || '').trim().toUpperCase())
+        .filter((item) => /^[A-Z_]\w*[%$#]?$/.test(item))
+    );
+    wanted.set(name, values);
+  }
+  if (!wanted.size) return [];
+  const ranges = [];
+  // Die Wertedeklarationen im ENUM-Block: dort steht der Name nackt, weil er
+  // erst hier definiert wird. Er wird wie eine Konstante gefaerbt.
+  const declared = new Map();
+  for (const entry of enums || []) {
+    for (const value of entry.values || []) {
+      const name = String(value?.name || '').trim();
+      const line = Number(value?.line) || 0;
+      if (name && line > 0) declared.set(line, name);
+    }
+  }
+  stripCommentsAndStrings(String(text || '')).split(/\r?\n/).forEach((line, index) => {
+    if (!line) return;
+    // Der ENUM-Name ist nur an der Deklaration und vor einem Punkt ein ENUM.
+    // Ein blosses PHASE gibt es in der Sprache nicht - und die Schreibweise
+    // allein reicht nicht, weil `phase%` genauso gross geschrieben wird.
+    const enumHead = /^\s*ENUM\s+([A-Za-z_]\w*)/i.exec(line);
+    const declare = declared.get(index + 1);
+    if (declare) {
+      const head = new RegExp(`^\\s*(${escapeRe(declare)})\\b`, 'i').exec(line);
+      if (head) {
+        const start = head.index + head[0].length - head[1].length;
+        ranges.push({
+          kind: 'constant',
+          line: index + 1,
+          startColumn: start + 1,
+          endColumn: start + head[1].length + 1
+        });
+      }
+    }
+    const word = /[A-Za-z_]\w*/g;
+    let match;
+    while ((match = word.exec(line))) {
+      const key = match[0].toUpperCase();
+      const values = wanted.get(key);
+      if (!values) continue;
+      const isDeclaration = Boolean(enumHead) && enumHead[1].toUpperCase() === key;
+      const rest = line.slice(match.index + match[0].length);
+      // Nur `ENUM PHASE` oder `PHASE.WERT` - kein Bezeichner, der zufaellig so heisst.
+      if (!isDeclaration && !/^\s*\./.test(rest)) continue;
+      const member = /^\s*\.\s*([A-Za-z_]\w*[%$#]?)/.exec(rest);
+      ranges.push({
+        kind: 'enum',
+        line: index + 1,
+        startColumn: match.index + 1,
+        endColumn: match.index + match[0].length + 1
+      });
+      if (!member || !values.has(member[1].toUpperCase())) continue;
+      const start = match.index + match[0].length + member[0].length - member[1].length;
+      ranges.push({
+        kind: 'constant',
+        line: index + 1,
+        startColumn: start + 1,
+        endColumn: start + member[1].length + 1
+      });
+    }
+  });
+  return ranges;
+}
+
 const RGB_LITERAL = /\bRGB\s*\(\s*(0x[0-9a-f]+|-?\d+)\s*,\s*(0x[0-9a-f]+|-?\d+)\s*,\s*(0x[0-9a-f]+|-?\d+)\s*\)/gi;
 
 /**
@@ -767,6 +953,99 @@ export function suffixType(name) {
   if (n.endsWith('%')) return 'INTEGER';
   if (n.endsWith('#')) return 'FLOAT';
   return 'NUMERIC';
+}
+
+/** Schneidet einen //-Kommentar ab, ohne Zeichenketten anzufassen. */
+function stripLineComment(text) {
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '"') inString = !inString;
+    else if (!inString && text[i] === '/' && text[i + 1] === '/') return text.slice(0, i);
+  }
+  return text;
+}
+
+/**
+ * Wert einer CONSTANT oder eines ENUM-Werts, soweit er ohne Laufzeit feststeht.
+ * Zahl, Zeichenkette und einfache Rechnungen daraus werden ausgerechnet; ein
+ * Ausdruck mit anderen Namen (`BASE * 2`) bleibt als Ausdruck stehen - so
+ * steht im Tooltip nie ein geratener Wert.
+ */
+export function constantValueText(raw) {
+  const text = stripLineComment(String(raw ?? '')).trim();
+  if (!text) return '';
+  const quoted = /^"([\s\S]*)"$/.exec(text);
+  if (quoted) return quoted[1];
+  if (/^[-+()\d\s.*/%]+$/.test(text)) {
+    const number = evalNumberExpression(text);
+    if (number !== null) return String(Number.isInteger(number) ? number : Number(number.toPrecision(12)));
+  }
+  return text;
+}
+
+/** Kleiner Rechner fuer Zahlenausdruecke: + - * / % und Klammern. */
+function evalNumberExpression(text) {
+  let index = 0;
+  const skip = () => {
+    while (index < text.length && /\s/.test(text[index])) index++;
+  };
+  function primary() {
+    skip();
+    if (text[index] === '(') {
+      index++;
+      const value = addition();
+      skip();
+      if (value === null || text[index] !== ')') return null;
+      index++;
+      return value;
+    }
+    const start = index;
+    while (index < text.length && /[\d.]/.test(text[index])) index++;
+    if (start === index) return null;
+    const value = Number(text.slice(start, index));
+    return Number.isFinite(value) ? value : null;
+  }
+  function unary() {
+    skip();
+    if (text[index] === '+' || text[index] === '-') {
+      const sign = text[index] === '-' ? -1 : 1;
+      index++;
+      const value = unary();
+      return value === null ? null : sign * value;
+    }
+    return primary();
+  }
+  function product() {
+    let value = unary();
+    if (value === null) return null;
+    for (;;) {
+      skip();
+      const op = text[index];
+      if (op !== '*' && op !== '/' && op !== '%') return value;
+      index++;
+      const right = unary();
+      if (right === null) return null;
+      if ((op === '/' || op === '%') && right === 0) return null;
+      value = op === '*' ? value * right : op === '/' ? value / right : value % right;
+    }
+  }
+  function addition() {
+    let value = product();
+    if (value === null) return null;
+    for (;;) {
+      skip();
+      const op = text[index];
+      if (op !== '+' && op !== '-') return value;
+      index++;
+      const right = product();
+      if (right === null) return null;
+      value = op === '+' ? value + right : value - right;
+    }
+  }
+  const result = addition();
+  skip();
+  if (result === null || index !== text.length) return null;
+  return result;
 }
 
 /**
@@ -1085,7 +1364,7 @@ export function attachKeywordCasing(monaco, editor, dataset) {
 }
 
 export function registerGbx(monaco, dataset, options = {}) {
-  const getSymbols = options.getSymbols || (() => ({ functions: [], types: [], variables: [], constants: [] }));
+  const getSymbols = options.getSymbols || (() => ({ functions: [], types: [], variables: [], constants: [], enums: [] }));
   // Die Analyse der aktiven Datei kommt aus der IDE (dort zwischengespeichert),
   // damit `self` denselben Stand sieht wie Outline und Symbolsuche.
   const getAnalysis = options.getAnalysis || ((model) => analyzeSource(model.getValue()));
@@ -1154,8 +1433,8 @@ export function registerGbx(monaco, dataset, options = {}) {
       { open: '[', close: ']' }
     ],
     indentationRules: {
-      increaseIndentPattern: /^\s*(FUNCTION|SUB|IF|FOR|WHILE|REPEAT|SELECT|TYPE|TRY|ELSE|ELSEIF|CASE|DEFAULT|CATCH|FINALLY)\b(?!.*\bTHEN\b.*\S).*/i,
-      decreaseIndentPattern: /^\s*(ENDIF|ENDFUNCTION|ENDSUB|ENDMETHOD|ENDTYPE|ENDSELECT|ENDTRY|NEXT|WEND|UNTIL|ELSE|ELSEIF|CASE|DEFAULT|CATCH|FINALLY)\b/i
+      increaseIndentPattern: /^\s*(FUNCTION|SUB|IF|FOR|WHILE|REPEAT|SELECT|TYPE|ENUM|TRY|ELSE|ELSEIF|CASE|DEFAULT|CATCH|FINALLY)\b(?!.*\bTHEN\b.*\S).*/i,
+      decreaseIndentPattern: /^\s*(ENDIF|ENDFUNCTION|ENDSUB|ENDMETHOD|ENDTYPE|ENDSELECT|ENDENUM|ENDTRY|NEXT|WEND|UNTIL|ELSE|ELSEIF|CASE|DEFAULT|CATCH|FINALLY)\b/i
     }
   });
 
@@ -1393,6 +1672,27 @@ export function registerGbx(monaco, dataset, options = {}) {
       if (chain) {
         const parts = chain[1].split('.').map((part) => part.trim()).filter(Boolean);
         const symbols = getSymbols();
+        // "PHASE." - die Werte genau dieses ENUM. Vor dem Punkt steht der
+        // ENUM-Name, nicht ein Objekt; ein TYPE-Feld gleichen Namens bleibt
+        // bei der Auflösung darunter.
+        const enumOwner = parts.length === 1 ? (symbols.enums || []).find((e) => norm(e.name) === norm(parts[0])) : null;
+        if (enumOwner) {
+          for (const value of enumOwner.values || []) {
+            suggestions.push({
+              label: value.name,
+              kind: languages.CompletionItemKind.Constant,
+              detail: `ENUM ${enumOwner.name}`,
+              documentation: t('Wert von `{type}.{value}`', {
+                type: enumOwner.name,
+                value: value.name
+              }),
+              insertText: value.name,
+              sortText: '0_' + value.name,
+              range
+            });
+          }
+          return { suggestions };
+        }
         // `self` steht in einer TYPE-Methode für das eigene Objekt; sonst
         // bleibt die Kette bei Variablen und deren Membern.
         const resolved = parts.length
@@ -1484,12 +1784,27 @@ export function registerGbx(monaco, dataset, options = {}) {
         });
       }
       for (const c of symbols.constants) {
+        // ENUM-Werte stehen hinter ihrem ENUM (PHASE.STOP), nicht einzeln.
+        if (c.enum) continue;
         suggestions.push({
           label: c.name,
           kind: languages.CompletionItemKind.Constant,
           detail: 'CONSTANT',
           insertText: c.name,
           sortText: '1_' + c.name,
+          range
+        });
+      }
+      for (const entry of symbols.enums || []) {
+        suggestions.push({
+          label: entry.name,
+          kind: languages.CompletionItemKind.Enum,
+          detail: `ENUM · ${t('{n} Werte', { n: (entry.values || []).length })}`,
+          documentation: `**ENUM ${entry.name}**\n\n${(entry.values || [])
+            .map((value) => `- \`${entry.name}.${value.name}\``)
+            .join('\n')}`,
+          insertText: entry.name,
+          sortText: '1_' + entry.name,
           range
         });
       }
@@ -1619,6 +1934,51 @@ export function registerGbx(monaco, dataset, options = {}) {
         return { range: hit.range, contents: [{ value: parts.join('\n\n') }] };
       }
     }
+    // PHASE.STOP: der Wert eines ENUM, kein Feld eines TYPEs.
+    {
+      const line = model.getLineContent(position.lineNumber);
+      const before = line.slice(0, hit.range.startColumn - 1);
+      const owner = /([A-Za-z_]\w*)\s*\.\s*$/.exec(before)?.[1];
+      const symbols = getSymbols();
+      const enums = symbols.enums || [];
+      const enumOwner = owner ? enums.find((entry) => norm(entry.name) === norm(owner)) : null;
+      const enumValue = (enumOwner?.values || []).find((value) => norm(value.name) === norm(word));
+      if (enumValue) {
+        const where = originText({ ...enumValue, file: enumOwner.file });
+        return {
+          range: hit.range,
+          contents: [
+            {
+              value: `**${enumOwner.name}.${enumValue.name}** · ENUM ${enumOwner.name}${
+                enumValue.type ? ' · ' + enumValue.type : ''
+              }\n\n${t('Wert {value} von ENUM {type}. Schreib ihn immer mit dem ENUM davor.', {
+                value: constantValueText(enumValue.value),
+                type: enumOwner.name
+              })}${where}`
+            }
+          ]
+        };
+      }
+      const enumHit = enums.find((entry) => norm(entry.name) === norm(word));
+      if (enumHit) {
+        const values = (enumHit.values || [])
+          .map((value) => {
+            const shown = constantValueText(value.value);
+            return `- \`${enumHit.name}.${value.name}\`${shown ? ' = ' + shown : ''}`;
+          })
+          .join('\n');
+        return {
+          range: hit.range,
+          contents: [
+            {
+              value: `**ENUM ${enumHit.name}**${
+                values ? `\n\n**${t('Werte')}**\n\n${values}` : ''
+              }${originText(enumHit)}`
+            }
+          ]
+        };
+      }
+    }
     // Member-Ketten: `self.pos` im Methodenrumpf und `b.pos.y` über
     // Variablen. Gezeigt werden Pfad und Ziel-TYPE mit Feldern/Methoden.
     {
@@ -1656,6 +2016,25 @@ export function registerGbx(monaco, dataset, options = {}) {
           if (methods) lines.push(`**${t('Methoden')}**\n\n${methods}`);
           return { range: hit.range, contents: [{ value: lines.join('\n\n') }] };
         }
+      }
+    }
+    // CONSTANT: der Wert steht im Tooltip, auch wenn die Deklaration in einer
+    // anderen Datei liegt.
+    {
+      const symbols = getSymbols();
+      const constant = (symbols.constants || []).find(
+        (entry) => !entry.enum && norm(entry.name) === norm(word)
+      );
+      if (constant) {
+        const value = constantValueText(constant.value);
+        const type = constant.type ? ` · ${constant.type}` : '';
+        const shown = value ? `\n\n${t('Wert `{value}`', { value })}` : '';
+        return {
+          range: hit.range,
+          contents: [
+            { value: `**${constant.name}** · CONSTANT${type}${shown}${originText(constant)}` }
+          ]
+        };
       }
     }
     const command = byName.get(norm(word));
@@ -1827,7 +2206,24 @@ export function registerGbx(monaco, dataset, options = {}) {
           selectionRange: new monaco.Range(fn.line, 1, fn.line, 1)
         });
       }
+      for (const entry of analysis.enums || []) {
+        result.push({
+          name: entry.name,
+          detail: 'ENUM',
+          kind: monaco.languages.SymbolKind.Enum,
+          range: new monaco.Range(entry.line, 1, entry.endLine || entry.line, 1),
+          selectionRange: new monaco.Range(entry.line, 1, entry.line, 1),
+          children: (entry.values || []).map((value) => ({
+            name: `${entry.name}.${value.name}`,
+            detail: 'ENUM',
+            kind: monaco.languages.SymbolKind.Constant,
+            range: new monaco.Range(value.line, 1, value.line, 1),
+            selectionRange: new monaco.Range(value.line, 1, value.line, 1)
+          }))
+        });
+      }
       for (const c of analysis.constants) {
+        if (c.enum) continue;
         result.push({
           name: c.name,
           detail: 'CONSTANT',

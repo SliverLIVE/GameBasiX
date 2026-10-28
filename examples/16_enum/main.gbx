@@ -1,0 +1,142 @@
+' ============================================================
+' ENUM - a traffic light built as a small state machine
+' Run: gbx examples/16_enum/enum.gbxproj
+'
+' The four phases are one ENUM: the names read like the task.
+' A value is always written ENUM.VALUE - PHASE.STOP - so two ENUMs may
+' offer the same short name. STOP = 0, GET_READY = 1, GO = 2,
+' SLOW_DOWN = 10 (own value), the next name after it would continue at 11.
+' ============================================================
+
+ENUM PHASE
+  STOP
+  GET_READY
+  GO
+  SLOW_DOWN = 10
+ENDENUM
+
+CONSTANT LAMP_OFF = 40
+CONSTANT LAMP_ON = 255
+
+SCREEN_SET 640, 460, 0
+WINDOW_TITLE "GameBasiX - ENUM traffic light"
+LIMIT_FPS 60
+
+GLOBAL phase%
+GLOBAL remaining#
+GLOBAL shown%
+
+' How long a phase stays on, in milliseconds.
+FUNCTION phaseTime: p
+  SELECT p
+  CASE PHASE.STOP
+    RETURN 2200
+  CASE PHASE.GET_READY
+    RETURN 700
+  CASE PHASE.GO
+    RETURN 2600
+  CASE PHASE.SLOW_DOWN
+    RETURN 900
+  ENDSELECT
+  RETURN 1000
+ENDFUNCTION
+
+' STOP -> GET_READY -> GO -> SLOW_DOWN -> STOP
+FUNCTION nextPhase: p
+  SELECT p
+  CASE PHASE.STOP
+    RETURN PHASE.GET_READY
+  CASE PHASE.GET_READY
+    RETURN PHASE.GO
+  CASE PHASE.GO
+    RETURN PHASE.SLOW_DOWN
+  ENDSELECT
+  RETURN PHASE.STOP
+ENDFUNCTION
+
+FUNCTION phaseName$: p
+  SELECT p
+  CASE PHASE.STOP
+    RETURN "STOP"
+  CASE PHASE.GET_READY
+    RETURN "GET READY"
+  CASE PHASE.GO
+    RETURN "GO"
+  CASE PHASE.SLOW_DOWN
+    RETURN "SLOW DOWN"
+  ENDSELECT
+  RETURN "?"
+ENDFUNCTION
+
+' lamp 0 = red, 1 = amber, 2 = green
+FUNCTION lampOn%: p, lamp
+  IF lamp = 0 THEN RETURN (p = PHASE.STOP) OR (p = PHASE.GET_READY)
+  IF lamp = 1 THEN RETURN (p = PHASE.GET_READY) OR (p = PHASE.SLOW_DOWN)
+  RETURN p = PHASE.GO
+ENDFUNCTION
+
+phase% = PHASE.STOP
+remaining# = phaseTime(PHASE.GO)
+shown% = -1
+
+WHILE TRUE
+  ' SPACE jumps to the next phase, ESC ends the program.
+  IF KEY_PRESSED(KEY_SPACE) THEN remaining# = 0
+
+  ' Short form of a subtraction: read once, subtract, write back.
+  remaining# -= DELTA_TIME()
+
+  IF remaining# <= 0
+    phase% = nextPhase(phase%)
+    remaining# = phaseTime(phase%)
+  ENDIF
+
+  ' The console log proves the state machine also runs in --headless.
+  IF phase% <> shown%
+    DEBUG "phase " + phaseName$(phase%) + " (" + STR$(phase%) + ")" + CHR$(10)
+    shown% = phase%
+  ENDIF
+
+  SCREEN_CLEAR RGB(12, 16, 24)
+
+  ' housing
+  DRAW_RECT 90, 70, 150, 320, RGB(28, 34, 48)
+  DRAW_RECT_BORDER 90, 70, 150, 320, RGB(70, 82, 104)
+
+  ' three lamps, colours chosen by the phase
+  FOR lamp = 0 TO 2
+    y = 130 + lamp * 100
+    IF lampOn(phase%, lamp)
+      SELECT lamp
+      CASE 0
+        DRAW_CIRCLE_FILLED 165, y, 36, RGB(LAMP_ON, 70, 60)
+      CASE 1
+        DRAW_CIRCLE_FILLED 165, y, 36, RGB(LAMP_ON, 195, 60)
+      DEFAULT
+        DRAW_CIRCLE_FILLED 165, y, 36, RGB(80, LAMP_ON, 130)
+      ENDSELECT
+    ELSE
+      DRAW_CIRCLE_FILLED 165, y, 36, RGB(LAMP_OFF, LAMP_OFF, LAMP_OFF + 8)
+    ENDIF
+  NEXT
+
+  TEXT_COLOR RGB(235, 240, 250)
+  PRINT "Phase: " + phaseName$(phase%), 300, 130
+  TEXT_COLOR RGB(150, 175, 210)
+  PRINT FORMAT$("{0} s left", FORMAT$(3, 1, remaining# / 1000.0)), 300, 175
+
+  DRAW_LINE 300, 215, 600, 215, RGB(50, 60, 80)
+  TEXT_COLOR RGB(150, 175, 210)
+  PRINT "The ENUM values behind the names:", 300, 240
+  TEXT_COLOR RGB(120, 200, 150)
+  PRINT "PHASE.STOP = " + STR$(PHASE.STOP), 300, 280
+  PRINT "PHASE.GET_READY = " + STR$(PHASE.GET_READY), 300, 310
+  PRINT "PHASE.GO = " + STR$(PHASE.GO), 300, 340
+  PRINT "PHASE.SLOW_DOWN = " + STR$(PHASE.SLOW_DOWN), 300, 370
+
+  TEXT_COLOR RGB(110, 130, 160)
+  PRINT "SPACE next phase - ESC quits", 300, 415
+
+  SCREEN_SHOW
+  IF KEY_PRESSED(KEY_ESC) THEN BREAK
+WEND

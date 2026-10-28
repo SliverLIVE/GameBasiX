@@ -49,6 +49,7 @@ enum class SK {
     Redim,
     Decl,
     ConstDecl,
+    EnumDecl,  // ENUM … ENDENUM: body enthaelt je Wert ein ConstDecl
     Swap,
     IncDec,
     Push,
@@ -87,7 +88,13 @@ struct Stmt {
     std::string typeName;
     TypeHint hint = TypeHint::None;
     DeclScope scope = DeclScope::Local;
+    // true: der Bereich stand ausdruecklich da (GLOBAL/LOCAL/STATIC). Bei
+    // SK::Dim mit Klammern legt das Array dann genau in diesem Bereich an.
+    bool scopeExplicit = false;
     bool isSub = false;
+    // "x += 5": e2 wird mit dem alten Wert von e1 verknuepft (Operator in bin).
+    bool compound = false;
+    BinOp bin = BinOp::Add;
 
     ExprP e1, e2, e3;                  // Assignment: e1=Ziel, e2=Wert
     std::vector<ExprP> exprs;          // DIM-Groessen, Argumente
@@ -136,6 +143,11 @@ struct Program {
     std::vector<InlineBlock> inlines;
     std::unordered_map<std::string, FuncDef> funcs;
     std::unordered_map<std::string, std::shared_ptr<TypeDef>> types;
+    // ENUMs: Name -> Werte in Deklarationsreihenfolge. Ein Wert heisst immer
+    // "PHASE.STOP"; nur so koennen zwei ENUMs denselben Namen anbieten.
+    std::unordered_map<std::string, std::vector<std::string>> enums;
+    // Wert -> ENUMs, die ihn anbieten (fuer "meintest du PHASE.STOP?").
+    std::unordered_map<std::string, std::vector<std::string>> enumValues;
     // Standardwerte der TYPE-Felder in Feldreihenfolge; leer = ohne Angabe.
     // Getrennt von TypeDef, weil value.h keinen Syntaxbaum kennen soll.
     std::unordered_map<std::string, std::vector<ExprP>> typeDefaults;

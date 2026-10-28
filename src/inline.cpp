@@ -676,6 +676,11 @@ void walkGlobalDecls(const std::vector<StmtP>& body, BindMap& out) {
         if (!st) continue;
         if (st->kind == SK::Decl && st->scope == DeclScope::Global) {
             putBinding(out, st->name, declKind(*st), st->typeName, false);
+        } else if (st->kind == SK::Dim && st->scopeExplicit && st->scope == DeclScope::Global) {
+            // GLOBAL a[5] AS T: das Array gilt wie eine GLOBAL-Deklaration.
+            putBinding(out, st->name,
+                       st->typeName.empty() ? BindKind::Array : BindKind::RecordArray,
+                       st->typeName, false);
         } else if (st->kind == SK::ConstDecl) {
             putBinding(out, st->name, st->hint == TypeHint::Str ? BindKind::Text : BindKind::Number,
                        std::string(), true);
@@ -699,6 +704,8 @@ void walkFunctionLocals(const std::vector<StmtP>& body, BindMap& out) {
                 break;
             case SK::Dim:
             case SK::Redim:
+                // GLOBAL a[5] in einer Funktion ist kein lokaler Name.
+                if (st->scopeExplicit && st->scope == DeclScope::Global) break;
                 putBinding(out, st->name,
                            st->typeName.empty() ? BindKind::Array : BindKind::RecordArray,
                            st->typeName, false);
@@ -794,6 +801,8 @@ std::vector<Binding> bindingsFor(const Program& prog, const InlineBlock& block) 
     for (auto& entry : visible) {
         Binding binding = entry.second;
         std::string cpp = lowerAscii(binding.basic);
+        // ENUM-Werte heissen "PHASE.STOP"; der Punkt ist in C++ nicht erlaubt.
+        std::replace(cpp.begin(), cpp.end(), '.', '_');
         if (binding.kind == BindKind::Text) cpp += "_str";
         if (cpp.empty() || std::isdigit(static_cast<unsigned char>(cpp[0])) || isCppKeyword(cpp))
             continue;

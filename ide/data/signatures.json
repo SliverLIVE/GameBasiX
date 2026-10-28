@@ -140,7 +140,9 @@
   ],
   "FORMAT$": [
     "fmt$ = FORMAT$(numLetters#, numAfterComma#, number#)",
-    "fmt$ = FORMAT$(numBuchstaben#, numNachKomma#, zahl#)"
+    "fmt$ = FORMAT$(\"text {0} {1}\", value1, value2)",
+    "fmt$ = FORMAT$(numBuchstaben#, numNachKomma#, zahl#)",
+    "fmt$ = FORMAT$(\"text {0} {1}\", wert1, wert2)"
   ],
   "FONT_NEW": [
     "id% = FONT_NEW()",
@@ -435,6 +437,12 @@
   "INSTR_REVERSE": [
     "pos% = INSTR_REVERSE(haystack$, needle$, start%=-1)",
     "pos% = INSTR_REVERSE(wort$, such$, start%=-1)"
+  ],
+  "JOIN$": [
+    "text$ = JOIN$(array$[], separator$)",
+    "text$ = JOIN$(array$[], separator$, start%, count%)",
+    "text$ = JOIN$(feld$[], trenner$)",
+    "text$ = JOIN$(feld$[], trenner$, start%, anzahl%)"
   ],
   "RGB": [
     "color%=RGB(red%, green%, blue%)",

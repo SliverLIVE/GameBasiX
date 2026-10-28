@@ -1,0 +1,201 @@
+' ============================================================
+' FOREACH over a TYPE array - walk, change, count and break
+' Run: gbx examples/17_type_array/typearray.gbxproj
+'
+' One line builds the array: GLOBAL cells[CELL_COUNT] AS CELL. Every element
+' is its own CELL, created with the field defaults. The brackets work on
+' GLOBAL, LOCAL and STATIC exactly like on DIM - they only add the scope.
+' FOREACH hands out the element itself, not a copy: writing c.hits
+' inside the loop changes the array entry. No copying back needed.
+' The loop has no index of its own - a counter next to it is the way
+' to get one, and it always matches the real array index.
+' BREAK leaves the loop early; that is how firstDead() stops at the
+' first burst cell instead of walking the rest.
+' ============================================================
+
+CONSTANT CELL_COUNT = 14
+CONSTANT HITS_TO_BURST = 5
+
+TYPE CELL
+  x AS FLOAT
+  y AS FLOAT
+  vx AS FLOAT
+  vy AS FLOAT
+  r AS FLOAT
+  hits AS INTEGER
+  alive AS INTEGER
+  name$
+ENDTYPE
+
+GLOBAL cells[CELL_COUNT] AS CELL
+
+GLOBAL idx%
+GLOBAL dt#
+
+' Fill the array through FOREACH. The counter is the only source of
+' an index inside the loop; everything written here stays in cells[].
+FUNCTION resetCells:
+  idx% = 0
+  FOREACH c IN cells[]
+    c.r = 10 + MOD(idx%, 4) * 4
+    c.x = 70 + idx% * 46
+    c.y = 170 + MOD(idx%, 3) * 95
+    c.vx = (MOD(idx%, 3) + 2) * 70.0
+    IF MOD(idx%, 2) = 0
+      c.vy = 60.0
+    ELSE
+      c.vy = -60.0
+    ENDIF
+    c.hits = 0
+    c.alive = 1
+    c.name$ = "C" + STR$(idx%)
+    idx% = idx% + 1
+  NEXT
+ENDFUNCTION
+
+' One frame: move, bounce at the walls, count the bounce, burst after
+' five bounces. All of it happens on the element itself.
+FUNCTION stepCells:
+  FOREACH c IN cells[]
+    IF c.alive = 0 THEN CONTINUE
+    c.x = c.x + c.vx * dt#
+    c.y = c.y + c.vy * dt#
+    IF c.x < 60
+      c.x = 60
+      c.vx = ABS(c.vx)
+      c.hits = c.hits + 1
+    ENDIF
+    IF c.x > 700
+      c.x = 700
+      c.vx = 0 - ABS(c.vx)
+      c.hits = c.hits + 1
+    ENDIF
+    IF c.y < 130
+      c.y = 130
+      c.vy = ABS(c.vy)
+      c.hits = c.hits + 1
+    ENDIF
+    IF c.y > 400
+      c.y = 400
+      c.vy = 0 - ABS(c.vy)
+      c.hits = c.hits + 1
+    ENDIF
+    IF c.hits >= HITS_TO_BURST THEN c.alive = 0
+  NEXT
+ENDFUNCTION
+
+FUNCTION aliveCount%:
+  n% = 0
+  FOREACH c IN cells[]
+    IF c.alive THEN n% = n% + 1
+  NEXT
+  RETURN n%
+ENDFUNCTION
+
+FUNCTION totalHits%:
+  sum% = 0
+  FOREACH c IN cells[]
+    sum% = sum% + c.hits
+  NEXT
+  RETURN sum%
+ENDFUNCTION
+
+' BREAK: stop walking as soon as the first burst cell shows up.
+FUNCTION firstDead%:
+  found% = -1
+  i% = 0
+  FOREACH c IN cells[]
+    IF c.alive = 0
+      found% = i%
+      BREAK
+    ENDIF
+    i% = i% + 1
+  NEXT
+  RETURN found%
+ENDFUNCTION
+
+' A LOCAL array with brackets: it exists only inside this function.
+FUNCTION spread$:
+  LOCAL buckets[3]
+  FOREACH c IN cells[]
+    IF c.hits < 2
+      buckets[0] = buckets[0] + 1
+    ELSEIF c.hits < 4
+      buckets[1] = buckets[1] + 1
+    ELSE
+      buckets[2] = buckets[2] + 1
+    ENDIF
+  NEXT
+  RETURN "0-1 hits: " + STR$(buckets[0]) + ", 2-3: " + STR$(buckets[1]) + ", 4+: " + STR$(buckets[2])
+ENDFUNCTION
+
+FUNCTION burstCount%:
+  n% = 0
+  FOREACH c IN cells[]
+    IF c.alive = 0 THEN n% = n% + 1
+  NEXT
+  RETURN n%
+ENDFUNCTION
+
+resetCells()
+
+' The same walk also runs in --headless: step 540 frames, log the result,
+' then start the window with a fresh array.
+FOR skip = 1 TO 540
+  dt# = 1.0 / 60.0
+  stepCells()
+NEXT
+DEBUG "FOREACH walk: " + STR$(aliveCount%()) + " alive, " + STR$(burstCount%()) + " burst, first dead at " + STR$(firstDead%()) + ", " + STR$(totalHits%()) + " wall hits" + CHR$(10)
+DEBUG "LOCAL buckets: " + spread$() + CHR$(10)
+resetCells()
+
+SCREEN_SET 760, 480, 0
+WINDOW_TITLE "GameBasiX - FOREACH over a TYPE array"
+LIMIT_FPS 60
+
+WHILE TRUE
+  dt# = DELTA_TIME() / 1000.0
+  IF dt# > 0.05 THEN dt# = 0.05
+
+  IF KEY_PRESSED(KEY_SPACE) THEN resetCells()
+  stepCells()
+
+  SCREEN_CLEAR RGB(10, 14, 22)
+  DRAW_RECT_BORDER 50, 120, 700, 300, RGB(38, 50, 70)
+
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "FOREACH c IN cells[]", 50, 24
+  TEXT_COLOR RGB(140, 170, 205)
+  PRINT "GLOBAL cells[" + STR$(CELL_COUNT) + "] AS CELL - one element per cell, changed in place", 50, 56
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "alive: " + STR$(aliveCount%()) + "   burst: " + STR$(burstCount%()) + "   wall hits: " + STR$(totalHits%()), 50, 88
+
+  ' Draw every cell. idx% is the hand-written counter; it matches the
+  ' array index, which is why the numbers read 0 … 13 in order.
+  idx% = 0
+  FOREACH c IN cells[]
+    IF c.alive
+      DRAW_CIRCLE c.x, c.y, c.r + 7, RGB(50, 66, 92)
+      DRAW_CIRCLE_FILLED c.x, c.y, c.r, RGB(90 + c.hits * 26, 190 - c.hits * 12, 240 - c.hits * 30)
+      TEXT_COLOR RGB(16, 22, 30)
+      PRINT STR$(idx%), c.x - 6, c.y - 8
+    ELSE
+      DRAW_CIRCLE c.x, c.y, c.r, RGB(62, 74, 96)
+      TEXT_COLOR RGB(96, 110, 132)
+      PRINT "x", c.x - 4, c.y - 8
+    ENDIF
+    idx% = idx% + 1
+  NEXT
+
+  ' The counter ends where the array ends - proof that one tick per element.
+  TEXT_COLOR RGB(150, 175, 210)
+  PRINT "counter after the walk: " + STR$(idx%) + " (array length " + STR$(CELL_COUNT) + ")", 50, 446
+  TEXT_COLOR RGB(150, 175, 210)
+  PRINT "first burst cell at index " + STR$(firstDead%()) + " (found with BREAK)", 50, 470
+
+  TEXT_COLOR RGB(110, 130, 160)
+  PRINT "SPACE resets the array - ESC quits", 420, 470
+
+  SCREEN_SHOW
+  IF KEY_PRESSED(KEY_ESC) THEN BREAK
+WEND

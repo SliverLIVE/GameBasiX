@@ -321,6 +321,43 @@ END
             "Unbekanntes Feld: NAM (KISTE)",
         )
 
+        # ------------------------------------------------------------- ENUM
+        enum_source = """ENUM PHASE
+  STOP
+  GET_READY
+  GO
+ENDENUM
+
+GLOBAL phase%
+phase% = PHASE.STOP
+IF phase% = PHASE.GO THEN phase% = PHASE.GET_READY
+PRINT STR$(phase%), 0, 0
+END
+"""
+        expect_clean(work, "ENUM-Werte nur mit ENUM davor", enum_source)
+        expect_error(
+            work,
+            "nackter ENUM-Wert mit Vorschlag",
+            enum_source.replace("phase% = PHASE.STOP", "phase% = STOP"),
+            8,
+            "Unbekannter Name: STOP - meintest du PHASE.STOP?",
+        )
+        expect_clean(
+            work,
+            "gleiche Wertnamen in zwei ENUMs",
+            """ENUM PHASE
+  STOP
+  GO
+ENDENUM
+ENUM AMPEL
+  STOP = 5
+  GO = 6
+ENDENUM
+PRINT STR$(PHASE.STOP) + STR$(AMPEL.STOP) + STR$(AMPEL.GO), 0, 0
+END
+""",
+        )
+
         code, stderr, path = run_check(
             work, "TYPE T\n  x AS FLOAT\n  FUNCTION f:\n    RETURN 1\n  ENDFUNCTION\nENDTYPE\nEND\n"
         )

@@ -404,6 +404,23 @@ ASSERT Dimensionen = 2, "rank liefert die Dimensionen"
 ASSERT ARRAY_BOUNDS(raster[], 0) = 4 AND ARRAY_BOUNDS(raster[], 1) = 5, "resize mehrdimensional"
 ASSERT raster[3][4] = 7 AND raster[1][2] = 9, "Werte bleiben beim Wachsen"
 
+' Ein GLOBAL-Array mit Klammern in einer Funktion ist fuer jeden Schritt global.
+FUNCTION bauPuffer:
+  GLOBAL puffer[3]
+  INLINE
+    puffer[1] = 41.0;
+  ENDINLINE
+ENDFUNCTION
+bauPuffer()
+GLOBAL pufferWert
+FUNCTION liesPuffer:
+  INLINE
+    pufferwert = puffer[1] + 1;
+  ENDINLINE
+ENDFUNCTION
+liesPuffer()
+ASSERT pufferWert = 42, "GLOBAL a[n] aus einer Funktion ist im Schritt sichtbar"
+
 ' Eine einzelne Zeile ist selbst ein Array (Element::asArray).
 FUNCTION reiheWachsen:
   INLINE
@@ -517,3 +534,19 @@ TRY
 CATCH fehler$
   ASSERT INSTR(fehler$, "Ausgabevariable") >= 0, "BYREF verlangt eine Variable"
 FINALLY
+
+' ENUM-Werte heissen PHASE.STOP. Im C++-Schritt werden daraus einfache
+' Namen mit Unterstrich: phase_stop.
+ENUM PHASE
+  STOP
+  GO = 5
+ENDENUM
+
+FUNCTION enumImSchritt:
+  LOCAL summe%
+  INLINE
+    summe = phase_stop + phase_go;
+  ENDINLINE
+  RETURN summe
+ENDFUNCTION
+ASSERT enumImSchritt() = 5, "ENUM-Werte sind im INLINE-Schritt sichtbar"

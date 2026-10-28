@@ -7,6 +7,10 @@
 #include "ast.h"
 #include "lexer.h"
 
+// Loest `PHASE.STOP` in allen Ausdruecken zu einer Konstanten auf; laeuft,
+// wenn das ganze Programm geparst ist. Meldet unbekannte Werte mit Hinweis.
+void resolveEnumRefs(Program& program);
+
 class Parser {
 public:
     Parser(std::string path, std::vector<Token> tokens, Program& program);
@@ -44,6 +48,7 @@ private:
     StmtP parseDim(bool redim);
     StmtP parseDecl(DeclScope scope);
     StmtP parseConstant();
+    StmtP parseEnum();
     StmtP parseIncDec(int delta);
     StmtP parsePush(bool del);
     StmtP parseForeach();

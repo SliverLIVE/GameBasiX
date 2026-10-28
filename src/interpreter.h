@@ -62,11 +62,17 @@ private:
     void declareStatic(const Stmt& s);
     void assign(const Expr& target, Value v);
     void assignArray(const std::string& name, std::shared_ptr<ArrayObj> arr);
+    // Dasselbe, aber in einen festen Bereich (GLOBAL/LOCAL/STATIC vor [..]).
+    void assignArrayIn(const std::string& name, std::shared_ptr<ArrayObj> arr, DeclScope scope,
+                       const SrcPos& pos);
     Value readVar(const Expr& e);
     uint32_t toIndex(const Expr& e, size_t size, const SrcPos& pos);
 
     // Ausdruecke
     Value eval(const Expr& e);
+    // Verknuepft zwei Werte wie ein Operator (+ - * / = <> < <= > >=).
+    // Wird auch fuer "x += 1" gebraucht, damit beide Wege gleich rechnen.
+    Value evalBinary(BinOp op, const Value& a, const Value& b, const SrcPos& pos);
 
     // Anweisungen
     void execSection(const std::vector<StmtP>& body);

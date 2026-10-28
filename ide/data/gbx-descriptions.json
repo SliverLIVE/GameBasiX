@@ -263,6 +263,14 @@
     "de": "Schließt eine TYPE-Definition ab.",
     "en": "Closes a TYPE definition."
   },
+  "ENDENUM": {
+    "de": "Schließt einen ENUM-Block ab.",
+    "en": "Closes an ENUM block."
+  },
+  "ENUM": {
+    "de": "Fasst benannte Zahlenwerte zu einer Gruppe zusammen: ENUM name … ENDENUM. Der erste Wert ist 0, jeder weitere zählt eins weiter; mit = lässt sich ein eigener Wert setzen, auch als Ausdruck. Jeder Wert wird mit dem ENUM davor geschrieben (PHASE.STOP), damit zwei ENUMs denselben Namen anbieten dürfen.",
+    "en": "Groups named numbers: ENUM name … ENDENUM. The first value is 0 and every further value counts one up; use = to set a value yourself, an expression works too. Every value is written with its ENUM in front (PHASE.STOP), so two ENUMs may use the same short name."
+  },
   "EXIT": {
     "de": "Verlässt eine FUNCTION oder ein SUB vorzeitig.",
     "en": "Leaves a FUNCTION or SUB early."
@@ -308,8 +316,8 @@
     "en": "Walks over every element of an array or TYPE array; the loop variable refers to the element itself."
   },
   "FORMAT$": {
-    "de": "Schreibt eine Zahl mit fester Gesamtbreite und fester Zahl an Nachkommastellen. Eine Breite von 0 lässt sie offen.",
-    "en": "Formats a number with a fixed total width and a fixed number of decimals. A width of 0 leaves the width open."
+    "de": "Schreibt eine Zahl mit fester Gesamtbreite und fester Zahl an Nachkommastellen (Breite 0 lässt sie offen) – oder füllt eine Textvorlage: FORMAT$(\"{0} von {1}\", 3, 10).",
+    "en": "Formats a number with a fixed total width and a fixed number of decimals (width 0 leaves it open) – or fills a text template: FORMAT$(\"{0} of {1}\", 3, 10)."
   },
   "FUNCTION": {
     "de": "Definiert eine Funktion mit Rückgabewert: FUNCTION name: parameter … ENDFUNCTION, Rückgabe mit RETURN. Der Doppelpunkt nach dem Namen ist Pflicht, auch ohne Parameter: FUNCTION name:",
@@ -388,8 +396,8 @@
     "en": "Reads the current viewport into the four variables."
   },
   "GLOBAL": {
-    "de": "Deklariert eine Variable, die im ganzen Programm gilt.",
-    "en": "Declares a variable that is valid throughout the program."
+    "de": "Deklariert eine Variable, die im ganzen Programm gilt. Mit Klammern legt sie ein Array an: GLOBAL a[10] AS TYP wirkt wie DIM, nur fuer das ganze Programm.",
+    "en": "Declares a variable that is valid throughout the program. With brackets it creates an array: GLOBAL a[10] AS TYPE works like DIM, just for the whole program."
   },
   "GOSUB": {
     "de": "Ruft ein SUB auf und fährt nach dessen ENDSUB an dieser Stelle fort.",
@@ -520,8 +528,8 @@
     "en": "Loads an image under the given id so the drawing commands can use it."
   },
   "LOCAL": {
-    "de": "Deklariert eine Variable, die nur in der aktuellen FUNCTION oder dem SUB gilt.",
-    "en": "Declares a variable that only exists inside the current FUNCTION or SUB."
+    "de": "Deklariert eine Variable, die nur in der aktuellen FUNCTION oder dem SUB gilt. Mit Klammern legt sie ein Array an: LOCAL a[10] wirkt wie DIM, nur lokal.",
+    "en": "Declares a variable that only exists inside the current FUNCTION or SUB. With brackets it creates an array: LOCAL a[10] works like DIM, just local."
   },
   "LOGN": {
     "de": "Liefert den natürlichen Logarithmus zur Basis e.",
@@ -747,6 +755,10 @@
     "de": "Sucht von hinten und liefert die letzte Fundstelle, sonst -1.",
     "en": "Searches from the end and returns the last match, otherwise -1."
   },
+  "JOIN$": {
+    "de": "Verbindet die Elemente eines Arrays mit einem Trenner zu einem Text – das Gegenstück zu SPLIT_STRING. Start und Anzahl sind optional; ein negativer Start zählt von hinten.",
+    "en": "Joins the elements of an array with a separator into one text – the counterpart of SPLIT_STRING. Start and count are optional; a negative start counts from the end."
+  },
   "RGB": {
     "de": "Baut aus Rot-, Grün- und Blauanteil (je 0 bis 255) eine Farbe für die Zeichenbefehle.",
     "en": "Builds a colour for the drawing commands from red, green and blue parts (0 to 255 each)."
@@ -868,8 +880,8 @@
     "en": "Starts a polygon, optionally textured by a sprite. The following POLY_POINT calls provide the corners, POLY_END finishes it."
   },
   "STATIC": {
-    "de": "Deklariert eine lokale Variable, die ihren Wert zwischen den Aufrufen behält.",
-    "en": "Declares a local variable that keeps its value between calls."
+    "de": "Deklariert eine lokale Variable, die ihren Wert zwischen den Aufrufen behaelt. Mit Klammern legt sie ein Array an, das nur beim ersten Aufruf entsteht: STATIC a[10].",
+    "en": "Declares a local variable that keeps its value between calls. With brackets it creates an array that is built on the first call only: STATIC a[10]."
   },
   "STDERR": {
     "de": "Schreibt Text ohne Zeilenumbruch auf die Fehlerausgabe.",

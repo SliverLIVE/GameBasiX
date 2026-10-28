@@ -20,7 +20,11 @@ program's window one key press away.</sub>
   colour swatches in front of literal `RGB(...)` calls. The code between
   `INLINE` and `ENDINLINE` is highlighted by Monaco's C++ tokenizer, and
   `.h`/`.cpp` files open as C++ instead of plain text. The `INLINE` region
-  itself keeps its own background, but only in `.gbx` sources.
+  itself keeps its own background, but only in `.gbx` sources. Custom TYPEs,
+  FUNCTIONs and METHOD calls are coloured on top of the tokenizer; `CONSTANT`
+  names and ENUM values get their own colour, and the ENUM name gets its own as
+  well. All four colours are entries of the editor palette in the appearance
+  settings (Custom type, Function name, Constant, ENUM).
 * **Project commands** – names a project registers with `GBX_INLINE_FN(...)`
   (in an `INLINE` block or in a header) are coloured like built-in commands,
   appear in the completion list with their arity and explain themselves on
@@ -112,6 +116,7 @@ window the native Windows dialog takes over.
 | Open a project | `Ctrl+O` |
 | New file | `Ctrl+N` |
 | Completion | `Ctrl+Space` |
+| Accept the suggestion | `Tab` (`Enter` starts a new line, `Space` a space) |
 | Toggle the reference panel | `Ctrl+B` |
 | Build the game (selected platform) | `Ctrl+E` |
 

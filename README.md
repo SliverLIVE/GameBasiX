@@ -19,7 +19,8 @@ and a runtime debugger right next to the code.</sub>
 ## Highlights
 
 * Language: BASIC with `$`/`%`/`#` suffixes, `FUNCTION`/`SUB`, `TYPE` with
-  `METHOD`s, arrays, `SELECT CASE`, `TRY`/`THROW`
+  `METHOD`s, `ENUM`, arrays, `SELECT CASE`, `TRY`/`THROW`, and `+=` for short
+  assignments
 * Runtime: a C++17 interpreter (lexer → parser → AST), no compiler step in between
 * Graphics: SDL3 renderer, PNG/JPG/BMP sprites, rotation/zoom, polygons,
   render targets, software alpha modes
@@ -262,6 +263,13 @@ ENDTYPE
 
 GLOBAL points AS POINT
 
+ENUM FACE                 ' 0, 1, then 10, 11
+  IDLE
+  RUN
+  JUMP = 10
+  FALL
+ENDENUM
+
 FUNCTION distance: a AS POINT, b AS POINT
   dx = b.x - a.x
   dy = b.y - a.y
@@ -292,10 +300,39 @@ use `$`; `#` forces `FLOAT`. On assignment the suffix converts the value
 
 **Operators.** `+ - * /`, comparisons `= <> < <= > >=`, `AND`, `OR`, `NOT`.
 `/` always yields a decimal number, `MOD(a,b)` the integer remainder.
+`x += 1`, `x -= 1`, `x *= 2` and `x /= 2` write the result straight back to the
+variable, to an array element or to a TYPE field; `+=` appends to strings too.
 
 **Control flow.** `IF/THEN/ELSE/ELSEIF/ENDIF` (single-line as well), `FOR ... TO
 ... STEP`, `WHILE/WEND`, `REPEAT/UNTIL`, `SELECT/CASE/DEFAULT/ENDSELECT`,
 `BREAK`, `CONTINUE`, `GOTO label:` inside one scope, `GOSUB sub`.
+
+**ENUM.** `ENUM name … ENDENUM` groups named numbers: the first value is `0`,
+each further value counts one up, and `= value` (also an expression) sets it
+yourself. A value is always written with its ENUM in front – `STATE.RUN` – so
+two ENUMs may offer the same short name:
+
+```basic
+ENUM STATE
+  IDLE
+  RUN
+  PAUSE = 10
+  OVER
+ENDENUM
+
+state% = STATE.IDLE
+
+SELECT state%
+CASE STATE.IDLE
+  PRINT "ready", 0, 0
+CASE STATE.RUN
+  PRINT "running", 0, 0
+ENDSELECT
+```
+
+A bare `RUN` is an error and names the full value: *Unbekannter Name: RUN -
+meintest du STATE.RUN?* The same hint appears when the value itself is misspelt
+(`STATE.RNU`).
 
 **Functions.** `FUNCTION name: p1, p2 = 0 … ENDFUNCTION` with `RETURN`, `EXIT`
 for an early return, `STATIC` for persistent locals, `BYREF` for reference
@@ -307,7 +344,10 @@ The same holds for `METHOD name:` inside a `TYPE`.
 **Arrays.** `DIM a[10]`, up to 4 dimensions, `DIM a[10] AS TYPE`, `REDIM`
 (keeps data; for TYPE arrays `REDIM a[10] AS TYPE`), `DIMPUSH`, `DIMDEL`,
 `DIMDATA`, `ARRAY_BOUNDS(a[], dim)`, `LEN(a[])`, `FOREACH x IN a[] … NEXT`
-(BYREF to the element).
+(BYREF to the element). `GLOBAL a[10]`, `LOCAL a[10] AS TYPE` and `STATIC
+a[10]` take the same brackets as `DIM` and only add the scope: inside a
+function that is the short way to a local array, `GLOBAL` puts it in the whole
+program and `STATIC` keeps it between calls (it is created once).
 
 **TYPE.** Fields without a suffix are `FLOAT`, `$` makes strings, `AS
 OtherType` nests. `LOCAL v AS TYPE`, `GLOBAL v AS TYPE`, `DIM arr[5] AS TYPE`.
@@ -432,9 +472,11 @@ reported by name instead of playing silence.
 **Strings**
 `LEN` · `LEFT$` · `RIGHT$` · `MID$(text,start[,length])` (0-based) ·
 `INSTR(text,search[,start])` (0-based, `-1` = not found) · `INSTR_REVERSE` ·
-`REPLACE$` · `SPLIT_STRING(text, array$[], separator[, empty])` · `UCASE$` · `LCASE$` ·
+`REPLACE$` · `SPLIT_STRING(text, array$[], separator[, empty])` ·
+`JOIN$(array$[], separator[, start[, count]])` · `UCASE$` · `LCASE$` ·
 `TRIM$` · `LTRIM$` · `RTRIM$` · `ASC(text[,index])` · `CHR$` · `HEX$` ·
-`FORMAT$(places,decimals,number)` · `STR$`* · `VAL`*
+`FORMAT$(places,decimals,number)` · `FORMAT$("text {0}", value)` (template) ·
+`STR$`* · `VAL`*
 
 **Files**
 `FILE_OPEN channel, file, mode` · `FILE_CLOSE channel` ·
@@ -480,7 +522,10 @@ reported by name instead of playing silence.
 * **Formats**: `MID$`, `ASC` and `INSTR` are 0-based and `RND(max)` is
   inclusive. `SIN/COS/TAN` and `ATAN` work in degrees.
 * **Arrays**: `DIM a[n]` gives the indices `0…n-1`, negative indices count from
-  the end, at most 4 dimensions, `DIM a[0]` frees the memory.
+  the end, at most 4 dimensions, `DIM a[0]` frees the memory. `GLOBAL a[n]`,
+  `LOCAL a[n]` and `STATIC a[n]` build the array in that scope instead – a
+  `LOCAL a[n]` inside a function hides a global array of the same name, a
+  `GLOBAL a[n]` in a function is visible everywhere afterwards.
 * **Function headers**: `FUNCTION`, `SUB` and `METHOD` always take a colon
   after the name, also without parameters: `FUNCTION draw:`, `SUB reset:`,
   `METHOD clear:`. A missing colon is a syntax error with the line number.
@@ -488,6 +533,19 @@ reported by name instead of playing silence.
   `SUB` or `FUNCTION`) and only to labels on its top level. `GOSUB` calls
   `SUB`s; there are no return labels.
 * **TRY/CATCH**: `FINALLY` ends the `TRY` block (no separate FINALLY body).
+* **ENUM**: `ENDENUM` closes the block; a value is addressed as `ENUM.VALUE`
+  (`STATE.RUN`), so several ENUMs may use the same short name. The bare name is
+  not defined – `--check` reports it with *meintest du STATE.RUN?*. Without `=`
+  the first value is `0` and every further one is the previous value plus one –
+  also after an explicit value (`JUMP = 10`, `FALL` becomes `11`). ENUM members
+  are integers even when the expression yields a decimal number.
+* **Compound assignment**: `+=`, `-=`, `*=` and `/=` read the target once, apply
+  the operator and write the result back. `/=` uses the normal division, so
+  `x% /= 2` rounds by truncation when it stores back into the integer.
+* **`JOIN$`/`FORMAT$`**: `JOIN$` is the counterpart of `SPLIT_STRING` and also
+  joins number arrays. `FORMAT$` takes either the numeric form (width, decimals,
+  number) or a template as its first argument; a placeholder without an
+  argument is an error, extra arguments are ignored.
 * **Audio**: WAV and MP3, both through the same mixer – MP3 is decoded to the
   same float samples while loading, so `SOUND_*` and `MUSIC_*` accept either
   format. Other formats (OGG, FLAC, M4A) have no decoder and are reported as
@@ -897,6 +955,8 @@ platform- or security-related; the 2D core is complete.
 | `examples/13_platformer` | **Pip and the Golden Coins**: a complete side-scrolling platformer – arrows to move, space to jump, shift to run; tile collision, a following camera, parallax background, enemies, coins, pipes, goal flag, HUD and sound effects. The physics live in `platformer.gbx`, the level is an editable block of ASCII rows, and `tests/platformer_tests.gbx` covers the engine |
 | `examples/14_includes` | `INCLUDE` in every shape: several files in a row, a chain four files deep, a diamond that is loaded once, paths into other folders (`../`), and a console report that proves the order |
 | `examples/15_library` | `[native]` in full: two C++ archives (`lib/libgame.a` by path, `lib/libcurve.a` as `-lcurve`) become eight ordinary GBX commands. Live scope with hash noise and a one-pole filter from the first archive, a Catmull-Rom curve from the second, a `-DGAIN` flag that changes the curve, an `INLINE` step that calls the archive directly, and the C++ sources in `native/` to rebuild both |
+| `examples/16_enum` | **ENUM traffic light**: four named phases (`PHASE.STOP`, `PHASE.GET_READY`, `PHASE.GO`, `PHASE.SLOW_DOWN = 10`) drive a small state machine – `SELECT` over the ENUM values, a countdown with `-=`, the values on screen, and a console line per phase change so it shows up in `--headless` as well |
+| `examples/17_type_array` | **FOREACH over a TYPE array**: `GLOBAL cells[14] AS CELL`, a `LOCAL buckets[3]` inside a helper, one walk to fill the array, one to move and bounce the cells, one to count the living ones. Shows that `FOREACH c IN cells[]` hands out the element itself (changes stick), how a hand-written counter supplies the index, and how `BREAK` stops at the first burst cell – plus a console line after 540 simulated frames for `--headless` |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
@@ -959,7 +1019,7 @@ python tools/check_debug.py                          # debugger protocol
 python tools/check_export.py                         # game as a single EXE
 python tools/check_steam.py                          # STEAM* against a mock library
 python tools/check_native.py                         # foreign .a in INLINE blocks
-./build/gbx.exe --tests tests/inline_tests.gbx        # 84 INLINE checks
+./build/gbx.exe --tests tests/inline_tests.gbx        # 85 INLINE checks
 ./build/gbx.exe --tests tests/platformer_tests.gbx   # platformer physics
 ```
 
@@ -1027,6 +1087,62 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
 
 **October 2026**
 
+* **`Tab` accepts the completion**: the suggestion list in the editor is taken
+  over with `Tab` now. `Enter` writes a new line and `Space` a space, also while
+  the list is open. Where there is nothing to accept, `Tab` still indents, and an
+  accepted snippet keeps moving through its placeholders with `Tab`. Version
+  1.2.26.
+* **Values on hover for constants**: pointing at a `CONSTANT` or at an ENUM
+  value in the editor now shows its value (`Wert 40`, in the English UI
+  `Value 40`). Numbers, string literals and arithmetic of numbers are worked out
+  (`CONSTANT MAX_ENEMIES = 5 * 8` reads 40); an expression that needs other names
+  (`BASE * 2`) is shown as written instead of a guessed number. ENUM values show
+  their number – counted one up when no `=` is given – and the tooltip of the
+  ENUM lists every value with it. The declaration may live in another file, the
+  origin line is still shown. Version 1.2.25.
+* **Arrays in `GLOBAL`, `LOCAL` and `STATIC`**: `GLOBAL cells[14] AS CELL` and
+  `LOCAL buckets[3]` now build an array just like `DIM` – the brackets are the
+  same, the scope is the only difference. Inside a function the local form is
+  the short way to scratch space, `GLOBAL` makes the array visible to the whole
+  program (also when the line sits in a function) and `STATIC` creates it once
+  and keeps the contents between calls. A `LOCAL` array hides a global array of
+  the same name, and `INLINE` blocks see a `GLOBAL a[n]` declared in a function
+  as a global, not as a local. `examples/17_type_array` uses both forms.
+  Version 1.2.24.
+* **`examples/17_type_array`**: a new example for walking a TYPE array with
+  `FOREACH c IN cells[]` – filling it, moving and bouncing the cells in place
+  (the loop hands out the element, not a copy), counting them, deriving the
+  array index from a counter, and stopping early with `BREAK`. The console line
+  after 540 simulated frames makes the walk visible in `--headless` too.
+  Version 1.2.23.
+* **Constants and ENUMs have their own colors**: the editor colors `CONSTANT`
+  names and ENUM values in a separate color and the ENUM name itself in a
+  second one, so a value no longer looks like a variable. Both are normal
+  entries of the editor palette (Constant, ENUM) in the styling settings, with
+  matching defaults for Standard, High contrast and Muted in light and dark.
+  The ENUM name is only colored where it really is one – at the declaration and
+  in front of the point – so a variable like `phase%` keeps the plain color.
+  Version 1.2.22.
+* **ENUM values are qualified**: a value is written `PHASE.STOP` now instead of
+  `STOP`. That removes the one real weakness of the first ENUM version – two
+  ENUMs may use the same short name (`MASKE.ROT = 1`, `AMPEL.ROT = 0`) – and the
+  point reads like the field and method access the language already has. A bare
+  name is a hard error with *meintest du PHASE.STOP?*, both in `--check` and in
+  the warning the interpreter prints when it has to guess a value. The editor
+  completes after `PHASE.`, shows the values on hover, groups them under the
+  ENUM in the outline and jumps from `PHASE.STOP` to the declaration with F12.
+  The resolution runs after the whole program is parsed, so a value may be used
+  before its ENUM in the file order. Version 1.2.20.
+* **`ENUM`, short assignment and string building**: three additions to the
+  language. `ENUM name … ENDENUM` groups named numbers with automatic counting
+  (`IDLE`, `RUN`, `JUMP = 10`, `FALL` → 0, 1, 10, 11). `x += 1`, `x -= 1`,
+  `x *= 2` and `x /= 2` write the result back to a variable, an array element or
+  a TYPE field, and `+=` appends to strings. `JOIN$(array$[], ", ")` is the
+  counterpart of `SPLIT_STRING`, and `FORMAT$("{0} of {1}", a, b)` fills a
+  template. The editor highlights and completes ENUM as a block, lists its
+  values as constants in the outline and jumps to them with F12.
+  `examples/16_enum` is a traffic light built from four ENUM phases, and 29 new
+  checks in `tests/language_tests.gbx` cover the additions. Version 1.2.19.
 * **The window layout belongs to the project**: docking a panel into another
   zone, collapsing it or dragging a column edge is stored with the project –
   panel order, heights, collapsed state and the widths of the side and bottom
@@ -1135,7 +1251,7 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
 * **Network and Steam**: `NET*`/`UDP*` sockets and `STEAM*` P2P packets, friend
   list and relay state, loaded from `steam_api` at runtime – the build needs no
   SDK, and the IDE shows both groups in its command reference.
-* **Test status**: 133 language checks, 84 INLINE checks, 10 library checks
+* **Test status**: 133 language checks, 85 INLINE checks, 10 library checks
   (`tools/check_native.py`), 79 UI checks, 47 file
   checks, 28 network checks, 26 Steam checks (against a mock `steam_api`),
   24 IDE checks (`ide: npm test`), 219 built-in commands/functions.

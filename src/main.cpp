@@ -328,6 +328,9 @@ int main(int argc, char** argv) {
         std::string src = fromStdin ? readStdin() : readFile(entryPath);
         Parser parser(entryPath, lexFile(entryPath, src), prog);
         parser.parseFile();
+        // Erst wenn alle Dateien gelesen sind, ist klar, welche Punkte zu
+        // einem ENUM gehoeren (PHASE.STOP).
+        resolveEnumRefs(prog);
     } catch (BasicError& e) {
         reportFatal(e.fullMessage());
         if (dbg) dbg->reportError(e);

@@ -19,9 +19,7 @@
   "sources": [
     "main.gbx"
   ],
-  "openFiles": [
-    "main.gbx"
-  ],
+  "openFiles": [],
   "createdAt": "2026-10-23T14:36:45.576Z",
   "layout": {
     "sidebar": 425,

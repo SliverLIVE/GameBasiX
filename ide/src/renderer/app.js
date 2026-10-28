@@ -7,6 +7,8 @@ import {
   findUserTypeRanges,
   findUserFunctionRanges,
   findUserMethodRanges,
+  findConstantRanges,
+  findEnumRanges,
   EDITOR_THEME_FIELDS,
   EDITOR_THEME_PRESETS,
   EDITOR_THEME_PRESET_LABELS,
@@ -49,7 +51,7 @@ const state = {
   debug: emptyDebugState(),
   dirtySinceBuild: false,
   analysisCache: new Map(),
-  projectSymbols: { functions: [], types: [], variables: [], constants: [] },
+  projectSymbols: { functions: [], types: [], variables: [], constants: [], enums: [] },
   ref: { q: '', category: '', kind: '', lang: 'en', selected: null },
   panel: 'problems',
   modalOpen: false,
@@ -176,6 +178,12 @@ function createEditor() {
     tabSize: 4,
     insertSpaces: true,
     wordBasedSuggestions: 'off',
+    // Die Vorschlagsliste uebernimmt nur Tab - nicht Enter (das macht eine
+    // neue Zeile) und nicht die Leertaste. Nur wo Tab nichts zu uebernehmen
+    // hat, rueckt es weiter ein.
+    tabCompletion: 'on',
+    acceptSuggestionOnEnter: 'off',
+    acceptSuggestionOnCommitCharacter: false,
     suggest: {
       showWords: false,
       snippetsPreventQuickSuggestions: false,
@@ -588,7 +596,8 @@ function updateInlineHighlights(model = editor?.getModel()) {
 /* ------------------------------------------------------------------ */
 
 // Die Farben stehen in den Editor-Einstellungen (CSS-Variablen
-// --gbx-user-type und --gbx-func, gesetzt in applyEditorTheme).
+// --gbx-user-type, --gbx-func, --gbx-const und --gbx-enum, gesetzt in
+// applyEditorTheme).
 const codeDecorations = new WeakMap();
 let codeColorTimer = null;
 
@@ -611,6 +620,23 @@ function codeColorDecorations(model, symbols) {
   // METHODs wie obj.button(...) und self.run(...) - nur echte Aufrufe.
   const methodNames = symbols.types.flatMap((type) => (type.methods || []).map((method) => method.name));
   add(findUserMethodRanges(text, methodNames), 'gbx-user-func');
+  // Konstanten (CONSTANT) und ENUMs: eigener Name, eigener Wert.
+  add(
+    findConstantRanges(
+      text,
+      symbols.constants.filter((constant) => !constant.enum).map((constant) => constant.name)
+    ),
+    'gbx-user-const'
+  );
+  const enumRanges = findEnumRanges(text, symbols.enums || []);
+  add(
+    enumRanges.filter((range) => range.kind === 'enum'),
+    'gbx-user-enum'
+  );
+  add(
+    enumRanges.filter((range) => range.kind === 'constant'),
+    'gbx-user-const'
+  );
   return decorations;
 }
 
@@ -1450,7 +1476,7 @@ async function adoptProject(result) {
   state.dirtySinceBuild = true;
   if (result.config) state.health.config = result.config;
   if (result.gbx) state.gbx = result.gbx;
-  state.projectSymbols = { functions: [], types: [], variables: [], constants: [] };
+  state.projectSymbols = { functions: [], types: [], variables: [], constants: [], enums: [] };
   state.analysisCache.clear();
   showWelcome(false);
   updateStatus();
@@ -2090,9 +2116,44 @@ function definitionFor(name) {
   }
   const type = symbols.types.find((item) => bareName(item.name) === wanted && item.file);
   if (type) return { file: type.file, line: type.line || 1 };
+  const enums = symbols.enums || [];
+  // PHASE.STOP: der Wert im eigenen ENUM, nicht irgendein gleicher Name.
+  if (wanted.includes('.')) {
+    const [owner, value] = wanted.split('.');
+    const entry = enums.find((item) => bareName(item.name) === owner);
+    if (entry) {
+      const hit = (entry.values || []).find((item) => bareName(item.name) === value);
+      return { file: entry.file, line: (hit || entry).line || entry.line || 1 };
+    }
+  }
+  for (const entry of enums) {
+    const value = (entry.values || []).find((item) => bareName(item.name) === wanted);
+    if (value && entry.file) return { file: entry.file, line: value.line || entry.line || 1 };
+  }
+  const enumDecl = enums.find((item) => bareName(item.name) === wanted && item.file);
+  if (enumDecl) return { file: enumDecl.file, line: enumDecl.line || 1 };
   const constant = symbols.constants.find((item) => bareName(item.name) === wanted && item.file);
   if (constant) return { file: constant.file, line: constant.line || 1 };
   return null;
+}
+
+/** `PHASE.STOP` unter dem Cursor, sonst das Wort allein. */
+function nameAtCursor(model, position) {
+  const word = wordAtCursor(model, position);
+  if (!word) return '';
+  const line = model.getLineContent(position.lineNumber);
+  const end = position.column - 1 + word.length;
+  const owner = /([A-Za-z_]\w*)\s*\.\s*$/.exec(line.slice(0, position.column - 1));
+  if (!owner || line.slice(position.column - 1, end).toUpperCase() !== word.toUpperCase()) return word;
+  try {
+    const symbols = getSymbols();
+    if ((symbols.enums || []).some((entry) => bareName(entry.name) === bareName(owner[1]))) {
+      return `${owner[1]}.${word}`;
+    }
+  } catch {
+    /* kein Projekt: dann bleibt es beim Wort */
+  }
+  return word;
 }
 
 /** Macht aus einer Monaco-URI wieder einen Pfad im geoeffneten Projekt. */
@@ -2112,7 +2173,7 @@ function registerGoToDefinition() {
   monaco.languages.registerDefinitionProvider('gbx', {
     provideDefinition(model, position) {
       if (model.getLanguageId() !== 'gbx') return null;
-      const target = definitionFor(wordAtCursor(model, position));
+      const target = definitionFor(nameAtCursor(model, position));
       if (!target) return null;
       return [
         {
@@ -2134,7 +2195,7 @@ function registerGoToDefinition() {
       const model = instance.getModel();
       const position = instance.getPosition();
       if (!model || !position) return;
-      const target = definitionFor(wordAtCursor(model, position));
+      const target = definitionFor(nameAtCursor(model, position));
       if (!target) {
         toast(t('Keine eigene Definition unter dem Cursor.'), 'warn');
         return;
@@ -2920,6 +2981,8 @@ async function settingsDialog() {
       <div class="theme-preview" id="set-preview">
         <div class="tp-line"><span data-tp="keyword">TYPE</span> <span data-tp="userType">PUNKT</span></div>
         <div class="tp-line"><span data-tp="keyword">FUNCTION</span> <span data-tp="func">DRAW_HUD:</span></div>
+        <div class="tp-line"><span data-tp="keyword">CONSTANT</span> <span data-tp="constant">MAXN</span> <span data-tp="operator">=</span> <span data-tp="number">10</span></div>
+        <div class="tp-line"><span data-tp="keyword">ENUM</span> <span data-tp="enum">PHASE</span> <span data-tp="operator">:</span> <span data-tp="enum">PHASE</span>.<span data-tp="constant">STOP</span></div>
         <div class="tp-line"><span data-tp="command">PRINT</span> <span data-tp="string">"Hallo"</span>, <span data-tp="number">42</span></div>
         <div class="tp-line"><span data-tp="comment">' ${t('Kommentar')}</span></div>
         <div class="tp-ui">
@@ -2948,7 +3011,7 @@ async function settingsDialog() {
           <button class="btn ghost" id="set-theme-reset">${t('Zurücksetzen')}</button>
         </div>
         <div class="theme-grid" id="set-theme-grid">${editorFields}</div>
-        <div class="hint">${t('Gilt für den aktiven Modus. Eigene TYPEs werden in der Farbe „Eigener Typ“ hervorgehoben.')}</div>
+        <div class="hint">${t('Gilt für den aktiven Modus. Eigene TYPEs, FUNCTIONs, Konstanten und ENUMs werden in ihren eigenen Farben hervorgehoben.')}</div>
       </div>
     </section>
 
@@ -4719,8 +4782,8 @@ function analysisFor(model) {
 }
 
 function getSymbols() {
-  const out = { functions: [], types: [], variables: [], constants: [] };
-  const seen = { functions: new Set(), types: new Set(), variables: new Set(), constants: new Set() };
+  const out = { functions: [], types: [], variables: [], constants: [], enums: [] };
+  const seen = { functions: new Set(), types: new Set(), variables: new Set(), constants: new Set(), enums: new Set() };
   const push = (bucket, item) => {
     const key = item.name.toUpperCase();
     if (seen[bucket].has(key)) return;
@@ -4732,11 +4795,11 @@ function getSymbols() {
   const tab = activeTab();
   if (tab) {
     const current = analysisFor(tab.model);
-    for (const bucket of ['functions', 'types', 'variables', 'constants']) {
+    for (const bucket of ['functions', 'types', 'variables', 'constants', 'enums']) {
       for (const item of current[bucket] || []) push(bucket, { ...item, file: tab.path });
     }
   }
-  for (const bucket of ['functions', 'types', 'constants']) {
+  for (const bucket of ['functions', 'types', 'constants', 'enums']) {
     for (const item of state.projectSymbols[bucket] || []) push(bucket, item);
   }
   for (const variable of state.projectSymbols.variables || []) {
@@ -4751,8 +4814,8 @@ async function indexProjectSymbols() {
     return;
   }
   const files = state.tree.filter((item) => item.type === 'file' && /\.gbx$/i.test(item.name)).slice(0, 80);
-  const aggregate = { functions: [], types: [], variables: [], constants: [] };
-  const seen = { functions: new Set(), types: new Set(), variables: new Set(), constants: new Set() };
+  const aggregate = { functions: [], types: [], variables: [], constants: [], enums: [] };
+  const seen = { functions: new Set(), types: new Set(), variables: new Set(), constants: new Set(), enums: new Set() };
   for (const file of files) {
     const open = state.tabs.find((t) => t.path === file.path);
     let data;
@@ -4766,7 +4829,7 @@ async function indexProjectSymbols() {
         continue;
       }
     }
-    for (const bucket of ['functions', 'types', 'variables', 'constants']) {
+    for (const bucket of ['functions', 'types', 'variables', 'constants', 'enums']) {
       for (const item of data[bucket] || []) {
         const key = item.name.toUpperCase();
         if (seen[bucket].has(key)) continue;
@@ -4787,7 +4850,7 @@ async function indexProjectSymbols() {
 
 const OUTLINE_KEY = 'gbxstudio.outline.v1';
 const outlineState = { collapsed: new Set(), rows: [], timer: null, activeEl: null };
-const OUTLINE_KINDS = { globals: 'VAR', functions: 'FN', subs: 'SUB', types: 'TYP', constants: 'CON', labels: 'LBL' };
+const OUTLINE_KINDS = { globals: 'VAR', functions: 'FN', subs: 'SUB', types: 'TYP', enums: 'ENUM', constants: 'CON', labels: 'LBL' };
 
 function readOutlinePrefs() {
   try {
@@ -4863,9 +4926,26 @@ function outlineGroups(model) {
     }))
   );
   add(
+    'enums',
+    'ENUMs',
+    (analysis.enums || []).map((entry) => ({
+      name: entry.name,
+      detail: t('{n} Werte', { n: (entry.values || []).length }),
+      line: entry.line,
+      endLine: entry.endLine || entry.line,
+      members: (entry.values || []).map((value) => ({
+        name: value.name,
+        detail: value.type || '',
+        line: value.line || entry.line
+      }))
+    }))
+  );
+  add(
     'constants',
     t('Constants'),
-    analysis.constants.map((constant) => ({ name: constant.name, detail: constant.type, line: constant.line }))
+    analysis.constants
+      .filter((constant) => !constant.enum)
+      .map((constant) => ({ name: constant.name, detail: constant.type, line: constant.line }))
   );
   add(
     'labels',

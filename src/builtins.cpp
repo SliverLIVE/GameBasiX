@@ -957,6 +957,28 @@ std::unordered_map<std::string, Builtin>& builtins() {
             a.setOut(1, Value::mkArray(arr));
             return Value::mkInt(static_cast<int64_t>(arr->items.size()));
         });
+        // Gegenstueck zu SPLIT_STRING: Elemente mit einem Trenner verbinden.
+        add("JOIN$", 2, 4, [](BArgs& a) {
+            if (!a.vals[0].isArray() || !a.vals[0].arr)
+                a.fail("Array als erstes Argument erwartet");
+            const std::string sep = a.str(1);
+            const auto& items = a.vals[0].arr->items;
+            int64_t start = a.vals.size() > 2 ? a.integer(2) : 0;
+            if (start < 0) start += static_cast<int64_t>(items.size());
+            if (start < 0) start = 0;
+            if (start > static_cast<int64_t>(items.size())) start = static_cast<int64_t>(items.size());
+            int64_t end = static_cast<int64_t>(items.size());
+            if (a.vals.size() > 3) {
+                const int64_t count = a.integer(3);
+                if (count >= 0 && start + count < end) end = start + count;
+            }
+            std::string out;
+            for (int64_t i = start; i < end; ++i) {
+                if (i > start) out += sep;
+                out += items[static_cast<size_t>(i)].text();
+            }
+            return Value::mkStr(out);
+        });
         add("UCASE$", 1, 1, [](BArgs& a) { return Value::mkStr(upperAscii(a.str(0))); });
         add("LCASE$", 1, 1, [](BArgs& a) { return Value::mkStr(lowerAscii(a.str(0))); });
         add("LTRIM$", 1, 2, [](BArgs& a) {
@@ -979,7 +1001,53 @@ std::unordered_map<std::string, Builtin>& builtins() {
             size_t e = s.find_last_not_of(set);
             return Value::mkStr(s.substr(b, e - b + 1));
         });
-        add("FORMAT$", 3, 3, [](BArgs& a) {
+        // Zwei Formen:
+        //   FORMAT$(breite, nachkommastellen, zahl)  - Zahl mit fester Breite
+        //   FORMAT$("tpl {0} von {1}", a, b)         - Vorlage mit Platzhaltern
+        // Welche gilt, entscheidet der Typ des ersten Arguments. {{ und }}
+        // stehen fuer eine geschweifte Klammer.
+        // maxArgs -1: eine Vorlage darf beliebig viele Werte aufnehmen.
+        add("FORMAT$", 1, -1, [](BArgs& a) {
+            if (a.vals[0].isStr()) {
+                const std::string tpl = a.str(0);
+                std::string out;
+                out.reserve(tpl.size() + 16);
+                for (size_t i = 0; i < tpl.size(); ++i) {
+                    const char c = tpl[i];
+                    if (c == '{' && i + 1 < tpl.size() && tpl[i + 1] == '{') {
+                        out += '{';
+                        ++i;
+                        continue;
+                    }
+                    if (c == '}' && i + 1 < tpl.size() && tpl[i + 1] == '}') {
+                        out += '}';
+                        ++i;
+                        continue;
+                    }
+                    if (c == '{') {
+                        size_t j = i + 1;
+                        size_t index = 0;
+                        bool digits = false;
+                        while (j < tpl.size() && std::isdigit(static_cast<unsigned char>(tpl[j]))) {
+                            index = index * 10 + static_cast<size_t>(tpl[j] - '0');
+                            ++j;
+                            digits = true;
+                        }
+                        if (digits && j < tpl.size() && tpl[j] == '}') {
+                            if (index + 1 >= a.vals.size())
+                                a.fail("Platzhalter {" + std::to_string(index) +
+                                       "} hat kein Argument");
+                            out += a.vals[index + 1].text();
+                            i = j;
+                            continue;
+                        }
+                    }
+                    out += c;
+                }
+                return Value::mkStr(out);
+            }
+            if (a.vals.size() < 3)
+                a.fail("entweder eine Vorlage mit {0}, {1} ... oder Breite, Nachkommastellen und Zahl");
             int width = static_cast<int>(a.integer(0));
             int dec = clampi(a.integer(1), 0, 18);
             double v = a.num(2);

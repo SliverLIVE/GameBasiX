@@ -10,7 +10,7 @@ SCREEN_CLEAR RGB(10, 14, 24)
 
 ' TTF font from the Windows font folder, otherwise the bitmap font
 TRY
-  FONT_LOAD "segoeui.ttf", 1, 34
+  FONT_LOAD "segoeui.ttf", 1, 25
   FONT_SET 1
 CATCH err$
   FONT_SET 0, 2

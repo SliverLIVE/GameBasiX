@@ -25,6 +25,38 @@ bool isTerminator(const Token& t, const std::vector<std::string>& names) {
     return false;
 }
 
+// Aehlicher bekannter Name - nur bei eindeutigem Tippfehler.
+int editDistance(const std::string& a, const std::string& b) {
+    std::vector<int> previous(b.size() + 1);
+    std::vector<int> current(b.size() + 1);
+    for (size_t j = 0; j <= b.size(); ++j) previous[j] = static_cast<int>(j);
+    for (size_t i = 1; i <= a.size(); ++i) {
+        current[0] = static_cast<int>(i);
+        for (size_t j = 1; j <= b.size(); ++j) {
+            const int cost = a[i - 1] == b[j - 1] ? 0 : 1;
+            current[j] = std::min({previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost});
+        }
+        previous = current;
+    }
+    return previous[b.size()];
+}
+
+std::string closestWord(const std::vector<std::string>& names, const std::string& want) {
+    if (want.size() < 3) return "";
+    const int limit = want.size() > 4 ? 2 : 1;
+    std::string best;
+    int bestScore = limit + 1;
+    for (const auto& name : names) {
+        if (std::abs(static_cast<int>(name.size()) - static_cast<int>(want.size())) > limit) continue;
+        const int score = editDistance(want, name);
+        if (score < bestScore) {
+            best = name;
+            bestScore = score;
+        }
+    }
+    return best;
+}
+
 std::string readFileOrThrow(const std::string& path, SrcPos pos) {
     std::ifstream in(path, std::ios::binary);
     if (!in) throw BasicError("Datei nicht gefunden: " + path, std::move(pos), true);
@@ -618,6 +650,7 @@ StmtP Parser::parseStatement() {
     if (kw == "LOCAL") return parseDecl(DeclScope::Local);
     if (kw == "STATIC") return parseDecl(DeclScope::Static);
     if (kw == "CONSTANT" || kw == "CONST") return parseConstant();
+    if (kw == "ENUM") return parseEnum();
     if (kw == "INC") return parseIncDec(+1);
     if (kw == "DEC") return parseIncDec(-1);
     if (kw == "DIMPUSH") return parsePush(false);
@@ -682,7 +715,7 @@ StmtP Parser::parseStatement() {
         kw == "NEXT" || kw == "UNTIL" || kw == "CASE" || kw == "DEFAULT" ||
         kw == "ENDSELECT" || kw == "ENDFUNCTION" || kw == "ENDSUB" ||
         kw == "ENDTYPE" || kw == "CATCH" || kw == "FINALLY" || kw == "ENDTRY" ||
-        kw == "TO" || kw == "STEP") {
+        kw == "ENDENUM" || kw == "TO" || kw == "STEP") {
         error("Unerwartetes '" + kw + "'");
     }
     if (kw == "AS" || kw == "BYREF" || kw == "IN") {
@@ -718,6 +751,26 @@ StmtP Parser::parseAssignmentOrCall() {
             s->e1 = std::move(target);
             s->e2 = parseExpr();
             return s;
+        }
+        // Kurzform: x += 1, x -= 1, x *= 2, x /= 2
+        if (isSym("+") || isSym("-") || isSym("*") || isSym("/")) {
+            const std::string op = cur().text;
+            const Token& after = peek(1);
+            if (after.kind == Tok::Sym && after.text == "=") {
+                auto s = std::make_unique<Stmt>();
+                s->kind = SK::Assign;
+                s->compound = true;
+                s->bin = op == "+" ? BinOp::Add
+                         : op == "-" ? BinOp::Sub
+                         : op == "*" ? BinOp::Mul
+                                     : BinOp::Div;
+                s->pos = target->pos;
+                advance();  // Operator
+                advance();  // =
+                s->e1 = std::move(target);
+                s->e2 = parseExpr();
+                return s;
+            }
         }
         // p.methode(...) als Anweisung (ohne Zuweisung).
         if (target->kind == EK::MethodCall) {
@@ -964,6 +1017,16 @@ StmtP Parser::parseDecl(DeclScope scope) {
         d->name = stripSuffix(cur().text);
         d->hint = suffixHint(cur().text);
         advance();
+        // GLOBAL/LOCAL/STATIC kennen auch die Array-Form: die Klammern tun
+        // dasselbe wie bei DIM, nur in einem festen Bereich.
+        while (acceptSym("[")) {
+            d->exprs.push_back(parseExpr());
+            expectSym("]");
+        }
+        if (!d->exprs.empty()) {
+            d->kind = SK::Dim;
+            d->scopeExplicit = true;
+        }
         std::string tn = parseTypeNameIfPresent();
         if (!tn.empty()) {
             if (tn == "INTEGER" || tn == "INT" || tn == "LONG") d->hint = TypeHint::Int;
@@ -971,7 +1034,13 @@ StmtP Parser::parseDecl(DeclScope scope) {
             else if (tn == "STRING") d->hint = TypeHint::Str;
             else d->typeName = tn;
         }
-        if (acceptSym("=")) d->e1 = parseExpr();
+        if (isSym("=")) {
+            // Ein Array bekommt keine Anfangswerte - dafuer gibt es DIMDATA.
+            if (d->kind == SK::Dim)
+                error("Array ohne Anfangswert: '" + d->name + "[...]' kennt kein '=' (siehe DIMDATA)");
+            advance();
+            d->e1 = parseExpr();
+        }
         extra.push_back(std::move(d));
         if (acceptSym(",")) continue;
         break;
@@ -1003,6 +1072,75 @@ StmtP Parser::parseConstant() {
     }
     expectSym("=");
     s->e1 = parseExpr();
+    return s;
+}
+
+// ENUM … ENDENUM: jeder Wert wird eine Konstante (GLOBAL, wie CONSTANT).
+// Ohne Zuweisung zaehlt der Wert eins weiter als der vorige, der erste ist 0.
+StmtP Parser::parseEnum() {
+    auto s = std::make_unique<Stmt>();
+    s->kind = SK::EnumDecl;
+    s->pos = SrcPos{path_, cur().line};
+    advance();  // ENUM
+    if (cur().kind != Tok::Ident) error("Name des ENUM erwartet");
+    s->name = stripSuffix(cur().text);
+    advance();
+    expectLineEnd();
+
+    // Jeder Wert heisst "PHASE.STOP": nur so koennen zwei ENUMs denselben
+    // kurzen Namen anbieten. Den Punkt loest resolveEnumRefs() in jedem
+    // Ausdruck wieder auf.
+    std::vector<std::string>& values = prog_.enums[s->name];
+    std::string previous;
+    for (;;) {
+        skipNewlines();
+        if (cur().kind == Tok::Eof)
+            error("Block nicht beendet, 'ENDENUM' fehlt (ENUM '" + s->name + "')");
+        if (isIdent("ENDENUM")) {
+            advance();
+            break;
+        }
+        if (cur().kind != Tok::Ident) error("Name eines ENUM-Werts erwartet");
+
+        auto member = std::make_unique<Stmt>();
+        member->kind = SK::ConstDecl;
+        member->pos = SrcPos{path_, cur().line};
+        const std::string bare = stripSuffix(cur().text);
+        member->name = s->name + "." + bare;
+        member->hint = TypeHint::Int;
+        if (std::find(values.begin(), values.end(), bare) == values.end()) {
+            values.push_back(bare);
+            prog_.enumValues[bare].push_back(s->name);
+        }
+        advance();
+
+        if (acceptSym("=")) {
+            member->e1 = parseExpr();
+        } else if (previous.empty()) {
+            member->e1 = makeInt(member->pos, 0);
+        } else {
+            // voriger Wert + 1 - zur Laufzeit, damit auch = 0xFF weiterzaehlt.
+            auto var = std::make_unique<Expr>();
+            var->kind = EK::Var;
+            var->pos = member->pos;
+            var->text = previous;
+            auto sum = std::make_unique<Expr>();
+            sum->kind = EK::Binary;
+            sum->bin = BinOp::Add;
+            sum->pos = member->pos;
+            sum->a = std::move(var);
+            sum->b = makeInt(member->pos, 1);
+            member->e1 = std::move(sum);
+        }
+        previous = member->name;
+        s->body.push_back(std::move(member));
+
+        if (cur().kind == Tok::Newline) advance();
+        else if (isSym(":")) advance();
+        else if (isIdent("ENDENUM")) continue;
+        else if (cur().kind != Tok::Eof) error("Zeilenende erwartet, gefunden: '" + cur().text + "'");
+    }
+    if (s->body.empty()) error("ENUM ohne Werte: " + s->name);
     return s;
 }
 
@@ -1248,4 +1386,71 @@ void Parser::parseType() {
     }
     prog_.typeDefaults[name] = std::move(defaults);
     (void)p;
+}
+
+// ------------------------------------------------- ENUM-Werte aufloesen
+//
+// `PHASE.STOP` sieht wie ein Feldzugriff aus; welcher Zugriff ein ENUM-Wert
+// ist, weiss der Parser aber erst, wenn alle Dateien gelesen sind - ein Wert
+// darf auch vor seiner ENUM-Deklaration stehen. Deshalb laeuft dieser Durchlauf
+// ueber das ganze Programm, sobald es vollstaendig ist.
+
+namespace {
+
+void resolveExprEnums(const Program& prog, ExprP& slot) {
+    if (!slot) return;
+    Expr& e = *slot;
+    resolveExprEnums(prog, e.a);
+    resolveExprEnums(prog, e.b);
+    for (auto& arg : e.args) resolveExprEnums(prog, arg);
+
+    // Nur `NAME.WERT` mit einem einfachen Namen davor - `p.x` bleibt ein Feld.
+    if (e.kind != EK::Field || !e.a || e.a->kind != EK::Var || e.a->a) return;
+    auto table = prog.enums.find(e.a->text);
+    if (table == prog.enums.end()) return;
+
+    const std::string enumName = e.a->text;
+    const std::string value = e.text;
+    if (std::find(table->second.begin(), table->second.end(), value) == table->second.end()) {
+        const std::string hint = closestWord(table->second, value);
+        throw BasicError(enumName + " hat keinen Wert " + value +
+                             (hint.empty() ? "" : " - meintest du " + enumName + "." + hint + "?"),
+                         e.pos, true);
+    }
+    auto ref = std::make_unique<Expr>();
+    ref->kind = EK::Var;
+    ref->pos = e.pos;
+    ref->text = enumName + "." + value;
+    ref->hint = TypeHint::Int;
+    slot = std::move(ref);
+}
+
+void resolveStmtEnums(const Program& prog, Stmt& s) {
+    resolveExprEnums(prog, s.e1);
+    resolveExprEnums(prog, s.e2);
+    resolveExprEnums(prog, s.e3);
+    for (auto& arg : s.exprs) resolveExprEnums(prog, arg);
+    for (auto& inner : s.body) resolveStmtEnums(prog, *inner);
+    for (auto& inner : s.body2) resolveStmtEnums(prog, *inner);
+    for (auto& branch : s.cases) {
+        for (auto& test : branch.tests) {
+            resolveExprEnums(prog, test.lo);
+            resolveExprEnums(prog, test.hi);
+        }
+        for (auto& inner : branch.body) resolveStmtEnums(prog, *inner);
+    }
+}
+
+void resolveBlockEnums(const Program& prog, std::vector<StmtP>& body) {
+    for (auto& stmt : body) resolveStmtEnums(prog, *stmt);
+}
+
+}  // namespace
+
+void resolveEnumRefs(Program& prog) {
+    resolveBlockEnums(prog, prog.main);
+    for (auto& entry : prog.funcs) resolveBlockEnums(prog, entry.second.body);
+    for (auto& entry : prog.typeDefaults) {
+        for (auto& expr : entry.second) resolveExprEnums(prog, expr);
+    }
 }

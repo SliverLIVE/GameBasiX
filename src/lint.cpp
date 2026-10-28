@@ -355,7 +355,14 @@ private:
         if (!e) return;
         if (e->kind == EK::Var) {
             if (!defined_.count(e->text) && !constants_.count(e->text)) {
-                issue(e->pos, "Unbekannter Name: " + e->text);
+                // Ein ENUM-Wert heisst immer PHASE.STOP - der kurze Name allein
+                // ist genau der Fehler, den dieser Hinweis erklaert.
+                const auto value = prog_.enumValues.find(e->text);
+                std::string hint;
+                if (value != prog_.enumValues.end() && !value->second.empty()) {
+                    hint = " - meintest du " + value->second.front() + "." + e->text + "?";
+                }
+                issue(e->pos, "Unbekannter Name: " + e->text + hint);
             }
         } else if (e->kind == EK::Call) {
             if (!knownCallable(e->text)) issue(e->pos, "Unbekannte Funktion: " + withoutSuffix(e->text));

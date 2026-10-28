@@ -334,7 +334,7 @@ export function checkLine(text, { byName, caretColumn = 0 } = {}) {
   }
 
   // Zuweisung: die rechte Seite kann einen Befehl enthalten (n# = DELTA_TIME()).
-  const assignment = /^[A-Za-z_]\w*[$%#]?\s*=\s*/.exec(statement);
+  const assignment = /^[A-Za-z_]\w*[$%#]?\s*(?:\+=|-=|\*=|\/=|=)\s*/.exec(statement);
   if (assignment) {
     offset += assignment[0].length;
     statement = code.slice(offset, statementEnd);

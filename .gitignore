@@ -38,3 +38,5 @@ node_modules/
 # Werkzeuge und Editor
 .freebuff/
 .vscode/
+# Einmalige Skripte fuer Build, Paket und Release
+.scratch/

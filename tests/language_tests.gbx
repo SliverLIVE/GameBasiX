@@ -54,6 +54,28 @@ ASSERT CHR$(65) = "A", "CHR$"
 ASSERT ASC("A") = 65, "ASC"
 ASSERT HEX$(255) = "FF", "HEX$"
 ASSERT FORMAT$(6, 2, 3.14159) = "  3.14", "FORMAT$"
+ASSERT FORMAT$("x={0} y={1}", 3, "ab") = "x=3 y=ab", "FORMAT$ mit Platzhaltern"
+ASSERT FORMAT$("{0} von {0}", 7) = "7 von 7", "FORMAT$ Platzhalter doppelt"
+ASSERT FORMAT$("{{rot}}") = "{rot}", "FORMAT$ geschweifte Klammern"
+ASSERT FORMAT$("ohne Platzhalter") = "ohne Platzhalter", "FORMAT$ ohne Platzhalter"
+
+DIM teile$[3]
+teile$[0] = "a"
+teile$[1] = "b"
+teile$[2] = "c"
+ASSERT JOIN$(teile$[], ", ") = "a, b, c", "JOIN$"
+ASSERT JOIN$(teile$[], "") = "abc", "JOIN$ ohne Trenner"
+ASSERT JOIN$(teile$[], "-", 1) = "b-c", "JOIN$ ab Index"
+ASSERT JOIN$(teile$[], "-", 1, 1) = "b", "JOIN$ mit Anzahl"
+ASSERT JOIN$(teile$[], "-", -2) = "b-c", "JOIN$ mit negativem Start"
+DIM zahlen[2]
+zahlen[0] = 1
+zahlen[1] = 2.5
+ASSERT JOIN$(zahlen[], "|") = "1|2.5", "JOIN$ mit Zahlen"
+DIM leer$[0]
+ASSERT JOIN$(leer$[], ",") = "", "JOIN$ auf leeres Array"
+ASSERT SPLIT_STRING("a,b", teile$[], ",") = 2, "SPLIT_STRING bleibt"
+ASSERT teile$[1] = "b", "SPLIT_STRING Ergebnis"
 ASSERT "a" + 5 = "a5", "String + Zahl"
 ASSERT 1.5 + "x" = "1.5x", "Zahl + String"
 
@@ -68,6 +90,84 @@ unbenutzt = 12
 ASSERT unbenutzt * 2 = 24, "Implizite Variable"
 CONSTANT MAXN = 10
 ASSERT MAXN = 10, "CONSTANT"
+
+' ---------------------------------------------------------- ENUM
+' Ein Wert heisst immer ENUM.WERT. Der kurze Name allein ist ein Fehler -
+' dafuer duerfen zwei ENUMs denselben Namen anbieten.
+ENUM RICHTUNG
+  NORD
+  OST
+  SUED = 10
+  WEST
+ENDENUM
+ASSERT RICHTUNG.NORD = 0, "ENUM beginnt bei 0"
+ASSERT RICHTUNG.OST = 1, "ENUM zaehlt weiter"
+ASSERT RICHTUNG.SUED = 10, "ENUM mit eigenem Wert"
+ASSERT RICHTUNG.WEST = 11, "ENUM zaehlt nach eigenem Wert weiter"
+
+ENUM MASKE
+  KEINE
+  ROT = 0x01
+  GRUEN = 0x02
+  ALLE = MASKE.ROT + MASKE.GRUEN
+ENDENUM
+ASSERT MASKE.KEINE = 0, "ENUM-Wert 0"
+ASSERT MASKE.ROT = 1 AND MASKE.GRUEN = 2, "ENUM mit Hex-Werten"
+ASSERT MASKE.ALLE = 3, "ENUM-Wert aus einem Ausdruck"
+
+' Zwei ENUMs mit gleichen Wertnamen: der Punkt macht sie unterscheidbar.
+ENUM AMPEL
+  ROT
+  GRUEN
+ENDENUM
+ASSERT AMPEL.ROT = 0 AND AMPEL.GRUEN = 1, "gleiche Namen in zwei ENUMs"
+ASSERT MASKE.ROT = 1 AND AMPEL.ROT = 0, "gleicher Name, eigener Wert"
+
+' ENUM in einer Funktion: die Werte sind wie CONSTANT globale Konstanten
+FUNCTION enumName:
+  IF RICHTUNG.NORD = 0 THEN RETURN "NORD"
+  RETURN "?"
+ENDFUNCTION
+ASSERT enumName() = "NORD", "ENUM in einer FUNCTION"
+
+' Der Wert darf im Quelltext vor seiner ENUM-Deklaration stehen
+' (wichtig fuer INCLUDE-Reihenfolgen).
+FUNCTION spaetWert:
+  RETURN SPAET.ANTWORT
+ENDFUNCTION
+ENUM SPAET
+  ANTWORT = 42
+ENDENUM
+ASSERT spaetWert() = 42, "ENUM-Wert vor der Deklaration"
+
+' ---------------------------------------------------------- Kurzformen
+k = 5
+k += 2
+ASSERT k = 7, "+="
+k -= 3
+ASSERT k = 4, "-="
+k *= 5
+ASSERT k = 20, "*="
+k /= 4
+ASSERT k = 5, "/="
+t$ = "a"
+t$ += "b"
+ASSERT t$ = "ab", "+= auf einem String"
+t$ += 3
+ASSERT t$ = "ab3", "+= auf String mit Zahl"
+DIM kurz[3]
+kurz[1] = 2
+kurz[1] += 10
+ASSERT kurz[1] = 12, "+= auf einem Array-Element"
+
+TYPE KURZPUNKT
+  x AS FLOAT
+ENDTYPE
+LOCAL kurzpunkt AS KURZPUNKT
+kurzpunkt.x = 2
+kurzpunkt.x += 3
+ASSERT kurzpunkt.x = 5, "+= auf einem TYPE-Feld"
+
 
 ' ---------------------------------------------------------- Kontrollfluss
 v = 0
@@ -343,6 +443,64 @@ ASSERT lok = 1, "LOCAL verdeckt nichts"
 globalVar = 1
 setGlobal()
 ASSERT globalVar = 42, "GLOBAL in Funktion"
+
+' GLOBAL/LOCAL/STATIC mit Klammern legen ein Array an - wie DIM, nur in
+' genau diesem Bereich.
+GLOBAL raster[2] AS ZAEHLER
+ASSERT raster[0].stand% = 7, "GLOBAL TYPE-Array: Standardwert je Platz"
+raster[1].stand% = 3
+ASSERT raster[1].stand% = 3, "GLOBAL TYPE-Array beschreibbar"
+ASSERT raster[0].stand% = 7, "GLOBAL TYPE-Array: Plaetze getrennt"
+ASSERT ARRAY_BOUNDS(raster[], 0) = 2, "GLOBAL TYPE-Array: Groesse"
+
+GLOBAL zahlen[3]
+zahlen[2] = 5
+ASSERT zahlen[2] = 5, "GLOBAL Array ohne TYPE"
+ASSERT zahlen[0] = 0, "GLOBAL Array: freie Plaetze auf 0"
+
+GLOBAL woerter$[2]
+woerter[1] = "ab"
+ASSERT woerter[1] = "ab", "GLOBAL String-Array"
+
+FUNCTION lokalArray:
+  LOCAL werte[4]
+  werte[1] = 2
+  werte[3] = 5
+  RETURN werte[1] + werte[3]
+ENDFUNCTION
+ASSERT lokalArray() = 7, "LOCAL Array in Funktion"
+
+FUNCTION lokalArrayTyp:
+  LOCAL teile[2] AS ZAEHLER
+  teile[1].stand% = 9
+  RETURN teile[1].stand% + ARRAY_BOUNDS(teile[], 0)
+ENDFUNCTION
+ASSERT lokalArrayTyp() = 11, "LOCAL TYPE-Array in Funktion"
+
+' Ein LOCAL-Array verdeckt ein GLOBAL-Array gleichen Namens
+FUNCTION rasterLokal:
+  LOCAL raster[2] AS ZAEHLER
+  raster[0].stand% = 1
+  RETURN raster[0].stand%
+ENDFUNCTION
+ASSERT rasterLokal() = 1, "LOCAL Array verdeckt GLOBAL"
+ASSERT raster[0].stand% = 7, "GLOBAL bleibt dabei unberuehrt"
+
+' Ein GLOBAL-Array aus einer Funktion gilt danach ueberall
+FUNCTION baueGlobal:
+  GLOBAL gitter[2]
+  gitter[0] = 9
+ENDFUNCTION
+baueGlobal()
+ASSERT gitter[0] = 9, "GLOBAL Array aus Funktion"
+
+FUNCTION statischArray:
+  STATIC zaehl[1]
+  zaehl[0] = zaehl[0] + 1
+  RETURN zaehl[0]
+ENDFUNCTION
+ASSERT statischArray() = 1, "STATIC Array 1"
+ASSERT statischArray() = 2, "STATIC Array behaelt den Wert"
 
 ' SUB + GOSUB
 GOSUB subSet

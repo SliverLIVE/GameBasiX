@@ -430,7 +430,14 @@ void Interpreter::execStmt(const Stmt& s) {
 
     switch (s.kind) {
         case SK::Assign:
-            assign(*s.e1, eval(*s.e2));
+            if (s.compound) {
+                // Nur eine Auswertung des Ziels: x += 1 liest x einmal.
+                Value old = eval(*s.e1);
+                Value rhs = eval(*s.e2);
+                assign(*s.e1, evalBinary(s.bin, old, rhs, s.pos));
+            } else {
+                assign(*s.e1, eval(*s.e2));
+            }
             break;
         case SK::Call:
             evalCall(s.name, s.exprs, s.pos);
@@ -521,6 +528,10 @@ void Interpreter::execStmt(const Stmt& s) {
             rt_.globals[s.name] = std::move(slot);
             break;
         }
+        case SK::EnumDecl:
+            // ENUM … ENDENUM legt je Wert eine Konstante an.
+            execBlock(s.body);
+            break;
         case SK::Swap: {
             // Beide Ziele als Speicherstellen aufloesen
             Value va = eval(*s.e1);
@@ -691,6 +702,11 @@ void Interpreter::execDim(const Stmt& s, bool redim) {
     if (redim) {
         Slot* old = findSlot(s.name);
         if (old && old->v.isArray() && old->v.arr) copyArrayData(*arr, *old->v.arr);
+    }
+    // GLOBAL a[5] / LOCAL a[5]: das Array landet in genau diesem Bereich.
+    if (s.scopeExplicit) {
+        assignArrayIn(s.name, std::move(arr), s.scope, s.pos);
+        return;
     }
     assignArray(s.name, std::move(arr));
 }
@@ -942,6 +958,38 @@ void Interpreter::assign(const Expr& target, Value v) {
     runtimeError("Ungueltiges Zuweisungsziel", target.pos);
 }
 
+void Interpreter::assignArrayIn(const std::string& name, std::shared_ptr<ArrayObj> arr,
+                                DeclScope scope, const SrcPos& pos) {
+    Slot slot;
+    slot.v = Value::mkArray(std::move(arr));
+    // STATIC haelt den Wert ueber Aufrufe hinweg; der Schluessel ist wie in
+    // declareStatic() der Name der Funktion plus Variablenname. Das Array
+    // entsteht deshalb nur beim ersten Aufruf.
+    if (scope == DeclScope::Static && frame_) {
+        const std::string key = frame_->func + "|" + name;
+        auto it = statics_.find(key);
+        if (it != statics_.end()) {
+            frame_->aliases[name] = &it->second;
+            return;
+        }
+        auto res = statics_.emplace(key, std::move(slot));
+        frame_->aliases[name] = &res.first->second;
+        return;
+    }
+    // Im Hauptprogramm gibt es keinen Frame - dort ist LOCAL wie GLOBAL.
+    if (scope == DeclScope::Global || !frame_) {
+        auto it = rt_.globals.find(name);
+        if (it != rt_.globals.end() && it->second.isConst)
+            runtimeError("Konstante '" + name + "' kann nicht geaendert werden", pos);
+        rt_.globals[name] = std::move(slot);
+        return;
+    }
+    Slot* existing = findLocalSlot(name);
+    if (existing && existing->isConst)
+        runtimeError("Konstante '" + name + "' kann nicht geaendert werden", pos);
+    frame_->locals[name] = std::move(slot);
+}
+
 void Interpreter::assignArray(const std::string& name, std::shared_ptr<ArrayObj> arr) {
     Value v = Value::mkArray(std::move(arr));
     Slot* slot = findSlot(name);
@@ -958,7 +1006,13 @@ Value Interpreter::readVar(const Expr& e) {
     if (Value* field = selfField(e.text)) return *field;
     Slot* slot = findSlot(e.text);
     if (!slot) {
-        rt_.warnOnce("Variable ohne Deklaration: " + e.text + " (wird als 0 angenommen)");
+        // Ein ENUM-Wert heisst PHASE.STOP; der kurze Name ist der typische
+        // Fehler und bekommt deshalb den passenden Hinweis.
+        std::string hint;
+        auto value = prog_.enumValues.find(e.text);
+        if (value != prog_.enumValues.end() && !value->second.empty())
+            hint = " - meintest du " + value->second.front() + "." + e.text + "?";
+        rt_.warnOnce("Variable ohne Deklaration: " + e.text + " (wird als 0 angenommen)" + hint);
         Slot s;
         s.hint = e.hint;
         s.v = e.hint != TypeHint::None ? defaultValueFor(hintToVT(e.hint)) : Value::mkInt(0);
@@ -1359,6 +1413,52 @@ std::string Interpreter::debugInspect(const std::string& text, bool& ok, std::st
     return out + "\"}";
 }
 
+Value Interpreter::evalBinary(BinOp op, const Value& a, const Value& b, const SrcPos& pos) {
+    switch (op) {
+        case BinOp::Add:
+            if (a.isStr() || b.isStr()) return Value::mkStr(a.text() + b.text());
+            if (bothInt(a, b)) return Value::mkInt(a.i + b.i);
+            return Value::mkFloat(a.asDouble() + b.asDouble());
+        case BinOp::Sub:
+            if (bothInt(a, b)) return Value::mkInt(a.i - b.i);
+            return Value::mkFloat(a.asDouble() - b.asDouble());
+        case BinOp::Mul:
+            if (bothInt(a, b)) return Value::mkInt(a.i * b.i);
+            return Value::mkFloat(a.asDouble() * b.asDouble());
+        case BinOp::Div: {
+            const double d = b.asDouble();
+            if (d == 0.0) runtimeError("Division durch Null", pos);
+            return Value::mkFloat(a.asDouble() / d);
+        }
+        case BinOp::Eq:
+            return Value::mkInt(valueEquals(a, b) ? 1 : 0);
+        case BinOp::Ne:
+            return Value::mkInt(valueEquals(a, b) ? 0 : 1);
+        case BinOp::Lt:
+        case BinOp::Le:
+        case BinOp::Gt:
+        case BinOp::Ge: {
+            if (a.isNum() && b.isNum()) {
+                const double x = a.asDouble(), y = b.asDouble();
+                if (op == BinOp::Lt) return Value::mkInt(x < y);
+                if (op == BinOp::Le) return Value::mkInt(x <= y);
+                if (op == BinOp::Gt) return Value::mkInt(x > y);
+                return Value::mkInt(x >= y);
+            }
+            const std::string x = a.text(), y = b.text();
+            if (op == BinOp::Lt) return Value::mkInt(x < y);
+            if (op == BinOp::Le) return Value::mkInt(x <= y);
+            if (op == BinOp::Gt) return Value::mkInt(x > y);
+            return Value::mkInt(x >= y);
+        }
+        case BinOp::And:
+            return Value::mkInt(a.truthy() && b.truthy() ? 1 : 0);
+        case BinOp::Or:
+            return Value::mkInt(a.truthy() || b.truthy() ? 1 : 0);
+    }
+    return Value::mkNull();
+}
+
 Value Interpreter::eval(const Expr& e) {
     switch (e.kind) {
         case EK::IntLit:
@@ -1391,49 +1491,7 @@ Value Interpreter::eval(const Expr& e) {
                 if (eval(*e.a).truthy()) return Value::mkInt(1);
                 return Value::mkInt(eval(*e.b).truthy() ? 1 : 0);
             }
-            Value a = eval(*e.a);
-            Value b = eval(*e.b);
-            switch (e.bin) {
-                case BinOp::Add:
-                    if (a.isStr() || b.isStr()) return Value::mkStr(a.text() + b.text());
-                    if (bothInt(a, b)) return Value::mkInt(a.i + b.i);
-                    return Value::mkFloat(a.asDouble() + b.asDouble());
-                case BinOp::Sub:
-                    if (bothInt(a, b)) return Value::mkInt(a.i - b.i);
-                    return Value::mkFloat(a.asDouble() - b.asDouble());
-                case BinOp::Mul:
-                    if (bothInt(a, b)) return Value::mkInt(a.i * b.i);
-                    return Value::mkFloat(a.asDouble() * b.asDouble());
-                case BinOp::Div: {
-                    double d = b.asDouble();
-                    if (d == 0.0) runtimeError("Division durch Null", e.pos);
-                    return Value::mkFloat(a.asDouble() / d);
-                }
-                case BinOp::Eq:
-                    return Value::mkInt(valueEquals(a, b) ? 1 : 0);
-                case BinOp::Ne:
-                    return Value::mkInt(valueEquals(a, b) ? 0 : 1);
-                case BinOp::Lt:
-                case BinOp::Le:
-                case BinOp::Gt:
-                case BinOp::Ge: {
-                    if (a.isNum() && b.isNum()) {
-                        double x = a.asDouble(), y = b.asDouble();
-                        if (e.bin == BinOp::Lt) return Value::mkInt(x < y);
-                        if (e.bin == BinOp::Le) return Value::mkInt(x <= y);
-                        if (e.bin == BinOp::Gt) return Value::mkInt(x > y);
-                        return Value::mkInt(x >= y);
-                    }
-                    std::string x = a.text(), y = b.text();
-                    if (e.bin == BinOp::Lt) return Value::mkInt(x < y);
-                    if (e.bin == BinOp::Le) return Value::mkInt(x <= y);
-                    if (e.bin == BinOp::Gt) return Value::mkInt(x > y);
-                    return Value::mkInt(x >= y);
-                }
-                default:
-                    break;
-            }
-            return Value::mkNull();
+            return evalBinary(e.bin, eval(*e.a), eval(*e.b), e.pos);
         }
         case EK::Call:
             return evalCall(e.text, e.args, e.pos);

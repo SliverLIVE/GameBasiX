@@ -89,6 +89,8 @@ const KEYWORDS = new Set([
   'STATIC',
   'CONSTANT',
   'CONST',
+  'ENUM',
+  'ENDENUM',
   'BYREF',
   'AS',
   'LET',
@@ -118,6 +120,18 @@ const KEYWORDS = new Set([
 const STATEMENTS = KEYWORDS;
 
 const NOTES = {
+  'FORMAT$': {
+    de: 'Hinweis: Mit einer Vorlage als erstem Argument füllt der Befehl Platzhalter: FORMAT$("{0} von {1}", 3, 10). {{ und }} stehen für eine geschweifte Klammer.',
+    en: 'Note: with a template as first argument the command fills placeholders: FORMAT$("{0} of {1}", 3, 10). {{ and }} stand for a literal brace.'
+  },
+  'JOIN$': {
+    de: 'Hinweis: Das Gegenstück zu SPLIT_STRING; Start und Anzahl sind optional, ein negativer Start zählt von hinten.',
+    en: 'Note: the counterpart of SPLIT_STRING; start and count are optional and a negative start counts from the end.'
+  },
+  ENUM: {
+    de: 'Hinweis: Der erste Wert ist 0, jeder weitere zählt eins weiter; = setzt einen eigenen Wert. Die Werte gelten wie CONSTANT im ganzen Programm.',
+    en: 'Note: the first value is 0 and every further value counts one up; = sets a value yourself. Like CONSTANT the values are visible in the whole program.'
+  },
   RND: {
     de: 'Hinweis: RND(max) liefert eine ganze Zahl von 0 bis einschließlich max.',
     en: 'Note: RND(max) returns an integer from 0 to max inclusive.'
@@ -559,6 +573,7 @@ const LABELS = {
   server: 'listener',
   feld: 'array',
   trenner: 'separator',
+  anzahl: 'count',
   leer: 'skipEmpty'
 };
 
