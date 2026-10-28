@@ -13,8 +13,8 @@ core is complete.
 
 ![GBX Studio](docs/screenshots/ide.png)
 
-<sub>**GBX Studio** – live name checking, outline, a searchable command reference
-and a runtime debugger right next to the code.</sub>
+<sub>**GBX Studio** – live name checking, outline, a searchable command reference,
+ENUM values with their numbers and a value tooltip right next to the code.</sub>
 
 ## Highlights
 
