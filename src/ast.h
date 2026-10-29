@@ -151,6 +151,10 @@ struct Program {
     // Standardwerte der TYPE-Felder in Feldreihenfolge; leer = ohne Angabe.
     // Getrennt von TypeDef, weil value.h keinen Syntaxbaum kennen soll.
     std::unordered_map<std::string, std::vector<ExprP>> typeDefaults;
+    // Groessen der Feld-Arrays, ebenfalls in Feldreihenfolge. Ein Feld ohne
+    // Klammern hat einen leeren Eintrag; "items[]" einen leeren Eintrag bei
+    // FieldDef::rank >= 1 und startet damit als leeres Array.
+    std::unordered_map<std::string, std::vector<std::vector<ExprP>>> typeArrayDims;
     std::string mainFile;
     std::string baseDir;
     std::vector<std::string> includedFiles;  // bereits eingebundene Dateien

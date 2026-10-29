@@ -1,0 +1,115 @@
+' ============================================================
+' Arrays inside a TYPE - items[3] AS ITEM and slots[] AS ITEM
+' Run: gbx examples/18_field_arrays/fieldarrays.gbxproj
+'
+' A field of a TYPE may be an array itself:
+'   fixed[3] AS ITEM   three items, created with the field defaults
+'   slots[] AS ITEM    starts empty and grows with DIMPUSH
+'   coins[SLOT_COUNT]  a number array, size from a constant
+' Every object owns its arrays, so two bags never share items. The
+' usual array commands work on a field: LEN, FOREACH, indexing and
+' DIM/REDIM to resize it in place.
+' ============================================================
+
+CONSTANT SLOT_COUNT = 4
+
+TYPE ITEM
+  name$ = "?"
+  value% = 0
+  charge% = 0
+ENDTYPE
+
+TYPE BAG
+  label$ = "bag"
+  fixed[3] AS ITEM
+  slots[] AS ITEM
+  coins[SLOT_COUNT]
+
+  METHOD add: name$, value%
+    DIMPUSH slots[], 0
+    slots[LEN(slots) - 1].name$ = name$
+    slots[LEN(slots) - 1].value% = value%
+  ENDMETHOD
+
+  METHOD worth%:
+    total% = 0
+    FOREACH it IN slots[]
+      total% = total% + it.value%
+    NEXT
+    RETURN total%
+  ENDMETHOD
+ENDTYPE
+
+GLOBAL bag AS BAG
+GLOBAL spare AS BAG
+
+bag.label$ = "pocket"
+bag.fixed[0].name$ = "torch"
+bag.fixed[0].charge% = 3
+bag.add("rope", 5)
+bag.add("gem", 40)
+bag.coins[0] = 12
+
+' A second object starts with its own arrays, not the first one's.
+spare.label$ = "spare"
+
+DEBUG "field arrays: fixed=" + STR$(LEN(bag.fixed)) + " slots=" + STR$(LEN(bag.slots)) + " worth=" + STR$(bag.worth%()) + CHR$(10)
+DEBUG "own arrays: spare slots=" + STR$(LEN(spare.slots)) + " spare fixed[0]=" + spare.fixed[0].name$ + CHR$(10)
+
+' DIM makes a field array smaller or bigger; the elements are new.
+DIM bag.slots[1]
+bag.slots[0].name$ = "map"
+DEBUG "after DIM: slots=" + STR$(LEN(bag.slots)) + CHR$(10)
+
+' REDIM keeps the values that still fit.
+REDIM bag.coins[6]
+DEBUG "coins after REDIM: " + STR$(LEN(bag.coins)) + " first=" + STR$(bag.coins[0]) + CHR$(10)
+
+SCREEN_SET 760, 480, 0
+WINDOW_TITLE "GameBasiX - arrays inside a TYPE"
+LIMIT_FPS 60
+
+WHILE TRUE
+  SCREEN_CLEAR RGB(10, 14, 22)
+
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "Arrays inside a TYPE", 50, 24
+  TEXT_COLOR RGB(140, 170, 205)
+  PRINT "fixed[3] AS ITEM, slots[] AS ITEM, coins[" + STR$(SLOT_COUNT) + "] - one set per object", 50, 56
+
+  ' The fixed array: always three items, filled by the field defaults.
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "fixed[" + STR$(LEN(bag.fixed)) + "] AS ITEM   FOREACH over the field", 50, 100
+  TEXT_COLOR RGB(200, 214, 232)
+  row% = 0
+  FOREACH it IN bag.fixed[]
+    PRINT "[" + STR$(row%) + "] " + it.name$ + "  charge " + STR$(it.charge%), 70, 130 + row% * 24
+    row% = row% + 1
+  NEXT
+
+  ' The growing array: DIMPUSH adds one element per call.
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "slots[" + STR$(LEN(bag.slots)) + "] AS ITEM   grew with DIMPUSH, resized with DIM", 50, 220
+  TEXT_COLOR RGB(200, 214, 232)
+  row% = 0
+  FOREACH it IN bag.slots[]
+    PRINT "[" + STR$(row%) + "] " + it.name$ + "  value " + STR$(it.value%), 70, 250 + row% * 24
+    row% = row% + 1
+  NEXT
+
+  ' A number array as a field, sized by a constant.
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "coins[" + STR$(LEN(bag.coins)) + "] after REDIM", 50, 340
+  TEXT_COLOR RGB(200, 214, 232)
+  PRINT "coins[0] = " + STR$(bag.coins[0]), 70, 370
+
+  TEXT_COLOR RGB(160, 176, 200)
+  PRINT "total value of " + bag.label$ + ": " + STR$(bag.worth%()), 50, 420
+
+  IF KEY_PRESSED(KEY_SPACE)
+    bag.add("key " + STR$(LEN(bag.slots) + 1), 10)
+  ENDIF
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  SCREEN_SHOW
+WEND

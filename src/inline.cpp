@@ -771,9 +771,9 @@ std::vector<Binding> bindingsFor(const Program& prog, const InlineBlock& block) 
         if (type != prog.types.end() && type->second) {
             BindMap fields;
             for (const auto& field : type->second->fields) {
-                const BindKind kind = field.type == VT::Record ? BindKind::Record
+                const BindKind kind = field.isArray        ? BindKind::Array
+                                     : field.type == VT::Record ? BindKind::Record
                                      : field.type == VT::Str  ? BindKind::Text
-                                     : field.type == VT::Array ? BindKind::Array
                                                                : BindKind::Number;
                 putBinding(fields, field.name, kind, field.typeName, false);
             }
@@ -829,6 +829,9 @@ std::string fieldMember(const FieldDef& field) {
 }
 
 std::string fieldTypeCpp(const Program& prog, const FieldDef& field, const std::set<std::string>& done) {
+    // Feld-Arrays (items[4] AS ITEM) sind im INLINE-Block ein Array-Handle mit
+    // size(), operator[] und push().
+    if (field.isArray) return "::gbxinline::Array";
     switch (field.type) {
         case VT::Str: return "::gbxinline::Str";
         case VT::Array: return "::gbxinline::Array";
@@ -949,7 +952,8 @@ std::string signatureSource(const Program& prog) {
         auto it = prog.types.find(name);
         if (it == prog.types.end() || !it->second) continue;
         for (const auto& field : it->second->fields)
-            out << field.name << ":" << static_cast<int>(field.type) << ":" << field.typeName << "\n";
+            out << field.name << ":" << static_cast<int>(field.type) << ":" << field.typeName << ":"
+                << (field.isArray ? field.rank : 0) << "\n";
     }
     return out.str();
 }

@@ -200,7 +200,7 @@ def test_broken_condition():
         session.close()
 
 
-INSPECT_SCRIPT = """' Wert-Tooltip im Haltepunkt (eval)\nTYPE PUNKT\n  px AS FLOAT\n  py AS FLOAT\n  name$ = "punkt"\nENDTYPE\n\nGLOBAL spieler AS PUNKT\nDIM zahlen[3]\nDIM leute[2] AS PUNKT\nzahlen[0] = 4\nzahlen[1] = 5\nzahlen[2] = 6\nspieler.px = 12.5\nspieler.py = 7\nleute[1].px = 99\nhalt = 1\n"""
+INSPECT_SCRIPT = """' Wert-Tooltip im Haltepunkt (eval)\nTYPE PUNKT\n  px AS FLOAT\n  py AS FLOAT\n  name$ = "punkt"\nENDTYPE\n\nGLOBAL spieler AS PUNKT\nDIM zahlen[3]\nDIM leute[2] AS PUNKT\nzahlen[0] = 4\nzahlen[1] = 5\nzahlen[2] = 6\nspieler.px = 12.5\nspieler.py = 7\nleute[1].px = 99\nTYPE REGAL\n  faecher[2] AS PUNKT\n  notizen[]\nENDTYPE\nGLOBAL regal AS REGAL\nregal.faecher[1].px = 42\nregal.faecher[0].name$ = "eins"\nhalt = 1\n"""
 
 
 def test_inspect():
@@ -213,12 +213,12 @@ def test_inspect():
     try:
         session.event()
         # Letzte Zeile: dort sind alle Variablen angelegt.
-        session.send(f"bp\t{path}\t17")
+        session.send(f"bp\t{path}\t24")
         stop = wait_stop(session)
         if stop and stop.get("reason") == "start":
             session.send("run")
             stop = wait_stop(session)
-        check(bool(stop and stop.get("line") == 17), "Haltepunkt fuer den Tooltip", str(stop and stop.get("line")))
+        check(bool(stop and stop.get("line") == 24), "Haltepunkt fuer den Tooltip", str(stop and stop.get("line")))
         if not stop:
             return
 
@@ -261,6 +261,16 @@ def test_inspect():
         math_expr = evaluate(5, "zahlen[1] + 1")
         check(bool(math_expr) and math_expr.get("detail") == "6", "Ausdruck mit Index",
               str(math_expr and math_expr.get("detail")))
+
+        # Feld-Arrays im Tooltip: faecher[2] AS PUNKT und notizen[] (leer).
+        field_arrays = evaluate(8, "regal")
+        detail = (field_arrays or {}).get("detail", "")
+        check("FAECHER · ARRAY[2]" in detail, "Feld-Array steht im Tooltip", detail)
+        check("[1] · TYPE PUNKT" in detail and "PX = 42" in detail,
+              "Elemente des Feld-Arrays werden aufgeklappt", detail)
+        check("NOTIZEN · ARRAY[0]" in detail, "leeres Feld-Array im Tooltip", detail)
+        one = evaluate(9, "regal.faecher[1].px")
+        check(bool(one) and one.get("detail") == "42", "Feld-Array-Element ausgewertet", str(one))
 
         unknown = evaluate(6, "quatsch")
         check(bool(unknown) and unknown.get("ok") is False, "unbekannter Name wird abgelehnt", str(unknown))

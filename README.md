@@ -347,7 +347,8 @@ The same holds for `METHOD name:` inside a `TYPE`.
 (BYREF to the element). `GLOBAL a[10]`, `LOCAL a[10] AS TYPE` and `STATIC
 a[10]` take the same brackets as `DIM` and only add the scope: inside a
 function that is the short way to a local array, `GLOBAL` puts it in the whole
-program and `STATIC` keeps it between calls (it is created once).
+program and `STATIC` keeps it between calls (it is created once). A field of a
+TYPE can be an array as well – see *Arrays inside a TYPE* below.
 
 **TYPE.** Fields without a suffix are `FLOAT`, `$` makes strings, `AS
 OtherType` nests. `LOCAL v AS TYPE`, `GLOBAL v AS TYPE`, `DIM arr[5] AS TYPE`.
@@ -355,6 +356,37 @@ Fields may carry a default value: `lives% = 3`, `name$ = "new"`, also
 `total% = a + b` or a constant. The expression runs for every new instance –
 for `LOCAL`, `GLOBAL` and every element of a TYPE array. `TYPE` values are
 shared by reference (fields and arrays are pointers).
+
+**Arrays inside a TYPE.** A field may itself be an array: `fixed[3] AS ITEM`, a
+number array `coins[4]`, and `slots[] AS ITEM` for an empty one that grows with
+`DIMPUSH`. The size expressions run per instance (a constant works too), so
+every object owns its own arrays and two objects never share items. A field
+array behaves like a plain array: `bag.fixed[1].name$`, `LEN(bag.slots)`,
+`FOREACH s IN bag.slots[] … NEXT`, `DIMPUSH bag.slots[], value`, `DIM
+bag.slots[8]` and `REDIM` (keeps the values that still fit) resize it in place.
+A field array takes no default value (`fixed[3] = 1` is a parse error), and a
+single value cannot replace it – assign to an element instead. `INLINE` steps
+see the field as an array handle: `bag.slots.size()`, `bag.slots[0]`, and
+`bag.slots.push(0.0)`.
+
+```basic
+TYPE ITEM
+  name$ = "?"
+  value% = 0
+ENDTYPE
+
+TYPE BAG
+  fixed[3] AS ITEM     ' three items, created with the field defaults
+  slots[] AS ITEM      ' empty at first, grows with DIMPUSH
+ENDTYPE
+
+GLOBAL bag AS BAG
+bag.fixed[0].name$ = "torch"
+DIMPUSH bag.slots[], 0
+bag.slots[0].value% = 5
+PRINT LEN(bag.fixed), 0, 0      ' 3
+PRINT LEN(bag.slots), 0, 0      ' 1
+```
 
 **Methods.** A `TYPE` can carry `METHOD`s. They live in the TYPE block and are
 called with `object.name(...)`:
@@ -978,6 +1010,7 @@ platform- or security-related; the 2D core is complete.
 | `examples/15_library` | `[native]` in full: two C++ archives (`lib/libgame.a` by path, `lib/libcurve.a` as `-lcurve`) become eight ordinary GBX commands. Live scope with hash noise and a one-pole filter from the first archive, a Catmull-Rom curve from the second, a `-DGAIN` flag that changes the curve, an `INLINE` step that calls the archive directly, and the C++ sources in `native/` to rebuild both |
 | `examples/16_enum` | **ENUM traffic light**: four named phases (`PHASE.STOP`, `PHASE.GET_READY`, `PHASE.GO`, `PHASE.SLOW_DOWN = 10`) drive a small state machine – `SELECT` over the ENUM values, a countdown with `-=`, the values on screen, and a console line per phase change so it shows up in `--headless` as well |
 | `examples/17_type_array` | **FOREACH over a TYPE array**: `GLOBAL cells[14] AS CELL`, a `LOCAL buckets[3]` inside a helper, one walk to fill the array, one to move and bounce the cells, one to count the living ones. Shows that `FOREACH c IN cells[]` hands out the element itself (changes stick), how a hand-written counter supplies the index, and how `BREAK` stops at the first burst cell – plus a console line after 540 simulated frames for `--headless` |
+| `examples/18_field_arrays` | **Arrays inside a TYPE**: one `BAG` with `fixed[3] AS ITEM`, `slots[] AS ITEM` and `coins[SLOT_COUNT]`. `fixed` is filled by the field defaults, `slots` grows with `DIMPUSH` and is resized with `DIM`, `REDIM` keeps the coin values that still fit. Two bags show that every object owns its arrays; `LEN`, `FOREACH` and a `METHOD` that pushes and sums work on the fields – plus console lines for `--headless` |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
@@ -1123,6 +1156,17 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
 
 **October 2026**
 
+* **Arrays as TYPE fields**: `fixed[3] AS ITEM`, `coins[4]` and `slots[] AS ITEM`
+  declare a field as an array. The size expressions are evaluated for every new
+  instance (constants and expressions included), so each object carries its own
+  arrays; `slots[]` starts empty and grows with `DIMPUSH`. Everything that works
+  on a plain array works on the field too: indexing (also `bag.fixed[1].name$`),
+  `LEN`, `FOREACH … IN bag.slots[]`, `DIM`/`REDIM` to resize the field in place,
+  and the debugger expands it like any other array. `INLINE` steps get an array
+  handle (`bag.slots.size()`, `bag.slots[0]`, `bag.slots.push(0.0)`). A field
+  array takes no default value and cannot be overwritten by a scalar – both say
+  so with a clear message. New example `examples/18_field_arrays`. Version
+  1.2.28.
 * **Text sizes and gamepads**: two additions to the command set. `TEXT_WIDTH(text)`
   and `TEXT_HEIGHT(text)` return the drawn size in pixels for the font set with
   `FONT_SET` – the width of the longest line, the height of all lines together –

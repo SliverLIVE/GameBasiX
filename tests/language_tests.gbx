@@ -642,6 +642,77 @@ ASSERT mp.summe() = 5, "SELF liest Felder"
 mp.verschieben(1, 4)
 ASSERT mp.x = 3 AND mp.y = 7, "SELF schreibt Felder"
 
+' ---------------------------------------------- Arrays als TYPE-Felder
+' items[3] AS TYPE, zahlen[2] und offen[] (leer, waechst mit DIMPUSH).
+TYPE FA_PUNKT
+  x AS FLOAT
+  y AS FLOAT
+  name$ = "p"
+ENDTYPE
+
+TYPE FA_BEHALTER
+  punkte[3] AS FA_PUNKT
+  zahlen[2]
+  namen[2] AS STRING
+  offen[] AS FA_PUNKT
+
+  METHOD anhaengen: x AS FLOAT
+    DIMPUSH offen[], 0
+    offen[LEN(offen) - 1].x = x
+  ENDMETHOD
+
+  METHOD summe:
+    faSumme = 0
+    FOREACH faPunkt IN offen[]
+      faSumme = faSumme + faPunkt.x
+    NEXT
+    RETURN faSumme
+  ENDMETHOD
+ENDTYPE
+
+LOCAL korb AS FA_BEHALTER
+ASSERT LEN(korb.punkte) = 3, "Feld-Array hat die Groesse aus dem TYPE"
+ASSERT korb.punkte[0].x = 0, "Element startet mit dem Feld-Standardwert"
+ASSERT korb.punkte[0].name$ = "p", "Textfeld im Element"
+ASSERT LEN(korb.namen) = 2, "Feld-Array aus Strings"
+korb.punkte[1].x = 7
+korb.punkte[1].name$ = "zwei"
+ASSERT korb.punkte[1].x = 7 AND korb.punkte[1].name$ = "zwei", "Element schreiben"
+ASSERT korb.punkte[0].x = 0, "Nachbar bleibt unveraendert"
+korb.zahlen[0] = 5
+ASSERT korb.zahlen[0] = 5, "Feld-Array aus Zahlen"
+ASSERT LEN(korb.offen) = 0, "states[] startet leer"
+korb.anhaengen(2)
+korb.anhaengen(3)
+ASSERT LEN(korb.offen) = 2, "DIMPUSH im Feld-Array"
+ASSERT korb.summe() = 5, "FOREACH ueber das Feld-Array"
+DIM korb.punkte[4]
+ASSERT LEN(korb.punkte) = 4, "DIM auf ein Feld-Array"
+ASSERT korb.punkte[1].x = 0, "DIM legt die Elemente neu an"
+REDIM korb.zahlen[3]
+ASSERT LEN(korb.zahlen) = 3 AND korb.zahlen[0] = 5, "REDIM behaelt die Werte"
+
+' Jedes Objekt hat sein eigenes Feld-Array
+LOCAL zweiter AS FA_BEHALTER
+zweiter.punkte[0].x = 9
+ASSERT korb.punkte[0].x = 0, "Feld-Arrays sind pro Objekt getrennt"
+
+' TYPE-Array, in dessen Elementen wieder Feld-Arrays stecken
+DIM reihe[2] AS FA_BEHALTER
+reihe[1].punkte[2].y = 4
+ASSERT reihe[1].punkte[2].y = 4, "Feld-Array in einem TYPE-Array"
+ASSERT reihe[0].punkte[2].y = 0, "Elemente bleiben getrennt"
+
+' Ein Skalar darf das Array nicht ersetzen
+faErsetzt = FALSE
+TRY
+  korb.punkte = 1
+CATCH faErr$
+  faErsetzt = TRUE
+FINALLY
+ASSERT faErsetzt, "Skalar auf ein Feld-Array meldet einen Fehler"
+ASSERT korb.punkte[0].name$ = "p", "Feld-Array bleibt nach dem Fehler heil"
+
 ' Konsole
 STDOUT "Sprachtests durchgelaufen." + CHR$(10)
 

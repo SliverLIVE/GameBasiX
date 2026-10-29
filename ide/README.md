@@ -179,9 +179,9 @@ statement.
   breakpoint jumps to its line.
 * **Values on hover**: while paused, pointing at a variable in the editor shows
   its current value in the tooltip. Arrays are listed with their indices, a
-  `TYPE` with all fields, and a `DIM … AS TYPE` array one element after the
-  other (three levels deep, long ones abbreviated, so the tooltip stays
-  readable). `player.pos` and `feld[i].name` work as well – the editor takes
+  `TYPE` with all fields, a `DIM … AS TYPE` array one element after the other,
+  and a field array (`bag.items`) the same way (three levels deep, long ones
+  abbreviated, so the tooltip stays readable). `player.pos` and `feld[i].name` work as well – the editor takes
   the whole path up to the word under the pointer and has the interpreter
   evaluate it. Names that do not exist at that point show nothing; hovering a
   command never has side effects.

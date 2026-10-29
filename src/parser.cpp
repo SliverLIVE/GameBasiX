@@ -983,6 +983,28 @@ StmtP Parser::parseDim(bool redim) {
     s->name = stripSuffix(cur().text);
     s->hint = suffixHint(cur().text);
     advance();
+    // DIM p.items[10]: ein Feld-Array darf auch direkt angesprochen werden. Die
+    // Klammern dahinter sind die Groessen, nicht ein Index.
+    ExprP member;
+    while (isSym(".")) {
+        advance();
+        if (cur().kind != Tok::Ident) error("Feldname nach '.' erwartet");
+        auto node = std::make_unique<Expr>();
+        node->kind = EK::Field;
+        node->pos = s->pos;
+        node->text = stripSuffix(cur().text);
+        if (member) node->a = std::move(member);
+        else {
+            auto root = std::make_unique<Expr>();
+            root->kind = EK::Var;
+            root->pos = s->pos;
+            root->text = s->name;
+            node->a = std::move(root);
+        }
+        member = std::move(node);
+        advance();
+    }
+    s->e1 = std::move(member);
     while (acceptSym("[")) {
         s->exprs.push_back(parseExpr());
         expectSym("]");
@@ -1166,6 +1188,18 @@ StmtP Parser::parsePush(bool del) {
     var->pos = s->pos;
     var->text = stripSuffix(cur().text);
     advance();
+    // DIMPUSH p.items[], x: ein Feld-Array waechst genauso.
+    while (isSym(".")) {
+        advance();
+        if (cur().kind != Tok::Ident) error("Feldname nach '.' erwartet");
+        auto node = std::make_unique<Expr>();
+        node->kind = EK::Field;
+        node->pos = s->pos;
+        node->text = stripSuffix(cur().text);
+        node->a = std::move(var);
+        var = std::move(node);
+        advance();
+    }
     if (acceptSym("[")) expectSym("]");
     s->e1 = std::move(var);
     expectSym(",");
@@ -1336,6 +1370,8 @@ void Parser::parseType() {
     def->fields.clear();
     // `x% = 0`: Standardwert je Feld; nullptr steht für „ohne Angabe“.
     std::vector<ExprP> defaults;
+    // Groessen der Feld-Arrays, parallel zu den Feldern.
+    std::vector<std::vector<ExprP>> arrayDims;
     expectLineEnd();
 
     for (;;) {
@@ -1359,6 +1395,23 @@ void Parser::parseType() {
         advance();
         FieldDef fd;
         fd.name = fname;
+        // Feld-Array: `items[4] AS ITEM`, `nums[3]` oder `states[]` für ein
+        // leeres Array, das mit DIMPUSH waechst. Die Klammern stehen wie bei
+        // DIM direkt hinter dem Namen; jedes Paar ist eine Dimension.
+        std::vector<ExprP> dims;
+        int rank = 0;
+        while (acceptSym("[")) {
+            rank += 1;
+            if (acceptSym("]")) {
+                dims.push_back(ExprP{});  // [] = ohne feste Groesse
+                continue;
+            }
+            dims.push_back(parseExpr());
+            expectSym("]");
+        }
+        if (rank > 4) error("TYPE-Feld: hoechstens 4 Dimensionen");
+        fd.isArray = rank > 0;
+        fd.rank = rank;
         std::string tn = parseTypeNameIfPresent();
         if (!tn.empty()) {
             if (tn == "INTEGER" || tn == "INT" || tn == "LONG") { hint = TypeHint::Int; tn.clear(); }
@@ -1377,6 +1430,9 @@ void Parser::parseType() {
             }
         }
         def->fields.push_back(fd);
+        arrayDims.push_back(std::move(dims));
+        if (fd.isArray && isSym("="))
+            error("Feld-Array ohne Anfangswert: '" + fname + "[...]' kennt kein '=' (siehe DIMPUSH)");
         defaults.push_back(acceptSym("=") ? parseExpr() : ExprP{});
         if (cur().kind == Tok::Newline) advance();
         else if (acceptSym(",")) continue;
@@ -1385,6 +1441,7 @@ void Parser::parseType() {
         else error("Zeilenende erwartet");
     }
     prog_.typeDefaults[name] = std::move(defaults);
+    prog_.typeArrayDims[name] = std::move(arrayDims);
     (void)p;
 }
 

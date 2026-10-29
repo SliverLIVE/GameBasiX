@@ -26,6 +26,13 @@ constexpr double kMaxLoopIterations = 100000000.0;
 
 bool bothInt(const Value& a, const Value& b) { return a.type == VT::Int && b.type == VT::Int; }
 
+// Ein Feld-Array nimmt nur ein Array an. Ein Skalar soll den Hinweis auf das
+// Element bekommen, statt still das ganze Array zu ersetzen.
+std::string arrayFieldMessage(const std::string& name) {
+    return "Feld '" + name + "' ist ein Array - " + name + "[i] zuweisen oder DIM " + name +
+           "[...] benutzen";
+}
+
 // ------------------------------------------------------- Debugger-Ausgabe
 
 struct DebugVar {
@@ -680,6 +687,34 @@ void Interpreter::execDim(const Stmt& s, bool redim) {
         if (len > 100000000) runtimeError("DIM: Array zu gross", s.pos);
         sizes.push_back(static_cast<int>(len));
     }
+    // DIM p.items[10]: Groesse eines Feld-Arrays aendern. Das Array gehoert zum
+    // Record, deshalb wird es dort ersetzt; die Daten bleiben bei REDIM so weit
+    // wie moeglich erhalten.
+    if (s.e1 && s.e1->kind != EK::Var) {
+        if (s.e1->kind != EK::Field)
+            runtimeError("DIM: Ziel muss ein Array oder ein Feld sein", s.pos);
+        if (sizes.empty()) runtimeError("DIM: Array-Groesse fehlt (z.B. DIM a[10])", s.pos);
+        if (sizes.size() > 4) runtimeError("DIM: hoechstens 4 Dimensionen", s.pos);
+        Value base = eval(*s.e1->a);
+        if (!base.isRecord() || !base.rec)
+            runtimeError("DIM: links vom Punkt steht kein TYPE", s.pos);
+        RecordObj* rec = base.rec.get();
+        const int idx = rec->def->fieldIndex(s.e1->text);
+        if (idx < 0)
+            runtimeError("TYPE '" + rec->def->name + "' hat kein Feld '" + s.e1->text + "'", s.pos);
+        const FieldDef& fd = rec->def->fields[static_cast<size_t>(idx)];
+        if (!fd.isArray)
+            runtimeError("Feld '" + s.e1->text + "' ist kein Array - im TYPE als " + s.e1->text +
+                             "[...] deklarieren",
+                         s.pos);
+        VT fieldVT = fd.type == VT::Null ? VT::Float : fd.type;
+        auto arr = makeArray(sizes, 0, fieldVT, fd.typeName);
+        Value& slot = rec->fields[static_cast<size_t>(idx)];
+        if (redim && slot.isArray() && slot.arr) copyArrayData(*arr, *slot.arr);
+        slot = Value::mkArray(std::move(arr));
+        return;
+    }
+
     if (sizes.empty()) {
         if (!s.typeName.empty()) {
             Slot slot;
@@ -907,6 +942,11 @@ void Interpreter::assign(const Expr& target, Value v) {
         if (Value* field = selfField(target.text)) {
             const int idx = frame_->selfVal.rec->def->fieldIndex(target.text);
             const FieldDef& fd = frame_->selfVal.rec->def->fields[static_cast<size_t>(idx)];
+            if (fd.isArray) {
+                if (!v.isArray()) runtimeError(arrayFieldMessage(target.text), target.pos);
+                *field = std::move(v);
+                return;
+            }
             if (fd.type == VT::Record && fd.typeName.size() && !v.isRecord())
                 v = makeRecord(fd.typeName);
             else if (fd.type != VT::Record && !v.isArray() && !v.isRecord())
@@ -948,6 +988,11 @@ void Interpreter::assign(const Expr& target, Value v) {
         if (idx < 0) runtimeError("TYPE '" + rec->def->name + "' hat kein Feld '" + target.text + "'",
                                   target.pos);
         const FieldDef& fd = rec->def->fields[static_cast<size_t>(idx)];
+        if (fd.isArray) {
+            if (!v.isArray()) runtimeError(arrayFieldMessage(target.text), target.pos);
+            rec->fields[static_cast<size_t>(idx)] = std::move(v);
+            return;
+        }
         if (fd.type == VT::Record && fd.typeName.size() && !v.isRecord())
             v = makeRecord(fd.typeName);
         else if (fd.type != VT::Record && !v.isArray() && !v.isRecord())
@@ -1057,6 +1102,28 @@ std::shared_ptr<ArrayObj> Interpreter::makeArray(const std::vector<int>& sizes, 
     return arr;
 }
 
+std::shared_ptr<ArrayObj> Interpreter::makeFieldArray(const std::string& typeName, size_t field,
+                                                     const FieldDef& fd) {
+    std::vector<int> sizes;
+    auto it = prog_.typeArrayDims.find(typeName);
+    if (it != prog_.typeArrayDims.end() && field < it->second.size()) {
+        for (const auto& expr : it->second[field]) {
+            if (!expr) {
+                sizes.push_back(0);  // "items[]": leeres Array
+                continue;
+            }
+            int64_t len = eval(*expr).asInt();
+            if (len < 0) len = 0;
+            if (len > 100000000) runtimeError("DIM: Array zu gross", expr->pos);
+            sizes.push_back(static_cast<int>(len));
+        }
+    }
+    if (sizes.empty()) sizes.push_back(0);
+    VT elemVT = fd.type;
+    if (elemVT == VT::Null) elemVT = VT::Float;
+    return makeArray(sizes, 0, elemVT, fd.typeName);
+}
+
 Value Interpreter::makeRecord(const std::string& typeName, int depth) {
     if (depth > kMaxRecordDepth) runtimeError("TYPE-Schachtelung zu tief: " + typeName, SrcPos{});
     auto it = prog_.types.find(typeName);
@@ -1068,7 +1135,9 @@ Value Interpreter::makeRecord(const std::string& typeName, int depth) {
     rec->fields.resize(def->fields.size());
     for (size_t i = 0; i < def->fields.size(); ++i) {
         const FieldDef& fd = def->fields[i];
-        if (fd.type == VT::Record && !fd.typeName.empty())
+        if (fd.isArray)
+            rec->fields[i] = Value::mkArray(makeFieldArray(typeName, i, fd));
+        else if (fd.type == VT::Record && !fd.typeName.empty())
             rec->fields[i] = makeRecord(fd.typeName, depth + 1);
         else
             rec->fields[i] = defaultValueFor(fd.type);
@@ -1083,6 +1152,7 @@ Value Interpreter::makeRecord(const std::string& typeName, int depth) {
             if (!exprs[i]) continue;
             Value v = eval(*exprs[i]);
             const FieldDef& fd = def->fields[i];
+            if (fd.isArray) continue;  // Feld-Arrays kennen kein '='
             if (fd.type != VT::Record) v = coerceTo(v, fd.type);
             rec->fields[i] = std::move(v);
         }

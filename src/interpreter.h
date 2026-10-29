@@ -89,6 +89,10 @@ private:
     std::shared_ptr<ArrayObj> makeArray(const std::vector<int>& sizes, size_t dim, VT elemVT,
                                         const std::string& typeName);
     Value makeRecord(const std::string& typeName, int depth = 0);
+    // Array eines TYPE-Feldes: Groessen aus Program::typeArrayDims, Elementtyp
+    // aus der Felddefinition. "items[]" startet leer.
+    std::shared_ptr<ArrayObj> makeFieldArray(const std::string& typeName, size_t field,
+                                             const FieldDef& fd);
     Value defaultElement(VT elemVT, const std::string& typeName);
     void copyArrayData(ArrayObj& dst, const ArrayObj& src);
 

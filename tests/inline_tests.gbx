@@ -550,3 +550,39 @@ FUNCTION enumImSchritt:
   RETURN summe
 ENDFUNCTION
 ASSERT enumImSchritt() = 5, "ENUM-Werte sind im INLINE-Schritt sichtbar"
+
+' Feld-Arrays im INLINE-Schritt: items[2] AS ITEM ist ein Array-Handle mit
+' operator[], size() und push(); Zahlen-/Textfelder gehen direkt.
+TYPE IAF_ITEM
+  n% = 1
+ENDTYPE
+
+TYPE IAF_KORB
+  items[2] AS IAF_ITEM
+  zahlen[3]
+  offen[] AS IAF_ITEM
+ENDTYPE
+
+GLOBAL iafKorb AS IAF_KORB
+
+SUB iafTouch:
+  INLINE
+    iafkorb.zahlen[1] = 4.0;
+    iafkorb.items[0].field("N") = 9.0;
+    iafkorb.offen.push(1.0);
+  ENDINLINE
+ENDSUB
+
+iafTouch()
+ASSERT iafkorb.zahlen[1] = 4, "INLINE schreibt in ein Zahlen-Feld-Array"
+ASSERT iafkorb.items[0].n% = 9, "INLINE schreibt in ein TYPE-Feld-Array"
+ASSERT LEN(iafkorb.offen) = 1, "INLINE pusht in ein Feld-Array"
+
+SUB iafLesen:
+  groesse = 0
+  INLINE
+    groesse = iafkorb.items.size();
+  ENDINLINE
+  RETURN groesse
+ENDSUB
+ASSERT iafLesen() = 2, "INLINE liest die Groesse eines Feld-Arrays"

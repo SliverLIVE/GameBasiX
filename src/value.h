@@ -62,6 +62,12 @@ struct FieldDef {
     std::string name;
     VT type = VT::Int;
     std::string typeName;  // gesetzt, wenn das Feld ein TYPE ist
+    // Feld-Array ("items[4] AS ITEM"): type/typeName beschreiben dann das
+    // Element, rank die Anzahl der Klammern. Die Groessen stehen als
+    // Ausdruecke in Program::typeArrayDims, weil value.h keinen Syntaxbaum
+    // kennen soll.
+    bool isArray = false;
+    int rank = 0;
 };
 
 struct TypeDef {

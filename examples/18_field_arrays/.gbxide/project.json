@@ -1,0 +1,70 @@
+{
+  "name": "fieldarrays",
+  "appName": "Arrays inside a TYPE",
+  "title": "GameBasiX - arrays inside a TYPE",
+  "entry": "main.gbx",
+  "width": 760,
+  "height": 480,
+  "fullscreen": false,
+  "resizable": false,
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeSources": [],
+  "nativeFlags": "",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [],
+  "createdAt": "2026-10-29T09:00:00.000Z",
+  "layout": {
+    "sidebar": 248,
+    "reference": 352,
+    "bottom": 208
+  },
+  "dock": {
+    "zones": {
+      "left": [
+        "files",
+        "outline"
+      ],
+      "right": [
+        "reference"
+      ],
+      "bottom": [
+        "problems",
+        "output",
+        "console",
+        "debug"
+      ]
+    },
+    "collapsed": {
+      "files": false,
+      "outline": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "heights": {
+      "files": 280,
+      "outline": 576,
+      "reference": 340,
+      "problems": 220,
+      "output": 220,
+      "console": 220,
+      "debug": 260
+    },
+    "open": {
+      "left": true,
+      "right": true,
+      "bottom": true
+    },
+    "active": "problems"
+  }
+}
