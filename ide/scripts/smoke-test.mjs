@@ -149,7 +149,7 @@ try {
     const builtins = new Set([...source.matchAll(/add\("([^"]+)"/g)].map((match) => match[1].toUpperCase()));
     const entries = new Map(dataset.commands.map((entry) => [entry.name.toUpperCase(), entry]));
 
-    assert.equal(builtins.size, 220, 'Interpreter-Befehle');
+    assert.equal(builtins.size, 226, 'Interpreter-Befehle');
     for (const name of builtins) assert.ok(entries.has(name), `${name} fehlt im Datensatz`);
     // Steuerwörter, die früher in der Vervollständigung fehlten.
     for (const keyword of ['INCLUDE', 'IF', 'ENDIF', 'SWAP', 'INC', 'DEC', 'TRY', 'CATCH', 'FINALLY', 'ENDTRY', 'THROW', 'STATIC']) {
@@ -165,6 +165,11 @@ try {
     assert.equal(entries.get('ENDINLINE')?.kind, 'keyword', 'ENDINLINE fehlt');
     // Befehle ohne Funktion dürfen im Datensatz nicht auftauchen.
     assert.ok(!entries.has('IMPORT'), 'IMPORT gibt es in GBX nicht');
+    // Gamepad-Tasten und -Achsen sind Konstanten, keine Befehle.
+    assert.equal(entries.get('JOY_A')?.kind, 'constant', 'JOY_A fehlt');
+    assert.equal(entries.get('JOY_AXIS_LX')?.kind, 'constant', 'JOY_AXIS_LX fehlt');
+    assert.equal(entries.get('JOY_AXIS')?.kind, 'function', 'JOY_AXIS fehlt');
+    assert.equal(entries.get('TEXT_WIDTH')?.kind, 'function', 'TEXT_WIDTH fehlt');
     // Argumentzahl folgt dem Interpreter (INPUT var[,x[,y]]).
     const input = entries.get('INPUT');
     assert.equal(input.params.length, 3);

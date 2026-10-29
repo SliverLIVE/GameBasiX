@@ -118,5 +118,30 @@ std::vector<std::pair<std::string, int64_t>> builtinConstants() {
                                      SDL_SCANCODE_6, SDL_SCANCODE_7, SDL_SCANCODE_8,
                                      SDL_SCANCODE_9};
     for (int i = 0; i < 10; ++i) put("KEY_" + std::to_string(i), digits[i]);
+
+    // Gamepad: Tasten und Achsen in der Reihenfolge, die JOY_BUTTON und
+    // JOY_AXIS erwarten. Namen wie bei SDL, also herstellerunabhaengig.
+    put("JOY_A", SDL_GAMEPAD_BUTTON_SOUTH);
+    put("JOY_B", SDL_GAMEPAD_BUTTON_EAST);
+    put("JOY_X", SDL_GAMEPAD_BUTTON_WEST);
+    put("JOY_Y", SDL_GAMEPAD_BUTTON_NORTH);
+    put("JOY_BACK", SDL_GAMEPAD_BUTTON_BACK);
+    put("JOY_GUIDE", SDL_GAMEPAD_BUTTON_GUIDE);
+    put("JOY_START", SDL_GAMEPAD_BUTTON_START);
+    put("JOY_LSTICK", SDL_GAMEPAD_BUTTON_LEFT_STICK);
+    put("JOY_RSTICK", SDL_GAMEPAD_BUTTON_RIGHT_STICK);
+    put("JOY_LB", SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
+    put("JOY_RB", SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
+    put("JOY_UP", SDL_GAMEPAD_BUTTON_DPAD_UP);
+    put("JOY_DOWN", SDL_GAMEPAD_BUTTON_DPAD_DOWN);
+    put("JOY_LEFT", SDL_GAMEPAD_BUTTON_DPAD_LEFT);
+    put("JOY_RIGHT", SDL_GAMEPAD_BUTTON_DPAD_RIGHT);
+
+    put("JOY_AXIS_LX", SDL_GAMEPAD_AXIS_LEFTX);
+    put("JOY_AXIS_LY", SDL_GAMEPAD_AXIS_LEFTY);
+    put("JOY_AXIS_RX", SDL_GAMEPAD_AXIS_RIGHTX);
+    put("JOY_AXIS_RY", SDL_GAMEPAD_AXIS_RIGHTY);
+    put("JOY_AXIS_LT", SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
+    put("JOY_AXIS_RT", SDL_GAMEPAD_AXIS_RIGHT_TRIGGER);
     return out;
 }

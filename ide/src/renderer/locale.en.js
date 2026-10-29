@@ -501,4 +501,22 @@ export const en = {
   "Die Bibliothek ließ sich nicht bauen.": "The library could not be built.",
   "Relativ zum Projektordner.": "Relative to the project folder.",
   "In [native] eintragen": "Add to [native]",
+  "Alle Referenzen suchen": "Find All References",
+  "Symbol umbenennen": "Rename Symbol",
+  "Umbenennen": "Rename",
+  "Neuer Name für {name}": "New name for {name}",
+  "Alle Fundstellen im Projekt werden umbenannt. Speichern schreibt sie auf die Platte.":
+    "Every occurrence in the project is renamed. Saving writes them to disk.",
+  "Kein Name unter dem Cursor.": "No name under the cursor.",
+  "Nur eigene Namen lassen sich umbenennen.": "Only your own names can be renamed.",
+  "Keine Fundstelle gefunden.": "No occurrence found.",
+  "Nur Buchstaben, Ziffern und _ sowie ein Suffix ($ % #) am Ende.":
+    "Only letters, digits and _ plus an optional suffix ($ % #) at the end.",
+  "{name} ist ein Schlüsselwort oder eine Konstante.": "{name} is a keyword or a constant.",
+  "{n} Stellen in {files} Datei(en) umbenannt – Speichern schreibt die Änderungen.":
+    "Renamed {n} occurrence(s) in {files} file(s) – saving writes the changes.",
+  "Referenzen von {name}": "References of {name}",
+  "{n} Fundstelle": "{n} occurrence",
+  "{n} Fundstellen in {files} Datei(en)": "{n} occurrences in {files} file(s)",
+  "Definition": "Definition",
 };

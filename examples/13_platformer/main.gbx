@@ -4,6 +4,8 @@
 '
 ' Arrows / A, D  move        SPACE / W / UP  jump (hold = higher)
 ' SHIFT / X      run         P  pause        R  restart
+' Gamepad 0:    D-pad / left stick  move,  A  jump,  B / left trigger  run,
+'               START  pause and play again
 ' ESC            quit
 '
 ' The level is the block of map$ rows at the bottom: '#' ground,
@@ -245,7 +247,7 @@ ENDFUNCTION
 
 FUNCTION DRAW_HINT:
   IF hintTime <= 0 THEN RETURN 0
-  PRINT_CENTER "ARROW KEYS MOVE   SPACE JUMPS   SHIFT RUNS", 74, RGB(236, 246, 255)
+  PRINT_CENTER "ARROW KEYS OR GAMEPAD MOVE   SPACE / A JUMPS   SHIFT / B RUNS", 74, RGB(236, 246, 255)
   RETURN 0
 ENDFUNCTION
 
@@ -269,25 +271,35 @@ WHILE TRUE
   IF KEY_PRESSED(KEY_ESC) THEN BREAK
 
   IF gameOver
-    IF KEY_PRESSED(KEY_SPACE) OR KEY_PRESSED(KEY_R)
+    IF KEY_PRESSED(KEY_SPACE) OR KEY_PRESSED(KEY_R) OR JOY_PRESSED(0, JOY_START)
       NEW_GAME()
       camX = 0.0
       hintTime = 0.0
     ENDIF
   ELSEIF levelDone
-    IF KEY_PRESSED(KEY_SPACE) OR KEY_PRESSED(KEY_R)
+    IF KEY_PRESSED(KEY_SPACE) OR KEY_PRESSED(KEY_R) OR JOY_PRESSED(0, JOY_START)
       NEW_GAME()
       camX = 0.0
       hintTime = 0.0
     ENDIF
   ELSE
     IF KEY_PRESSED(KEY_P) THEN paused = 1 - paused
+    IF JOY_PRESSED(0, JOY_START) THEN paused = 1 - paused
     IF paused = 0
       goLeft = KEY_DOWN(KEY_LEFT) OR KEY_DOWN(KEY_A)
       goRight = KEY_DOWN(KEY_RIGHT) OR KEY_DOWN(KEY_D)
       jumpHeld = KEY_DOWN(KEY_SPACE) OR KEY_DOWN(KEY_UP) OR KEY_DOWN(KEY_W) OR KEY_DOWN(KEY_Z)
       jumpPressed = KEY_PRESSED(KEY_SPACE) OR KEY_PRESSED(KEY_UP) OR KEY_PRESSED(KEY_W) OR KEY_PRESSED(KEY_Z)
       run = KEY_DOWN(KEY_LSHIFT) OR KEY_DOWN(KEY_RSHIFT) OR KEY_DOWN(KEY_X)
+
+      ' Ein Gamepad darf alles, was die Tastatur kann – Pad 0, wenn eins da ist.
+      IF JOY_COUNT() > 0
+        goLeft = goLeft OR JOY_BUTTON(0, JOY_LEFT) OR JOY_AXIS(0, JOY_AXIS_LX) < -0.4
+        goRight = goRight OR JOY_BUTTON(0, JOY_RIGHT) OR JOY_AXIS(0, JOY_AXIS_LX) > 0.4
+        jumpHeld = jumpHeld OR JOY_BUTTON(0, JOY_A)
+        jumpPressed = jumpPressed OR JOY_PRESSED(0, JOY_A)
+        run = run OR JOY_BUTTON(0, JOY_B) OR JOY_AXIS(0, JOY_AXIS_LT) > 0.5
+      ENDIF
 
       PLAYER_UPDATE(dt, goLeft, goRight, jumpHeld, jumpPressed, run)
       FOES_UPDATE(dt)

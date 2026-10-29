@@ -2,8 +2,8 @@
  "meta": {
   "app": "GameBasiX",
   "version": 1,
-  "generatedAt": "2026-10-28T08:20:57.142Z",
-  "commands": 284,
+  "generatedAt": "2026-10-29T00:08:46.166Z",
+  "commands": 290,
   "note": "Aus der Befehlsliste der README erzeugt; die Beschreibungen sind eigene Texte auf Deutsch und Englisch. Spracheigenschaften stehen im Eintrag „Sprachdetails“. "
  },
  "categories": [
@@ -4276,6 +4276,651 @@
    "signatureEn": "JOIN$(array$[], separator[, start[, count]])",
    "syntaxEn": [
     "JOIN$(array$[], separator[, start[, count]])"
+   ]
+  },
+  {
+   "name": "JOY_A",
+   "displayName": "JOY_A",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_A",
+   "syntax": [
+    "JOY_A"
+   ],
+   "description": {
+    "de": "Untere Gesichtstaste (Xbox A, PlayStation Cross)",
+    "en": "Bottom face button (Xbox A, PlayStation Cross)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_A",
+   "syntaxEn": [
+    "JOY_A"
+   ]
+  },
+  {
+   "name": "JOY_AXIS",
+   "displayName": "JOY_AXIS",
+   "kind": "function",
+   "category": "Eingabe",
+   "signature": "JOY_AXIS(pad,axis)",
+   "syntax": [
+    "JOY_AXIS(pad,axis)"
+   ],
+   "description": {
+    "de": "Liefert die Achse eines Gamepads: Sticks von -1 bis 1, Trigger von 0 bis 1. Die Achsnummern stehen als JOY_AXIS_LX, _LY, _RX, _RY, _LT und _RT bereit. Eine Totzone muss das Spiel selbst setzen.",
+    "en": "Returns one axis of a gamepad: sticks from -1 to 1, triggers from 0 to 1. The axis numbers are available as JOY_AXIS_LX, _LY, _RX, _RY, _LT and _RT. A dead zone is up to the game."
+   },
+   "sample": "IF ABS(JOY_AXIS(0, JOY_AXIS_LX)) > 0.2 THEN x = x + 4 * SGN(JOY_AXIS(0, JOY_AXIS_LX))",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "pad",
+     "label": "pad",
+     "labelEn": "pad",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "axis",
+     "label": "axis",
+     "labelEn": "axis",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_AXIS(pad,axis)",
+   "syntaxEn": [
+    "JOY_AXIS(pad,axis)"
+   ]
+  },
+  {
+   "name": "JOY_AXIS_LT",
+   "displayName": "JOY_AXIS_LT",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_AXIS_LT",
+   "syntax": [
+    "JOY_AXIS_LT"
+   ],
+   "description": {
+    "de": "Linker Trigger (0 … 1)",
+    "en": "Left trigger (0 … 1)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_AXIS_LT",
+   "syntaxEn": [
+    "JOY_AXIS_LT"
+   ]
+  },
+  {
+   "name": "JOY_AXIS_LX",
+   "displayName": "JOY_AXIS_LX",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_AXIS_LX",
+   "syntax": [
+    "JOY_AXIS_LX"
+   ],
+   "description": {
+    "de": "Linker Stick, waagerecht (-1 … 1)",
+    "en": "Left stick, horizontal (-1 … 1)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_AXIS_LX",
+   "syntaxEn": [
+    "JOY_AXIS_LX"
+   ]
+  },
+  {
+   "name": "JOY_AXIS_LY",
+   "displayName": "JOY_AXIS_LY",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_AXIS_LY",
+   "syntax": [
+    "JOY_AXIS_LY"
+   ],
+   "description": {
+    "de": "Linker Stick, senkrecht (-1 … 1)",
+    "en": "Left stick, vertical (-1 … 1)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_AXIS_LY",
+   "syntaxEn": [
+    "JOY_AXIS_LY"
+   ]
+  },
+  {
+   "name": "JOY_AXIS_RT",
+   "displayName": "JOY_AXIS_RT",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_AXIS_RT",
+   "syntax": [
+    "JOY_AXIS_RT"
+   ],
+   "description": {
+    "de": "Rechter Trigger (0 … 1)",
+    "en": "Right trigger (0 … 1)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_AXIS_RT",
+   "syntaxEn": [
+    "JOY_AXIS_RT"
+   ]
+  },
+  {
+   "name": "JOY_AXIS_RX",
+   "displayName": "JOY_AXIS_RX",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_AXIS_RX",
+   "syntax": [
+    "JOY_AXIS_RX"
+   ],
+   "description": {
+    "de": "Rechter Stick, waagerecht (-1 … 1)",
+    "en": "Right stick, horizontal (-1 … 1)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_AXIS_RX",
+   "syntaxEn": [
+    "JOY_AXIS_RX"
+   ]
+  },
+  {
+   "name": "JOY_AXIS_RY",
+   "displayName": "JOY_AXIS_RY",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_AXIS_RY",
+   "syntax": [
+    "JOY_AXIS_RY"
+   ],
+   "description": {
+    "de": "Rechter Stick, senkrecht (-1 … 1)",
+    "en": "Right stick, vertical (-1 … 1)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_AXIS_RY",
+   "syntaxEn": [
+    "JOY_AXIS_RY"
+   ]
+  },
+  {
+   "name": "JOY_B",
+   "displayName": "JOY_B",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_B",
+   "syntax": [
+    "JOY_B"
+   ],
+   "description": {
+    "de": "Rechte Gesichtstaste (Xbox B, PlayStation Circle)",
+    "en": "Right face button (Xbox B, PlayStation Circle)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_B",
+   "syntaxEn": [
+    "JOY_B"
+   ]
+  },
+  {
+   "name": "JOY_BACK",
+   "displayName": "JOY_BACK",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_BACK",
+   "syntax": [
+    "JOY_BACK"
+   ],
+   "description": {
+    "de": "Zurück-Taste",
+    "en": "Back button"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_BACK",
+   "syntaxEn": [
+    "JOY_BACK"
+   ]
+  },
+  {
+   "name": "JOY_BUTTON",
+   "displayName": "JOY_BUTTON",
+   "kind": "function",
+   "category": "Eingabe",
+   "signature": "JOY_BUTTON(pad,button)",
+   "syntax": [
+    "JOY_BUTTON(pad,button)"
+   ],
+   "description": {
+    "de": "Liefert 1, solange die Gamepad-Taste gedrückt ist – wie KEY_DOWN für die Tastatur. Die Tastennummern stehen als JOY_A bis JOY_RIGHT bereit.",
+    "en": "Returns 1 while the gamepad button is held – like KEY_DOWN for the keyboard. The button numbers are available as JOY_A up to JOY_RIGHT."
+   },
+   "sample": "IF JOY_BUTTON(0, JOY_RIGHT) THEN x = x + 4",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "pad",
+     "label": "pad",
+     "labelEn": "pad",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "button",
+     "label": "button",
+     "labelEn": "button",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_BUTTON(pad,button)",
+   "syntaxEn": [
+    "JOY_BUTTON(pad,button)"
+   ]
+  },
+  {
+   "name": "JOY_COUNT",
+   "displayName": "JOY_COUNT",
+   "kind": "function",
+   "category": "Eingabe",
+   "signature": "JOY_COUNT()",
+   "syntax": [
+    "JOY_COUNT()"
+   ],
+   "description": {
+    "de": "Liefert die Zahl der angeschlossenen Gamepads. Gültige Pad-Nummern sind 0 bis Zahl-1. Ohne Gamepad kommt 0 zurück.",
+    "en": "Returns the number of connected gamepads. Valid pad numbers are 0 to count-1. Without a gamepad it returns 0."
+   },
+   "sample": "IF JOY_COUNT() = 0 THEN PRINT \"Kein Gamepad – Tastatur nutzen\", 20, 20",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_COUNT()",
+   "syntaxEn": [
+    "JOY_COUNT()"
+   ]
+  },
+  {
+   "name": "JOY_DOWN",
+   "displayName": "JOY_DOWN",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_DOWN",
+   "syntax": [
+    "JOY_DOWN"
+   ],
+   "description": {
+    "de": "Steuerkreuz unten",
+    "en": "D-pad down"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_DOWN",
+   "syntaxEn": [
+    "JOY_DOWN"
+   ]
+  },
+  {
+   "name": "JOY_GUIDE",
+   "displayName": "JOY_GUIDE",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_GUIDE",
+   "syntax": [
+    "JOY_GUIDE"
+   ],
+   "description": {
+    "de": "Home-Taste des Pads",
+    "en": "Guide button"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_GUIDE",
+   "syntaxEn": [
+    "JOY_GUIDE"
+   ]
+  },
+  {
+   "name": "JOY_LB",
+   "displayName": "JOY_LB",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_LB",
+   "syntax": [
+    "JOY_LB"
+   ],
+   "description": {
+    "de": "Linke Schuttertaste (LB/L1)",
+    "en": "Left shoulder (LB/L1)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_LB",
+   "syntaxEn": [
+    "JOY_LB"
+   ]
+  },
+  {
+   "name": "JOY_LEFT",
+   "displayName": "JOY_LEFT",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_LEFT",
+   "syntax": [
+    "JOY_LEFT"
+   ],
+   "description": {
+    "de": "Steuerkreuz links",
+    "en": "D-pad left"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_LEFT",
+   "syntaxEn": [
+    "JOY_LEFT"
+   ]
+  },
+  {
+   "name": "JOY_LSTICK",
+   "displayName": "JOY_LSTICK",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_LSTICK",
+   "syntax": [
+    "JOY_LSTICK"
+   ],
+   "description": {
+    "de": "Linker Stick gedrückt",
+    "en": "Left stick pressed"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_LSTICK",
+   "syntaxEn": [
+    "JOY_LSTICK"
+   ]
+  },
+  {
+   "name": "JOY_PRESSED",
+   "displayName": "JOY_PRESSED",
+   "kind": "function",
+   "category": "Eingabe",
+   "signature": "JOY_PRESSED(pad,button)",
+   "syntax": [
+    "JOY_PRESSED(pad,button)"
+   ],
+   "description": {
+    "de": "Liefert 1 in genau dem Frame, in dem die Gamepad-Taste heruntergedrückt wurde – wie KEY_PRESSED für die Tastatur.",
+    "en": "Returns 1 in exactly the frame the gamepad button went down – like KEY_PRESSED for the keyboard."
+   },
+   "sample": "IF JOY_PRESSED(0, JOY_A) THEN sprung()",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "pad",
+     "label": "pad",
+     "labelEn": "pad",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "button",
+     "label": "button",
+     "labelEn": "button",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_PRESSED(pad,button)",
+   "syntaxEn": [
+    "JOY_PRESSED(pad,button)"
+   ]
+  },
+  {
+   "name": "JOY_RB",
+   "displayName": "JOY_RB",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_RB",
+   "syntax": [
+    "JOY_RB"
+   ],
+   "description": {
+    "de": "Rechte Schuttertaste (RB/R1)",
+    "en": "Right shoulder (RB/R1)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_RB",
+   "syntaxEn": [
+    "JOY_RB"
+   ]
+  },
+  {
+   "name": "JOY_RIGHT",
+   "displayName": "JOY_RIGHT",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_RIGHT",
+   "syntax": [
+    "JOY_RIGHT"
+   ],
+   "description": {
+    "de": "Steuerkreuz rechts",
+    "en": "D-pad right"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_RIGHT",
+   "syntaxEn": [
+    "JOY_RIGHT"
+   ]
+  },
+  {
+   "name": "JOY_RSTICK",
+   "displayName": "JOY_RSTICK",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_RSTICK",
+   "syntax": [
+    "JOY_RSTICK"
+   ],
+   "description": {
+    "de": "Rechter Stick gedrückt",
+    "en": "Right stick pressed"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_RSTICK",
+   "syntaxEn": [
+    "JOY_RSTICK"
+   ]
+  },
+  {
+   "name": "JOY_START",
+   "displayName": "JOY_START",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_START",
+   "syntax": [
+    "JOY_START"
+   ],
+   "description": {
+    "de": "Start-Taste",
+    "en": "Start button"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_START",
+   "syntaxEn": [
+    "JOY_START"
+   ]
+  },
+  {
+   "name": "JOY_UP",
+   "displayName": "JOY_UP",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_UP",
+   "syntax": [
+    "JOY_UP"
+   ],
+   "description": {
+    "de": "Steuerkreuz oben",
+    "en": "D-pad up"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_UP",
+   "syntaxEn": [
+    "JOY_UP"
+   ]
+  },
+  {
+   "name": "JOY_X",
+   "displayName": "JOY_X",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_X",
+   "syntax": [
+    "JOY_X"
+   ],
+   "description": {
+    "de": "Linke Gesichtstaste (Xbox X, PlayStation Square)",
+    "en": "Left face button (Xbox X, PlayStation Square)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_X",
+   "syntaxEn": [
+    "JOY_X"
+   ]
+  },
+  {
+   "name": "JOY_Y",
+   "displayName": "JOY_Y",
+   "kind": "constant",
+   "category": "Konstanten",
+   "signature": "JOY_Y",
+   "syntax": [
+    "JOY_Y"
+   ],
+   "description": {
+    "de": "Obere Gesichtstaste (Xbox Y, PlayStation Triangle)",
+    "en": "Top face button (Xbox Y, PlayStation Triangle)"
+   },
+   "sample": "",
+   "returnType": "Konstante",
+   "returnCode": "n",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "JOY_Y",
+   "syntaxEn": [
+    "JOY_Y"
    ]
   },
   {
@@ -10977,6 +11622,70 @@
    "signatureEn": "TEXT_DRAW \"text\",x,y[,color]",
    "syntaxEn": [
     "TEXT_DRAW \"text\",x,y[,color]"
+   ]
+  },
+  {
+   "name": "TEXT_HEIGHT",
+   "displayName": "TEXT_HEIGHT",
+   "kind": "function",
+   "category": "Bildpuffer und Text",
+   "signature": "TEXT_HEIGHT(text)",
+   "syntax": [
+    "TEXT_HEIGHT(text)"
+   ],
+   "description": {
+    "de": "Liefert die Höhe, die der Text beim Zeichnen einnimmt, in Pixeln. Jede Zeile zählt eine Zeilenhöhe, ein Text ohne Zeilenumbruch also genau eine.",
+    "en": "Returns the height the text occupies when drawn, in pixels. Every line counts one line height, so text without a line break is exactly one."
+   },
+   "sample": "h = TEXT_HEIGHT(\"Zeile 1\" + CHR$(10) + \"Zeile 2\")\nDRAW_RECT 10, 10, 200, h, RGB(40, 40, 60)",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "TEXT_HEIGHT(text)",
+   "syntaxEn": [
+    "TEXT_HEIGHT(text)"
+   ]
+  },
+  {
+   "name": "TEXT_WIDTH",
+   "displayName": "TEXT_WIDTH",
+   "kind": "function",
+   "category": "Bildpuffer und Text",
+   "signature": "TEXT_WIDTH(text)",
+   "syntax": [
+    "TEXT_WIDTH(text)"
+   ],
+   "description": {
+    "de": "Liefert die Breite, die TEXT_DRAW für den Text bräuchte, in Pixeln – bei mehreren Zeilen die längste Zeile. Gilt für die mit FONT_SET gewählte Schrift samt Skalierung.",
+    "en": "Returns the width TEXT_DRAW would use for the text in pixels – for several lines the longest one. Measured with the font chosen by FONT_SET, scaling included."
+   },
+   "sample": "w = TEXT_WIDTH(\"Punkte: \" + punkte)\nTEXT_DRAW \"Punkte: \" + punkte, 320 - w / 2, 20",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "TEXT_WIDTH(text)",
+   "syntaxEn": [
+    "TEXT_WIDTH(text)"
    ]
   },
   {

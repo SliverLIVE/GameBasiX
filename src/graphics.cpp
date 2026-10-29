@@ -82,7 +82,7 @@ bool Gfx::init(int w, int h, const std::string& title, bool fullscreen, bool res
         return true;
     }
 
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD)) {
         std::fprintf(stderr, i18n::tr("SDL_Init fehlgeschlagen: %s\n").c_str(), SDL_GetError());
         return false;
     }
@@ -112,6 +112,7 @@ bool Gfx::init(int w, int h, const std::string& title, bool fullscreen, bool res
     keys_ = SDL_GetKeyboardState(nullptr);
     keyDown_.assign(SDL_SCANCODE_COUNT, false);
     keyPressed_.assign(SDL_SCANCODE_COUNT, false);
+    openGamepads();
     ensureDefaultFont();
     clearScreen(clearColor_);
     return true;
@@ -119,6 +120,7 @@ bool Gfx::init(int w, int h, const std::string& title, bool fullscreen, bool res
 
 void Gfx::shutdown() {
     if (headless) return;
+    closeGamepads();
     for (auto& [id, s] : sprites_) {
         if (s.tex && s.ownsTexture) SDL_DestroyTexture(s.tex);
     }
@@ -1135,11 +1137,26 @@ void Gfx::fontCharSize(int& w, int& h) const {
     }
 }
 
+// Breite der laengsten Zeile und Hoehe aller Zeilen. So passen TEXT_WIDTH
+// und TEXT_HEIGHT auch bei mehrzeiligem Text zu dem, was TEXT_DRAW malt.
 void Gfx::textSize(const std::string& text, int& w, int& h) const {
+    int lines = 1;
+    for (char c : text)
+        if (c == '\n') ++lines;
     const FontSlot* f = activeFont();
     if (!f) {
-        w = static_cast<int>(text.size()) * 8;
-        h = 8;
+        int lineWidth = 0, maxWidth = 0;
+        for (char c : text) {
+            if (c == '\n') {
+                maxWidth = std::max(maxWidth, lineWidth);
+                lineWidth = 0;
+                continue;
+            }
+            lineWidth += 8;
+        }
+        maxWidth = std::max(maxWidth, lineWidth);
+        w = maxWidth;
+        h = 8 * lines;
         return;
     }
     if (f->isTtf) {
@@ -1164,15 +1181,37 @@ void Gfx::textSize(const std::string& text, int& w, int& h) const {
         }
         maxWidth = std::max(maxWidth, lineWidth);
         w = maxWidth * f->scale;
-        h = f->lineHeight * f->scale;
+        h = f->lineHeight * f->scale * lines;
         return;
 #endif
-        w = static_cast<int>(text.size()) * static_cast<int>(f->baseSize * 0.6f) * f->scale;
-        h = f->cellH * f->scale;
+        {
+            int lineWidth = 0, maxWidth = 0;
+            for (char c : text) {
+                if (c == '\n') {
+                    maxWidth = std::max(maxWidth, lineWidth);
+                    lineWidth = 0;
+                    continue;
+                }
+                lineWidth += static_cast<int>(f->baseSize * 0.6f);
+            }
+            maxWidth = std::max(maxWidth, lineWidth);
+            w = maxWidth * f->scale;
+            h = f->cellH * f->scale * lines;
+        }
         return;
     }
-    w = static_cast<int>(text.size()) * f->cellW * f->scale;
-    h = f->cellH * f->scale;
+    int lineWidth = 0, maxWidth = 0;
+    for (char c : text) {
+        if (c == '\n') {
+            maxWidth = std::max(maxWidth, lineWidth);
+            lineWidth = 0;
+            continue;
+        }
+        lineWidth += f->cellW;
+    }
+    maxWidth = std::max(maxWidth, lineWidth);
+    w = maxWidth * f->scale;
+    h = f->cellH * f->scale * lines;
 }
 
 void Gfx::drawGlyphs(const std::string& text, float x, float y, uint32_t color) {
@@ -1331,6 +1370,65 @@ double Gfx::timerAll() const {
 
 void Gfx::resetFrameTimer() { lastPresent_ = SDL_GetTicks(); }
 
+// ------------------------------------------------------------------- Gamepad
+
+// Alle angeschlossenen Pads beim Start oeffnen. Neue Pads waehrend des Laufs
+// kommen ueber SDL_EVENT_GAMEPAD_ADDED dazu (siehe pumpEventsImpl).
+void Gfx::openGamepads() {
+    int count = 0;
+    SDL_JoystickID* ids = SDL_GetGamepads(&count);
+    if (!ids) return;
+    for (int i = 0; i < count; ++i) {
+        SDL_Gamepad* handle = SDL_OpenGamepad(ids[i]);
+        if (!handle) continue;
+        JoyPad pad;
+        pad.handle = handle;
+        joyPads_.push_back(pad);
+    }
+    SDL_free(ids);
+}
+
+void Gfx::closeGamepads() {
+    for (auto& pad : joyPads_) {
+        if (pad.handle) SDL_CloseGamepad(pad.handle);
+        pad.handle = nullptr;
+    }
+    joyPads_.clear();
+}
+
+// Einmal pro Frame: Tastenzustand einsammeln und den Druck dieses Frames
+// bilden. Was als Event kam, steht da schon in `hit`.
+void Gfx::pollGamepads() {
+    for (auto& pad : joyPads_) {
+        if (!pad.handle) continue;
+        for (int button = 0; button < SDL_GAMEPAD_BUTTON_COUNT; ++button) {
+            const bool now = SDL_GetGamepadButton(pad.handle, static_cast<SDL_GamepadButton>(button));
+            if (now && !pad.down[static_cast<size_t>(button)]) pad.hit[static_cast<size_t>(button)] = true;
+            pad.down[static_cast<size_t>(button)] = now;
+        }
+    }
+}
+
+double Gfx::joyAxis(int pad, int axis) const {
+    if (pad < 0 || pad >= static_cast<int>(joyPads_.size())) return 0.0;
+    SDL_Gamepad* handle = joyPads_[static_cast<size_t>(pad)].handle;
+    if (!handle || axis < 0 || axis >= SDL_GAMEPAD_AXIS_COUNT) return 0.0;
+    const Sint16 raw = SDL_GetGamepadAxis(handle, static_cast<SDL_GamepadAxis>(axis));
+    return static_cast<double>(raw) / 32767.0;
+}
+
+bool Gfx::joyDown(int pad, int button) const {
+    if (headless || pad < 0 || pad >= static_cast<int>(joyPads_.size())) return false;
+    if (button < 0 || button >= SDL_GAMEPAD_BUTTON_COUNT) return false;
+    return joyPads_[static_cast<size_t>(pad)].down[static_cast<size_t>(button)];
+}
+
+bool Gfx::joyHit(int pad, int button) const {
+    if (headless || pad < 0 || pad >= static_cast<int>(joyPads_.size())) return false;
+    if (button < 0 || button >= SDL_GAMEPAD_BUTTON_COUNT) return false;
+    return joyPads_[static_cast<size_t>(pad)].hit[static_cast<size_t>(button)];
+}
+
 // -------------------------------------------------------------------- Eingabe
 
 void Gfx::pumpEventsImpl() {
@@ -1339,6 +1437,7 @@ void Gfx::pumpEventsImpl() {
         anyKeyHit_ = false;
         wheel_ = 0;
         mbLeftHit_ = mbRightHit_ = mbMiddleHit_ = false;
+        for (auto& pad : joyPads_) std::fill(pad.hit.begin(), pad.hit.end(), false);
     }
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
@@ -1400,6 +1499,38 @@ void Gfx::pumpEventsImpl() {
                 if (e.button.button == SDL_BUTTON_RIGHT) mbRight_ = false;
                 if (e.button.button == SDL_BUTTON_MIDDLE) mbMiddle_ = false;
                 break;
+            case SDL_EVENT_GAMEPAD_ADDED: {
+                // Beim Start schon angeschlossene Pads meldet SDL erneut; sie
+                // stehen dann bereits in der Liste.
+                bool known = false;
+                for (const auto& pad : joyPads_)
+                    if (pad.handle && SDL_GetGamepadID(pad.handle) == e.gdevice.which) known = true;
+                SDL_Gamepad* handle = known ? nullptr : SDL_OpenGamepad(e.gdevice.which);
+                if (handle) {
+                    JoyPad pad;
+                    pad.handle = handle;
+                    joyPads_.push_back(pad);
+                }
+                break;
+            }
+            case SDL_EVENT_GAMEPAD_REMOVED: {
+                for (auto it = joyPads_.begin(); it != joyPads_.end(); ++it) {
+                    if (!it->handle || SDL_GetGamepadID(it->handle) != e.gdevice.which) continue;
+                    SDL_CloseGamepad(it->handle);
+                    joyPads_.erase(it);
+                    break;
+                }
+                break;
+            }
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN: {
+                for (auto& pad : joyPads_) {
+                    if (!pad.handle || SDL_GetGamepadID(pad.handle) != e.gbutton.which) continue;
+                    if (e.gbutton.button < SDL_GAMEPAD_BUTTON_COUNT)
+                        pad.hit[static_cast<size_t>(e.gbutton.button)] = true;
+                    break;
+                }
+                break;
+            }
             case SDL_EVENT_MOUSE_WHEEL:
                 wheel_ += e.wheel.y > 0 ? 1 : (e.wheel.y < 0 ? -1 : 0);
                 break;
@@ -1416,6 +1547,7 @@ void Gfx::pumpEventsImpl() {
         mbLeft_ = (flags & SDL_BUTTON_LMASK) != 0;
         mbRight_ = (flags & SDL_BUTTON_RMASK) != 0;
         mbMiddle_ = (flags & SDL_BUTTON_MMASK) != 0;
+        pollGamepads();
     }
 }
 

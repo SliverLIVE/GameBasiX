@@ -687,5 +687,23 @@
   ],
   "SPRITE_DRAW_SCALED": [
     "SPRITE_DRAW_SCALED num%, x%, y%, relx#, rely#"
+  ],
+  "TEXT_WIDTH": [
+    "w% = TEXT_WIDTH(text$)"
+  ],
+  "TEXT_HEIGHT": [
+    "h% = TEXT_HEIGHT(text$)"
+  ],
+  "JOY_COUNT": [
+    "n% = JOY_COUNT()"
+  ],
+  "JOY_AXIS": [
+    "v# = JOY_AXIS(pad%, axis%)\n\nv# = JOY_AXIS(0, JOY_AXIS_LX)"
+  ],
+  "JOY_BUTTON": [
+    "v% = JOY_BUTTON(pad%, button%)"
+  ],
+  "JOY_PRESSED": [
+    "v% = JOY_PRESSED(pad%, button%)"
   ]
 }

@@ -439,19 +439,29 @@ clearing) · `SCREEN_BLACK` · `SCREEN_SHOW` · `LIMIT_FPS fps[,vsync]` ·
 `BACKGROUND_LOAD "image.png"` (background) · `SCREEN_SAVE_BMP "file.bmp"` · `SCREEN_TO_BACKGROUND` ·
 `SCREEN_FADE "image.png"[,ms]` · `SCREEN_CREATE screen,sprite,w,h` ·
 `SCREEN_USE id` · `PRINT "text",x,y[,kerning]` · `TEXT_DRAW "text",x,y[,color]`* ·
-`TEXT_COLOR color`* · `FONT_LOAD "file",id[,size]` · `FONT_SET id[,scale[,color]]` ·
-`FONT_SIZE w,h` · `FONT_CURRENT()` · `INPUT var,x,y` · `LEN(text[,pixels])`
+`TEXT_COLOR color`* · `TEXT_WIDTH(text)`* → width in pixels ·
+`TEXT_HEIGHT(text)`* → height of all lines · `FONT_LOAD "file",id[,size]` ·
+`FONT_SET id[,scale[,color]]` · `FONT_SIZE w,h` · `FONT_CURRENT()` ·
+`INPUT var,x,y` · `LEN(text[,pixels])`
 
 **Input**
 `KEY_DOWN(scancode)` · `KEY_PRESSED(scancode)`* · `INKEY$` · `MOUSE_STATE mx,my,left,right` ·
 `MOUSE_AXIS(axis)` · `MOUSE_PRESSED(button)`* · `MOUSE_COUNT()` ·
 `MOUSE_MOVE x,y` · `MOUSE_WAIT` · `KEY_WAIT` ·
-`SET_SYSTEM_POINTER on` · `ALLOW_ESCAPE on`
+`SET_SYSTEM_POINTER on` · `ALLOW_ESCAPE on` ·
+`JOY_COUNT()`* → connected gamepads · `JOY_AXIS(pad,axis)`* ·
+`JOY_BUTTON(pad,button)`* (held) · `JOY_PRESSED(pad,button)`* (this frame)
 
 Ready-made key codes: `KEY_ESC`, `KEY_ENTER`, `KEY_SPACE`, `KEY_TAB`,
 `KEY_BACKSPACE`, `KEY_DELETE`, `KEY_HOME`, `KEY_END`, `KEY_PGUP`, `KEY_PGDN`,
 `KEY_UP/DOWN/LEFT/RIGHT`, `KEY_LSHIFT/RSHIFT`, `KEY_LCTRL/RCTRL`,
 `KEY_LALT/RALT`, `KEY_F1`…`KEY_F12`, `KEY_A`…`KEY_Z`, `KEY_0`…`KEY_9`.
+
+Ready-made gamepad names, so the numbers need no lookup: `JOY_A`, `JOY_B`,
+`JOY_X`, `JOY_Y` (the four face buttons, named by position), `JOY_BACK`,
+`JOY_GUIDE`, `JOY_START`, `JOY_LSTICK`, `JOY_RSTICK`, `JOY_LB`, `JOY_RB`,
+`JOY_UP/DOWN/LEFT/RIGHT` (D-pad), and for `JOY_AXIS` the axes `JOY_AXIS_LX`,
+`JOY_AXIS_LY`, `JOY_AXIS_RX`, `JOY_AXIS_RY`, `JOY_AXIS_LT`, `JOY_AXIS_RT`.
 
 **Sound**
 `SOUND_LOAD "sound.wav",id[,buffer]` · `SOUND_PLAY(id,pan,volume)` → channel ·
@@ -519,6 +529,17 @@ reported by name instead of playing silence.
 
 * **Key codes**: `KEY_DOWN()`/`KEY_PRESSED()` take SDL3 scancodes; the `KEY_*` constants
   save you the lookup.
+* **Gamepads**: `JOY_COUNT()` is the number of connected pads, `pad` is `0` up to
+  that minus one. `JOY_AXIS` returns a stick in `-1…1` (up and left negative)
+  and a trigger in `0…1`; a dead zone around zero is the game's own choice
+  (`IF ABS(JOY_AXIS(0, JOY_AXIS_LX)) > 0.2`). `JOY_BUTTON` is the held state like
+  `KEY_DOWN`, `JOY_PRESSED` is the single frame the button went down like
+  `KEY_PRESSED`. Pads connected while the game runs are picked up, removing one
+  simply makes its index unavailable; without a pad every query answers `0`.
+* **Text sizes**: `TEXT_WIDTH` returns the width of the longest line in pixels,
+  `TEXT_HEIGHT` the height of all lines together – both for the font set with
+  `FONT_SET`, so a window can place text it has not drawn yet. `LEN(text, TRUE)`
+  is the older spelling for the width and still works.
 * **Formats**: `MID$`, `ASC` and `INSTR` are 0-based and `RND(max)` is
   inclusive. `SIN/COS/TAN` and `ATAN` work in degrees.
 * **Arrays**: `DIM a[n]` gives the indices `0…n-1`, negative indices count from
@@ -971,8 +992,10 @@ build/gbx.exe examples/02_breakout/breakout.gbxproj
 
 The `ide/` folder contains **GBX Studio**, an IDE for GameBasiX with syntax
 highlighting, autocompletion, a command reference, syntax checking (F7),
-direct launch with `F5`, a runtime debugger (F6) with values on hover and export
-as a single EXE (the **Build** button with platform **Windows EXE**, Ctrl+E):
+direct launch with `F5`, a runtime debugger (F6) with values on hover, jump to
+definition (F12) with all references (Shift+F12) and renaming across the
+project (F2), plus export as a single EXE (the **Build** button with platform
+**Windows EXE**, Ctrl+E):
 
 While you type, the IDE already checks the **unsaved** code: half a second
 after you stop, the editor content goes to the interpreter through `gbx --check
@@ -985,6 +1008,19 @@ line; for typos in commands and TYPE fields the IDE suggests the right name.
 Part files pulled in with `INCLUDE` are only checked for syntax by the live
 check (`--syntax-only`), because it does not know the names of the other
 files; the full name check comes from `F7` through the entry file.
+
+**References and renaming** work per name: `Shift+F12` (or right click →
+*Find All References*) lists every place of the name under the cursor and jumps
+there on a click, and `F2` renames it. What counts as a place follows the
+scope: a `FUNCTION`, `SUB`, `TYPE`, `METHOD`, `CONSTANT`, ENUM value or `GLOBAL`
+is searched in every file, a TYPE field in its own `TYPE` block plus every
+`obj.feld`/`SELF.feld` in the project, and a `LOCAL`, `STATIC` or parameter only
+inside its `FUNCTION`/`SUB`/`METHOD` – so two methods may both have an `i`
+without one rename touching the other. Both use the text of the project files,
+ignore comments, string literals and `INLINE` blocks, and only touch names the
+project defines itself. Renaming opens the affected files as tabs and changes
+them in the editor, so `Ctrl+Z` takes it back and nothing is written until you
+save.
 
 ```bash
 cd ide
@@ -1087,6 +1123,28 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
 
 **October 2026**
 
+* **Text sizes and gamepads**: two additions to the command set. `TEXT_WIDTH(text)`
+  and `TEXT_HEIGHT(text)` return the drawn size in pixels for the font set with
+  `FONT_SET` – the width of the longest line, the height of all lines together –
+  so a window can centre a label, size a button around its text or wrap a line
+  without guessing character widths. `JOY_COUNT()`, `JOY_AXIS(pad,axis)`,
+  `JOY_BUTTON(pad,button)` and `JOY_PRESSED(pad,button)` read a gamepad through
+  SDL3: sticks in `-1…1`, triggers in `0…1`, held state like `KEY_DOWN` and the
+  single frame of the press like `KEY_PRESSED`. Pads plugged in while the game
+  runs appear on their own, and the `JOY_*` constants (`JOY_A`, `JOY_START`,
+  `JOY_UP`, `JOY_AXIS_LX`, …) save the lookup. `examples/13_platformer` runs on
+  a controller now as well. Version 1.2.27.
+* **Find All References and Rename in the IDE**: `Shift+F12` lists every use of
+  the name under the cursor in a list that jumps to the line on a click; `F2`
+  renames it. The scope decides what is searched: `FUNCTION`, `SUB`, `TYPE`,
+  `METHOD`, `CONSTANT`, ENUM values and `GLOBAL`s in the whole project, a TYPE
+  field in its own `TYPE` block and behind every point (`obj.feld`), and a
+  `LOCAL`, `STATIC` or parameter only inside its routine – so the `i` of two
+  methods stays separate. Both search the project text, skip comments, string
+  literals and `INLINE` blocks, and only offer names the project defines itself.
+  A rename opens the affected files as tabs, keeps a `$`/`%`/`#` suffix that the
+  new name does not carry, and is written by saving – `Ctrl+Z` still takes it
+  back. Version 1.2.27.
 * **`Tab` accepts the completion**: the suggestion list in the editor is taken
   over with `Tab` now. `Enter` writes a new line and `Space` a space, also while
   the list is open. Where there is nothing to accept, `Tab` still indents, and an

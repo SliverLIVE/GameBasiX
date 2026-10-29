@@ -1134,5 +1134,29 @@
   "SPRITE_DRAW_SCALED": {
     "de": "Skaliert ein Sprite in X und Y getrennt; 100 bedeutet Originalgröße.",
     "en": "Scales a sprite in X and Y separately; 100 means the original size."
+  },
+  "TEXT_WIDTH": {
+    "de": "Liefert die Breite, die TEXT_DRAW für den Text bräuchte, in Pixeln – bei mehreren Zeilen die längste Zeile. Gilt für die mit FONT_SET gewählte Schrift samt Skalierung.",
+    "en": "Returns the width TEXT_DRAW would use for the text in pixels – for several lines the longest one. Measured with the font chosen by FONT_SET, scaling included."
+  },
+  "TEXT_HEIGHT": {
+    "de": "Liefert die Höhe, die der Text beim Zeichnen einnimmt, in Pixeln. Jede Zeile zählt eine Zeilenhöhe, ein Text ohne Zeilenumbruch also genau eine.",
+    "en": "Returns the height the text occupies when drawn, in pixels. Every line counts one line height, so text without a line break is exactly one."
+  },
+  "JOY_COUNT": {
+    "de": "Liefert die Zahl der angeschlossenen Gamepads. Gültige Pad-Nummern sind 0 bis Zahl-1. Ohne Gamepad kommt 0 zurück.",
+    "en": "Returns the number of connected gamepads. Valid pad numbers are 0 to count-1. Without a gamepad it returns 0."
+  },
+  "JOY_AXIS": {
+    "de": "Liefert die Achse eines Gamepads: Sticks von -1 bis 1, Trigger von 0 bis 1. Die Achsnummern stehen als JOY_AXIS_LX, _LY, _RX, _RY, _LT und _RT bereit. Eine Totzone muss das Spiel selbst setzen.",
+    "en": "Returns one axis of a gamepad: sticks from -1 to 1, triggers from 0 to 1. The axis numbers are available as JOY_AXIS_LX, _LY, _RX, _RY, _LT and _RT. A dead zone is up to the game."
+  },
+  "JOY_BUTTON": {
+    "de": "Liefert 1, solange die Gamepad-Taste gedrückt ist – wie KEY_DOWN für die Tastatur. Die Tastennummern stehen als JOY_A bis JOY_RIGHT bereit.",
+    "en": "Returns 1 while the gamepad button is held – like KEY_DOWN for the keyboard. The button numbers are available as JOY_A up to JOY_RIGHT."
+  },
+  "JOY_PRESSED": {
+    "de": "Liefert 1 in genau dem Frame, in dem die Gamepad-Taste heruntergedrückt wurde – wie KEY_PRESSED für die Tastatur.",
+    "en": "Returns 1 in exactly the frame the gamepad button went down – like KEY_PRESSED for the keyboard."
   }
 }

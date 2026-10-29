@@ -266,6 +266,18 @@ ASSERT STR$("42") = "42", "STR$"
 ASSERT VAL("42.5") = 42.5, "VAL"
 ASSERT LEN("abc", TRUE) > 0, "LEN mit Pixelbreite"
 
+' ------------------------------------------------------- Textmasse / Gamepad
+ASSERT TEXT_WIDTH("MMM") > TEXT_WIDTH("M"), "TEXT_WIDTH"
+ASSERT TEXT_WIDTH("a") = LEN("a", TRUE), "TEXT_WIDTH passt zu LEN mit Pixelbreite"
+ASSERT TEXT_HEIGHT("Zeile") > 0, "TEXT_HEIGHT"
+ASSERT TEXT_HEIGHT("a" + CHR$(10) + "b") = TEXT_HEIGHT("a") * 2, "TEXT_HEIGHT mehrzeilig"
+' Ohne angeschlossenes Gamepad liefern die Abfragen 0 statt abzustuerzen.
+ASSERT JOY_COUNT() >= 0, "JOY_COUNT"
+ASSERT JOY_AXIS(0, JOY_AXIS_LX) = 0 OR JOY_COUNT() > 0, "JOY_AXIS"
+ASSERT JOY_BUTTON(0, JOY_A) = 0 OR JOY_COUNT() > 0, "JOY_BUTTON"
+ASSERT JOY_PRESSED(0, JOY_A) = 0 OR JOY_COUNT() > 0, "JOY_PRESSED"
+ASSERT JOY_AXIS(99, JOY_AXIS_LX) = 0, "JOY_AXIS ignoriert unbekannte Pads"
+
 ' --------------------------------------------------------------- Dateien
 tmpdir$ = ENV$("TEMP") + "/gbx-cmd-tests"
 DIR_MAKE tmpdir$

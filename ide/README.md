@@ -34,6 +34,14 @@ program's window one key press away.</sub>
   buffer goes through `gbx --check --stdin`. Errors and unknown names appear as
   markers in the line and as a count in the status bar; no temporary files are
   created.
+* **Navigation** – `F12` jumps from a name to the file and line that defines
+  it, `Shift+F12` lists every use (click jumps there) and `F2` renames a name
+  that the project defines itself. The scope decides the range: project symbols
+  in every file, a TYPE field in its `TYPE` block and behind every point
+  (`obj.feld`), a `LOCAL`, `STATIC` or parameter only inside its routine. The
+  search reads the project sources, skips comments, string literals and
+  `INLINE` blocks; renaming opens the affected files as tabs and writes them
+  when you save.
 * **Outline** – globals, constants, functions, SUBs and TYPEs of the current
   file, one click away.
 * **Reference** – every command, keyword and `KEY_*` constant with signature,
@@ -118,6 +126,9 @@ window the native Windows dialog takes over.
 | Completion | `Ctrl+Space` |
 | Accept the suggestion | `Tab` (`Enter` starts a new line, `Space` a space) |
 | Toggle the reference panel | `Ctrl+B` |
+| Go to definition | `F12` |
+| Find all references | `Shift+F12` |
+| Rename a symbol in the whole project | `F2` |
 | Build the game (selected platform) | `Ctrl+E` |
 
 **Check** calls `gbx --check`. No C++ is compiled: gbx reads the sources on

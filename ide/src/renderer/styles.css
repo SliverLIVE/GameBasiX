@@ -1485,3 +1485,30 @@ pre.output .l-stderr { color: var(--red); }
   background: var(--bg-deep); color: var(--muted); font-family: var(--mono); font-size: 11px;
   line-height: 1.5; white-space: pre-wrap; word-break: break-word;
 }
+
+/* Fundstellenliste (Alle Referenzen) */
+.ref-head { font-size: 11px; letter-spacing: .3px; color: var(--muted2); margin-bottom: 6px; }
+.ref-list {
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 340px; overflow-y: auto; overscroll-behavior: contain;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg-deep); padding: 4px;
+}
+.ref-list::-webkit-scrollbar { width: 10px; }
+.ref-list::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 5px; }
+.ref-list::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+.ref-row {
+  display: flex; align-items: baseline; gap: 10px; width: 100%;
+  padding: 4px 8px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.ref-row:hover, .ref-row:focus-visible { background: var(--bg-hover); outline: none; }
+.ref-row .where { flex: none; font-family: var(--mono); font-size: 11px; color: var(--muted2); }
+.ref-row .code {
+  flex: 1; min-width: 0; font-family: var(--mono); font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ref-row.is-def .where { color: var(--accent-dim); }
+.ref-row .tag {
+  flex: none; font-size: 9.5px; letter-spacing: .4px; text-transform: uppercase;
+  padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; color: var(--muted2);
+}

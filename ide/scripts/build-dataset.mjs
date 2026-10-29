@@ -210,6 +210,12 @@ const SAMPLES = {
   MUSIC_PLAY: 'MUSIC_PLAY "assets/musik.mp3", TRUE',
   FONT_LOAD: 'FONT_LOAD "assets/font.png", 0\nSETFONT 0',
   RND: 'wurf = RND(6) + 1',
+  TEXT_WIDTH: 'w = TEXT_WIDTH("Punkte: " + punkte)\nTEXT_DRAW "Punkte: " + punkte, 320 - w / 2, 20',
+  TEXT_HEIGHT: 'h = TEXT_HEIGHT("Zeile 1" + CHR$(10) + "Zeile 2")\nDRAW_RECT 10, 10, 200, h, RGB(40, 40, 60)',
+  JOY_COUNT: 'IF JOY_COUNT() = 0 THEN PRINT "Kein Gamepad – Tastatur nutzen", 20, 20',
+  JOY_AXIS: 'IF ABS(JOY_AXIS(0, JOY_AXIS_LX)) > 0.2 THEN x = x + 4 * SGN(JOY_AXIS(0, JOY_AXIS_LX))',
+  JOY_BUTTON: 'IF JOY_BUTTON(0, JOY_RIGHT) THEN x = x + 4',
+  JOY_PRESSED: 'IF JOY_PRESSED(0, JOY_A) THEN sprung()',
   RGB: 'farbe = RGB(255, 128, 0)',
   DELTA_TIME: 'start = DELTA_TIME()\n...\nsekunden = (DELTA_TIME() - start) / 1000.0',
   SLEEP: 'SLEEP 250',
@@ -258,7 +264,29 @@ const CONSTANTS = {
   KEY_MINUS: { de: 'Minus', en: 'Minus' },
   KEY_EQUALS: { de: 'Gleichheitszeichen', en: 'Equals sign' },
   KEY_COMMA: { de: 'Komma', en: 'Comma' },
-  KEY_PERIOD: { de: 'Punkt', en: 'Period' }
+  KEY_PERIOD: { de: 'Punkt', en: 'Period' },
+  // Gamepad: Tasten und Achsen fuer JOY_BUTTON und JOY_AXIS.
+  JOY_A: { de: 'Untere Gesichtstaste (Xbox A, PlayStation Cross)', en: 'Bottom face button (Xbox A, PlayStation Cross)' },
+  JOY_B: { de: 'Rechte Gesichtstaste (Xbox B, PlayStation Circle)', en: 'Right face button (Xbox B, PlayStation Circle)' },
+  JOY_X: { de: 'Linke Gesichtstaste (Xbox X, PlayStation Square)', en: 'Left face button (Xbox X, PlayStation Square)' },
+  JOY_Y: { de: 'Obere Gesichtstaste (Xbox Y, PlayStation Triangle)', en: 'Top face button (Xbox Y, PlayStation Triangle)' },
+  JOY_BACK: { de: 'Zurück-Taste', en: 'Back button' },
+  JOY_GUIDE: { de: 'Home-Taste des Pads', en: 'Guide button' },
+  JOY_START: { de: 'Start-Taste', en: 'Start button' },
+  JOY_LSTICK: { de: 'Linker Stick gedrückt', en: 'Left stick pressed' },
+  JOY_RSTICK: { de: 'Rechter Stick gedrückt', en: 'Right stick pressed' },
+  JOY_LB: { de: 'Linke Schuttertaste (LB/L1)', en: 'Left shoulder (LB/L1)' },
+  JOY_RB: { de: 'Rechte Schuttertaste (RB/R1)', en: 'Right shoulder (RB/R1)' },
+  JOY_UP: { de: 'Steuerkreuz oben', en: 'D-pad up' },
+  JOY_DOWN: { de: 'Steuerkreuz unten', en: 'D-pad down' },
+  JOY_LEFT: { de: 'Steuerkreuz links', en: 'D-pad left' },
+  JOY_RIGHT: { de: 'Steuerkreuz rechts', en: 'D-pad right' },
+  JOY_AXIS_LX: { de: 'Linker Stick, waagerecht (-1 … 1)', en: 'Left stick, horizontal (-1 … 1)' },
+  JOY_AXIS_LY: { de: 'Linker Stick, senkrecht (-1 … 1)', en: 'Left stick, vertical (-1 … 1)' },
+  JOY_AXIS_RX: { de: 'Rechter Stick, waagerecht (-1 … 1)', en: 'Right stick, horizontal (-1 … 1)' },
+  JOY_AXIS_RY: { de: 'Rechter Stick, senkrecht (-1 … 1)', en: 'Right stick, vertical (-1 … 1)' },
+  JOY_AXIS_LT: { de: 'Linker Trigger (0 … 1)', en: 'Left trigger (0 … 1)' },
+  JOY_AXIS_RT: { de: 'Rechter Trigger (0 … 1)', en: 'Right trigger (0 … 1)' }
 };
 
 const REVIEW = {
@@ -329,7 +357,7 @@ function parseReference(markdown, existing) {
       // Die README listet die Tastencode-Konstanten (KEY_A … KEY_Z, KEY_0 …
       // KEY_9); das sind keine Befehle. KEY_DOWN, KEY_PRESSED und KEY_WAIT
       // stehen dagegen im Interpreter und gehören in den Datensatz.
-      if (/^(KEY_|Fertige)/.test(code) && !BUILTINS.has(name)) continue;
+      if (/^(KEY_|JOY_|Fertige)/.test(code) && !BUILTINS.has(name)) continue;
       if (['TRUE', 'FALSE', 'END'].includes(name)) continue;
       const argsRaw = nameMatch[2].trim();
       const isFunction = argsRaw.startsWith('(');

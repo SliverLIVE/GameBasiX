@@ -8,6 +8,7 @@
 #include FT_FREETYPE_H
 #endif
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -145,6 +146,10 @@ public:
     void pump();
     bool keyDown(int scancode) const;
     bool keyHit(int scancode) const;
+    int joyCount() const { return static_cast<int>(joyPads_.size()); }
+    double joyAxis(int pad, int axis) const;
+    bool joyDown(int pad, int button) const;
+    bool joyHit(int pad, int button) const;
     bool anyKeyHit() const { return anyKeyHit_; }
     std::string takeTextInput();
     std::string takeInkey();
@@ -202,6 +207,18 @@ private:
     int polySprite_ = -1;
     int polyMode_ = 0;
     std::vector<PolyVertex> polyVerts_;
+
+    // Ein geoeffnetes Gamepad mit dem Tastenzustand des letzten Frames.
+    // `hit` haelt nur den Druck in genau diesem Frame (wie KEY_PRESSED).
+    struct JoyPad {
+        SDL_Gamepad* handle = nullptr;
+        std::array<bool, SDL_GAMEPAD_BUTTON_COUNT> down{};
+        std::array<bool, SDL_GAMEPAD_BUTTON_COUNT> hit{};
+    };
+    std::vector<JoyPad> joyPads_;
+    void openGamepads();
+    void closeGamepads();
+    void pollGamepads();
 
     // Eingabe
     const bool* keys_ = nullptr;

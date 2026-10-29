@@ -616,6 +616,16 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return ok();
         });
         add("FONT_CURRENT", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.currentFont()); });
+        add("TEXT_WIDTH", 1, 1, [](BArgs& a) {
+            int w = 0, h = 0;
+            a.rt.gfx.textSize(a.str(0), w, h);
+            return Value::mkInt(w);
+        });
+        add("TEXT_HEIGHT", 1, 1, [](BArgs& a) {
+            int w = 0, h = 0;
+            a.rt.gfx.textSize(a.str(0), w, h);
+            return Value::mkInt(h);
+        });
         add("INPUT", 1, 3, [](BArgs& a) {
             Value* target = a.out(0);
             if (!target) a.fail("erwartet eine Variable als erstes Argument");
@@ -689,6 +699,19 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("MOUSE_MOVE", 2, 2, [](BArgs& a) {
             a.rt.gfx.setMouse(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)));
             return ok();
+        });
+        add("JOY_COUNT", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.joyCount()); });
+        add("JOY_AXIS", 2, 2, [](BArgs& a) {
+            return Value::mkFloat(a.rt.gfx.joyAxis(static_cast<int>(a.integer(0)),
+                                                   static_cast<int>(a.integer(1))));
+        });
+        add("JOY_BUTTON", 2, 2, [](BArgs& a) {
+            int pad = static_cast<int>(a.integer(0)), button = static_cast<int>(a.integer(1));
+            return Value::mkInt(a.rt.gfx.joyDown(pad, button) ? 1 : 0);
+        });
+        add("JOY_PRESSED", 2, 2, [](BArgs& a) {
+            int pad = static_cast<int>(a.integer(0)), button = static_cast<int>(a.integer(1));
+            return Value::mkInt(a.rt.gfx.joyHit(pad, button) ? 1 : 0);
         });
 
         // ------------------------------------------------------------ Sound

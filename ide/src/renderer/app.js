@@ -9,6 +9,7 @@ import {
   findUserMethodRanges,
   findConstantRanges,
   findEnumRanges,
+  memberBaseName,
   EDITOR_THEME_FIELDS,
   EDITOR_THEME_PRESETS,
   EDITOR_THEME_PRESET_LABELS,
@@ -52,6 +53,8 @@ const state = {
   dirtySinceBuild: false,
   analysisCache: new Map(),
   projectSymbols: { functions: [], types: [], variables: [], constants: [], enums: [] },
+  // Quelltexte der Projektdateien fuer die Referenzsuche (Pfad -> Text).
+  projectTexts: new Map(),
   ref: { q: '', category: '', kind: '', lang: 'en', selected: null },
   panel: 'problems',
   modalOpen: false,
@@ -107,6 +110,7 @@ async function boot() {
   applyAppearance(monaco, state.appearance);
   createEditor();
   registerGoToDefinition();
+  registerReferenceTools();
   // Zeigt im Haltepunkt den aktuellen Wert unter der Maus.
   setDebugHover(debugHoverValue);
   bindUi();
@@ -2173,7 +2177,7 @@ function registerGoToDefinition() {
   monaco.languages.registerDefinitionProvider('gbx', {
     provideDefinition(model, position) {
       if (model.getLanguageId() !== 'gbx') return null;
-      const target = definitionFor(nameAtCursor(model, position));
+      const target = resolveSymbolAt(model, position);
       if (!target) return null;
       return [
         {
@@ -2195,7 +2199,7 @@ function registerGoToDefinition() {
       const model = instance.getModel();
       const position = instance.getPosition();
       if (!model || !position) return;
-      const target = definitionFor(nameAtCursor(model, position));
+      const target = resolveSymbolAt(model, position);
       if (!target) {
         toast(t('Keine eigene Definition unter dem Cursor.'), 'warn');
         return;
@@ -2213,6 +2217,523 @@ function registerGoToDefinition() {
       openFile(file, { line });
       return true;
     }
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Alle Referenzen / Symbol umbenennen                                 */
+/* ------------------------------------------------------------------ */
+
+function escapeRegex(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Zeile ohne Kommentar und ohne Textinhalt: Kommentare ab ' oder // und alles
+ * zwischen Anfuehrungszeichen wird durch Leerzeichen ersetzt. Die Laenge bleibt
+ * gleich, damit die Spalten der Treffer stimmen; ein Name in einem Text ist
+ * keine Referenz.
+ */
+function codePartOfLine(line) {
+  const chars = [...line];
+  let inString = false;
+  for (let index = 0; index < chars.length; index += 1) {
+    const ch = chars[index];
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      chars[index] = ' ';
+      continue;
+    }
+    if (ch === "'") {
+      chars.fill(' ', index);
+      break;
+    }
+    if (ch === '/' && chars[index + 1] === '/') {
+      chars.fill(' ', index);
+      break;
+    }
+  }
+  return chars.join('');
+}
+
+/** Text einer Projektdatei: offene Tabs liefern den aktuellen Stand. */
+function projectTextOf(rel) {
+  const open = state.tabs.find((tab) => tab.path === rel && tab.model);
+  if (open) return open.model.getValue();
+  return state.projectTexts.get(rel) || '';
+}
+
+/** Alle .gbx-Dateien des Projekts; offene Dateien kommen zur Not dazu. */
+function projectSourceFiles() {
+  const files = state.tree
+    .filter((item) => item.type === 'file' && /\.gbx$/i.test(item.name))
+    .map((item) => item.path);
+  for (const tab of state.tabs) {
+    if (tab.model && /\.gbx$/i.test(tab.path) && !files.includes(tab.path)) files.push(tab.path);
+  }
+  return files;
+}
+
+/** Suchmuster zu einem Namen; `PHASE.STOP` wird als Ganzes gesucht. */
+function referencePattern(name) {
+  const parts = String(name || '').split('.').map(bareName);
+  if (parts.length < 2) return new RegExp(`\\b${escapeRegex(parts[0] || '')}\\b`, 'gi');
+  return new RegExp(`\\b${escapeRegex(parts[0])}\\s*\\.\\s*${escapeRegex(parts[1])}\\b`, 'gi');
+}
+
+/** Blockgrenzen (1-basiert, inklusive) des TYPE, in dem die Zeile liegt. */
+function typeBlockAt(lines, lineNumber) {
+  let name = '';
+  let start = 0;
+  for (let index = Math.min(lineNumber, lines.length) - 1; index >= 0; index -= 1) {
+    const text = codePartOfLine(lines[index]).trim();
+    if (/^ENDTYPE\b/i.test(text)) break;
+    const header = /^TYPE\s+([A-Za-z_]\w*)/i.exec(text);
+    if (header) {
+      name = header[1];
+      start = index + 1;
+      break;
+    }
+  }
+  if (!start) return null;
+  let end = lines.length;
+  for (let index = start; index < lines.length; index += 1) {
+    if (/^\s*ENDTYPE\b/i.test(lines[index])) {
+      end = index + 1;
+      break;
+    }
+  }
+  return { name, start, end };
+}
+
+/** Blockgrenzen der FUNCTION/SUB/METHOD, in der die Zeile liegt. */
+function routineBlockAt(lines, lineNumber) {
+  const header = /^\s*(FUNCTION|SUB|METHOD)\s+[A-Za-z_]\w*[$%#]?/i;
+  const end = /^\s*END(FUNCTION|SUB|METHOD)\b/i;
+  let start = 0;
+  for (let index = Math.min(lineNumber, lines.length) - 1; index >= 0; index -= 1) {
+    const text = codePartOfLine(lines[index]).trim();
+    if (end.test(text)) break;
+    if (header.test(text)) {
+      start = index + 1;
+      break;
+    }
+  }
+  let stop = lines.length;
+  if (start) {
+    for (let index = start; index < lines.length; index += 1) {
+      const text = codePartOfLine(lines[index]).trim();
+      if (end.test(text)) {
+        stop = index + 1;
+        break;
+      }
+      // Ohne END… endet der Block spätestens beim nächsten Kopf.
+      if (header.test(text)) {
+        stop = index;
+        break;
+      }
+    }
+  }
+  // Ohne Kopf gilt der ganze Text als ein Block (Hauptprogramm).
+  return { start: start || 1, end: stop, found: !!start };
+}
+
+/** Zeilenbereiche aller FUNCTION/SUB/METHOD einer Datei. */
+function routineRanges(lines) {
+  const header = /^\s*(FUNCTION|SUB|METHOD)\s+[A-Za-z_]\w*[$%#]?/i;
+  const end = /^\s*END(FUNCTION|SUB|METHOD)\b/i;
+  const ranges = [];
+  let start = 0;
+  lines.forEach((line, index) => {
+    const text = codePartOfLine(line).trim();
+    if (!start && header.test(text)) start = index + 1;
+    else if (start && end.test(text)) {
+      ranges.push([start, index + 1]);
+      start = 0;
+    }
+  });
+  if (start) ranges.push([start, lines.length]);
+  return ranges;
+}
+
+/**
+ * Zeile, in der der Block den Namen deklariert – 0, wenn er es nicht tut.
+ * `skip` schliesst Bereiche aus (im Hauptprogramm die Rumpfe der Routinen,
+ * deren LOCALs dort nicht gelten).
+ */
+function localDeclarationLine(lines, block, name, skip = []) {
+  const wanted = bareName(name);
+  const last = Math.min(block.end, lines.length);
+  const skipped = (lineNumber) => skip.some(([from, to]) => lineNumber >= from && lineNumber <= to);
+  for (let index = block.start - 1; index < last; index += 1) {
+    if (skipped(index + 1)) continue;
+    const text = codePartOfLine(lines[index]).trim();
+    if (!text) continue;
+    // Parameter stehen im Kopf hinter dem Doppelpunkt.
+    const header = /^(FUNCTION|SUB|METHOD)\s+[A-Za-z_]\w*[$%#]?\s*:?\s*(.*)$/i.exec(text);
+    if (header) {
+      for (const part of header[2].split(',')) {
+        const param = /(?:BYREF\s+)?([A-Za-z_]\w*[$%#]?)/i.exec(part);
+        if (param && bareName(param[1]) === wanted) return index + 1;
+      }
+      continue;
+    }
+    const local = /^(LOCAL|STATIC)\b(.*)$/i.exec(text);
+    if (local) {
+      for (const part of local[2].split(',')) {
+        const decl = /^\s*([A-Za-z_]\w*[$%#]?)/.exec(part);
+        if (decl && bareName(decl[1]) === wanted) return index + 1;
+      }
+      continue;
+    }
+    // DIM, FOR, FOREACH, INPUT und READ deklarieren ihren ersten Namen.
+    const other = /^(FOR|FOREACH|DIM|INPUT|READ)\b(.*)$/i.exec(text);
+    if (other) {
+      const decl = /\b([A-Za-z_]\w*[$%#]?)/.exec(other[2]);
+      if (decl && bareName(decl[1]) === wanted) return index + 1;
+    }
+  }
+  return 0;
+}
+
+/** Feld eines TYPE im Projekt – nur wenn der Name eindeutig ist. */
+function projectFieldFor(name) {
+  const wanted = bareName(name);
+  const hits = [];
+  for (const type of getSymbols().types || []) {
+    for (const member of type.members || []) {
+      if (bareName(memberBaseName(member.name)) === wanted) hits.push({ type, member });
+    }
+  }
+  return hits.length === 1 ? hits[0] : null;
+}
+
+/**
+ * Was steht unter dem Cursor? Projektweites Symbol, TYPE-Feld oder lokale
+ * Variable. Liefert `{ file, line, kind, scope }`; `scope` begrenzt lokale
+ * Namen auf ihren Block, `null` heißt im ganzen Projekt sichtbar.
+ */
+function resolveSymbolAt(model, position) {
+  if (!model || !position) return null;
+  const name = nameAtCursor(model, position);
+  const wanted = bareName(name);
+  if (!wanted) return null;
+  const project = definitionFor(name);
+  if (project) return { ...project, kind: 'project', scope: null };
+
+  const file = projectPathOf(model.uri) || activeTab()?.path || '';
+  const lines = model.getLinesContent();
+  // Lokale Namen (auch Parameter) verdecken ein gleichnamiges Feld.
+  const routine = routineBlockAt(lines, position.lineNumber);
+  const declared = routine.found
+    ? localDeclarationLine(lines, routine, name)
+    : localDeclarationLine(lines, { start: 1, end: lines.length }, name, routineRanges(lines));
+  if (declared) {
+    return { file, line: declared, kind: 'local', scope: { file, from: routine.start, to: routine.end } };
+  }
+  const block = typeBlockAt(lines, position.lineNumber);
+  if (block) {
+    const type = (getSymbols().types || []).find((item) => bareName(item.name) === bareName(block.name));
+    const member = (type?.members || []).find(
+      (item) => bareName(memberBaseName(item.name)) === wanted
+    );
+    if (member) {
+      return { file, line: member.line, kind: 'field', scope: { file, from: block.start, to: block.end } };
+    }
+  }
+  // Ein Feld, das nur als `obj.feld` auftaucht: nur bei eindeutigem Namen.
+  const field = projectFieldFor(name);
+  if (field?.type?.file) {
+    const ownerLines = projectTextOf(field.type.file).split(/\r?\n/);
+    const owner = typeBlockAt(ownerLines, field.member.line);
+    return {
+      file: field.type.file,
+      line: field.member.line,
+      kind: 'field',
+      scope: owner ? { file: field.type.file, from: owner.start, to: owner.end } : null
+    };
+  }
+  const global = (getSymbols().variables || []).find(
+    (item) => bareName(item.name) === wanted && /^(GLOBAL|DIM)$/i.test(String(item.scope))
+  );
+  if (global?.file) return { file: global.file, line: global.line, kind: 'global', scope: null };
+  // Bleibt ein Name, den nur diese Datei kennt (Zuweisung im Hauptprogramm).
+  // Die Analyse kennt nur einen Eintrag pro Name; liegt seine Zeile in einer
+  // anderen Routine, gehoert der Name nicht hierher.
+  const local = (analysisFor(model).variables || []).find((item) => bareName(item.name) === wanted);
+  if (local?.line) {
+    const inBlock = local.line >= routine.start && local.line <= routine.end;
+    const nested =
+      !routine.found && routineRanges(lines).some(([from, to]) => local.line >= from && local.line <= to);
+    if (inBlock && !nested) {
+      return { file, line: local.line, kind: 'local', scope: { file, from: routine.start, to: routine.end } };
+    }
+  }
+  return null;
+}
+
+/**
+ * Alle Stellen eines Namens im Projekt. Definition und Verwendung werden
+ * getrennt markiert; Kommentare und INLINE-Bloecke (C++) bleiben aussen vor.
+ * Ein lokaler Name gilt nur in seinem Block, ein Feld überall dort, wo es
+ * heißt oder hinter einem Punkt steht.
+ */
+function findReferences(name, resolved = null) {
+  const wanted = bareName(name);
+  if (!wanted) return [];
+  const parts = String(name).split('.').map(bareName).filter(Boolean);
+  const member = parts.length > 1 ? parts[1] : parts[0];
+  const pattern = referencePattern(name);
+  const kind = resolved?.kind || 'project';
+  const scope = resolved?.scope || null;
+  const found = [];
+  for (const file of projectSourceFiles()) {
+    // Ein lokaler Name gilt nur in seiner Datei.
+    if (kind === 'local' && scope && scope.file !== file) continue;
+    const text = projectTextOf(file);
+    if (!text) continue;
+    let inline = false;
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line, index) => {
+      const lineNumber = index + 1;
+      if (/^\s*INLINE\b/i.test(line)) inline = true;
+      const code = inline ? '' : codePartOfLine(line);
+      if (/^\s*ENDINLINE\b/i.test(line)) inline = false;
+      if (!code) return;
+      if (kind === 'local' && scope && (lineNumber < scope.from || lineNumber > scope.to)) return;
+      pattern.lastIndex = 0;
+      let match = pattern.exec(code);
+      while (match) {
+        // Bei PHASE.STOP nur den Wert umbenennen, nicht den Enum-Namen.
+        const column = parts.length > 1 ? match.index + match[0].length - member.length : match.index;
+        const inBlock = !!scope && scope.file === file && lineNumber >= scope.from && lineNumber <= scope.to;
+        const dotted = /\.\s*$/.test(code.slice(0, column));
+        if (kind === 'field' && !inBlock && !dotted) {
+          if (!match[0]) break;
+          match = pattern.exec(code);
+          continue;
+        }
+        found.push({
+          file,
+          line: lineNumber,
+          column,
+          length: member.length,
+          preview: line.trim(),
+          definition: !!resolved && resolved.file === file && resolved.line === lineNumber
+        });
+        if (!match[0]) break;
+        match = pattern.exec(code);
+      }
+    });
+  }
+  return found;
+}
+
+/** Eingabe fuer den neuen Namen; liefert den Text oder null. */
+function askSymbolName(current) {
+  return new Promise((resolve) => {
+    const body = document.createElement('div');
+    const field = document.createElement('div');
+    field.className = 'field';
+    const label = document.createElement('label');
+    label.textContent = t('Neuer Name für {name}', { name: current });
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.spellcheck = false;
+    input.value = current.replace(/[$%#]$/, '');
+    field.append(label, input);
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.textContent = t('Alle Fundstellen im Projekt werden umbenannt. Speichern schreibt sie auf die Platte.');
+    field.append(hint);
+    body.append(field);
+    const modal = openModal({
+      title: t('Symbol umbenennen'),
+      body,
+      footer: [
+        { label: t('Abbrechen'), action: () => { resolve(null); return true; } },
+        {
+          label: t('Umbenennen'),
+          variant: 'primary',
+          action: () => { resolve(input.value.trim()); return true; }
+        }
+      ]
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      resolve(input.value.trim());
+      modal.close();
+    });
+    modal.close = ((original) => () => {
+      original();
+      resolve(null);
+    })(modal.close);
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 0);
+  });
+}
+
+/** Prueft einen neuen Namen gegen Syntax und belegte Befehle. */
+function validSymbolName(name) {
+  if (!/^[A-Za-z_]\w*[$%#]?$/.test(name)) return t('Nur Buchstaben, Ziffern und _ sowie ein Suffix ($ % #) am Ende.');
+  const upper = bareName(name);
+  const taken = state.commands.some(
+    (command) => (command.kind === 'keyword' || command.kind === 'constant') && bareName(command.name) === upper
+  );
+  if (taken) return t('{name} ist ein Schlüsselwort oder eine Konstante.', { name: name.toUpperCase() });
+  return '';
+}
+
+/**
+ * Benennt ein eigenes Symbol im ganzen Projekt um. Die Dateien werden als Tabs
+ * geoeffnet, die Aenderung liegt also im Editor und wird mit Speichern
+ * festgeschrieben – ein versehentliches Umbenennen laesst sich rueckgaengig
+ * machen.
+ */
+async function renameSymbol() {
+  const model = editor.getModel();
+  const position = editor.getPosition();
+  if (!model || !position || !state.projectDir) {
+    toast(t('Bitte zuerst eine Datei öffnen.'), 'warn');
+    return;
+  }
+  const name = nameAtCursor(model, position);
+  if (!name) {
+    toast(t('Kein Name unter dem Cursor.'), 'warn');
+    return;
+  }
+  const resolved = resolveSymbolAt(model, position);
+  if (!resolved) {
+    toast(t('Nur eigene Namen lassen sich umbenennen.'), 'warn');
+    return;
+  }
+  const answer = await askSymbolName(name);
+  if (!answer || bareName(answer) === bareName(name)) return;
+  const problem = validSymbolName(answer);
+  if (problem) {
+    toast(problem, 'warn');
+    return;
+  }
+  const refs = findReferences(name, resolved);
+  if (!refs.length) {
+    toast(t('Keine Fundstelle gefunden.'), 'warn');
+    return;
+  }
+  const byFile = new Map();
+  for (const ref of refs) {
+    if (!byFile.has(ref.file)) byFile.set(ref.file, []);
+    byFile.get(ref.file).push(ref);
+  }
+  for (const [file, list] of byFile) {
+    await openFile(file, { focus: false });
+    const tab = state.tabs.find((entry) => entry.path === file);
+    if (!tab || !tab.model) continue;
+    // Von hinten nach vorne, damit sich die Spalten nicht verschieben.
+    const ordered = list.slice().sort((a, b) => b.line - a.line || b.column - a.column);
+    const edits = ordered.map((ref) => {
+      const lineText = tab.model.getLineContent(ref.line);
+      const after = lineText[ref.column + ref.length] || '';
+      const suffix = /[$%#]/.test(after) ? after : '';
+      const text = /[$%#]$/.test(answer) ? answer : answer + suffix;
+      return {
+        range: new monaco.Range(ref.line, ref.column + 1, ref.line, ref.column + 1 + ref.length + suffix.length),
+        text
+      };
+    });
+    tab.model.pushEditOperations([], edits, () => null);
+  }
+  const files = byFile.size;
+  toast(
+    t('{n} Stellen in {files} Datei(en) umbenannt – Speichern schreibt die Änderungen.', {
+      n: refs.length,
+      files
+    }),
+    'ok'
+  );
+}
+
+/**
+ * Zeigt die Fundstellen eines Namens als Liste. Ein Klick springt an die
+ * Stelle; die Definition ist als solche gekennzeichnet und steht oben.
+ */
+function showReferences() {
+  const model = editor.getModel();
+  const position = editor.getPosition();
+  if (!model || !position || !state.projectDir) {
+    toast(t('Bitte zuerst eine Datei öffnen.'), 'warn');
+    return;
+  }
+  const name = nameAtCursor(model, position);
+  if (!name) {
+    toast(t('Kein Name unter dem Cursor.'), 'warn');
+    return;
+  }
+  const refs = findReferences(name, resolveSymbolAt(model, position));
+  if (!refs.length) {
+    toast(t('Keine Fundstelle gefunden.'), 'warn');
+    return;
+  }
+  refs.sort((a, b) => (a.file === b.file ? a.line - b.line : a.file.localeCompare(b.file)));
+  const files = new Set(refs.map((ref) => ref.file)).size;
+  const body = document.createElement('div');
+  const head = document.createElement('div');
+  head.className = 'ref-head';
+  head.textContent = refs.length === 1 ? t('{n} Fundstelle', { n: 1 }) : t('{n} Fundstellen in {files} Datei(en)', { n: refs.length, files });
+  const list = document.createElement('div');
+  list.className = 'ref-list';
+  const modal = openModal({
+    title: t('Referenzen von {name}', { name }),
+    body: (body.append(head, list), body),
+    wide: true
+  });
+  for (const ref of refs) {
+    const row = document.createElement('button');
+    row.className = 'ref-row' + (ref.definition ? ' is-def' : '');
+    const where = document.createElement('span');
+    where.className = 'where';
+    where.textContent = `${ref.file}:${ref.line}`;
+    const code = document.createElement('span');
+    code.className = 'code';
+    code.textContent = ref.preview;
+    row.append(where, code);
+    if (ref.definition) {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = t('Definition');
+      row.append(tag);
+    }
+    row.addEventListener('click', () => {
+      modal.close();
+      openFile(ref.file, { line: ref.line });
+    });
+    list.append(row);
+  }
+}
+
+function registerReferenceTools() {
+  // Shift+F12 und der Rechtsklick-Eintrag zeigen die Fundstellenliste.
+  editor.addAction({
+    id: 'gbx.findReferences',
+    label: t('Alle Referenzen suchen'),
+    keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F12],
+    contextMenuGroupId: 'navigation',
+    contextMenuOrder: 2,
+    run: () => showReferences()
+  });
+
+  editor.addAction({
+    id: 'gbx.renameSymbol',
+    label: t('Symbol umbenennen'),
+    keybindings: [monaco.KeyCode.F2],
+    contextMenuGroupId: '1_modification',
+    contextMenuOrder: 1,
+    run: () => renameSymbol()
   });
 }
 
@@ -4816,15 +5337,19 @@ async function indexProjectSymbols() {
   const files = state.tree.filter((item) => item.type === 'file' && /\.gbx$/i.test(item.name)).slice(0, 80);
   const aggregate = { functions: [], types: [], variables: [], constants: [], enums: [] };
   const seen = { functions: new Set(), types: new Set(), variables: new Set(), constants: new Set(), enums: new Set() };
+  // Die Texte bleiben fuer die Referenzsuche liegen (Pfad -> Quelltext).
+  const texts = new Map();
   for (const file of files) {
     const open = state.tabs.find((t) => t.path === file.path);
     let data;
     if (open) {
       data = analysisFor(open.model);
+      texts.set(file.path, open.model.getValue());
     } else {
       try {
         const content = await get(`/api/file?dir=${encodeURIComponent(state.projectDir)}&file=${encodeURIComponent(file.path)}`);
         data = analyzeSource(content.content);
+        texts.set(file.path, content.content);
       } catch {
         continue;
       }
@@ -4841,6 +5366,7 @@ async function indexProjectSymbols() {
     }
   }
   state.projectSymbols = aggregate;
+  state.projectTexts = texts;
   refreshCodeColors();
 }
 
