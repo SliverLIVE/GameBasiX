@@ -11,7 +11,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 
-import { emxxCommand, emsdkEnv } from './emsdk.mjs';
+import { emxxCommand, emsdkEnv, emsdkRoot } from './emsdk.mjs';
 import { pathExists } from './gbx.mjs';
 
 /** Ordner mit dem fertigen Player (gbx.js), relativ zur Editor-EXE. */
@@ -130,9 +130,12 @@ export async function buildPlayer({
     onLog?.('Die C++-Quellen fehlen neben der Editor-EXE (Ordner src/, inline/, third_party/).');
     return { ok: false, error: 'Quellen fehlen' };
   }
-  const emcc = emxxCommand(emsdk);
+  // Relative Angaben gelten ab dem Engine-Ordner (neben gbx.exe), nicht ab
+  // dem Arbeitsverzeichnis des Editors.
+  const sdk = emsdkRoot(emsdk, appRoot);
+  const emcc = emxxCommand(sdk);
   if (!emcc) {
-    onLog?.('emsdk ist nicht eingerichtet.');
+    onLog?.(`emsdk ist nicht eingerichtet: ${sdk}`);
     return { ok: false, error: 'emsdk fehlt' };
   }
 
@@ -183,7 +186,7 @@ export async function buildPlayer({
   const started = Date.now();
   const result = await run(emcc.cmd, [...emcc.args, ...args], {
     cwd: info.sourceDir,
-    env: emsdkEnv(emsdk),
+    env: emsdkEnv(sdk),
     onLog
   });
   if (result.code !== 0) {
