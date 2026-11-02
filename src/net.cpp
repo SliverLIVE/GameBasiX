@@ -84,7 +84,7 @@ std::string errorString(int code) {
                                    FORMAT_MESSAGE_IGNORE_INSERTS,
                                nullptr, static_cast<DWORD>(code), 0,
                                reinterpret_cast<char*>(&buffer), 0, nullptr);
-    std::string text = len && buffer ? std::string(buffer, len) : "Fehler " + std::to_string(code);
+    std::string text = len && buffer ? std::string(buffer, len) : "Error " + std::to_string(code);
     if (buffer) LocalFree(buffer);
     while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) text.pop_back();
     return text;
@@ -186,9 +186,9 @@ bool resolve(const std::string& host, int port, int type, Resolved& out, std::st
     int rc = getaddrinfo(host.empty() ? "127.0.0.1" : host.c_str(), service.c_str(), &hints, &list);
     if (rc != 0 || !list) {
 #if defined(_WIN32)
-        err = "Adresse nicht gefunden: " + host;
+        err = "Address not found: " + host;
 #else
-        err = "Adresse nicht gefunden: " + host + " (" + gai_strerror(rc) + ")";
+        err = "Address not found: " + host + " (" + gai_strerror(rc) + ")";
 #endif
         if (list) freeaddrinfo(list);
         return false;
@@ -207,7 +207,7 @@ bool Net::startup(std::string& err) {
     if (ready) return true;
     WSADATA data;
     if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
-        err = "Winsock startet nicht: " + errorString(socketError());
+        err = "Winsock does not start: " + errorString(socketError());
         return false;
     }
     ready = true;
@@ -275,7 +275,7 @@ bool Net::listen(int port, int& handle, std::string& err) {
     handle = 0;
     if (!startup(err)) return false;
     if (port < 0 || port > 65535) {
-        err = "Port ausserhalb von 0..65535: " + std::to_string(port);
+        err = "Port outside of 0..65535: " + std::to_string(port);
         return false;
     }
     Resolved resolved;
@@ -295,17 +295,17 @@ bool Net::listen(int port, int& handle, std::string& err) {
         setsockopt(s, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&on), sizeof(on));
 #endif
         if (bind(s, it->ai_addr, static_cast<int>(it->ai_addrlen)) != 0) {
-            err = describe("Port belegt", socketError());
+            err = describe("Port in use", socketError());
             closeSocket(s);
             continue;
         }
         if (::listen(s, 16) != 0) {
-            err = describe("listen fehlgeschlagen", socketError());
+            err = describe("listen failed", socketError());
             closeSocket(s);
             continue;
         }
         if (!setNonBlocking(s)) {
-            err = describe("Socket laesst sich nicht umstellen", socketError());
+            err = describe("Socket cannot be reconfigured", socketError());
             closeSocket(s);
             continue;
         }
@@ -321,7 +321,7 @@ bool Net::listen(int port, int& handle, std::string& err) {
         handle = add(static_cast<std::intptr_t>(s), Kind::Listener, boundPort, "");
         return true;
     }
-    if (err.empty()) err = "Kein Port verfuegbar";
+    if (err.empty()) err = "No port available";
     return false;
 }
 
@@ -329,7 +329,7 @@ bool Net::connect(const std::string& host, int port, int timeoutMs, int& handle,
     handle = 0;
     if (!startup(err)) return false;
     if (port < 1 || port > 65535) {
-        err = "Port ausserhalb von 1..65535: " + std::to_string(port);
+        err = "Port outside of 1..65535: " + std::to_string(port);
         return false;
     }
     Resolved resolved;
@@ -346,12 +346,12 @@ bool Net::connect(const std::string& host, int port, int timeoutMs, int& handle,
         if (rc != 0) {
             int code = socketError();
             if (!wouldBlock(code)) {
-                err = describe("Verbindung fehlgeschlagen", code);
+                err = describe("Connection failed", code);
                 closeSocket(s);
                 continue;
             }
             if (!waitWritable(s, timeoutMs)) {
-                err = "Zeitueberschreitung bei der Verbindung zu " + host;
+                err = "Timed out connecting to " + host;
                 closeSocket(s);
                 continue;
             }
@@ -359,7 +359,7 @@ bool Net::connect(const std::string& host, int port, int timeoutMs, int& handle,
             socklen_t len = sizeof(soError);
             getsockopt(s, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&soError), &len);
             if (soError != 0) {
-                err = describe("Verbindung abgelehnt", soError);
+                err = describe("Connection refused", soError);
                 closeSocket(s);
                 continue;
             }
@@ -368,14 +368,14 @@ bool Net::connect(const std::string& host, int port, int timeoutMs, int& handle,
         handle = add(static_cast<std::intptr_t>(s), Kind::Stream, port, host + ":" + std::to_string(port));
         return true;
     }
-    if (err.empty()) err = "Verbindung fehlgeschlagen";
+    if (err.empty()) err = "Connection failed";
     return false;
 }
 
 int Net::accept(int listener, std::string& err) {
     Entry* entry = find(listener);
     if (!entry || entry->kind != Kind::Listener) {
-        err = "Kein wartender Server auf Handle " + std::to_string(listener);
+        err = "No waiting server on handle " + std::to_string(listener);
         return -1;
     }
     sockaddr_storage addr;
@@ -385,7 +385,7 @@ int Net::accept(int listener, std::string& err) {
     if (s == kInvalid) {
         int code = socketError();
         if (wouldBlock(code)) return 0;
-        err = describe("accept fehlgeschlagen", code);
+        err = describe("accept failed", code);
         return -1;
     }
     setNonBlocking(s);
@@ -401,7 +401,7 @@ bool Net::sendData(int handle, const std::string& data, int& sent, std::string& 
         return false;
     }
     if (entry->closed) {
-        err = "Verbindung ist bereits geschlossen";
+        err = "Connection is already closed";
         return false;
     }
     socket_t s = static_cast<socket_t>(entry->sock);
@@ -423,12 +423,12 @@ bool Net::sendData(int handle, const std::string& data, int& sent, std::string& 
         if (interrupted(code)) continue;
         if (wouldBlock(code)) {
             if (!waitWritable(s, 3000)) {
-                err = "Senden dauert zu lange (Gegenstelle liest nicht)";
+                err = "Send takes too long (peer is not reading)";
                 return sent > 0;
             }
             continue;
         }
-        err = describe("Senden fehlgeschlagen", code);
+        err = describe("Send failed", code);
         entry->closed = true;
         return sent > 0;
     }
@@ -459,7 +459,7 @@ std::string Net::receive(int handle, std::string& err) {
         int code = socketError();
         if (interrupted(code)) continue;
         if (wouldBlock(code)) break;
-        err = describe("Empfangen fehlgeschlagen", code);
+        err = describe("Empfangen failed", code);
         entry->closed = true;
         break;
     }
@@ -510,7 +510,7 @@ bool Net::openDatagram(int port, int& handle, std::string& err) {
     handle = 0;
     if (!startup(err)) return false;
     if (port < 0 || port > 65535) {
-        err = "Port ausserhalb von 0..65535: " + std::to_string(port);
+        err = "Port outside of 0..65535: " + std::to_string(port);
         return false;
     }
     Resolved resolved;
@@ -521,12 +521,12 @@ bool Net::openDatagram(int port, int& handle, std::string& err) {
         int on = 1;
         setsockopt(s, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&on), sizeof(on));
         if (bind(s, it->ai_addr, static_cast<int>(it->ai_addrlen)) != 0) {
-            err = describe("UDP-Port belegt", socketError());
+            err = describe("UDP port in use", socketError());
             closeSocket(s);
             continue;
         }
         if (!setNonBlocking(s)) {
-            err = describe("Socket laesst sich nicht umstellen", socketError());
+            err = describe("Socket cannot be reconfigured", socketError());
             closeSocket(s);
             continue;
         }
@@ -542,7 +542,7 @@ bool Net::openDatagram(int port, int& handle, std::string& err) {
         handle = add(static_cast<std::intptr_t>(s), Kind::Datagram, boundPort, "");
         return true;
     }
-    if (err.empty()) err = "Kein UDP-Port verfuegbar";
+    if (err.empty()) err = "No UDP port available";
     return false;
 }
 
@@ -554,7 +554,7 @@ bool Net::sendDatagram(int handle, const std::string& host, int port,
         return false;
     }
     if (port < 1 || port > 65535) {
-        err = "Port ausserhalb von 1..65535: " + std::to_string(port);
+        err = "Port outside of 1..65535: " + std::to_string(port);
         return false;
     }
     Resolved resolved;
@@ -566,10 +566,10 @@ bool Net::sendDatagram(int handle, const std::string& host, int port,
         if (written >= 0) return true;
         int code = socketError();
         if (interrupted(code)) continue;
-        err = describe("UDP senden fehlgeschlagen", code);
+        err = describe("UDP send failed", code);
         return false;
     }
-    if (err.empty()) err = "UDP senden fehlgeschlagen";
+    if (err.empty()) err = "UDP send failed";
     return false;
 }
 
@@ -589,7 +589,7 @@ std::string Net::receiveDatagram(int handle, std::string& from, std::string& err
         int code = socketError();
         if (wouldBlock(code)) return "";
         if (interrupted(code)) return "";
-        err = describe("UDP empfangen fehlgeschlagen", code);
+        err = describe("UDP empfangen failed", code);
         return "";
     }
     from = formatAddress(reinterpret_cast<sockaddr*>(&addr));

@@ -125,7 +125,7 @@ bool Steam::bindApi(std::string& err) {
                       symbol(fnCloseP2P_, "SteamAPI_ISteamNetworking_CloseP2PSessionWithUser") &&
                       symbol(fnP2PState_, "SteamAPI_ISteamNetworking_GetP2PSessionState");
     if (!core) {
-        err = "steam_api passt nicht zur Flat-API (fehlende Symbole)";
+        err = "steam_api does not match the flat API (missing symbols)";
         return false;
     }
     // Optional: Freundesliste und App-ID; ohne sie bleiben die Befehle leer.
@@ -174,7 +174,7 @@ bool Steam::load(std::string& err) {
         if (lib_) break;
     }
     if (!lib_) {
-        err = "steam_api nicht gefunden - steam_api64.dll neben die EXE legen";
+        err = "steam_api not found - put steam_api64.dll next to the EXE";
         error_ = err;
         return false;
     }
@@ -200,11 +200,11 @@ bool Steam::startup(std::uint32_t appId, std::string& err) {
         ok = fnInitFlat_(message) == 0;
         if (!ok) {
             err = message[0] ? std::string(message)
-                             : "SteamAPI_Init fehlgeschlagen - laeuft Steam und stimmt steam_appid.txt?";
+                             : "SteamAPI_Init failed - laeuft Steam und stimmt steam_appid.txt?";
         }
     } else if (fnInitSafe_) {
         ok = fnInitSafe_();
-        if (!ok) err = "SteamAPI_InitSafe fehlgeschlagen - laeuft Steam und stimmt steam_appid.txt?";
+        if (!ok) err = "SteamAPI_InitSafe failed - laeuft Steam und stimmt steam_appid.txt?";
     } else {
         err = "steam_api kennt weder SteamAPI_InitFlat noch SteamAPI_InitSafe";
     }

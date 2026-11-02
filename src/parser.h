@@ -11,6 +11,11 @@
 // wenn das ganze Programm geparst ist. Meldet unbekannte Werte mit Hinweis.
 void resolveEnumRefs(Program& program);
 
+// Loest EXTENDS auf: setzt die Basiszeiger, kopiert die geerbten Felder (samt
+// Standardwerten und Feld-Array-Groessen) in den abgeleiteten TYPE und prueft
+// die IMPLEMENTS-Schnittstellen. Meldet unbekannte Basen und Zyklen.
+void resolveTypes(Program& program);
+
 class Parser {
 public:
     Parser(std::string path, std::vector<Token> tokens, Program& program);
@@ -53,12 +58,21 @@ private:
     StmtP parsePush(bool del);
     StmtP parseForeach();
     StmtP parseTry();
+    // Rumpf hinter FINALLY: endet mit ENDTRY oder an einer Stelle, die keine
+    // Anweisung mehr beginnen kann (altes FINALLY ohne ENDTRY).
+    std::vector<StmtP> parseFinallyBody();
+    // Nur wenn vor der naechsten Top-Level-Definition noch ein ENDTRY folgt,
+    // leitet FINALLY einen Rumpf ein. Sonst bleibt es das alte Blockende.
+    bool finallyStartsBody() const;
+    void parseInterface();
     StmtP parseSwap();
     StmtP parseAssignmentOrCall();
     void parseFunction(bool isSub);
     void parseParamList(std::vector<Param>& params);
     void parseMethod(const std::string& typeName);
     void parseType();
+    // "EXTENDS A" / "IMPLEMENTS I, J" hinter dem Typnamen.
+    void parseTypeTail(const std::shared_ptr<TypeDef>& def);
     void parseInclude();
     std::vector<StmtP> parseBlock(const std::vector<std::string>& terminators);
 

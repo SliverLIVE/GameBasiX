@@ -209,7 +209,8 @@ def main():
         )
         done = run_gbx("demo.gbxproj", proj, env, ["--headless", "--tests"])
         check(
-            done.returncode == 0 and "0 fehlgeschlagen" in done.stdout,
+            done.returncode == 0
+            and ("0 fehlgeschlagen" in done.stdout or "0 failed" in done.stdout),
             "Bibliothek aus LIBS wird mitgelinkt",
             (done.stderr or done.stdout).strip().splitlines()[-1] if (done.stderr or done.stdout) else "",
         )
@@ -223,7 +224,8 @@ def main():
         write(os.path.join(proj, "main.gbx"), PROGRAM % 63)
         done = run_gbx("demo.gbxproj", proj, env, ["--headless", "--tests"])
         check(
-            done.returncode == 0 and "0 fehlgeschlagen" in done.stdout,
+            done.returncode == 0
+            and ("0 fehlgeschlagen" in done.stdout or "0 failed" in done.stdout),
             "neue .a wird erkannt (Cache)",
             (done.stderr or done.stdout).strip().splitlines()[-1] if (done.stderr or done.stdout) else "",
         )
@@ -238,7 +240,8 @@ def main():
         )
         done = run_gbx("flags.gbxproj", flags_proj, env, ["--headless", "--tests"])
         check(
-            done.returncode == 0 and "0 fehlgeschlagen" in done.stdout,
+            done.returncode == 0
+            and ("0 fehlgeschlagen" in done.stdout or "0 failed" in done.stdout),
             "LIBDIRS und FLAGS kommen beim Compiler an",
             detail_lines(done.stderr + done.stdout),
         )
@@ -253,7 +256,7 @@ def main():
         )
         done = run_gbx("fehlt.gbxproj", missing, env, ["--headless", "--tests"])
         check(
-            done.returncode != 0 and "Bibliothek nicht gefunden" in (done.stderr + done.stdout),
+            done.returncode != 0 and "Library not found" in (done.stderr + done.stdout),
             "fehlende Bibliothek wird gemeldet",
             (done.stderr or done.stdout).strip().splitlines()[-1] if (done.stderr or done.stdout) else "",
         )
@@ -292,7 +295,8 @@ def main():
                 timeout=300,
             )
             check(
-                done.returncode == 0 and "0 fehlgeschlagen" in done.stdout,
+                done.returncode == 0
+            and ("0 fehlgeschlagen" in done.stdout or "0 failed" in done.stdout),
                 "exportiertes Spiel ohne Compiler",
                 (done.stderr or done.stdout).strip().splitlines()[-1] if (done.stderr or done.stdout) else "",
             )

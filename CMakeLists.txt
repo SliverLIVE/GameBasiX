@@ -73,7 +73,6 @@ endif()
 
 add_executable(gbx
   src/main.cpp
-  src/i18n.cpp
   src/lexer.cpp
   src/parser.cpp
   src/value.cpp
@@ -164,7 +163,7 @@ add_test(NAME language
          COMMAND gbx --headless --tests tests/language_tests.gbx)
 set_tests_properties(language PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+  PASS_REGULAR_EXPRESSION "0 (fehlgeschlagen|failed)")
 
 # INLINE-Bloecke: uebersetzt beim Start mit dem Compiler, der auch gbx baut.
 add_test(NAME inline
@@ -172,35 +171,35 @@ add_test(NAME inline
 set_tests_properties(inline PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   ENVIRONMENT "GBX_CXX=${CMAKE_CXX_COMPILER}"
-  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+  PASS_REGULAR_EXPRESSION "0 (fehlgeschlagen|failed)")
 
 # UI.gbx: Widgets, Fenster, Maus und Tastatur mit virtueller Eingabe
 add_test(NAME ui
          COMMAND gbx --headless --tests tests/ui_tests.gbx)
 set_tests_properties(ui PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+  PASS_REGULAR_EXPRESSION "0 (fehlgeschlagen|failed)")
 
 # Dateizugriff: FILE_OPEN/READ.../WRITE..., Seek und Dateioperationen
 add_test(NAME files
          COMMAND gbx --headless --tests tests/file_tests.gbx)
 set_tests_properties(files PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+  PASS_REGULAR_EXPRESSION "0 (fehlgeschlagen|failed)")
 
 # Netzwerk: TCP und UDP ueber 127.0.0.1 im selben Prozess
 add_test(NAME net
          COMMAND gbx --headless --tests tests/net_tests.gbx)
 set_tests_properties(net PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+  PASS_REGULAR_EXPRESSION "0 (fehlgeschlagen|failed)")
 
 # Plattformspiel: Schwerkraft, Tile-Kollision, Gegner, Muenzen, Ziel
 add_test(NAME platformer
          COMMAND gbx --headless --tests tests/platformer_tests.gbx)
 set_tests_properties(platformer PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+  PASS_REGULAR_EXPRESSION "0 (fehlgeschlagen|failed)")
 
 # INCLUDE: Dateien in einer Reihe, verschachtelt und als Raute (Beispiel)
 add_test(NAME includes
@@ -214,7 +213,7 @@ add_test(NAME library
 set_tests_properties(library PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests/library
   ENVIRONMENT "GBX_CXX=${CMAKE_CXX_COMPILER}"
-  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+  PASS_REGULAR_EXPRESSION "0 (fehlgeschlagen|failed)")
 
 # Dasselbe ueber die Quelldatei gestartet, so wie es die IDE macht: die
 # [native]-Angaben der Projektdatei daneben muessen trotzdem greifen.
@@ -223,7 +222,7 @@ add_test(NAME library-entry
 set_tests_properties(library-entry PROPERTIES
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests/library
   ENVIRONMENT "GBX_CXX=${CMAKE_CXX_COMPILER}"
-  PASS_REGULAR_EXPRESSION "0 fehlgeschlagen")
+  PASS_REGULAR_EXPRESSION "0 (fehlgeschlagen|failed)")
 
 # Pixelpruefung der Zeichenbefehle (offscreen ueber den SDL-dummy-Treiber)
 find_package(Python3 COMPONENTS Interpreter QUIET)

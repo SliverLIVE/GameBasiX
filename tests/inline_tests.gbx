@@ -470,7 +470,7 @@ TRY
   zuWeit()
   ASSERT FALSE, "Fehler im Schritt muss kommen"
 CATCH fehler$
-  ASSERT INSTR(fehler$, "Array-Index") >= 0, "Fehlermeldung nennt den Index"
+  ASSERT INSTR(fehler$, "Array index") >= 0, "Fehlermeldung nennt den Index"
 FINALLY
 
 ' push/insert/remove pruefen ihre Grenzen und melden den Grund.
@@ -483,7 +483,7 @@ TRY
   falscherIndex()
   ASSERT FALSE, "remove mit falschem Index muss fehlschlagen"
 CATCH fehler$
-  ASSERT INSTR(fehler$, "ausserhalb") >= 0, "remove meldet den Index"
+  ASSERT INSTR(fehler$, "outside") >= 0, "remove meldet den Index"
 FINALLY
 
 FUNCTION rasterPush:
@@ -495,7 +495,7 @@ TRY
   rasterPush()
   ASSERT FALSE, "push auf ein mehrdimensionales Array muss fehlschlagen"
 CATCH fehler$
-  ASSERT INSTR(fehler$, "eindimensional") >= 0, "Meldung erklaert mehrdimensionale Arrays"
+  ASSERT INSTR(fehler$, "one-dimensional") >= 0, "Meldung erklaert mehrdimensionale Arrays"
 FINALLY
 
 ' Auch GBX-Befehle pruefen ihre Argumente.
@@ -508,7 +508,7 @@ TRY
   rufeFalsch()
   ASSERT FALSE, "LEN ohne Argument muss fehlschlagen"
 CATCH fehler$
-  ASSERT INSTR(fehler$, "Argumente") >= 0, "falsche Argumentzahl wird gemeldet"
+  ASSERT INSTR(fehler$, "arguments") >= 0, "falsche Argumentzahl wird gemeldet"
 FINALLY
 
 FUNCTION rufeUnbekannt:
@@ -520,7 +520,7 @@ TRY
   rufeUnbekannt()
   ASSERT FALSE, "unbekannter Befehl muss fehlschlagen"
 CATCH fehler$
-  ASSERT INSTR(fehler$, "Unbekannter GBX-Befehl") >= 0, "unbekannter Befehl wird gemeldet"
+  ASSERT INSTR(fehler$, "Unknown GBX command") >= 0, "unbekannter Befehl wird gemeldet"
 FINALLY
 
 FUNCTION rufeLiteral:
@@ -532,7 +532,7 @@ TRY
   rufeLiteral()
   ASSERT FALSE, "BYREF auf eine Zahl muss fehlschlagen"
 CATCH fehler$
-  ASSERT INSTR(fehler$, "Ausgabevariable") >= 0, "BYREF verlangt eine Variable"
+  ASSERT INSTR(fehler$, "Output variable") >= 0, "BYREF verlangt eine Variable"
 FINALLY
 
 ' ENUM-Werte heissen PHASE.STOP. Im C++-Schritt werden daraus einfache

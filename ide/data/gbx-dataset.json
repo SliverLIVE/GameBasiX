@@ -2,8 +2,8 @@
  "meta": {
   "app": "GameBasiX",
   "version": 1,
-  "generatedAt": "2026-10-29T23:54:53.259Z",
-  "commands": 293,
+  "generatedAt": "2026-11-02T19:58:17.034Z",
+  "commands": 315,
   "note": "Aus der Befehlsliste der README erzeugt; die Beschreibungen sind eigene Texte auf Deutsch und Englisch. Spracheigenschaften stehen im Eintrag „Sprachdetails“. "
  },
  "categories": [
@@ -16,6 +16,7 @@
   "Mathe",
   "Strings",
   "Dateien",
+  "Arrays und Dictionaries",
   "Netzwerk",
   "Steam",
   "Laufzeit und Debug",
@@ -549,6 +550,98 @@
    "signatureEn": "ARRAY_BOUNDS(a[], dimension)",
    "syntaxEn": [
     "ARRAY_BOUNDS(a[], dimension)"
+   ]
+  },
+  {
+   "name": "ARRAY_FIND",
+   "displayName": "ARRAY_FIND",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "ARRAY_FIND(array, value[, start])",
+   "syntax": [
+    "ARRAY_FIND(array, value[, start])"
+   ],
+   "description": {
+    "de": "Sucht einen Wert und liefert den ersten Index oder -1; start verschiebt den Suchbeginn.",
+    "en": "Searches a value and returns the first index or -1; start moves where the search begins."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "array",
+     "label": "array",
+     "labelEn": "array",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "start",
+     "label": "start",
+     "labelEn": "start",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "ARRAY_FIND(array, value[, start])",
+   "syntaxEn": [
+    "ARRAY_FIND(array, value[, start])"
+   ]
+  },
+  {
+   "name": "ARRAY_SORT",
+   "displayName": "ARRAY_SORT",
+   "kind": "command",
+   "category": "Arrays und Dictionaries",
+   "signature": "ARRAY_SORT array[, direction[, field$]]",
+   "syntax": [
+    "ARRAY_SORT array[, direction[, field$]]"
+   ],
+   "description": {
+    "de": "Sortiert ein Array an Ort und Stelle: 1 aufsteigend (Vorgabe), -1 absteigend. Bei einem TYPE-Array nennt field$ das Vergleichsfeld; liefert die Anzahl der Elemente.",
+    "en": "Sorts an array in place: 1 ascending (default), -1 descending. For a TYPE array field$ names the field to compare; returns the element count."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "array",
+     "label": "array",
+     "labelEn": "array",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "direction",
+     "label": "direction",
+     "labelEn": "direction",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "field",
+     "label": "field",
+     "labelEn": "field",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "ARRAY_SORT array[, direction[, field$]]",
+   "syntaxEn": [
+    "ARRAY_SORT array[, direction[, field$]]"
    ]
   },
   {
@@ -1361,6 +1454,406 @@
    ]
   },
   {
+   "name": "DICT_CLEAR",
+   "displayName": "DICT_CLEAR",
+   "kind": "command",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_CLEAR d",
+   "syntax": [
+    "DICT_CLEAR d"
+   ],
+   "description": {
+    "de": "Leert das Dictionary.",
+    "en": "Empties the dictionary."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_CLEAR d",
+   "syntaxEn": [
+    "DICT_CLEAR d"
+   ]
+  },
+  {
+   "name": "DICT_COUNT",
+   "displayName": "DICT_COUNT",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_COUNT(d)",
+   "syntax": [
+    "DICT_COUNT(d)"
+   ],
+   "description": {
+    "de": "Anzahl der Einträge – dasselbe wie LEN(d).",
+    "en": "Number of entries – the same as LEN(d)."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_COUNT(d)",
+   "syntaxEn": [
+    "DICT_COUNT(d)"
+   ]
+  },
+  {
+   "name": "DICT_DELETE",
+   "displayName": "DICT_DELETE",
+   "kind": "command",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_DELETE d,key$",
+   "syntax": [
+    "DICT_DELETE d,key$"
+   ],
+   "description": {
+    "de": "Entfernt einen Schlüssel und liefert 1, wenn er vorhanden war.",
+    "en": "Removes a key and returns 1 when it was there."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_DELETE d,key$",
+   "syntaxEn": [
+    "DICT_DELETE d,key$"
+   ]
+  },
+  {
+   "name": "DICT_GET",
+   "displayName": "DICT_GET",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_GET(d,key$[,default])",
+   "syntax": [
+    "DICT_GET(d,key$[,default])"
+   ],
+   "description": {
+    "de": "Liefert den Wert zum Schlüssel oder die Vorgabe (ohne Vorgabe 0).",
+    "en": "Returns the value for a key, or the default (0 without one)."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "default",
+     "label": "default",
+     "labelEn": "default",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_GET(d,key$[,default])",
+   "syntaxEn": [
+    "DICT_GET(d,key$[,default])"
+   ]
+  },
+  {
+   "name": "DICT_HAS",
+   "displayName": "DICT_HAS",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_HAS(d,key$)",
+   "syntax": [
+    "DICT_HAS(d,key$)"
+   ],
+   "description": {
+    "de": "Sagt, ob ein Schlüssel vorhanden ist.",
+    "en": "Tells whether a key exists."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_HAS(d,key$)",
+   "syntaxEn": [
+    "DICT_HAS(d,key$)"
+   ]
+  },
+  {
+   "name": "DICT_KEY$",
+   "displayName": "DICT_KEY$",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_KEY$(d,i)",
+   "syntax": [
+    "DICT_KEY$(d,i)"
+   ],
+   "description": {
+    "de": "Schlüssel an einer Position, in der Reihenfolge des Einfügens.",
+    "en": "Key at a position, in insertion order."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "i",
+     "label": "i",
+     "labelEn": "i",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_KEY$(d,i)",
+   "syntaxEn": [
+    "DICT_KEY$(d,i)"
+   ]
+  },
+  {
+   "name": "DICT_KEYS",
+   "displayName": "DICT_KEYS",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_KEYS(d)",
+   "syntax": [
+    "DICT_KEYS(d)"
+   ],
+   "description": {
+    "de": "Alle Schlüssel als Array.",
+    "en": "All keys as an array."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_KEYS(d)",
+   "syntaxEn": [
+    "DICT_KEYS(d)"
+   ]
+  },
+  {
+   "name": "DICT_NEW",
+   "displayName": "DICT_NEW",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_NEW()",
+   "syntax": [
+    "DICT_NEW()"
+   ],
+   "description": {
+    "de": "Legt ein leeres Dictionary an. Schlüssel sind Text, die Werte beliebig; wie ein Array ist es ein Verweis.",
+    "en": "Creates an empty dictionary. Keys are text, values anything; like an array it is a reference."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_NEW()",
+   "syntaxEn": [
+    "DICT_NEW()"
+   ]
+  },
+  {
+   "name": "DICT_SET",
+   "displayName": "DICT_SET",
+   "kind": "command",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_SET d,key$,value",
+   "syntax": [
+    "DICT_SET d,key$,value"
+   ],
+   "description": {
+    "de": "Trägt einen Wert unter einem Schlüssel ein und überschreibt einen vorhandenen.",
+    "en": "Stores a value under a key, overwriting an existing one."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_SET d,key$,value",
+   "syntaxEn": [
+    "DICT_SET d,key$,value"
+   ]
+  },
+  {
+   "name": "DICT_VALUE",
+   "displayName": "DICT_VALUE",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_VALUE(d,i)",
+   "syntax": [
+    "DICT_VALUE(d,i)"
+   ],
+   "description": {
+    "de": "Wert an einer Position, in der Reihenfolge des Einfügens.",
+    "en": "Value at a position, in insertion order."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "i",
+     "label": "i",
+     "labelEn": "i",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_VALUE(d,i)",
+   "syntaxEn": [
+    "DICT_VALUE(d,i)"
+   ]
+  },
+  {
+   "name": "DICT_VALUES",
+   "displayName": "DICT_VALUES",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "DICT_VALUES(d)",
+   "syntax": [
+    "DICT_VALUES(d)"
+   ],
+   "description": {
+    "de": "Alle Werte als Array.",
+    "en": "All values as an array."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "d",
+     "label": "d",
+     "labelEn": "d",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "DICT_VALUES(d)",
+   "syntaxEn": [
+    "DICT_VALUES(d)"
+   ]
+  },
+  {
    "name": "DIM",
    "displayName": "DIM",
    "kind": "keyword",
@@ -1989,6 +2482,30 @@
    ]
   },
   {
+   "name": "ENDINTERFACE",
+   "displayName": "ENDINTERFACE",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "ENDINTERFACE",
+   "syntax": [
+    "ENDINTERFACE"
+   ],
+   "description": {
+    "de": "Schließt eine INTERFACE ab.",
+    "en": "Closes an INTERFACE."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "ENDINTERFACE",
+   "syntaxEn": [
+    "ENDINTERFACE"
+   ]
+  },
+  {
    "name": "ENDMETHOD",
    "displayName": "ENDMETHOD",
    "kind": "keyword",
@@ -2109,6 +2626,30 @@
    ]
   },
   {
+   "name": "ENDWHILE",
+   "displayName": "ENDWHILE",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "ENDWHILE",
+   "syntax": [
+    "ENDWHILE"
+   ],
+   "description": {
+    "de": "Beendet eine WHILE-Schleife - gleichbedeutend mit WEND.",
+    "en": "Ends a WHILE loop - the same as WEND."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "ENDWHILE",
+   "syntaxEn": [
+    "ENDWHILE"
+   ]
+  },
+  {
    "name": "ENUM",
    "displayName": "ENUM",
    "kind": "keyword",
@@ -2186,6 +2727,30 @@
    "signatureEn": "EXIT",
    "syntaxEn": [
     "EXIT"
+   ]
+  },
+  {
+   "name": "EXTENDS",
+   "displayName": "EXTENDS",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "EXTENDS base",
+   "syntax": [
+    "EXTENDS base"
+   ],
+   "description": {
+    "de": "Gibt hinter einem TYPE die Basis an, deren Felder und Methoden der neue TYPE erbt: TYPE B EXTENDS A.",
+    "en": "Names the base TYPE behind a TYPE header; the new TYPE inherits its fields and methods: TYPE B EXTENDS A."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "EXTENDS base",
+   "syntaxEn": [
+    "EXTENDS base"
    ]
   },
   {
@@ -3984,6 +4549,30 @@
    ]
   },
   {
+   "name": "IMPLEMENTS",
+   "displayName": "IMPLEMENTS",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "IMPLEMENTS first[, second]",
+   "syntax": [
+    "IMPLEMENTS first[, second]"
+   ],
+   "description": {
+    "de": "Listet hinter einem TYPE die INTERFACEs auf, die er erfüllt: TYPE B IMPLEMENTS I, J.",
+    "en": "Lists the INTERFACEs a TYPE fulfils: TYPE B IMPLEMENTS I, J."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "IMPLEMENTS first[, second]",
+   "syntaxEn": [
+    "IMPLEMENTS first[, second]"
+   ]
+  },
+  {
    "name": "IN",
    "displayName": "IN",
    "kind": "keyword",
@@ -4303,6 +4892,69 @@
    "signatureEn": "INTEGER64 value",
    "syntaxEn": [
     "INTEGER64 value"
+   ]
+  },
+  {
+   "name": "INTERFACE",
+   "displayName": "INTERFACE",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "INTERFACE name",
+   "syntax": [
+    "INTERFACE name"
+   ],
+   "description": {
+    "de": "Beginnt eine Schnittstelle. Darin stehen nur SUB- und FUNCTION-Kopfzeilen ohne Rumpf; ENDINTERFACE schliesst sie, TYPE ... IMPLEMENTS fordert sie ein.",
+    "en": "Starts an interface. It holds only SUB and FUNCTION headers without a body; ENDINTERFACE closes it and TYPE ... IMPLEMENTS requires it."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "INTERFACE name",
+   "syntaxEn": [
+    "INTERFACE name"
+   ]
+  },
+  {
+   "name": "ISA",
+   "displayName": "ISA",
+   "kind": "function",
+   "category": "Arrays und Dictionaries",
+   "signature": "ISA(value, \"TYPE\")",
+   "syntax": [
+    "ISA(value, \"TYPE\")"
+   ],
+   "description": {
+    "de": "Prüft, ob ein Wert vom genannten TYPE stammt, davon abgeleitet ist oder ein INTERFACE erfüllt.",
+    "en": "Checks whether a value is of the named TYPE, derived from it, or fulfils an INTERFACE."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "datei",
+     "label": "datei",
+     "labelEn": "file",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "ISA(value, \"TYPE\")",
+   "syntaxEn": [
+    "ISA(value, \"TYPE\")"
    ]
   },
   {
@@ -8123,6 +8775,30 @@
    ]
   },
   {
+   "name": "OPTION",
+   "displayName": "OPTION",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "OPTION STRICT",
+   "syntax": [
+    "OPTION STRICT"
+   ],
+   "description": {
+    "de": "Schaltet Sprachoptionen ein. Bisher gibt es nur OPTION STRICT: Jede Variable muss vor dem Lesen zugewiesen sein, sonst meldet der Interpreter einen Laufzeitfehler.",
+    "en": "Switches language options on. Only OPTION STRICT exists so far: every variable must be assigned before it is read, otherwise the interpreter raises a runtime error."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "OPTION STRICT",
+   "syntaxEn": [
+    "OPTION STRICT"
+   ]
+  },
+  {
    "name": "OR",
    "displayName": "OR",
    "kind": "keyword",
@@ -11540,6 +12216,30 @@
    ]
   },
   {
+   "name": "STRICT",
+   "displayName": "STRICT",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "STRICT",
+   "syntax": [
+    "STRICT"
+   ],
+   "description": {
+    "de": "Steht nur hinter OPTION und macht unzugewiesene Variablen zum Laufzeitfehler - dasselbe wie der Schalter --strict.",
+    "en": "Only valid after OPTION; makes unassigned variables a runtime error - the same as the --strict switch."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "STRICT",
+   "syntaxEn": [
+    "STRICT"
+   ]
+  },
+  {
    "name": "SUB",
    "displayName": "SUB",
    "kind": "keyword",
@@ -12351,6 +13051,30 @@
    "signatureEn": "WEND",
    "syntaxEn": [
     "WEND"
+   ]
+  },
+  {
+   "name": "WHEN",
+   "displayName": "WHEN",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "WHEN condition",
+   "syntax": [
+    "WHEN condition"
+   ],
+   "description": {
+    "de": "Bedingung hinter einem CATCH: Der Block läuft nur, wenn sie wahr ist; die Meldung steht in der Fehlervariablen.",
+    "en": "Condition behind a CATCH: the block only runs when it is true; the message is in the error variable."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "WHEN condition",
+   "syntaxEn": [
+    "WHEN condition"
    ]
   },
   {

@@ -79,6 +79,62 @@
     "de": "Liefert die Größe der angegebenen Dimension; 0 ist die erste.",
     "en": "Returns the size of the given dimension; 0 is the first one."
   },
+  "ARRAY_SORT": {
+    "de": "Sortiert ein Array an Ort und Stelle: 1 aufsteigend (Vorgabe), -1 absteigend. Bei einem TYPE-Array nennt field$ das Vergleichsfeld; liefert die Anzahl der Elemente.",
+    "en": "Sorts an array in place: 1 ascending (default), -1 descending. For a TYPE array field$ names the field to compare; returns the element count."
+  },
+  "ARRAY_FIND": {
+    "de": "Sucht einen Wert und liefert den ersten Index oder -1; start verschiebt den Suchbeginn.",
+    "en": "Searches a value and returns the first index or -1; start moves where the search begins."
+  },
+  "DICT_NEW": {
+    "de": "Legt ein leeres Dictionary an. Schlüssel sind Text, die Werte beliebig; wie ein Array ist es ein Verweis.",
+    "en": "Creates an empty dictionary. Keys are text, values anything; like an array it is a reference."
+  },
+  "DICT_SET": {
+    "de": "Trägt einen Wert unter einem Schlüssel ein und überschreibt einen vorhandenen.",
+    "en": "Stores a value under a key, overwriting an existing one."
+  },
+  "DICT_GET": {
+    "de": "Liefert den Wert zum Schlüssel oder die Vorgabe (ohne Vorgabe 0).",
+    "en": "Returns the value for a key, or the default (0 without one)."
+  },
+  "DICT_HAS": {
+    "de": "Sagt, ob ein Schlüssel vorhanden ist.",
+    "en": "Tells whether a key exists."
+  },
+  "DICT_DELETE": {
+    "de": "Entfernt einen Schlüssel und liefert 1, wenn er vorhanden war.",
+    "en": "Removes a key and returns 1 when it was there."
+  },
+  "DICT_COUNT": {
+    "de": "Anzahl der Einträge – dasselbe wie LEN(d).",
+    "en": "Number of entries – the same as LEN(d)."
+  },
+  "DICT_CLEAR": {
+    "de": "Leert das Dictionary.",
+    "en": "Empties the dictionary."
+  },
+  "DICT_KEY$": {
+    "de": "Schlüssel an einer Position, in der Reihenfolge des Einfügens.",
+    "en": "Key at a position, in insertion order."
+  },
+  "DICT_VALUE": {
+    "de": "Wert an einer Position, in der Reihenfolge des Einfügens.",
+    "en": "Value at a position, in insertion order."
+  },
+  "DICT_KEYS": {
+    "de": "Alle Schlüssel als Array.",
+    "en": "All keys as an array."
+  },
+  "DICT_VALUES": {
+    "de": "Alle Werte als Array.",
+    "en": "All values as an array."
+  },
+  "ISA": {
+    "de": "Prüft, ob ein Wert vom genannten TYPE stammt, davon abgeleitet ist oder ein INTERFACE erfüllt.",
+    "en": "Checks whether a value is of the named TYPE, derived from it, or fulfils an INTERFACE."
+  },
   "RECT_COLLIDE": {
     "de": "Rechnet zwei Rechtecke gegeneinander und liefert 1, sobald sie sich überschneiden.",
     "en": "Tests two rectangles against each other and returns 1 as soon as they overlap."
@@ -238,6 +294,38 @@
   "ENDINLINE": {
     "de": "Beendet einen INLINE-Block. Alles dazwischen geht unverändert an den C++-Compiler.",
     "en": "Ends an INLINE block. Everything in between goes to the C++ compiler unchanged."
+  },
+  "ENDINTERFACE": {
+    "de": "Schließt eine INTERFACE ab.",
+    "en": "Closes an INTERFACE."
+  },
+  "ENDWHILE": {
+    "de": "Beendet eine WHILE-Schleife - gleichbedeutend mit WEND.",
+    "en": "Ends a WHILE loop - the same as WEND."
+  },
+  "WHEN": {
+    "de": "Bedingung hinter einem CATCH: Der Block läuft nur, wenn sie wahr ist; die Meldung steht in der Fehlervariablen.",
+    "en": "Condition behind a CATCH: the block only runs when it is true; the message is in the error variable."
+  },
+  "EXTENDS": {
+    "de": "Gibt hinter einem TYPE die Basis an, deren Felder und Methoden der neue TYPE erbt: TYPE B EXTENDS A.",
+    "en": "Names the base TYPE behind a TYPE header; the new TYPE inherits its fields and methods: TYPE B EXTENDS A."
+  },
+  "IMPLEMENTS": {
+    "de": "Listet hinter einem TYPE die INTERFACEs auf, die er erfüllt: TYPE B IMPLEMENTS I, J.",
+    "en": "Lists the INTERFACEs a TYPE fulfils: TYPE B IMPLEMENTS I, J."
+  },
+  "INTERFACE": {
+    "de": "Beginnt eine Schnittstelle. Darin stehen nur SUB- und FUNCTION-Kopfzeilen ohne Rumpf; ENDINTERFACE schliesst sie, TYPE ... IMPLEMENTS fordert sie ein.",
+    "en": "Starts an interface. It holds only SUB and FUNCTION headers without a body; ENDINTERFACE closes it and TYPE ... IMPLEMENTS requires it."
+  },
+  "OPTION": {
+    "de": "Schaltet Sprachoptionen ein. Bisher gibt es nur OPTION STRICT: Jede Variable muss vor dem Lesen zugewiesen sein, sonst meldet der Interpreter einen Laufzeitfehler.",
+    "en": "Switches language options on. Only OPTION STRICT exists so far: every variable must be assigned before it is read, otherwise the interpreter raises a runtime error."
+  },
+  "STRICT": {
+    "de": "Steht nur hinter OPTION und macht unzugewiesene Variablen zum Laufzeitfehler - dasselbe wie der Schalter --strict.",
+    "en": "Only valid after OPTION; makes unassigned variables a runtime error - the same as the --strict switch."
   },
   "ENDMETHOD": {
     "de": "Schließt eine METHOD ab.",

@@ -63,7 +63,7 @@ bool toBool(const std::string& v) {
 
 ProjectConfig loadProject(const std::string& path) {
     std::ifstream in(path, std::ios::binary);
-    if (!in) throw BasicError("Projektdatei nicht gefunden: " + path, SrcPos{path, 0}, true);
+    if (!in) throw BasicError("Project file not found: " + path, SrcPos{path, 0}, true);
 
     ProjectConfig cfg;
     cfg.projectFile = path;
@@ -82,13 +82,13 @@ ProjectConfig loadProject(const std::string& path) {
         if (t.front() == '[') {
             size_t close = t.find(']');
             if (close == std::string::npos)
-                throw BasicError("Ungueltige Sektion in Projektdatei", SrcPos{path, lineNo}, true);
+                throw BasicError("Invalid section in project file", SrcPos{path, lineNo}, true);
             section = upper(trim(t.substr(1, close - 1)));
             continue;
         }
         size_t eq = t.find('=');
         if (eq == std::string::npos)
-            throw BasicError("Zeile ohne '=' in Projektdatei: " + t, SrcPos{path, lineNo}, true);
+            throw BasicError("Line without '=' in project file: " + t, SrcPos{path, lineNo}, true);
         std::string key = upper(trim(t.substr(0, eq)));
         std::string val = unquote(trim(t.substr(eq + 1)));
 

@@ -1,0 +1,111 @@
+' ============================================================
+' TRY, several CATCH blocks and a FINALLY body
+' Run: gbx examples/23_trycatch/trycatch.gbxproj
+'
+'   TRY
+'     ...                may THROW on its own
+'   CATCH e$ WHEN ...    only while the condition holds
+'   CATCH e$             catches everything else
+'   FINALLY
+'     ...                runs in every case
+'   ENDTRY
+' Without a matching CATCH the error travels outwards, FINALLY still
+' runs. The example shows three scenarios in turn.
+' ============================================================
+
+GLOBAL message$
+GLOBAL source$
+GLOBAL caught%
+GLOBAL cleanup%
+
+message$ = "(nothing happened yet)"
+source$ = "-"
+caught% = 0
+cleanup% = 0
+
+FUNCTION divide: a, b
+  IF b = 0 THEN THROW "Division by zero in " + STR$(a) + " / 0"
+  RETURN a / b
+ENDFUNCTION
+
+SUB runScenario: kind%
+  TRY
+    IF kind% = 1 THEN
+      result# = divide(10, 0)
+    ELSEIF kind% = 2 THEN
+      DIM tiny[2]
+      result# = tiny[9]
+    ELSE
+      THROW "something else entirely"
+    ENDIF
+    source$ = "no error"
+  CATCH e$ WHEN INSTR(e$, "Division") >= 0
+    source$ = "CATCH 1: own message about division"
+    message$ = e$
+    caught% = caught% + 1
+  CATCH e$ WHEN INSTR(e$, "else") >= 0
+    source$ = "CATCH 2: own message with another word"
+    message$ = e$
+    caught% = caught% + 1
+  CATCH e$
+    source$ = "CATCH 3: runtime error without WHEN"
+    message$ = e$
+    caught% = caught% + 1
+  FINALLY
+    cleanup% = cleanup% + 1
+  ENDTRY
+ENDSUB
+
+SCREEN_SET 760, 520, 0
+WINDOW_TITLE "GameBasiX - TRY, CATCH and FINALLY"
+LIMIT_FPS 60
+
+scenario% = 0
+timer% = 1000
+
+WHILE TRUE
+  SCREEN_CLEAR RGB(10, 14, 22)
+
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "TRY / CATCH / FINALLY", 50, 24
+  TEXT_COLOR RGB(140, 170, 205)
+  PRINT "space: next scenario, ESC: end", 50, 52
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "scenario " + STR$(scenario%) + " of 3: " + source$, 50, 100
+  TEXT_COLOR RGB(200, 214, 232)
+  PRINT "message: " + message$, 70, 130
+
+  TEXT_COLOR RGB(160, 176, 200)
+  PRINT "caught: " + STR$(caught%) + "   FINALLY ran: " + STR$(cleanup%), 50, 176
+  PRINT "1: THROW ""Division ...""   2: array index out of range   3: THROW ""something ...""", 50, 202
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "how it works", 50, 260
+  TEXT_COLOR RGB(200, 214, 232)
+  PRINT "CATCH e$ WHEN condition   picks a branch by the message", 70, 288
+  PRINT "CATCH e$                  catches whatever is left", 70, 312
+  PRINT "FINALLY                   always runs, also while an error travels on", 70, 336
+  PRINT "ENDTRY                    closes the statement", 70, 360
+
+  TEXT_COLOR RGB(160, 176, 200)
+  PRINT "a THROW that no CATCH wants reaches the outer TRY - and still cleans up here", 50, 420
+
+  IF KEY_PRESSED(KEY_SPACE) THEN
+    timer% = 0
+    scenario% = scenario% + 1
+    IF scenario% > 3 THEN scenario% = 1
+    runScenario(scenario%)
+  ENDIF
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  timer% = timer% + 1
+  IF timer% > 180 THEN
+    timer% = 0
+    scenario% = scenario% + 1
+    IF scenario% > 3 THEN scenario% = 1
+    runScenario(scenario%)
+  ENDIF
+
+  SCREEN_SHOW
+WEND

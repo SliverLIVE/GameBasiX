@@ -324,6 +324,26 @@ ASSERT punkte[0].x = 0, "TYPE-Feld Standardwert"
 DIMPUSH punkte[], punkte[1]
 ASSERT ARRAY_BOUNDS(punkte[], 0) = 4, "DIMPUSH auf TYPE-Array"
 
+' Offenes GLOBAL-Array eines TYPE: startet leer, waechst mit DIMPUSH.
+TYPE MYTYPE
+  x%
+  y%
+  METHOD setXY: x%, y%
+    self.x = x
+    self.y = y
+  ENDMETHOD
+ENDTYPE
+
+GLOBAL myTypes[] AS MYTYPE
+ASSERT LEN(myTypes) = 0, "GLOBAL a[] AS TYPE ist leer"
+DIMPUSH myTypes[], 0
+DIMPUSH myTypes[], 0
+ASSERT LEN(myTypes) = 2, "DIMPUSH auf GLOBAL a[] AS TYPE"
+myTypes[1].setXY(3, 4)
+ASSERT myTypes[1].x = 3, "METHOD auf offenem TYPE-Array"
+ASSERT myTypes[1].y = 4, "METHOD setzt zweites Feld"
+ASSERT myTypes[0].x = 0, "neues Element hat Standardwerte"
+
 ' Standardwerte direkt in der TYPE-Definition (x% = 0)
 TYPE ZAEHLER
   stand% = 7
@@ -808,6 +828,145 @@ CATCH ndGrossErr$
   ndZuGross = TRUE
 FINALLY
 ASSERT ndZuGross, "zu grosses Array meldet einen Fehler"
+
+' ------------------------------------------- Arrays sortieren und finden
+DIM neuZahlen[5]
+neuZahlen[0] = 4 : neuZahlen[1] = 1 : neuZahlen[2] = 3 : neuZahlen[3] = 1 : neuZahlen[4] = 2
+ASSERT ARRAY_SORT(neuZahlen) = 5, "ARRAY_SORT liefert die Laenge"
+ASSERT neuZahlen[0] = 1 AND neuZahlen[1] = 1 AND neuZahlen[2] = 2 AND neuZahlen[3] = 3 AND neuZahlen[4] = 4, "ARRAY_SORT aufsteigend"
+ARRAY_SORT(neuZahlen, -1)
+ASSERT neuZahlen[0] = 4 AND neuZahlen[4] = 1, "ARRAY_SORT absteigend"
+ARRAY_SORT(neuZahlen)
+ASSERT ARRAY_FIND(neuZahlen, 3) = 3, "ARRAY_FIND findet den Wert"
+ASSERT ARRAY_FIND(neuZahlen, 99) = -1, "ARRAY_FIND ohne Treffer"
+ASSERT ARRAY_FIND(neuZahlen, 1, 2) = -1, "ARRAY_FIND ab Startindex"
+
+DIM neuTexte$[3]
+neuTexte$[0] = "Oda" : neuTexte$[1] = "Ada" : neuTexte$[2] = "Bea"
+ARRAY_SORT(neuTexte$)
+ASSERT neuTexte$[0] = "Ada" AND neuTexte$[2] = "Oda", "ARRAY_SORT mit Texten"
+
+TYPE NEU_KARTE
+  rang AS INTEGER
+  name$
+ENDTYPE
+DIM neuKarten[3] AS NEU_KARTE
+neuKarten[0].rang = 7 : neuKarten[0].name$ = "Sieben"
+neuKarten[1].rang = 2 : neuKarten[1].name$ = "Zwei"
+neuKarten[2].rang = 9 : neuKarten[2].name$ = "Neun"
+ARRAY_SORT(neuKarten, 1, "rang")
+ASSERT neuKarten[0].rang = 2 AND neuKarten[2].rang = 9, "ARRAY_SORT nach TYPE-Feld"
+ASSERT neuKarten[1].name$ = "Sieben", "ARRAY_SORT nimmt den Datensatz mit"
+
+' ---------------------------------------------------------- Dictionary
+bestand = DICT_NEW()
+DICT_SET(bestand, "aepfel", 3)
+DICT_SET(bestand, "birnen", 5)
+ASSERT LEN(bestand) = 2, "LEN eines Dictionary"
+ASSERT DICT_GET(bestand, "aepfel") = 3, "DICT_GET"
+ASSERT DICT_GET(bestand, "kirschen", -1) = -1, "DICT_GET mit Vorgabe"
+ASSERT DICT_HAS(bestand, "birnen"), "DICT_HAS"
+ASSERT DICT_HAS(bestand, "kirschen") = 0, "DICT_HAS ohne Schluessel"
+DICT_SET(bestand, "aepfel", 4)
+ASSERT DICT_COUNT(bestand) = 2, "DICT_SET ueberschreibt"
+ASSERT DICT_GET(bestand, "aepfel") = 4, "DICT_SET neuer Wert"
+ASSERT DICT_KEY$(bestand, 0) = "aepfel" AND DICT_VALUE(bestand, 1) = 5, "DICT_KEY$/DICT_VALUE"
+alleSchluessel$ = DICT_KEYS(bestand)
+ASSERT LEN(alleSchluessel$) = 2 AND alleSchluessel$[0] = "aepfel", "DICT_KEYS behaelt die Reihenfolge"
+alleWerte = DICT_VALUES(bestand)
+ASSERT alleWerte[1] = 5, "DICT_VALUES"
+ASSERT DICT_DELETE(bestand, "birnen") = 1, "DICT_DELETE"
+ASSERT DICT_DELETE(bestand, "birnen") = 0, "DICT_DELETE ohne Schluessel"
+ASSERT LEN(bestand) = 1, "LEN nach DICT_DELETE"
+DICT_CLEAR(bestand)
+ASSERT LEN(bestand) = 0, "DICT_CLEAR"
+ASSERT ISA(bestand, "dict"), "ISA erkennt ein Dictionary"
+
+' ------------------------------------------ TRY mit mehreren CATCH und FINALLY
+neuVersuche = 0
+neuErgebnis$ = ""
+TRY
+  neuVersuche += 1
+  THROW "kaputt"
+CATCH f$ WHEN INSTR(f$, "anders") >= 0
+  neuErgebnis$ = "falsch"
+CATCH f$ WHEN INSTR(f$, "kaputt") >= 0
+  neuErgebnis$ = "richtig"
+CATCH f$
+  neuErgebnis$ = "rest"
+FINALLY
+  neuVersuche += 10
+ENDTRY
+ASSERT neuErgebnis$ = "richtig", "CATCH mit WHEN waehlt den Zweig"
+ASSERT neuVersuche = 11, "FINALLY laeuft nach dem CATCH"
+
+neuZwei = 0
+TRY
+  neuZwei = 1
+FINALLY
+  neuZwei = neuZwei + 1
+ENDTRY
+ASSERT neuZwei = 2, "FINALLY ohne Fehler"
+
+neuStufen = 0
+TRY
+  TRY
+    THROW "tief"
+  FINALLY
+    neuStufen += 1
+  ENDTRY
+CATCH a$
+  neuStufen += 10
+ENDTRY
+ASSERT neuStufen = 11, "FINALLY laeuft auch beim Weitergereichen"
+
+' ------------------------------------------------------- Funktionswerte
+FUNCTION neuVerdoppeln: x
+  RETURN x * 2
+ENDFUNCTION
+FUNCTION neuAnwenden: f, wert
+  RETURN f(wert)
+ENDFUNCTION
+ASSERT neuAnwenden(@neuVerdoppeln, 21) = 42, "Funktion als Wert (Rueckruf)"
+ASSERT ISA(@neuVerdoppeln, "function"), "ISA erkennt eine Funktion"
+
+' ------------------------------------------------ Vererbung und Interfaces
+INTERFACE NEU_ZEICHENBAR
+  SUB zeichnen: x, y
+ENDINTERFACE
+
+TYPE NEU_FIGUR
+  x AS INTEGER
+  y AS INTEGER
+  farbe = 7
+
+  METHOD info:
+    RETURN "Figur"
+  ENDMETHOD
+
+  METHOD zeichnen: px, py
+    x = px
+    y = py
+  ENDMETHOD
+ENDTYPE
+
+TYPE NEU_KREIS EXTENDS NEU_FIGUR IMPLEMENTS NEU_ZEICHENBAR
+  radius AS INTEGER
+
+  METHOD info:
+    RETURN "Kreis"
+  ENDMETHOD
+ENDTYPE
+
+LOCAL neuKreis AS NEU_KREIS
+neuKreis.radius = 5
+neuKreis.zeichnen(10, 20)
+ASSERT neuKreis.x = 10 AND neuKreis.y = 20, "geerbte Felder und Methode"
+ASSERT neuKreis.farbe = 7, "geerbter Standardwert"
+ASSERT neuKreis.info() = "Kreis", "eigene Methode verdeckt die geerbte"
+ASSERT ISA(neuKreis, "NEU_KREIS") AND ISA(neuKreis, "NEU_FIGUR"), "ISA kennt die Basis"
+ASSERT ISA(neuKreis, "NEU_ZEICHENBAR"), "ISA kennt das INTERFACE"
+ASSERT ISA(neuKreis, "NEU_ETWAS_ANDERES") = 0, "ISA ohne Treffer"
 
 ' Konsole
 STDOUT "Sprachtests durchgelaufen." + CHR$(10)

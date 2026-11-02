@@ -207,14 +207,14 @@ void Debugger::atStatement(const SrcPos& pos, int depth, const std::string& func
             value = condition(condText, ok, condError);
         } else {
             ok = false;
-            condError = "Bedingungen sind nicht verfuegbar";
+            condError = "Conditions are not available";
         }
         lock.lock();
         if (quit_) throw DebugQuit{};
         if (!ok) {
             // Eine kaputte Bedingung soll nicht stillschweigend nie greifen.
-            if (condError.empty()) condError = "Bedingung konnte nicht gelesen werden";
-            emitNote(std::string("Bedingung des Haltepunkts ist fehlerhaft: ") + condError);
+            if (condError.empty()) condError = "Condition could not be read";
+            emitNote(std::string("Breakpoint condition is faulty: ") + condError);
             hit = true;
         } else {
             hit = value;
@@ -296,14 +296,14 @@ void Debugger::handleCommand(const std::string& line) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (!paused_) {
             emitJson("{\"t\":\"eval\",\"id\":\"" + debugJsonEscape(id) +
-                     "\",\"ok\":false,\"error\":\"nicht angehalten\"}");
+                     "\",\"ok\":false,\"error\":\"not paused\"}");
             return;
         }
         bool ok = false;
         std::string error;
         std::string body;
         if (inspect) body = inspect(text, ok, error);
-        else error = "Werte sind nicht verfuegbar";
+        else error = "Values are not available";
         std::string out = "{\"t\":\"eval\",\"id\":\"" + debugJsonEscape(id);
         if (ok) {
             out += "\",\"ok\":true,\"expr\":\"" + debugJsonEscape(text) + "\",";

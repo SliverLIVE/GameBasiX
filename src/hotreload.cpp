@@ -11,11 +11,11 @@ namespace fs = std::filesystem;
 
 const char* HotReload::kindName(AssetWatch::Kind kind) {
     switch (kind) {
-        case AssetWatch::Kind::Sprite: return "Grafik";
-        case AssetWatch::Kind::Background: return "Hintergrund";
-        case AssetWatch::Kind::Font: return "Schrift";
-        case AssetWatch::Kind::Sound: return "Sound";
-        case AssetWatch::Kind::Music: return "Musik";
+        case AssetWatch::Kind::Sprite: return "graphics";
+        case AssetWatch::Kind::Background: return "background";
+        case AssetWatch::Kind::Font: return "font";
+        case AssetWatch::Kind::Sound: return "sound";
+        case AssetWatch::Kind::Music: return "music";
     }
     return "Asset";
 }
@@ -83,10 +83,10 @@ bool HotReload::reload(Runtime& rt, AssetWatch& entry) {
     if (!ok) {
         // Eine halb geschriebene Datei ist kein Grund aufzugeben: der
         // naechste Durchlauf versucht es noch einmal.
-        note("Hot Reload: " + entry.label + " konnte nicht neu geladen werden (" + err + ")\n");
+        note("Hot Reload: " + entry.label + " could not be reloaded (" + err + ")\n");
         return false;
     }
-    note(std::string("Hot Reload: ") + kindName(entry.kind) + " " + entry.label + " neu geladen\n");
+    note(std::string("Hot Reload: ") + kindName(entry.kind) + " " + entry.label + " reloaded\n");
     entry.stamp = stampOf(entry.path);
     entry.here = true;
     return true;

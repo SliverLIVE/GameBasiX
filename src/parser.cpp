@@ -59,7 +59,7 @@ std::string closestWord(const std::vector<std::string>& names, const std::string
 
 std::string readFileOrThrow(const std::string& path, SrcPos pos) {
     std::ifstream in(path, std::ios::binary);
-    if (!in) throw BasicError("Datei nicht gefunden: " + path, std::move(pos), true);
+    if (!in) throw BasicError("File not found: " + path, std::move(pos), true);
     std::ostringstream ss;
     ss << in.rdbuf();
     return ss.str();
@@ -105,7 +105,7 @@ bool Parser::acceptIdent(const char* s) {
 }
 
 void Parser::expectSym(const char* s) {
-    if (!acceptSym(s)) error(std::string("'") + s + "' erwartet");
+    if (!acceptSym(s)) error(std::string("'") + s + "' expected");
 }
 
 void Parser::skipNewlines() {
@@ -118,7 +118,7 @@ void Parser::expectLineEnd() {
         return;
     }
     if (cur().kind == Tok::Eof) return;
-    error("Zeilenende erwartet, gefunden: '" + cur().text + "'");
+    error("Line end expected, found: '" + cur().text + "'");
 }
 
 void Parser::error(const std::string& msg) {
@@ -152,7 +152,7 @@ std::shared_ptr<TypeDef> Parser::findOrCreateType(const std::string& name) {
 
 std::string Parser::parseTypeNameIfPresent() {
     if (!acceptIdent("AS")) return "";
-    if (cur().kind != Tok::Ident) error("Typname nach AS erwartet");
+    if (cur().kind != Tok::Ident) error("Type name expected after AS");
     std::string name = stripSuffix(cur().text);
     advance();
     return name;
@@ -166,7 +166,7 @@ ExprP Parser::parseExpression() {
     skipNewlines();
     ExprP expr = parseExpr();
     skipNewlines();
-    if (cur().kind != Tok::Eof) error("Unerwarteter Text nach dem Ausdruck");
+    if (cur().kind != Tok::Eof) error("Unexpected text after the expression");
     return expr;
 }
 
@@ -335,7 +335,7 @@ ExprP Parser::parsePostfix() {
         if (isSym(".")) {
             SrcPos p{path_, cur().line};
             advance();
-            if (cur().kind != Tok::Ident) error("Feldname nach '.' erwartet");
+            if (cur().kind != Tok::Ident) error("Field name expected after '.'");
             std::string field = stripSuffix(cur().text);
             advance();
             auto node = std::make_unique<Expr>();
@@ -360,6 +360,18 @@ ExprP Parser::parsePostfix() {
 ExprP Parser::parsePrimary() {
     const Token& t = cur();
     SrcPos p{path_, t.line};
+
+    // @name: Verweis auf eine FUNCTION als Wert (Rueckruf).
+    if (isSym("@")) {
+        advance();
+        if (cur().kind != Tok::Ident) error("Function name expected after @");
+        auto e = std::make_unique<Expr>();
+        e->kind = EK::FuncRef;
+        e->pos = p;
+        e->text = stripSuffix(cur().text);
+        advance();
+        return e;
+    }
 
     if (t.kind == Tok::Int) {
         advance();
@@ -407,7 +419,7 @@ ExprP Parser::parsePrimary() {
         e->hint = suffixHint(t.text);
         return e;
     }
-    error(std::string("Ausdruck erwartet, gefunden: ") + tokenKindName(t.kind) +
+    error(std::string("Expression expected, found: ") + tokenKindName(t.kind) +
           (t.text.empty() ? "" : " '" + t.text + "'"));
 }
 
@@ -447,7 +459,7 @@ std::vector<ExprP> Parser::parseBracketList() {
 }
 
 ExprP Parser::parseLValue() {
-    if (cur().kind != Tok::Ident) error("Variable erwartet");
+    if (cur().kind != Tok::Ident) error("Variable expected");
     SrcPos p{path_, cur().line};
     auto e = std::make_unique<Expr>();
     e->kind = EK::Var;
@@ -460,7 +472,7 @@ ExprP Parser::parseLValue() {
             advance();
             // "a[] = 5" hat kein Ziel: das waere das ganze Array als Wert.
             if (acceptSym("]"))
-                error("Index fehlt: '" + e->text + "[]' ist kein Zuweisungsziel");
+                error("Index missing: '" + e->text + "[]' ist kein Zuweisungsziel");
             for (ExprP& idx : parseBracketList()) {
                 auto node = std::make_unique<Expr>();
                 node->kind = EK::Index;
@@ -473,7 +485,7 @@ ExprP Parser::parseLValue() {
         }
         if (isSym(".")) {
             advance();
-            if (cur().kind != Tok::Ident) error("Feldname nach '.' erwartet");
+            if (cur().kind != Tok::Ident) error("Field name expected after '.'");
             std::string field = stripSuffix(cur().text);
             advance();
             auto node = std::make_unique<Expr>();
@@ -527,6 +539,10 @@ void Parser::parseTopLevel() {
         parseType();
         return;
     }
+    if (isIdent("INTERFACE")) {
+        parseInterface();
+        return;
+    }
     if (isIdent("INCLUDE")) {
         parseInclude();
         return;
@@ -540,7 +556,7 @@ void Parser::parseTopLevel() {
     prog_.main.push_back(parseStatement());
     if (cur().kind == Tok::Newline) advance();
     else if (isSym(":")) advance();
-    else if (cur().kind != Tok::Eof) error("Zeilenende erwartet");
+    else if (cur().kind != Tok::Eof) error("Line end expected");
 }
 
 StmtP Parser::takeInlineBlock(bool topLevel) {
@@ -558,7 +574,7 @@ StmtP Parser::takeInlineBlock(bool topLevel) {
     advance();
     if (cur().kind == Tok::Newline) advance();
     else if (isSym(":")) advance();
-    else if (cur().kind != Tok::Eof) error("Zeilenende erwartet");
+    else if (cur().kind != Tok::Eof) error("Line end expected");
 
     if (!prog_.inlines[static_cast<size_t>(index)].step) return nullptr;
     auto s = std::make_unique<Stmt>();
@@ -571,7 +587,7 @@ StmtP Parser::takeInlineBlock(bool topLevel) {
 void Parser::parseInclude() {
     SrcPos p{path_, cur().line};
     advance();  // INCLUDE
-    if (cur().kind != Tok::Str) error("Dateiname als String erwartet");
+    if (cur().kind != Tok::Str) error("File name as string expected");
     std::string rel = cur().text;
     advance();
 
@@ -593,7 +609,7 @@ void Parser::parseInclude() {
             chain += fs::path(step).filename().string();
         }
         chain += " -> " + fs::path(full).filename().string();
-        throw BasicError("Zyklischer INCLUDE: " + chain, p, true);
+        throw BasicError("Cyclic INCLUDE: " + chain, p, true);
     }
     for (const auto& seen : prog_.includedFiles) {
         if (seen == full) return;
@@ -612,7 +628,7 @@ std::vector<StmtP> Parser::parseBlock(const std::vector<std::string>& terminator
     for (;;) {
         skipNewlines();
         if (cur().kind == Tok::Eof) {
-            error(std::string("Block nicht beendet, '") + terminators.back() + "' fehlt");
+            error(std::string("Block not closed, '") + terminators.back() + "' missing");
         }
         if (isTerminator(cur(), terminators)) break;
         if (cur().kind == Tok::Inline) {
@@ -633,7 +649,7 @@ std::vector<StmtP> Parser::parseBlock(const std::vector<std::string>& terminator
         } else if (isTerminator(cur(), terminators) || cur().kind == Tok::Eof) {
             // ok
         } else {
-            error("Zeilenende erwartet, gefunden: '" + cur().text + "'");
+            error("Line end expected, found: '" + cur().text + "'");
         }
     }
     return out;
@@ -642,9 +658,9 @@ std::vector<StmtP> Parser::parseBlock(const std::vector<std::string>& terminator
 StmtP Parser::parseStatement() {
     if (cur().kind != Tok::Ident) {
         if (cur().kind == Tok::Sym && cur().text == "?")
-            error("Praeprozessor-Anweisungen (?IF, ?DEFINE ...) werden nicht unterstuetzt");
-        if (cur().kind == Tok::Inline) error("INLINE muss eine eigene Zeile beginnen");
-        error("Anweisung erwartet, gefunden: " + std::string(tokenKindName(cur().kind)));
+            error("Preprocessor statements (?IF, ?DEFINE ...) are not supported");
+        if (cur().kind == Tok::Inline) error("INLINE must start its own line");
+        error("Statement expected, found: " + std::string(tokenKindName(cur().kind)));
     }
 
     const std::string kw = cur().text;
@@ -657,7 +673,18 @@ StmtP Parser::parseStatement() {
     };
 
     if (kw == "METHOD" || kw == "ENDMETHOD")
-        error("METHOD gehoert in einen TYPE (TYPE ... METHOD name ... ENDMETHOD ... ENDTYPE)");
+        error("METHOD belongs inside a TYPE (TYPE ... METHOD name ... ENDMETHOD ... ENDTYPE)");
+    if (kw == "OPTION") {
+        auto s = mk(SK::Nop);
+        advance();
+        if (cur().kind != Tok::Ident) error("STRICT expected after OPTION");
+        const std::string what = stripSuffix(cur().text);
+        if (what != "STRICT")
+            error("OPTION " + what + " is not supported (only OPTION STRICT)");
+        advance();
+        prog_.strictOption = true;
+        return s;
+    }
     if (kw == "IF") return parseIf();
     if (kw == "FOR") return parseFor();
     if (kw == "WHILE") return parseWhile();
@@ -715,7 +742,7 @@ StmtP Parser::parseStatement() {
     if (kw == "GOTO" || kw == "GOSUB") {
         auto s = mk(kw == "GOTO" ? SK::Goto : SK::Gosub);
         advance();
-        if (cur().kind != Tok::Ident) error("Marken- oder SUB-Name erwartet");
+        if (cur().kind != Tok::Ident) error("Label or SUB name expected");
         s->name = stripSuffix(cur().text);
         advance();
         return s;
@@ -724,21 +751,21 @@ StmtP Parser::parseStatement() {
         advance();
         return parseAssignmentOrCall();
     }
-    if (kw == "FUNCTION" || kw == "SUB" || kw == "TYPE") {
-        error(kw + " darf nur auf oberster Ebene stehen");
+    if (kw == "FUNCTION" || kw == "SUB" || kw == "TYPE" || kw == "INTERFACE") {
+        error(kw + " may only appear at top level");
     }
     if (kw == "INCLUDE") {
-        error("INCLUDE muss auf oberster Ebene stehen");
+        error("INCLUDE must be at top level");
     }
     if (kw == "ELSE" || kw == "ELSEIF" || kw == "ENDIF" || kw == "WEND" ||
         kw == "NEXT" || kw == "UNTIL" || kw == "CASE" || kw == "DEFAULT" ||
         kw == "ENDSELECT" || kw == "ENDFUNCTION" || kw == "ENDSUB" ||
         kw == "ENDTYPE" || kw == "CATCH" || kw == "FINALLY" || kw == "ENDTRY" ||
-        kw == "ENDENUM" || kw == "TO" || kw == "STEP") {
-        error("Unerwartetes '" + kw + "'");
+        kw == "ENDENUM" || kw == "ENDINTERFACE" || kw == "TO" || kw == "STEP") {
+        error("Unexpected '" + kw + "'");
     }
     if (kw == "AS" || kw == "BYREF" || kw == "IN") {
-        error("Unerwartetes '" + kw + "'");
+        error("Unexpected '" + kw + "'");
     }
 
     return parseAssignmentOrCall();
@@ -803,7 +830,7 @@ StmtP Parser::parseAssignmentOrCall() {
 
     if (saved) pos_ = save;
 
-    if (cur().kind != Tok::Ident) error("Anweisung erwartet");
+    if (cur().kind != Tok::Ident) error("Statement expected");
     auto s = std::make_unique<Stmt>();
     s->kind = SK::Call;
     s->pos = SrcPos{path_, cur().line};
@@ -881,7 +908,7 @@ StmtP Parser::parseIf() {
         nested->pos = p;
         nested->e1 = parseExpr();
         acceptIdent("THEN");
-        if (cur().kind != Tok::Newline) error("Nach ELSEIF wird eine neue Zeile erwartet");
+        if (cur().kind != Tok::Newline) error("ELSEIF must be followed by a new line");
         advance();
         nested->body = parseBlock({"ELSE", "ELSEIF", "ENDIF"});
         tail->body2.push_back(std::move(nested));
@@ -892,7 +919,7 @@ StmtP Parser::parseIf() {
         advance();  // Zeilenende
         tail->body2 = parseBlock({"ENDIF"});
     }
-    if (!acceptIdent("ENDIF")) error("ENDIF erwartet");
+    if (!acceptIdent("ENDIF")) error("ENDIF expected");
     return s;
 }
 
@@ -901,18 +928,18 @@ StmtP Parser::parseFor() {
     s->kind = SK::For;
     s->pos = SrcPos{path_, cur().line};
     advance();  // FOR
-    if (cur().kind != Tok::Ident) error("Zaehlvariable erwartet");
+    if (cur().kind != Tok::Ident) error("Loop variable expected");
     s->name = stripSuffix(cur().text);
     s->hint = suffixHint(cur().text);
     advance();
     expectSym("=");
     s->e1 = parseExpr();
-    if (!acceptIdent("TO")) error("TO erwartet");
+    if (!acceptIdent("TO")) error("TO expected");
     s->e2 = parseExpr();
     if (acceptIdent("STEP")) s->e3 = parseExpr();
     expectLineEnd();
     s->body = parseBlock({"NEXT"});
-    if (!acceptIdent("NEXT")) error("NEXT erwartet");
+    if (!acceptIdent("NEXT")) error("NEXT expected");
     if (cur().kind == Tok::Ident) advance();  // optionaler Zaehlername
     return s;
 }
@@ -925,7 +952,7 @@ StmtP Parser::parseWhile() {
     s->e1 = parseExpr();
     expectLineEnd();
     s->body = parseBlock({"WEND", "ENDWHILE"});
-    if (!acceptIdent("WEND") && !acceptIdent("ENDWHILE")) error("WEND erwartet");
+    if (!acceptIdent("WEND") && !acceptIdent("ENDWHILE")) error("WEND expected");
     return s;
 }
 
@@ -936,7 +963,7 @@ StmtP Parser::parseRepeat() {
     advance();
     expectLineEnd();
     s->body = parseBlock({"UNTIL"});
-    if (!acceptIdent("UNTIL")) error("UNTIL erwartet");
+    if (!acceptIdent("UNTIL")) error("UNTIL expected");
     s->e1 = parseExpr();
     return s;
 }
@@ -956,7 +983,7 @@ StmtP Parser::parseSelect() {
             advance();
             break;
         }
-        if (cur().kind == Tok::Eof) error("ENDSELECT fehlt");
+        if (cur().kind == Tok::Eof) error("ENDSELECT missing");
         CaseBlock cb;
         if (acceptIdent("DEFAULT")) {
             sawDefault = true;
@@ -965,8 +992,8 @@ StmtP Parser::parseSelect() {
             s->cases.push_back(std::move(cb));
             continue;
         }
-        if (!acceptIdent("CASE")) error("CASE oder DEFAULT erwartet");
-        if (sawDefault) error("CASE nach DEFAULT ist nicht erlaubt");
+        if (!acceptIdent("CASE")) error("CASE or DEFAULT expected");
+        if (sawDefault) error("CASE after DEFAULT is not allowed");
         for (;;) {
             CaseTest t;
             SrcPos p{path_, cur().line};
@@ -979,7 +1006,7 @@ StmtP Parser::parseSelect() {
             else if (isSym("=")) { t.cmp = 0; advance(); }
             t.lo = parseExpr();
             if (acceptIdent("TO")) {
-                if (t.cmp != 0) error("TO ist nur bei 'CASE a TO b' erlaubt");
+                if (t.cmp != 0) error("TO is only allowed in 'CASE a TO b'");
                 t.hi = parseExpr();
             }
             cb.tests.push_back(std::move(t));
@@ -998,7 +1025,7 @@ StmtP Parser::parseDim(bool redim) {
     s->kind = redim ? SK::Redim : SK::Dim;
     s->pos = SrcPos{path_, cur().line};
     advance();
-    if (cur().kind != Tok::Ident) error("Array-Name erwartet");
+    if (cur().kind != Tok::Ident) error("Array name expected");
     s->name = stripSuffix(cur().text);
     s->hint = suffixHint(cur().text);
     advance();
@@ -1007,7 +1034,7 @@ StmtP Parser::parseDim(bool redim) {
     ExprP member;
     while (isSym(".")) {
         advance();
-        if (cur().kind != Tok::Ident) error("Feldname nach '.' erwartet");
+        if (cur().kind != Tok::Ident) error("Field name expected after '.'");
         auto node = std::make_unique<Expr>();
         node->kind = EK::Field;
         node->pos = s->pos;
@@ -1025,7 +1052,7 @@ StmtP Parser::parseDim(bool redim) {
     }
     s->e1 = std::move(member);
     while (acceptSym("[")) {
-        if (acceptSym("]")) error("Array-Groesse erwartet (z.B. DIM a[10])");
+        if (acceptSym("]")) error("Array size expected (e.g. DIM a[10])");
         for (ExprP& size : parseBracketList()) s->exprs.push_back(std::move(size));
     }
     std::string tn = parseTypeNameIfPresent();
@@ -1050,7 +1077,7 @@ StmtP Parser::parseDecl(DeclScope scope) {
     // hier wird nur die erste zurueckgegeben und der Rest als Block angehaengt.
     std::vector<StmtP> extra;
     for (;;) {
-        if (cur().kind != Tok::Ident) error("Variablenname erwartet");
+        if (cur().kind != Tok::Ident) error("Variable name expected");
         auto d = std::make_unique<Stmt>();
         d->kind = SK::Decl;
         d->scope = scope;
@@ -1062,7 +1089,13 @@ StmtP Parser::parseDecl(DeclScope scope) {
         // dasselbe wie bei DIM, nur in einem festen Bereich. Mehrere Werte in
         // einer Klammer sind mehrere Dimensionen (feld[3, 4] = feld[3][4]).
         while (acceptSym("[")) {
-            if (acceptSym("]")) error("Array-Groesse erwartet (z.B. GLOBAL a[10])");
+            if (acceptSym("]")) {
+                // `GLOBAL a[] AS T`: offenes Array, das leer startet und erst
+                // durch DIMPUSH Elemente bekommt. Der leere Ausdruck steht
+                // fuer die Groesse 0.
+                d->exprs.push_back(ExprP{});
+                continue;
+            }
             for (ExprP& size : parseBracketList()) d->exprs.push_back(std::move(size));
         }
         if (!d->exprs.empty()) {
@@ -1079,7 +1112,7 @@ StmtP Parser::parseDecl(DeclScope scope) {
         if (isSym("=")) {
             // Ein Array bekommt keine Anfangswerte - dafuer gibt es DIMDATA.
             if (d->kind == SK::Dim)
-                error("Array ohne Anfangswert: '" + d->name + "[...]' kennt kein '=' (siehe DIMDATA)");
+                error("Array without initial value: '" + d->name + "[...]' has no '=' (see DIMDATA)");
             advance();
             d->e1 = parseExpr();
         }
@@ -1102,7 +1135,7 @@ StmtP Parser::parseConstant() {
     s->kind = SK::ConstDecl;
     s->pos = SrcPos{path_, cur().line};
     advance();
-    if (cur().kind != Tok::Ident) error("Konstantenname erwartet");
+    if (cur().kind != Tok::Ident) error("Constant name expected");
     s->name = stripSuffix(cur().text);
     s->hint = suffixHint(cur().text);
     advance();
@@ -1124,7 +1157,7 @@ StmtP Parser::parseEnum() {
     s->kind = SK::EnumDecl;
     s->pos = SrcPos{path_, cur().line};
     advance();  // ENUM
-    if (cur().kind != Tok::Ident) error("Name des ENUM erwartet");
+    if (cur().kind != Tok::Ident) error("Name for the ENUM expected");
     s->name = stripSuffix(cur().text);
     advance();
     expectLineEnd();
@@ -1137,12 +1170,12 @@ StmtP Parser::parseEnum() {
     for (;;) {
         skipNewlines();
         if (cur().kind == Tok::Eof)
-            error("Block nicht beendet, 'ENDENUM' fehlt (ENUM '" + s->name + "')");
+            error("Block not closed, 'ENDENUM' missing (ENUM '" + s->name + "')");
         if (isIdent("ENDENUM")) {
             advance();
             break;
         }
-        if (cur().kind != Tok::Ident) error("Name eines ENUM-Werts erwartet");
+        if (cur().kind != Tok::Ident) error("Name of an ENUM value expected");
 
         auto member = std::make_unique<Stmt>();
         member->kind = SK::ConstDecl;
@@ -1180,9 +1213,9 @@ StmtP Parser::parseEnum() {
         if (cur().kind == Tok::Newline) advance();
         else if (isSym(":")) advance();
         else if (isIdent("ENDENUM")) continue;
-        else if (cur().kind != Tok::Eof) error("Zeilenende erwartet, gefunden: '" + cur().text + "'");
+        else if (cur().kind != Tok::Eof) error("Line end expected, found: '" + cur().text + "'");
     }
-    if (s->body.empty()) error("ENUM ohne Werte: " + s->name);
+    if (s->body.empty()) error("ENUM without values: " + s->name);
     return s;
 }
 
@@ -1202,7 +1235,7 @@ StmtP Parser::parsePush(bool del) {
     s->kind = del ? SK::DimDel : SK::Push;
     s->pos = SrcPos{path_, cur().line};
     advance();
-    if (cur().kind != Tok::Ident) error("Array-Name erwartet");
+    if (cur().kind != Tok::Ident) error("Array name expected");
     auto var = std::make_unique<Expr>();
     var->kind = EK::Var;
     var->pos = s->pos;
@@ -1211,7 +1244,7 @@ StmtP Parser::parsePush(bool del) {
     // DIMPUSH p.items[], x: ein Feld-Array waechst genauso.
     while (isSym(".")) {
         advance();
-        if (cur().kind != Tok::Ident) error("Feldname nach '.' erwartet");
+        if (cur().kind != Tok::Ident) error("Field name expected after '.'");
         auto node = std::make_unique<Expr>();
         node->kind = EK::Field;
         node->pos = s->pos;
@@ -1232,15 +1265,15 @@ StmtP Parser::parseForeach() {
     s->kind = SK::Foreach;
     s->pos = SrcPos{path_, cur().line};
     advance();
-    if (cur().kind != Tok::Ident) error("Laufvariable erwartet");
+    if (cur().kind != Tok::Ident) error("Loop variable expected");
     s->name = stripSuffix(cur().text);
     s->hint = suffixHint(cur().text);
     advance();
-    if (!acceptIdent("IN")) error("IN erwartet");
+    if (!acceptIdent("IN")) error("IN expected");
     s->e1 = parseExpr();
     expectLineEnd();
     s->body = parseBlock({"NEXT"});
-    if (!acceptIdent("NEXT")) error("NEXT erwartet");
+    if (!acceptIdent("NEXT")) error("NEXT expected");
     return s;
 }
 
@@ -1251,17 +1284,29 @@ StmtP Parser::parseTry() {
     advance();
     expectLineEnd();
     s->body = parseBlock({"CATCH", "FINALLY", "ENDTRY"});
-    if (acceptIdent("CATCH")) {
-        if (cur().kind != Tok::Ident) error("Fehlervariable nach CATCH erwartet");
-        s->name = stripSuffix(cur().text);
+
+    // Ein oder mehrere CATCH-Zweige. Ein Zweig ohne WHEN faengt alles, ein
+    // Zweig mit WHEN nur die Fehler, deren Bedingung wahr ist.
+    while (isIdent("CATCH")) {
+        CatchClause clause;
         advance();
+        if (cur().kind != Tok::Ident) error("Error variable expected after CATCH");
+        clause.name = stripSuffix(cur().text);
+        advance();
+        if (acceptIdent("WHEN")) clause.guard = parseExpr();
         expectLineEnd();
-        s->body2 = parseBlock({"FINALLY", "ENDTRY"});
+        clause.body = parseBlock({"CATCH", "FINALLY", "ENDTRY"});
+        s->catches.push_back(std::move(clause));
     }
-    // FINALLY beendet den Block und hat keinen eigenen Code
-    if (!acceptIdent("FINALLY") && !acceptIdent("ENDTRY")) {
-        error("FINALLY erwartet");
+    if (acceptIdent("FINALLY")) {
+        if (finallyStartsBody()) {
+            s->finallyBody = parseFinallyBody();
+            acceptIdent("ENDTRY");
+        }
+        // Ohne ENDTRY bleibt FINALLY das alte Blockende ohne eigenen Code.
+        return s;
     }
+    if (!acceptIdent("ENDTRY")) error("ENDTRY expected");
     return s;
 }
 
@@ -1289,7 +1334,7 @@ void Parser::parseParamList(std::vector<Param>& params) {
     for (;;) {
         Param p;
         p.byref = acceptIdent("BYREF");
-        if (cur().kind != Tok::Ident) error("Parametername erwartet");
+        if (cur().kind != Tok::Ident) error("Parameter name expected");
         p.name = stripSuffix(cur().text);
         p.hint = suffixHint(cur().text);
         advance();
@@ -1317,12 +1362,12 @@ void Parser::parseMethod(const std::string& typeName) {
     def.ownerType = typeName;
     def.pos = SrcPos{path_, cur().line};
     advance();  // METHOD
-    if (cur().kind != Tok::Ident) error("Methodenname erwartet");
+    if (cur().kind != Tok::Ident) error("Method name expected");
     const std::string methodName = stripSuffix(cur().text);
     def.name = methodName;
     advance();
     if (!acceptSym(":"))
-        error("Nach dem Methodennamen wird ':' erwartet - METHOD name: parameter");
+        error("':' expected after the method name - METHOD name: parameter");
     parseParamList(def.params);
     expectLineEnd();
     const std::string key = typeName + "." + methodName;
@@ -1333,11 +1378,11 @@ void Parser::parseMethod(const std::string& typeName) {
     def.body = parseBlock({"ENDMETHOD"});
     scope_ = previousScope;
     scopeType_ = previousType;
-    if (!acceptIdent("ENDMETHOD")) error("ENDMETHOD erwartet");
+    if (!acceptIdent("ENDMETHOD")) error("ENDMETHOD expected");
 
     if (prog_.funcs.find(key) != prog_.funcs.end()) {
-        throw BasicError("Methode '" + methodName + "' ist in TYPE '" + typeName +
-                             "' bereits definiert",
+        throw BasicError("Method '" + methodName + "' is already defined in TYPE '" + typeName +
+                             "' is already defined",
                          def.pos, true);
     }
     prog_.funcs[key] = std::move(def);
@@ -1350,16 +1395,16 @@ void Parser::parseFunction(bool isSub) {
     def.isSub = isSub;
     def.pos = SrcPos{path_, cur().line};
     advance();  // FUNCTION / SUB
-    if (cur().kind != Tok::Ident) error("Funktionsname erwartet");
+    if (cur().kind != Tok::Ident) error("Function name expected");
     def.name = stripSuffix(cur().text);
     advance();
     // Kopfzeile immer mit Doppelpunkt: FUNCTION name: ... / SUB name: ...
     if (isSub) {
-        if (!acceptSym(":")) error("Nach dem SUB-Namen wird ':' erwartet - SUB name:");
+        if (!acceptSym(":")) error("':' expected after the SUB name - SUB name:");
         parseParamList(def.params);  // SUBs haben keine Parameter
     } else {
         if (!acceptSym(":"))
-            error("Nach dem Funktionsnamen wird ':' erwartet - FUNCTION name: parameter");
+            error("':' expected after the function name - FUNCTION name: parameter");
         parseParamList(def.params);
     }
 
@@ -1372,21 +1417,22 @@ void Parser::parseFunction(bool isSub) {
     scope_ = previousScope;
     scopeType_ = previousType;
     if (!acceptIdent(isSub ? "ENDSUB" : "ENDFUNCTION"))
-        error(isSub ? "ENDSUB erwartet" : "ENDFUNCTION erwartet");
+        error(isSub ? "ENDSUB expected" : "ENDFUNCTION expected");
 
     auto prev = prog_.funcs.find(def.name);
     if (prev != prog_.funcs.end())
-        throw BasicError("Funktion '" + def.name + "' ist bereits definiert", def.pos, true);
+        throw BasicError("Function '" + def.name + "' is already defined", def.pos, true);
     prog_.funcs[def.name] = std::move(def);
 }
 
 void Parser::parseType() {
     SrcPos p{path_, cur().line};
     advance();  // TYPE
-    if (cur().kind != Tok::Ident) error("Typname erwartet");
+    if (cur().kind != Tok::Ident) error("Type name expected");
     std::string name = stripSuffix(cur().text);
     advance();
     auto def = findOrCreateType(name);
+    parseTypeTail(def);
     def->fields.clear();
     // `x% = 0`: Standardwert je Feld; nullptr steht für „ohne Angabe“.
     std::vector<ExprP> defaults;
@@ -1400,16 +1446,16 @@ void Parser::parseType() {
             advance();
             break;
         }
-        if (cur().kind == Tok::Eof) error("ENDTYPE fehlt");
+        if (cur().kind == Tok::Eof) error("ENDTYPE missing");
         if (isIdent("METHOD")) {
             parseMethod(name);
             continue;
         }
         if (isIdent("FUNCTION") || isIdent("SUB")) {
-            error("In einem TYPE heissen Funktionen METHOD - schreibe: " + cur().text +
-                  " durch METHOD ersetzen, Block mit ENDMETHOD beenden");
+            error("Inside a TYPE these are called METHOD - replace " + cur().text +
+                  " with METHOD and end the block with ENDMETHOD");
         }
-        if (cur().kind != Tok::Ident) error("Feldname erwartet");
+        if (cur().kind != Tok::Ident) error("Field name expected");
         std::string fname = stripSuffix(cur().text);
         TypeHint hint = suffixHint(cur().text);
         advance();
@@ -1456,13 +1502,13 @@ void Parser::parseType() {
         def->fields.push_back(fd);
         arrayDims.push_back(std::move(dims));
         if (fd.isArray && isSym("="))
-            error("Feld-Array ohne Anfangswert: '" + fname + "[...]' kennt kein '=' (siehe DIMPUSH)");
+            error("Field array without initial value: '" + fname + "[...]' has no '=' (see DIMPUSH)");
         defaults.push_back(acceptSym("=") ? parseExpr() : ExprP{});
         if (cur().kind == Tok::Newline) advance();
         else if (acceptSym(",")) continue;
         else if (isIdent("ENDTYPE")) continue;
-        else if (cur().kind == Tok::Eof) error("ENDTYPE fehlt");
-        else error("Zeilenende erwartet");
+        else if (cur().kind == Tok::Eof) error("ENDTYPE missing");
+        else error("Line end expected");
     }
     prog_.typeDefaults[name] = std::move(defaults);
     prog_.typeArrayDims[name] = std::move(arrayDims);
@@ -1494,8 +1540,8 @@ void resolveExprEnums(const Program& prog, ExprP& slot) {
     const std::string value = e.text;
     if (std::find(table->second.begin(), table->second.end(), value) == table->second.end()) {
         const std::string hint = closestWord(table->second, value);
-        throw BasicError(enumName + " hat keinen Wert " + value +
-                             (hint.empty() ? "" : " - meintest du " + enumName + "." + hint + "?"),
+        throw BasicError(enumName + " has no value " + value +
+                             (hint.empty() ? "" : " - did you mean " + enumName + "." + hint + "?"),
                          e.pos, true);
     }
     auto ref = std::make_unique<Expr>();
@@ -1513,6 +1559,11 @@ void resolveStmtEnums(const Program& prog, Stmt& s) {
     for (auto& arg : s.exprs) resolveExprEnums(prog, arg);
     for (auto& inner : s.body) resolveStmtEnums(prog, *inner);
     for (auto& inner : s.body2) resolveStmtEnums(prog, *inner);
+    for (auto& inner : s.finallyBody) resolveStmtEnums(prog, *inner);
+    for (auto& clause : s.catches) {
+        resolveExprEnums(prog, clause.guard);
+        for (auto& inner : clause.body) resolveStmtEnums(prog, *inner);
+    }
     for (auto& branch : s.cases) {
         for (auto& test : branch.tests) {
             resolveExprEnums(prog, test.lo);
@@ -1534,4 +1585,222 @@ void resolveEnumRefs(Program& prog) {
     for (auto& entry : prog.typeDefaults) {
         for (auto& expr : entry.second) resolveExprEnums(prog, expr);
     }
+}
+
+// ------------------------------------------- FINALLY-Rumpf und INTERFACE
+
+namespace {
+
+// Schluesselwoerter, die keinen Satz mehr beginnen. Ein altes FINALLY ohne
+// ENDTRY soll so den Rest der Datei nicht verschlucken.
+bool canStartStatement(const std::string& kw) {
+    static const char* stop[] = {"ENDTRY",  "ENDIF",    "ELSE",        "ELSEIF",
+                                 "ENDSELECT", "CASE",   "DEFAULT",     "NEXT",
+                                 "WEND",    "UNTIL",    "ENDFUNCTION", "ENDSUB",
+                                 "ENDMETHOD", "ENDTYPE", "ENDINTERFACE", "ENDENUM",
+                                 "SUB",     "FUNCTION", "TYPE",        "INTERFACE",
+                                 "INCLUDE"};
+    for (const char* s : stop)
+        if (kw == s) return false;
+    return true;
+}
+
+}  // namespace
+
+void Parser::parseTypeTail(const std::shared_ptr<TypeDef>& def) {
+    if (acceptIdent("EXTENDS")) {
+        if (cur().kind != Tok::Ident) error("Base TYPE expected after EXTENDS");
+        def->baseName = stripSuffix(cur().text);
+        advance();
+    }
+    if (acceptIdent("IMPLEMENTS")) {
+        for (;;) {
+            if (cur().kind != Tok::Ident) error("INTERFACE name expected after IMPLEMENTS");
+            def->interfaces.push_back(stripSuffix(cur().text));
+            advance();
+            if (!acceptSym(",")) break;
+        }
+    }
+}
+
+void Parser::parseInterface() {
+    advance();  // INTERFACE
+    if (cur().kind != Tok::Ident) error("INTERFACE name expected");
+    const std::string name = stripSuffix(cur().text);
+    advance();
+    expectLineEnd();
+    std::vector<std::string> methods;
+    for (;;) {
+        skipNewlines();
+        if (isIdent("ENDINTERFACE")) {
+            advance();
+            break;
+        }
+        if (cur().kind == Tok::Eof) error("ENDINTERFACE missing");
+        if (isIdent("SUB") || isIdent("FUNCTION") || isIdent("METHOD")) {
+            advance();
+            if (cur().kind != Tok::Ident) error("Method name expected");
+            methods.push_back(stripSuffix(cur().text));
+            advance();
+            // Wie bei FUNCTION/SUB: der Doppelpunkt gehoert zur Kopfzeile.
+            acceptSym(":");
+            std::vector<Param> ignored;
+            parseParamList(ignored);
+            parseTypeNameIfPresent();  // Rueckgabetyp einer FUNCTION-Signatur
+            if (cur().kind == Tok::Newline) advance();
+            continue;
+        }
+        error("An INTERFACE holds only SUB and FUNCTION lines");
+    }
+    prog_.interfaces[name] = std::move(methods);
+}
+
+bool Parser::finallyStartsBody() const {
+    for (size_t i = pos_; i < toks_.size(); ++i) {
+        const Token& t = toks_[i];
+        if (t.kind == Tok::Eof) return false;
+        if (t.kind != Tok::Ident) continue;
+        if (t.text == "ENDTRY") return true;
+        // Eine Definition auf Zeilenanfang beendet den TRY-Bereich sicher.
+        if (i == 0 || toks_[i - 1].kind != Tok::Newline) continue;
+        static const char* stop[] = {"SUB",         "FUNCTION",  "TYPE",       "INTERFACE",
+                                     "ENDSUB",      "ENDFUNCTION", "ENDTYPE",  "ENDMETHOD",
+                                     "ENDINTERFACE"};
+        for (const char* s : stop)
+            if (t.text == s) return false;
+    }
+    return false;
+}
+
+std::vector<StmtP> Parser::parseFinallyBody() {
+    std::vector<StmtP> out;
+    for (;;) {
+        skipNewlines();
+        if (cur().kind == Tok::Eof) break;
+        if (isIdent("ENDTRY")) break;
+        if (cur().kind == Tok::Ident && !canStartStatement(cur().text)) break;
+        if (isSym(":")) {
+            advance();
+            continue;
+        }
+        if (cur().kind == Tok::Inline) {
+            if (StmtP step = takeInlineBlock(false)) out.push_back(std::move(step));
+            continue;
+        }
+        out.push_back(parseStatement());
+        if (cur().kind == Tok::Newline) advance();
+        else if (isSym(":")) advance();
+        else break;
+    }
+    return out;
+}
+
+// ---------------------------------------------------- Vererbung aufloesen
+
+namespace {
+
+// Kopie eines Ausdrucks: geerbte Standardwerte und Feld-Array-Groessen werden
+// je TYPE gebraucht, duerfen aber nicht geteilt werden (ExprP ist eindeutig).
+ExprP cloneExpr(const Expr* src) {
+    if (!src) return ExprP{};
+    auto e = std::make_unique<Expr>();
+    e->kind = src->kind;
+    e->pos = src->pos;
+    e->ival = src->ival;
+    e->fval = src->fval;
+    e->text = src->text;
+    e->hint = src->hint;
+    e->bin = src->bin;
+    e->un = src->un;
+    e->a = cloneExpr(src->a.get());
+    e->b = cloneExpr(src->b.get());
+    e->args.reserve(src->args.size());
+    for (const auto& arg : src->args) e->args.push_back(cloneExpr(arg.get()));
+    return e;
+}
+
+std::vector<ExprP> cloneList(const std::vector<ExprP>& src) {
+    std::vector<ExprP> out;
+    out.reserve(src.size());
+    for (const auto& e : src) out.push_back(cloneExpr(e.get()));
+    return out;
+}
+
+void flattenType(Program& prog, const std::string& name, std::vector<std::string>& visiting,
+                 std::vector<std::string>& done) {
+    for (const auto& d : done)
+        if (d == name) return;
+    for (const auto& v : visiting)
+        if (v == name) throw BasicError("TYPE '" + name + "' erbt im Kreis", SrcPos{}, true);
+
+    auto it = prog.types.find(name);
+    if (it == prog.types.end()) return;
+    const std::shared_ptr<TypeDef>& def = it->second;
+    visiting.push_back(name);
+
+    if (!def->baseName.empty()) {
+        if (prog.types.find(def->baseName) == prog.types.end())
+            throw BasicError("TYPE '" + name + "' extends unknown TYPE '" + def->baseName +
+                                 "'",
+                             SrcPos{}, true);
+        flattenType(prog, def->baseName, visiting, done);
+        const std::shared_ptr<TypeDef>& base = prog.types[def->baseName];
+        def->base = base.get();
+
+        // Felder: geerbte zuerst, dann die eigenen. Nur so passen die Indizes
+        // in makeRecord zu typeDefaults und typeArrayDims.
+        std::vector<FieldDef> merged = base->fields;
+        for (const auto& f : def->fields) merged.push_back(f);
+        def->fields = std::move(merged);
+
+        std::vector<ExprP> defaults;
+        auto bd = prog.typeDefaults.find(def->baseName);
+        if (bd != prog.typeDefaults.end())
+            defaults = cloneList(bd->second);
+        else
+            defaults.resize(base->fields.size());
+        auto ownDef = prog.typeDefaults.find(name);
+        if (ownDef != prog.typeDefaults.end()) {
+            std::vector<ExprP> own = cloneList(ownDef->second);
+            for (auto& e : own) defaults.push_back(std::move(e));
+        }
+        prog.typeDefaults[name] = std::move(defaults);
+
+        std::vector<std::vector<ExprP>> dims;
+        auto bdim = prog.typeArrayDims.find(def->baseName);
+        if (bdim != prog.typeArrayDims.end()) {
+            for (const auto& row : bdim->second) dims.push_back(cloneList(row));
+        } else {
+            dims.resize(base->fields.size());
+        }
+        auto ownDim = prog.typeArrayDims.find(name);
+        if (ownDim != prog.typeArrayDims.end()) {
+            for (const auto& row : ownDim->second) dims.push_back(cloneList(row));
+        }
+        prog.typeArrayDims[name] = std::move(dims);
+    }
+
+    // IMPLEMENTS: jede geforderte Methode muss die TYPE-Kette anbieten.
+    for (const auto& iface : def->interfaces) {
+        auto iit = prog.interfaces.find(iface);
+        if (iit == prog.interfaces.end())
+            throw BasicError("TYPE '" + name + "' names unknown INTERFACE '" + iface + "'",
+                             SrcPos{}, true);
+        for (const auto& m : iit->second) {
+            if (def->hasMethod(m)) continue;
+            throw BasicError("TYPE '" + name + "' is missing the method '" + m + "' from INTERFACE '" +
+                                 iface + "'",
+                             SrcPos{}, true);
+        }
+    }
+
+    visiting.pop_back();
+    done.push_back(name);
+}
+
+}  // namespace
+
+void resolveTypes(Program& prog) {
+    std::vector<std::string> visiting, done;
+    for (const auto& entry : prog.types) flattenType(prog, entry.first, visiting, done);
 }

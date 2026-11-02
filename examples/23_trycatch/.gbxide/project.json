@@ -1,0 +1,71 @@
+{
+  "name": "TRY, CATCH and FINALLY",
+  "appName": "TRY, CATCH and FINALLY",
+  "title": "GameBasiX - TRY, CATCH and FINALLY",
+  "entry": "main.gbx",
+  "width": 760,
+  "height": 520,
+  "fullscreen": false,
+  "resizable": true,
+  "icon": "",
+  "frameRate": 0,
+  "vsync": true,
+  "audio": true,
+  "volume": 1,
+  "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeSources": [],
+  "nativeFlags": "",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [],
+  "createdAt": "2026-11-02T09:00:00.000Z",
+  "layout": {
+    "sidebar": 248,
+    "reference": 352,
+    "bottom": 291
+  },
+  "dock": {
+    "zones": {
+      "left": [
+        "files",
+        "outline"
+      ],
+      "right": [
+        "reference"
+      ],
+      "bottom": [
+        "problems",
+        "output",
+        "console",
+        "debug"
+      ]
+    },
+    "collapsed": {
+      "files": false,
+      "outline": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "heights": {
+      "files": 280,
+      "outline": 576,
+      "reference": 340,
+      "problems": 220,
+      "output": 220,
+      "console": 220,
+      "debug": 260
+    },
+    "open": {
+      "left": true,
+      "right": true,
+      "bottom": true
+    },
+    "active": "console"
+  }
+}

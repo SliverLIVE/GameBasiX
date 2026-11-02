@@ -23,7 +23,6 @@
 
 #include "common.h"
 #include "debugger.h"
-#include "i18n.h"
 #include "inline.h"
 #include "interpreter.h"
 #include "lexer.h"
@@ -63,53 +62,31 @@ void reportFatal(const std::string& text) {
 }
 
 void printHelp() {
-    if (i18n::english()) {
-        std::printf(
-            "GameBasiX %s - BASIC for 2D games on SDL3\n\n"
-            "Usage:\n"
-            "  gbx <file.gbxproj>         start a project\n"
-            "  gbx <file.gbx>             start a single source file\n\n"
-            "Options:\n"
-            "  --headless                 run without a window and sound\n"
-            "  --tests                    test run (headless, assertions count)\n"
-            "  --check                    parse and check only, do not run\n"
-            "  --stdin                    read the source from input (for --check)\n"
-            "  --syntax-only              no name check (for single included files)\n"
-            "  --base <folder>            base folder for --stdin (INCLUDE, messages)\n"
-            "  --name <file.gbx>          file name in messages with --stdin\n"
-            "  --debug                    runtime debugger (breakpoints, stepping)\n"
-            "  --export <file.exe>        pack the project into one EXE (sources, assets)\n"
-            "  --inline-cpp <file>        write the C++ of the INLINE blocks (HTML5 build)\n"
-            "  --lang <de|en>             language of the messages\n"
-            "  --version                  print the version\n"
-            "  -h, --help                 this help\n",
-            kVersion);
-        return;
-    }
     std::printf(
-        "GameBasiX %s - BASIC fuer 2D-Spiele auf SDL3\n\n"
-        "Aufruf:\n"
-        "  gbx <datei.gbxproj>        Projekt starten\n"
-        "  gbx <datei.gbx>            einzelne Quelldatei starten\n\n"
-        "Optionen:\n"
-        "  --headless                 ohne Fenster und Ton ausfuehren\n"
-        "  --tests                    Testlauf (headless, Asserts zaehlen)\n"
-        "  --check                    nur uebersetzen/pruefen, nichts ausfuehren\n"
-        "  --stdin                    Quelle aus der Eingabe lesen (fuer --check)\n"
-        "  --syntax-only              keine Namenspruefung (fuer einzelne Teildateien)\n"
-        "  --base <ordner>            Bezugsordner fuer --stdin (INCLUDE, Meldungen)\n"
-        "  --name <datei.gbx>         Dateiname in Meldungen bei --stdin\n"
-        "  --debug                    Laufzeit-Debugger (Haltepunkte, Einzelschritte)\n"            "  --export <datei.exe>       Projekt als einzelne EXE packen (Quellen, Assets)\n"
-            "  --inline-cpp <datei>       C++ der INLINE-Bloecke schreiben (HTML5-Build)\n"
-        "  --lang <de|en>             Sprache der Meldungen\n"
-        "  --version                  Version ausgeben\n"
-        "  -h, --help                 diese Hilfe\n",
+        "GameBasiX %s - BASIC for 2D games on SDL3\n\n"
+        "Usage:\n"
+        "  gbx <file.gbxproj>         start a project\n"
+        "  gbx <file.gbx>             start a single source file\n\n"
+        "Options:\n"
+        "  --headless                 run without a window and sound\n"
+        "  --tests                    test run (headless, assertions count)\n"
+        "  --check                    parse and check only, do not run\n"
+        "  --stdin                    read the source from input (for --check)\n"
+        "  --syntax-only              no name check (for single included files)\n"
+        "  --base <folder>            base folder for --stdin (INCLUDE, messages)\n"
+        "  --name <file.gbx>          file name in messages with --stdin\n"
+        "  --debug                    runtime debugger (breakpoints, stepping)\n"
+        "  --export <file.exe>        pack the project into one EXE (sources, assets)\n"
+        "  --inline-cpp <file>        write the C++ of the INLINE blocks (HTML5 build)\n"
+        "  --strict                   unknown variable is an error (OPTION STRICT)\n"
+        "  --version                  print the version\n"
+        "  -h, --help                 this help\n",
         kVersion);
 }
 
 std::string readFile(const std::string& path) {
     std::ifstream in(path, std::ios::binary);
-    if (!in) throw BasicError("Quelldatei nicht gefunden: " + path, SrcPos{path, 0}, true);
+    if (!in) throw BasicError("Source file not found: " + path, SrcPos{path, 0}, true);
     std::ostringstream ss;
     ss << in.rdbuf();
     return ss.str();
@@ -139,16 +116,13 @@ void registerConstants(Runtime& rt) {
 }  // namespace
 
 int main(int argc, char** argv) {
-    // Die IDE setzt GBX_LANG passend zur gewählten Oberflächensprache;
-    // --lang hat Vorrang, weil es später in der Kommandozeile steht.
-    if (const char* env = std::getenv("GBX_LANG")) i18n::setLanguage(env);
-
     std::string path;
     bool headless = false;
     bool tests = false;
     bool checkOnly = false;
     bool debugMode = false;
     bool fromStdin = false;
+    bool strictMode = false;
     bool syntaxOnly = false;
     std::string baseDir;      // --base: Bezugsordner fuer INCLUDE
     std::string stdinName;    // --name: Dateiname in den Meldungen
@@ -165,14 +139,6 @@ int main(int argc, char** argv) {
         if (arg == "--version") {
             std::printf("GameBasiX %s (SDL3)\n", kVersion);
             return 0;
-        }
-        if (arg == "--lang") {
-            if (i + 1 >= argc) {
-                std::fprintf(stderr, "%s", i18n::tr("--lang braucht einen Wert.\n").c_str());
-                return 2;
-            }
-            i18n::setLanguage(argv[++i]);
-            continue;
         }
         if (arg == "--headless") {
             headless = true;
@@ -193,7 +159,7 @@ int main(int argc, char** argv) {
         }
         if (arg == "--export") {
             if (i + 1 >= argc) {
-                std::fprintf(stderr, "%s", i18n::tr("--export braucht einen Wert.\n").c_str());
+                std::fprintf(stderr, "%s", "--export needs a value.\n");
                 return 2;
             }
             exportMode = true;
@@ -202,7 +168,7 @@ int main(int argc, char** argv) {
         }
         if (arg == "--inline-cpp") {
             if (i + 1 >= argc) {
-                std::fprintf(stderr, "%s", i18n::tr("--inline-cpp braucht einen Wert.\n").c_str());
+                std::fprintf(stderr, "%s", "--inline-cpp needs a value.\n");
                 return 2;
             }
             inlineCppTarget = argv[++i];
@@ -218,31 +184,35 @@ int main(int argc, char** argv) {
         }
         if (arg == "--base" || arg == "--name") {
             if (i + 1 >= argc) {
-                std::fprintf(stderr, i18n::tr("%s braucht einen Wert.\n").c_str(), arg.c_str());
+                std::fprintf(stderr, "%s needs a value.\n", arg.c_str());
                 return 2;
             }
             if (arg == "--base") baseDir = argv[++i];
             else stdinName = argv[++i];
             continue;
         }
+        if (arg == "--strict") {
+            strictMode = true;
+            continue;
+        }
         if (!arg.empty() && arg[0] == '-') {
-            std::fprintf(stderr, i18n::tr("Unbekannte Option: %s\n").c_str(), arg.c_str());
+            std::fprintf(stderr, "Unknown option: %s\n", arg.c_str());
             printHelp();
             return 2;
         }
         if (path.empty()) path = arg;
         else {
-            std::fprintf(stderr, i18n::tr("Nur eine Datei kann gestartet werden.\n").c_str());
+            std::fprintf(stderr, "%s", "Only one file can be started.\n");
             return 2;
         }
     }
 
     if (fromStdin && !checkOnly) {
-        std::fprintf(stderr, i18n::tr("--stdin ist nur zusammen mit --check moeglich.\n").c_str());
+        std::fprintf(stderr, "%s", "--stdin only works together with --check.\n");
         return 2;
     }
     if (exportMode && (checkOnly || fromStdin || debugMode || !inlineCppTarget.empty())) {
-        std::fprintf(stderr, "%s", i18n::tr("--export laesst sich nicht mit --check, --stdin oder --debug verbinden.\n").c_str());
+        std::fprintf(stderr, "%s", "--export cannot be combined with --check, --stdin or --debug.\n");
         return 2;
     }
 
@@ -250,7 +220,7 @@ int main(int argc, char** argv) {
 
     if (path.empty() && !fromStdin) {
         if (exportMode) {
-            std::fprintf(stderr, "%s", i18n::tr("Fuer --export wird eine Projektdatei gebraucht.\n").c_str());
+            std::fprintf(stderr, "%s", "--export needs a project file.\n");
             return 2;
         }
         // Ohne Dateiargument: Vielleicht steckt ein Spielpaket in dieser EXE.
@@ -258,7 +228,7 @@ int main(int argc, char** argv) {
         std::string mountError;
         bool found = false;
         if (!gbxpackage::mountSelf(mounted, found, mountError)) {
-            reportFatal("Spielpaket: " + mountError);
+            reportFatal("Game package: " + mountError);
             return 2;
         }
         if (!found) {
@@ -331,6 +301,8 @@ int main(int argc, char** argv) {
         // Erst wenn alle Dateien gelesen sind, ist klar, welche Punkte zu
         // einem ENUM gehoeren (PHASE.STOP).
         resolveEnumRefs(prog);
+        // Vererbung erst danach: Basis-TYPEs duerfen spaeter in der Datei stehen.
+        resolveTypes(prog);
     } catch (BasicError& e) {
         reportFatal(e.fullMessage());
         if (dbg) dbg->reportError(e);
@@ -342,13 +314,13 @@ int main(int argc, char** argv) {
     if (!inlineCppTarget.empty()) {
         std::ofstream file(inlineCppTarget, std::ios::binary);
         if (!file) {
-            reportFatal(i18n::tr("Die Datei " + inlineCppTarget + " laesst sich nicht schreiben."));
+            reportFatal("The file " + inlineCppTarget + " cannot be written.");
             return 2;
         }
         file << gbxinline_runtime::generatedCpp(prog);
         file.close();
         if (!file) {
-            reportFatal(i18n::tr("Die Datei " + inlineCppTarget + " laesst sich nicht schreiben."));
+            reportFatal("The file " + inlineCppTarget + " cannot be written.");
             return 2;
         }
         return 0;
@@ -364,15 +336,15 @@ int main(int argc, char** argv) {
             (syntaxOnly && !exportMode) ? std::vector<LintIssue>{} : lintProgram(prog);
         for (const auto& issue : issues) {
             std::fprintf(stderr, "%s:%d: %s\n", issue.pos.file.c_str(), issue.pos.line,
-                         i18n::tr(std::string("Fehler: ") + issue.message).c_str());
+                         (std::string("Error: ") + issue.message).c_str());
         }
         if (!issues.empty()) return 2;
         if (checkOnly) {
             std::printf("%s: %s", entryPath.c_str(),
-                        i18n::tr("Syntax OK (" + std::to_string(prog.main.size()) +
-                                 " Hauptanweisungen, " + std::to_string(prog.funcs.size()) +
-                                 " Funktionen, " + std::to_string(prog.types.size()) + " TYPEs)\n")
-                            .c_str());
+                        ("Syntax OK (" + std::to_string(prog.main.size()) +
+                                  " main statements, " + std::to_string(prog.funcs.size()) +
+                                  " functions, " + std::to_string(prog.types.size()) + " TYPEs)\n")
+                                   .c_str());
             return 0;
         }
     }
@@ -407,6 +379,7 @@ int main(int argc, char** argv) {
     rt.headless = headless;
     rt.testsMode = tests;
     rt.prog = &prog;
+    rt.strict = strictMode || prog.strictOption;
     rt.dbg = dbg.get();
     rt.saveDir = cfg.projectDir;
     if (g_packaged) {
@@ -431,7 +404,7 @@ int main(int argc, char** argv) {
     registerConstants(rt);
 
     if (!rt.gfx.init(cfg.width, cfg.height, cfg.title, cfg.fullscreen, cfg.resizable)) {
-        reportFatal(i18n::tr("Grafik konnte nicht initialisiert werden.\n"));
+        reportFatal("Graphics could not be initialised.\n");
         return 2;
     }
     // Ab hier darf ein INLINE-Block Bilder an den Screen schicken.
@@ -476,7 +449,7 @@ int main(int argc, char** argv) {
         }
         result = 2;
     } catch (std::exception& e) {
-        std::fprintf(stderr, i18n::tr("Interner Fehler: %s\n").c_str(), e.what());
+        std::fprintf(stderr, "Internal error: %s\n", e.what());
         result = 3;
     }
     if (dbg && !reported) dbg->reportExit(result);
@@ -485,9 +458,9 @@ int main(int argc, char** argv) {
     rt.gfx.shutdown();
 
     if (tests) {
-        std::printf("%s", i18n::tr(std::to_string(rt.assertCount) + " Pruefungen, " +
-                                    std::to_string(rt.assertFailures) + " fehlgeschlagen\n")
-                             .c_str());
+        std::printf("%s", (std::to_string(rt.assertCount) + " checks, " +
+                           std::to_string(rt.assertFailures) + " failed\n")
+                            .c_str());
         if (rt.assertFailures > 0 && result == 0) result = 1;
     }
     return result;

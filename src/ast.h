@@ -15,7 +15,8 @@ enum class BinOp { Add, Sub, Mul, Div, Eq, Ne, Lt, Le, Gt, Ge, And, Or };
 enum class UnOp { Neg, Plus, Not };
 
 // MethodCall: p.flaeche(1) - a ist das Objekt, text der Methodenname.
-enum class EK { IntLit, FloatLit, StrLit, Var, Unary, Binary, Call, Index, Field, MethodCall };
+// FuncRef: @name - Verweis auf eine FUNCTION als Wert (Rueckruf).
+enum class EK { IntLit, FloatLit, StrLit, Var, Unary, Binary, Call, Index, Field, MethodCall, FuncRef };
 
 struct Expr;
 using ExprP = std::unique_ptr<Expr>;
@@ -70,6 +71,14 @@ enum class DeclScope { Global, Local, Static };
 struct Stmt;
 using StmtP = std::unique_ptr<Stmt>;
 
+// Ein CATCH-Zweig. Mehrere duerfen aufeinander folgen; `guard` ist das
+// optionale WHEN hinter der Fehlervariable.
+struct CatchClause {
+    std::string name;
+    ExprP guard;
+    std::vector<StmtP> body;
+};
+
 struct CaseTest {
     int cmp = 0;  // 0 ==, 1 <, 2 <=, 3 >, 4 >=, 5 <>
     ExprP lo;
@@ -98,7 +107,9 @@ struct Stmt {
 
     ExprP e1, e2, e3;                  // Assignment: e1=Ziel, e2=Wert
     std::vector<ExprP> exprs;          // DIM-Groessen, Argumente
-    std::vector<StmtP> body, body2;    // then/else, Schleifenkoerper, TRY/CATCH
+    std::vector<StmtP> body, body2;    // then/else, Schleifenkoerper
+    std::vector<CatchClause> catches;  // TRY: ein oder mehrere CATCH
+    std::vector<StmtP> finallyBody;    // TRY: FINALLY-Block (darf leer sein)
     std::vector<CaseBlock> cases;
     int delta = 0;                     // INC/DEC
     int inlineIndex = -1;              // SK::InlineStep: Index in Program::inlines
@@ -148,6 +159,10 @@ struct Program {
     std::unordered_map<std::string, std::vector<std::string>> enums;
     // Wert -> ENUMs, die ihn anbieten (fuer "meintest du PHASE.STOP?").
     std::unordered_map<std::string, std::vector<std::string>> enumValues;
+    // INTERFACE I: Name -> Methodennamen der geforderten Schnittstelle.
+    std::unordered_map<std::string, std::vector<std::string>> interfaces;
+    // OPTION STRICT im Quelltext: unbekannte Variablen sind Laufzeitfehler.
+    bool strictOption = false;
     // Standardwerte der TYPE-Felder in Feldreihenfolge; leer = ohne Angabe.
     // Getrennt von TypeDef, weil value.h keinen Syntaxbaum kennen soll.
     std::unordered_map<std::string, std::vector<ExprP>> typeDefaults;

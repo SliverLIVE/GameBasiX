@@ -84,6 +84,8 @@ std::string debugTypeName(const Value& v) {
         case VT::Record:
             if (v.rec && v.rec->def) return v.rec->def->name;
             return "TYPE";
+        case VT::Dict: return "DICT";
+        case VT::Func: return "FUNCTION";
         case VT::Null: break;
     }
     return "";
@@ -246,7 +248,7 @@ void Interpreter::execSection(const std::vector<StmtP>& body) {
         } catch (GotoSignal& g) {
             auto it = labels.find(g.label);
             if (it == labels.end())
-                throw BasicError("Marke nicht gefunden: " + g.label, s.pos, false);
+                throw BasicError("Label not found: " + g.label, s.pos, false);
             i = it->second;
             continue;
         }
@@ -283,7 +285,7 @@ public:
         ArrayObj* arr = arrayObject(array, "push");
         if (!arr) return false;
         if (isMatrix(*arr)) {
-            fail("push: nur fuer eindimensionale Arrays (mehrdimensionale mit resize aendern)");
+            fail("push: only for one-dimensional arrays (use resize for multi-dimensional ones)");
             return false;
         }
         arr->items.push_back(makeElement(*arr, item));
@@ -294,14 +296,14 @@ public:
         ArrayObj* arr = arrayObject(array, "insert");
         if (!arr) return false;
         if (isMatrix(*arr)) {
-            fail("insert: nur fuer eindimensionale Arrays (mehrdimensionale mit resize aendern)");
+            fail("insert: only for one-dimensional arrays (use resize for multi-dimensional ones)");
             return false;
         }
         const int64_t size = static_cast<int64_t>(arr->items.size());
         int64_t at = index;
         if (at < 0) at += size + 1;
         if (at < 0 || at > size) {
-            fail("insert: Index " + std::to_string(index) + " ausserhalb des Arrays");
+            fail("insert: index " + std::to_string(index) + " outside the array");
             return false;
         }
         arr->items.insert(arr->items.begin() + static_cast<std::ptrdiff_t>(at), makeElement(*arr, item));
@@ -312,14 +314,14 @@ public:
         ArrayObj* arr = arrayObject(array, "remove");
         if (!arr) return false;
         if (isMatrix(*arr)) {
-            fail("remove: nur fuer eindimensionale Arrays (mehrdimensionale mit resize aendern)");
+            fail("remove: only for one-dimensional arrays (use resize for multi-dimensional ones)");
             return false;
         }
         const int64_t size = static_cast<int64_t>(arr->items.size());
         int64_t at = index;
         if (at < 0) at += size;
         if (at < 0 || at >= size) {
-            fail("remove: Index " + std::to_string(index) + " ausserhalb des Arrays");
+            fail("remove: index " + std::to_string(index) + " outside the array");
             return false;
         }
         arr->items.erase(arr->items.begin() + static_cast<std::ptrdiff_t>(at));
@@ -330,7 +332,7 @@ public:
         ArrayObj* arr = arrayObject(array, "clear");
         if (!arr) return false;
         if (isMatrix(*arr)) {
-            fail("clear: nur fuer eindimensionale Arrays (mehrdimensionale mit resize aendern)");
+            fail("clear: only for one-dimensional arrays (use resize for multi-dimensional ones)");
             return false;
         }
         arr->items.clear();
@@ -341,16 +343,16 @@ public:
         ArrayObj* arr = arrayObject(array, "resize");
         if (!arr) return false;
         if (sizes.empty() || sizes.size() > 4) {
-            fail("resize: 1 bis 4 Dimensionen");
+            fail("resize: 1 to 4 dimensions");
             return false;
         }
         for (int size : sizes) {
             if (size < 0) {
-                fail("resize: Groesse darf nicht negativ sein");
+                fail("resize: size must not be negative");
                 return false;
             }
             if (size > 100000000) {
-                fail("resize: Array zu gross");
+                fail("resize: array too large");
                 return false;
             }
         }
@@ -378,7 +380,7 @@ public:
         ArrayObj* arr = arrayObject(array, "size");
         if (!arr) return 0;
         if (dim < 0) {
-            fail("size: Dimension muss 0 oder groesser sein");
+            fail("size: dimension must be 0 or greater");
             return 0;
         }
         const ArrayObj* inner = arr;
@@ -397,13 +399,13 @@ public:
                    std::vector<Value*>& refs, Value& result) override {
         auto it = builtins().find(name);
         if (it == builtins().end()) {
-            fail("Unbekannter GBX-Befehl: " + name);
+            fail("Unknown GBX command: " + name);
             return false;
         }
         const Builtin& fn = it->second;
         const int count = static_cast<int>(args.size());
         if (count < fn.minArgs || (fn.maxArgs >= 0 && count > fn.maxArgs)) {
-            fail("Falsche Anzahl Argumente fuer " + name);
+            fail("Wrong number of arguments for " + name);
             return false;
         }
         try {
@@ -422,7 +424,7 @@ private:
     /** Array-Wert pruefen und als ArrayObj liefern; meldet sonst den Fehler. */
     ArrayObj* arrayObject(Value* array, const char* what) {
         if (!array || !array->isArray() || !array->arr) {
-            fail(std::string(what) + ": Array erwartet");
+            fail(std::string(what) + ": array expected");
             return nullptr;
         }
         return array->arr.get();
@@ -491,7 +493,7 @@ void Interpreter::execStmt(const Stmt& s) {
             double guard = 0;
             while (eval(*s.e1).truthy()) {
                 if (++guard > kMaxLoopIterations)
-                    runtimeError("Schleife laeuft zu lange (WHILE)", s.pos);
+                    runtimeError("Loop runs too long (WHILE)", s.pos);
                 try {
                     execBlock(s.body);
                 } catch (BreakSignal&) {
@@ -506,7 +508,7 @@ void Interpreter::execStmt(const Stmt& s) {
             double guard = 0;
             for (;;) {
                 if (++guard > kMaxLoopIterations)
-                    runtimeError("Schleife laeuft zu lange (REPEAT)", s.pos);
+                    runtimeError("Loop runs too long (REPEAT)", s.pos);
                 try {
                     execBlock(s.body);
                 } catch (BreakSignal&) {
@@ -571,7 +573,7 @@ void Interpreter::execStmt(const Stmt& s) {
             Value arrVal = eval(*s.e1);
             if (!arrVal.isArray() || !arrVal.arr)
                 runtimeError("DIMPUSH: '" + (s.e1->kind == EK::Var ? s.e1->text : std::string("Ausdruck")) +
-                                 "' ist kein Array", s.pos);
+                                 "' is not an array", s.pos);
             Value v = eval(*s.e2);
             if (arrVal.arr->isTypeArray) {
                 if (!v.isRecord()) v = makeRecord(arrVal.arr->elemType);
@@ -583,12 +585,12 @@ void Interpreter::execStmt(const Stmt& s) {
         }
         case SK::DimDel: {
             Value arrVal = eval(*s.e1);
-            if (!arrVal.isArray() || !arrVal.arr) runtimeError("DIMDEL: kein Array", s.pos);
+            if (!arrVal.isArray() || !arrVal.arr) runtimeError("DIMDEL: not an array", s.pos);
             auto& items = arrVal.arr->items;
             int64_t idx = eval(*s.e2).asInt();
             if (idx < 0) idx += static_cast<int64_t>(items.size());
             if (idx < 0 || idx >= static_cast<int64_t>(items.size()))
-                runtimeError("DIMDEL: Index ausserhalb des Arrays", s.pos);
+                runtimeError("DIMDEL: index outside the array", s.pos);
             items.erase(items.begin() + idx);
             break;
         }
@@ -598,7 +600,7 @@ void Interpreter::execStmt(const Stmt& s) {
         case SK::Gosub: {
             auto it = prog_.funcs.find(s.name);
             if (it == prog_.funcs.end())
-                runtimeError("GOSUB: SUB '" + s.name + "' nicht gefunden", s.pos);
+                runtimeError("GOSUB: SUB '" + s.name + "' not found", s.pos);
             std::vector<ExprP> none;
             callUserFunction(it->second, none, s.pos);
             break;
@@ -624,7 +626,7 @@ void Interpreter::execFor(const Stmt& s) {
     double start = eval(*s.e1).asDouble();
     double end = eval(*s.e2).asDouble();
     double step = s.e3 ? eval(*s.e3).asDouble() : 1.0;
-    if (step == 0.0) runtimeError("FOR: STEP darf nicht 0 sein", s.pos);
+    if (step == 0.0) runtimeError("FOR: STEP must not be 0", s.pos);
 
     Slot* counter = findSlot(s.name);
     if (!counter) counter = createAssignmentSlot(s.name, s.hint);
@@ -634,7 +636,7 @@ void Interpreter::execFor(const Stmt& s) {
     double v = start;
     bool broken = false;
     for (; step > 0 ? v <= end : v >= end; v += step) {
-        if (++guard > kMaxLoopIterations) runtimeError("FOR-Schleife laeuft zu lange", s.pos);
+        if (++guard > kMaxLoopIterations) runtimeError("FOR loop runs too long", s.pos);
         if (hint == TypeHint::Int)
             counter->v = Value::mkInt(static_cast<int64_t>(v));
         else
@@ -699,9 +701,15 @@ void Interpreter::execSelect(const Stmt& s) {
 void Interpreter::execDim(const Stmt& s, bool redim) {
     std::vector<int> sizes;
     for (const auto& e : s.exprs) {
+        // `GLOBAL a[]`: leere Klammer, das Array startet mit Groesse 0 und
+        // waechst mit DIMPUSH.
+        if (!e) {
+            sizes.push_back(0);
+            continue;
+        }
         int64_t len = eval(*e).asInt();
         if (len < 0) len = 0;
-        if (len > 100000000) runtimeError("DIM: Array zu gross", s.pos);
+        if (len > 100000000) runtimeError("DIM: array too large", s.pos);
         sizes.push_back(static_cast<int>(len));
     }
     // Beliebig viele Dimensionen, aber nicht beliebig viele Zellen.
@@ -711,18 +719,18 @@ void Interpreter::execDim(const Stmt& s, bool redim) {
     // wie moeglich erhalten.
     if (s.e1 && s.e1->kind != EK::Var) {
         if (s.e1->kind != EK::Field)
-            runtimeError("DIM: Ziel muss ein Array oder ein Feld sein", s.pos);
-        if (sizes.empty()) runtimeError("DIM: Array-Groesse fehlt (z.B. DIM a[10])", s.pos);
+            runtimeError("DIM: the target must be an array or a field", s.pos);
+        if (sizes.empty()) runtimeError("DIM: array size missing (e.g. DIM a[10])", s.pos);
         Value base = eval(*s.e1->a);
         if (!base.isRecord() || !base.rec)
             runtimeError("DIM: links vom Punkt steht kein TYPE", s.pos);
         RecordObj* rec = base.rec.get();
         const int idx = rec->def->fieldIndex(s.e1->text);
         if (idx < 0)
-            runtimeError("TYPE '" + rec->def->name + "' hat kein Feld '" + s.e1->text + "'", s.pos);
+            runtimeError("TYPE '" + rec->def->name + "' has no field '" + s.e1->text + "'", s.pos);
         const FieldDef& fd = rec->def->fields[static_cast<size_t>(idx)];
         if (!fd.isArray)
-            runtimeError("Feld '" + s.e1->text + "' ist kein Array - im TYPE als " + s.e1->text +
+            runtimeError("Feld '" + s.e1->text + "' is not an array - im TYPE als " + s.e1->text +
                              "[...] deklarieren",
                          s.pos);
         VT fieldVT = fd.type == VT::Null ? VT::Float : fd.type;
@@ -742,7 +750,7 @@ void Interpreter::execDim(const Stmt& s, bool redim) {
             else
                 rt_.globals[s.name] = std::move(slot);
         } else {
-            runtimeError("DIM: Array-Groesse fehlt (z.B. DIM a[10])", s.pos);
+            runtimeError("DIM: array size missing (e.g. DIM a[10])", s.pos);
         }
         return;
     }
@@ -771,7 +779,7 @@ void Interpreter::execIncDec(const Stmt& s) {
     if (s.e1->kind == EK::Var && !selfFieldVar) {
         Slot* slot = findSlot(s.e1->text);
         if (!slot) slot = createAssignmentSlot(s.e1->text, s.e1->hint);
-        if (slot->isConst) runtimeError("Konstante kann nicht geaendert werden", s.pos);
+        if (slot->isConst) runtimeError("Constant cannot be changed", s.pos);
         target = &slot->v;
     } else {
         // Array-Element oder TYPE-Feld: ueber assign() schreiben
@@ -797,7 +805,7 @@ void Interpreter::execIncDec(const Stmt& s) {
 
 void Interpreter::execForeach(const Stmt& s) {
     Value arrVal = eval(*s.e1);
-    if (!arrVal.isArray() || !arrVal.arr) runtimeError("FOREACH: kein Array", s.pos);
+    if (!arrVal.isArray() || !arrVal.arr) runtimeError("FOREACH: not an array", s.pos);
     ArrayObj* arr = arrVal.arr.get();
 
     Slot& iterSlot = frame_->locals[s.name];
@@ -828,17 +836,51 @@ void Interpreter::execForeach(const Stmt& s) {
 }
 
 void Interpreter::execTry(const Stmt& s) {
+    // FINALLY laeuft genau einmal: nach dem TRY-Rumpf, nach einem gefangenen
+    // Fehler und auch dann, wenn der Fehler weitergereicht wird.
+    bool finallyDone = false;
+    auto runFinally = [&]() {
+        if (finallyDone) return;
+        finallyDone = true;
+        execBlock(s.finallyBody);
+    };
+
     try {
         execBlock(s.body);
     } catch (BasicError& e) {
-        if (e.compile) throw;
-        if (s.name.empty()) return;
-        Slot* slot = findSlot(s.name);
-        if (!slot) slot = createAssignmentSlot(s.name, TypeHint::Str);
-        slot->v = Value::mkStr(e.what());
-        slot->hint = TypeHint::Str;
-        execBlock(s.body2);
+        if (e.compile) {
+            runFinally();
+            throw;
+        }
+        // Erster CATCH ohne WHEN faengt alles; mit WHEN entscheidet die
+        // Bedingung, die die Fehlermeldung in der Fehlervariable sieht.
+        const CatchClause* chosen = nullptr;
+        for (const auto& clause : s.catches) {
+            Slot* slot = findSlot(clause.name);
+            if (!slot) slot = createAssignmentSlot(clause.name, TypeHint::Str);
+            slot->hint = TypeHint::Str;
+            slot->v = Value::mkStr(e.what());
+            if (!clause.guard || eval(*clause.guard).truthy()) {
+                chosen = &clause;
+                break;
+            }
+        }
+        if (!chosen) {
+            runFinally();
+            throw;
+        }
+        try {
+            execBlock(chosen->body);
+        } catch (...) {
+            runFinally();
+            throw;
+        }
+    } catch (...) {
+        // RETURN, BREAK, END und alles andere: FINALLY laeuft trotzdem.
+        runFinally();
+        throw;
     }
+    runFinally();
 }
 
 // ---------------------------------------------------------------- Variablen
@@ -947,7 +989,7 @@ void Interpreter::assign(const Expr& target, Value v) {
     if (target.kind == EK::Var) {
         if (Slot* local = findLocalSlot(target.text)) {
             if (local->isConst)
-                runtimeError("Konstante '" + target.text + "' kann nicht geaendert werden", target.pos);
+                runtimeError("Constant '" + target.text + "' cannot be changed", target.pos);
             if (local->hint == TypeHint::None && target.hint != TypeHint::None)
                 local->hint = target.hint;
             if (local->hint != TypeHint::None && !v.isArray() && !v.isRecord())
@@ -974,7 +1016,7 @@ void Interpreter::assign(const Expr& target, Value v) {
         Slot* slot = findSlot(target.text);
         if (!slot) slot = createAssignmentSlot(target.text, target.hint);
         if (slot->isConst)
-            runtimeError("Konstante '" + target.text + "' kann nicht geaendert werden", target.pos);
+            runtimeError("Constant '" + target.text + "' cannot be changed", target.pos);
         if (slot->hint == TypeHint::None && target.hint != TypeHint::None)
             slot->hint = target.hint;
         if (slot->hint != TypeHint::None && !v.isArray() && !v.isRecord())
@@ -985,13 +1027,13 @@ void Interpreter::assign(const Expr& target, Value v) {
     if (target.kind == EK::Index) {
         Value base = eval(*target.a);
         if (!base.isArray() || !base.arr)
-            runtimeError("Zuweisung: Ausdruck ist kein Array", target.pos);
+            runtimeError("Assignment: expression is not an array", target.pos);
         ArrayObj* arr = base.arr.get();
         size_t idx = static_cast<size_t>(toIndex(*target.b, arr->items.size(), target.pos));
         // Eine Reihe eines mehrdimensionalen Arrays ist selbst ein Array; ein
         // einzelner Wert wuerde sie ersetzen und die Zellen verschwinden.
         if (arr->items[idx].isArray() && !v.isArray() && !v.isRecord())
-            runtimeError("Ebene ist ein Array - mit [x, y] in die Zelle schreiben", target.pos);
+            runtimeError("this level is an array - write into the cell with [x, y]", target.pos);
         if (arr->isTypeArray) {
             if (!v.isRecord()) v = makeRecord(arr->elemType);
         } else if (!v.isArray() && !v.isRecord()) {
@@ -1003,10 +1045,10 @@ void Interpreter::assign(const Expr& target, Value v) {
     if (target.kind == EK::Field) {
         Value base = eval(*target.a);
         if (!base.isRecord() || !base.rec)
-            runtimeError("Zuweisung: Ausdruck ist kein TYPE", target.pos);
+            runtimeError("Assignment: expression is not a TYPE", target.pos);
         RecordObj* rec = base.rec.get();
         int idx = rec->def->fieldIndex(target.text);
-        if (idx < 0) runtimeError("TYPE '" + rec->def->name + "' hat kein Feld '" + target.text + "'",
+        if (idx < 0) runtimeError("TYPE '" + rec->def->name + "' has no field '" + target.text + "'",
                                   target.pos);
         const FieldDef& fd = rec->def->fields[static_cast<size_t>(idx)];
         if (fd.isArray) {
@@ -1021,7 +1063,7 @@ void Interpreter::assign(const Expr& target, Value v) {
         rec->fields[static_cast<size_t>(idx)] = std::move(v);
         return;
     }
-    runtimeError("Ungueltiges Zuweisungsziel", target.pos);
+    runtimeError("Invalid assignment target", target.pos);
 }
 
 void Interpreter::assignArrayIn(const std::string& name, std::shared_ptr<ArrayObj> arr,
@@ -1046,13 +1088,13 @@ void Interpreter::assignArrayIn(const std::string& name, std::shared_ptr<ArrayOb
     if (scope == DeclScope::Global || !frame_) {
         auto it = rt_.globals.find(name);
         if (it != rt_.globals.end() && it->second.isConst)
-            runtimeError("Konstante '" + name + "' kann nicht geaendert werden", pos);
+            runtimeError("Constant '" + name + "' cannot be changed", pos);
         rt_.globals[name] = std::move(slot);
         return;
     }
     Slot* existing = findLocalSlot(name);
     if (existing && existing->isConst)
-        runtimeError("Konstante '" + name + "' kann nicht geaendert werden", pos);
+        runtimeError("Constant '" + name + "' cannot be changed", pos);
     frame_->locals[name] = std::move(slot);
 }
 
@@ -1060,7 +1102,7 @@ void Interpreter::assignArray(const std::string& name, std::shared_ptr<ArrayObj>
     Value v = Value::mkArray(std::move(arr));
     Slot* slot = findSlot(name);
     if (!slot) slot = createAssignmentSlot(name, TypeHint::None);
-    if (slot->isConst) runtimeError("Konstante '" + name + "' kann nicht geaendert werden", SrcPos{});
+    if (slot->isConst) runtimeError("Constant '" + name + "' cannot be changed", SrcPos{});
     slot->hint = TypeHint::None;
     slot->v = std::move(v);
 }
@@ -1072,13 +1114,15 @@ Value Interpreter::readVar(const Expr& e) {
     if (Value* field = selfField(e.text)) return *field;
     Slot* slot = findSlot(e.text);
     if (!slot) {
+        if (rt_.strict)
+            runtimeError("Variable '" + e.text + "' was never assigned (strict mode)", e.pos);
         // Ein ENUM-Wert heisst PHASE.STOP; der kurze Name ist der typische
         // Fehler und bekommt deshalb den passenden Hinweis.
         std::string hint;
         auto value = prog_.enumValues.find(e.text);
         if (value != prog_.enumValues.end() && !value->second.empty())
-            hint = " - meintest du " + value->second.front() + "." + e.text + "?";
-        rt_.warnOnce("Variable ohne Deklaration: " + e.text + " (wird als 0 angenommen)" + hint);
+            hint = " - did you mean " + value->second.front() + "." + e.text + "?";
+        rt_.warnOnce("Variable without declaration: " + e.text + " (assumed to be 0)" + hint);
         Slot s;
         s.hint = e.hint;
         s.v = e.hint != TypeHint::None ? defaultValueFor(hintToVT(e.hint)) : Value::mkInt(0);
@@ -1095,7 +1139,7 @@ uint32_t Interpreter::toIndex(const Expr& e, size_t size, const SrcPos& pos) {
     if (idx < 0 || idx >= static_cast<int64_t>(size)) {
         std::string range = size == 0 ? std::string("0..-1") :
                             "0.." + std::to_string(static_cast<long long>(size) - 1);
-        runtimeError("Array-Index " + std::to_string(raw) + " ausserhalb von " + range, pos);
+        runtimeError("Array index " + std::to_string(raw) + " outside of " + range, pos);
     }
     return static_cast<uint32_t>(idx);
 }
@@ -1113,7 +1157,7 @@ void Interpreter::checkArraySizes(const std::vector<int>& sizes, const SrcPos& p
         if (size <= 0) continue;  // eine leere Dimension laesst das Array leer
         cells *= static_cast<int64_t>(size);
         if (cells > kMaxArrayCells)
-            runtimeError("DIM: Array zu gross (" + std::to_string(cells) + " Zellen, hoechstens " +
+            runtimeError("DIM: array too large (" + std::to_string(cells) + " Zellen, hoechstens " +
                              std::to_string(kMaxArrayCells) + ")",
                          pos);
     }
@@ -1147,7 +1191,7 @@ std::shared_ptr<ArrayObj> Interpreter::makeFieldArray(const std::string& typeNam
             }
             int64_t len = eval(*expr).asInt();
             if (len < 0) len = 0;
-            if (len > 100000000) runtimeError("DIM: Array zu gross", expr->pos);
+            if (len > 100000000) runtimeError("DIM: array too large", expr->pos);
             sizes.push_back(static_cast<int>(len));
         }
     }
@@ -1159,10 +1203,10 @@ std::shared_ptr<ArrayObj> Interpreter::makeFieldArray(const std::string& typeNam
 }
 
 Value Interpreter::makeRecord(const std::string& typeName, int depth) {
-    if (depth > kMaxRecordDepth) runtimeError("TYPE-Schachtelung zu tief: " + typeName, SrcPos{});
+    if (depth > kMaxRecordDepth) runtimeError("TYPE nesting too deep: " + typeName, SrcPos{});
     auto it = prog_.types.find(typeName);
     if (it == prog_.types.end())
-        runtimeError("Unbekannter TYPE: " + typeName, SrcPos{});
+        runtimeError("Unknown TYPE: " + typeName, SrcPos{});
     const TypeDef* def = it->second.get();
     auto rec = std::make_shared<RecordObj>();
     rec->def = def;
@@ -1209,7 +1253,7 @@ void Interpreter::copyArrayData(ArrayObj& dst, const ArrayObj& src) {
 Value Interpreter::evalCall(const std::string& name, const std::vector<ExprP>& args,
                             const SrcPos& pos) {
     if (name == "IIF") {
-        if (args.size() != 3) runtimeError("IIF erwartet 3 Argumente", pos);
+        if (args.size() != 3) runtimeError("IIF expects 3 arguments", pos);
         return eval(*args[0]).truthy() ? eval(*args[1]) : eval(*args[2]);
     }
 
@@ -1222,18 +1266,23 @@ Value Interpreter::evalCall(const std::string& name, const std::vector<ExprP>& a
         return callUserFunction(fit->second, args, pos);
     }
 
+    // Rueckruf: der Name ist keine FUNCTION, aber eine Variable, die eine
+    // FUNCTION haelt (Parameter wie `f` in `FUNCTION apply: f, x`).
+    if (Slot* slot = findSlot(name)) {
+        if (slot->v.isFunc()) {
+            auto target = prog_.funcs.find(slot->v.s);
+            if (target == prog_.funcs.end())
+                runtimeError("Unknown function: " + slot->v.s, pos);
+            return callUserFunction(target->second, args, pos);
+        }
+    }
+
     // In einer METHOD sind die Methoden des eigenen TYPEs ohne Objekt aufrufbar:
     // `skalieren(2)` meint `self.skalieren(2)`.
     if (frame_ && frame_->selfVal.isRecord() && frame_->selfVal.rec && frame_->selfVal.rec->def) {
-        const std::string owner = frame_->selfVal.rec->def->name;
-        auto mit = prog_.funcs.find(owner + "." + name);
-        if (mit == prog_.funcs.end() && !name.empty() &&
-            (name.back() == '$' || name.back() == '%' || name.back() == '#')) {
-            mit = prog_.funcs.find(owner + "." + name.substr(0, name.size() - 1));
-        }
-        if (mit != prog_.funcs.end() && mit->second.isMethod()) {
+        if (const FuncDef* selfMethod = findMethod(frame_->selfVal.rec->def, name)) {
             Value selfCopy = frame_->selfVal;  // teilt das Record
-            return callUserFunction(mit->second, args, pos, &selfCopy);
+            return callUserFunction(*selfMethod, args, pos, &selfCopy);
         }
     }
 
@@ -1248,12 +1297,12 @@ Value Interpreter::evalCall(const std::string& name, const std::vector<ExprP>& a
 
     auto bit = builtins().find(name);
     if (bit == builtins().end()) {
-        runtimeError("Unbekannter Befehl oder Funktion: " + name, pos);
+        runtimeError("Unknown command or function: " + name, pos);
     }
     const Builtin& b = bit->second;
     if (static_cast<int>(args.size()) < b.minArgs ||
         (b.maxArgs >= 0 && static_cast<int>(args.size()) > b.maxArgs)) {
-        runtimeError("Falsche Anzahl Argumente fuer " + name, pos);
+        runtimeError("Wrong number of arguments for " + name, pos);
     }
 
     std::vector<Value> vals;
@@ -1321,7 +1370,7 @@ Value Interpreter::callUserFunction(const FuncDef& def, const std::vector<ExprP>
                                     const SrcPos& pos, const Value* self) {
     if (++callDepth_ > kMaxCallDepth) {
         --callDepth_;
-        runtimeError("Zu viele verschachtelte Funktionsaufrufe (Rekursion)", pos);
+        runtimeError("Too many nested function calls (recursion)", pos);
     }
 
     std::vector<Value> argVals(args.size());
@@ -1357,7 +1406,7 @@ Value Interpreter::callUserFunction(const FuncDef& def, const std::vector<ExprP>
                     if (idx >= 0) backRefs[i] = &base.rec->fields[static_cast<size_t>(idx)];
                 }
             }
-            if (!backRefs[i]) runtimeError("BYREF-Argument muss eine Variable sein", a.pos);
+            if (!backRefs[i]) runtimeError("BYREF argument must be a variable", a.pos);
             argVals[i] = *backRefs[i];
         } else {
             argVals[i] = eval(*args[i]);
@@ -1418,17 +1467,33 @@ Value Interpreter::callUserFunction(const FuncDef& def, const std::vector<ExprP>
     return result;
 }
 
+// Methode in der TYPE-Kette: eigene METHOD vor der geerbten.
+const FuncDef* Interpreter::findMethod(const TypeDef* def, const std::string& name) const {
+    auto lookup = [&](const std::string& mname) -> const FuncDef* {
+        for (const TypeDef* t = def; t; t = t->base) {
+            auto it = prog_.funcs.find(t->name + "." + mname);
+            if (it != prog_.funcs.end() && it->second.isMethod()) return &it->second;
+        }
+        return nullptr;
+    };
+    if (const FuncDef* hit = lookup(name)) return hit;
+    // Suffix wie bei Funktionen: p.flaeche$() findet flaeche$ oder flaeche.
+    if (!name.empty() && (name.back() == '$' || name.back() == '%' || name.back() == '#'))
+        return lookup(name.substr(0, name.size() - 1));
+    return nullptr;
+}
+
 Value Interpreter::callMethod(const Expr& call) {
     Value base = eval(*call.a);
     if (!base.isRecord() || !base.rec || !base.rec->def) {
-        runtimeError("Methodenaufruf: links vom Punkt steht kein TYPE", call.pos);
+        runtimeError("Method call: left of the dot is not a TYPE", call.pos);
     }
     RecordObj* rec = base.rec.get();
-    auto it = prog_.funcs.find(rec->def->name + "." + call.text);
-    if (it == prog_.funcs.end() || !it->second.isMethod()) {
-        runtimeError("TYPE '" + rec->def->name + "' hat keine Methode '" + call.text + "'", call.pos);
+    const FuncDef* def = findMethod(rec->def, call.text);
+    if (!def) {
+        runtimeError("TYPE '" + rec->def->name + "' has no method '" + call.text + "'", call.pos);
     }
-    return callUserFunction(it->second, call.args, call.pos, &base);
+    return callUserFunction(*def, call.args, call.pos, &base);
 }
 
 std::string Interpreter::debugScope() const {
@@ -1497,7 +1562,7 @@ std::string Interpreter::debugInspect(const std::string& text, bool& ok, std::st
         if (!known) known = rt_.globals.count(head) > 0;
         if (!known) {
             ok = false;
-            error = "Unbekannter Name";
+            error = "Unknown name";
             return std::string();
         }
     }
@@ -1531,7 +1596,7 @@ Value Interpreter::evalBinary(BinOp op, const Value& a, const Value& b, const Sr
             return Value::mkFloat(a.asDouble() * b.asDouble());
         case BinOp::Div: {
             const double d = b.asDouble();
-            if (d == 0.0) runtimeError("Division durch Null", pos);
+            if (d == 0.0) runtimeError("Division by zero", pos);
             return Value::mkFloat(a.asDouble() / d);
         }
         case BinOp::Eq:
@@ -1602,19 +1667,26 @@ Value Interpreter::eval(const Expr& e) {
         case EK::Index: {
             Value base = eval(*e.a);
             if (!base.isArray() || !base.arr)
-                runtimeError("Ausdruck ist kein Array", e.pos);
+                runtimeError("Expression is not an array", e.pos);
             size_t idx = static_cast<size_t>(toIndex(*e.b, base.arr->items.size(), e.pos));
             return base.arr->items[idx];
         }
         case EK::MethodCall:
             return callMethod(e);
+        case EK::FuncRef: {
+            // @name: Verweis auf eine FUNCTION, der als Wert weitergereicht wird.
+            auto fit = prog_.funcs.find(e.text);
+            if (fit == prog_.funcs.end())
+                runtimeError("Unknown function: " + e.text, e.pos);
+            return Value::mkFunc(fit->second.name);
+        }
         case EK::Field: {
             Value base = eval(*e.a);
             if (!base.isRecord() || !base.rec)
-                runtimeError("Ausdruck ist kein TYPE", e.pos);
+                runtimeError("Expression is not a TYPE", e.pos);
             int idx = base.rec->def->fieldIndex(e.text);
             if (idx < 0)
-                runtimeError("TYPE '" + base.rec->def->name + "' hat kein Feld '" + e.text + "'", e.pos);
+                runtimeError("TYPE '" + base.rec->def->name + "' has no field '" + e.text + "'", e.pos);
             return base.rec->fields[static_cast<size_t>(idx)];
         }
     }

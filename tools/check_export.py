@@ -161,7 +161,8 @@ root = assets
         )
         output = (run.stdout + run.stderr).strip()
         check(
-            run.returncode == 0 and "0 fehlgeschlagen" in run.stdout,
+            run.returncode == 0
+            and ("0 fehlgeschlagen" in run.stdout or "0 failed" in run.stdout),
             "EXE laeuft ohne Quellen",
             output or f"Rueckgabe {run.returncode}",
         )

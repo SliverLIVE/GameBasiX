@@ -1,0 +1,83 @@
+' ============================================================
+' Dictionaries - DICT_NEW and friends
+' Run: gbx examples/22_dict/dict.gbxproj
+'
+' A dictionary maps text keys to values of any kind:
+'   DICT_SET d, key$, value          store (overwrites)
+'   DICT_GET(d, key$[, default])
+'   DICT_HAS(d, key$)                DICT_DELETE d, key$
+'   DICT_COUNT(d), LEN(d)            DICT_KEY$(d, i), DICT_VALUE(d, i)
+'   DICT_KEYS(d), DICT_VALUES(d)     DICT_CLEAR d
+' Like an array it is a reference: passing it shares the table.
+' ============================================================
+
+text$ = "apple pear apple cherry apple pear plum"
+
+DIM words$[0]
+count% = SPLIT_STRING(text$, words$[], " ")
+
+counter = DICT_NEW()
+FOR i = 0 TO count% - 1
+  word$ = words$[i]
+  DICT_SET(counter, word$, DICT_GET(counter, word$, 0) + 1)
+NEXT
+
+hasApple% = DICT_HAS(counter, "apple")
+hasLemon% = DICT_HAS(counter, "lemon")
+
+DEBUG "words: " + STR$(count%) + ", distinct: " + STR$(DICT_COUNT(counter)) + CHR$(10)
+DEBUG "apple=" + STR$(DICT_GET(counter, "apple")) + " pear=" + STR$(DICT_GET(counter, "pear", -1)) + CHR$(10)
+DEBUG "has apple=" + STR$(hasApple%) + ", has lemon=" + STR$(hasLemon%) + CHR$(10)
+
+SCREEN_SET 760, 520, 0
+WINDOW_TITLE "GameBasiX - dictionaries"
+LIMIT_FPS 60
+
+WHILE TRUE
+  SCREEN_CLEAR RGB(10, 14, 22)
+
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "Dictionaries", 50, 24
+  TEXT_COLOR RGB(140, 170, 205)
+  PRINT text$, 50, 52
+  PRINT "space: remove the first key, ESC: end", 50, 76
+
+  ' Keys come back in insertion order; the display sorts them
+  ' alphabetically.
+  keys$ = DICT_KEYS(counter)
+  ARRAY_SORT keys$
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "key", 70, 124
+  PRINT "count", 300, 124
+  TEXT_COLOR RGB(200, 214, 232)
+  FOR i = 0 TO LEN(keys$) - 1
+    k$ = keys$[i]
+    PRINT k$, 70, 152 + i * 24
+    PRINT STR$(DICT_GET(counter, k$, 0)), 300, 152 + i * 24
+  NEXT
+
+  TEXT_COLOR RGB(160, 176, 200)
+  PRINT "DICT_COUNT = " + STR$(DICT_COUNT(counter)) + "   LEN = " + STR$(LEN(counter)), 50, 330
+  PRINT "DICT_HAS(""apple"") = " + STR$(DICT_HAS(counter, "apple")), 50, 356
+  PRINT "DICT_GET(""lemon"", -1) = " + STR$(DICT_GET(counter, "lemon", -1)), 50, 382
+  IF LEN(keys$) > 0 THEN
+    PRINT "DICT_KEY$(0) = " + DICT_KEY$(counter, 0) + ", DICT_VALUE(0) = " + STR$(DICT_VALUE(counter, 0)), 50, 408
+  ENDIF
+
+  IF KEY_PRESSED(KEY_SPACE) THEN
+    all$ = DICT_KEYS(counter)
+    IF LEN(all$) > 0 THEN
+      DICT_DELETE(counter, all$[0])
+    ELSE
+      DICT_CLEAR(counter)
+      FOR j = 0 TO count% - 1
+        w$ = words$[j]
+        DICT_SET(counter, w$, DICT_GET(counter, w$, 0) + 1)
+      NEXT
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  SCREEN_SHOW
+WEND

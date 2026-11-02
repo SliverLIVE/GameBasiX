@@ -71,11 +71,14 @@ def main():
         )
         output = run.stdout + run.stderr
         check(run.returncode == 0, "Durchlauf", f"Rueckgabe {run.returncode}")
-        check("ASSERT FEHLGESCHLAGEN" not in output, "keine fehlgeschlagenen Asserts",
-              "\n".join(line for line in output.splitlines() if "FEHLGESCHLAGEN" in line))
+        check("ASSERT FAILED" not in output and "ASSERT FEHLGESCHLAGEN" not in output,
+              "keine fehlgeschlagenen Asserts",
+              "\n".join(line for line in output.splitlines()
+                        if "FAILED" in line or "FEHLGESCHLAGEN" in line))
         check("STEAMTEST FERTIG" in run.stdout, "Programm bis zum Ende gelaufen")
-        counted = [line for line in run.stdout.splitlines() if "fehlgeschlagen" in line]
-        check(bool(counted) and "0 fehlgeschlagen" in counted[-1],
+        counted = [line for line in run.stdout.splitlines()
+                   if "fehlgeschlagen" in line or "failed" in line]
+        check(bool(counted) and ("0 fehlgeschlagen" in counted[-1] or "0 failed" in counted[-1]),
               "Pruefungen", counted[-1] if counted else output.strip()[-300:])
 
     print()

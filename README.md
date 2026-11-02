@@ -99,12 +99,12 @@ cmake --build build-static
 build/gbx.exe examples/01_hello/hello.gbxproj   # start a project
 build/gbx.exe examples/02_breakout/main.gbx     # a single source file
 build/gbx.exe --headless tests/language_tests.gbx
-build/gbx.exe --lang en --check main.gbx        # messages in English
+build/gbx.exe --check main.gbx                 # parse and check names
 ```
 
-Messages (syntax errors, runtime errors, name checks, help) are available in
-German and English: `--lang de|en` or the `GBX_LANG` environment variable. The
-IDE sets `GBX_LANG` itself to match the selected language.
+All messages are in English: the help, syntax errors, runtime errors and the
+name check. That keeps the examples and the IDE consistent, whatever the
+system language is.
 
 | Option | Effect |
 | --- | --- |
@@ -340,8 +340,8 @@ CASE STATE.RUN
 ENDSELECT
 ```
 
-A bare `RUN` is an error and names the full value: *Unbekannter Name: RUN -
-meintest du STATE.RUN?* The same hint appears when the value itself is misspelt
+A bare `RUN` is an error and names the full value: *Unknown name: RUN - did
+you mean STATE.RUN?* The same hint appears when the value itself is misspelt
 (`STATE.RNU`).
 
 **Functions.** `FUNCTION name: p1, p2 = 0 … ENDFUNCTION` with `RETURN`, `EXIT`
@@ -357,7 +357,9 @@ The same holds for `METHOD name:` inside a `TYPE`.
 (BYREF to the element). `GLOBAL a[10]`, `LOCAL a[10] AS TYPE` and `STATIC
 a[10]` take the same brackets as `DIM` and only add the scope: inside a
 function that is the short way to a local array, `GLOBAL` puts it in the whole
-program and `STATIC` keeps it between calls (it is created once). A field of a
+program and `STATIC` keeps it between calls (it is created once). Empty
+brackets declare an open array: `GLOBAL items[] AS ITEM` starts with length 0
+and grows with `DIMPUSH` (the same works for `LOCAL` and `STATIC`). A field of a
 TYPE can be an array as well – see *Arrays inside a TYPE* below.
 
 **TYPE.** Fields without a suffix are `FLOAT`, `$` makes strings, `AS
@@ -434,8 +436,102 @@ fields and elements of TYPE arrays. `FUNCTION` and `SUB` inside a `TYPE` are
 rejected by the parser with a hint to use `METHOD`.
 
 **Errors.** `TRY … CATCH err$ … FINALLY` catches runtime errors; `THROW "text"`
-raises one yourself. `FINALLY` ends the block (there is no separate FINALLY
-body).
+raises one yourself. Several `CATCH` blocks may follow, each with an optional
+`WHEN` condition that sees the message in `err$`; a `CATCH` without `WHEN`
+catches everything. `FINALLY` takes its own block that always runs – after the
+block, after a caught error and while an error travels on – and `ENDTRY`
+closes the whole statement. The old form without a `FINALLY` body still parses.
+
+```basic
+TRY
+  risky()
+CATCH e$ WHEN INSTR(e$, "file") >= 0
+  DEBUG "missing file" + CHR$(10)
+CATCH e$
+  THROW e$               ' not ours: pass it on
+FINALLY
+  busy = FALSE            ' runs in every case
+ENDTRY
+```
+
+**Sorting and searching.** `ARRAY_SORT array[, direction[, field$]]` sorts an
+array in place and returns its length; `direction` is `1` (default, ascending)
+or `-1`. Numbers sort numerically, text alphabetically, and for an array of
+TYPEs `field$` names the field to compare. `ARRAY_FIND(array, value[, start])`
+returns the first matching index or `-1`.
+
+```basic
+DIM scores[5]
+…
+ARRAY_SORT scores, -1             ' highest first
+rank = ARRAY_FIND(scores, 42)     ' -1 when missing
+ARRAY_SORT players, 1, "score"    ' TYPE array, by field
+```
+
+**Dictionaries.** `DICT_NEW()` makes an empty dictionary – keys are text, the
+values are anything. Like an array it is a reference, so handing it to a
+function hands over the same table.
+
+| Command | Meaning |
+| --- | --- |
+| `DICT_SET d, key$, value` | store (overwrites), returns `d` |
+| `DICT_GET(d, key$[, default])` | value, `default` (or `0`) when missing |
+| `DICT_HAS(d, key$)` · `DICT_DELETE d, key$` | test / remove (`1` when it was there) |
+| `DICT_COUNT(d)` · `LEN(d)` | number of entries |
+| `DICT_KEY$(d, i)` · `DICT_VALUE(d, i)` | entry by position, in insertion order |
+| `DICT_KEYS(d)` · `DICT_VALUES(d)` | the entries as an array |
+| `DICT_CLEAR d` | remove everything |
+
+**Function values.** `@name` is a reference to a `FUNCTION`. It can be passed
+as an argument, stored in a variable or an array element, and called through
+that name:
+
+```basic
+FUNCTION twice: x
+  RETURN x * 2
+ENDFUNCTION
+
+FUNCTION apply: f, value
+  RETURN f(value)
+ENDFUNCTION
+
+PRINT apply(@twice, 21), 0, 0     ' 42
+```
+
+`ISA(@twice, "function")` answers `1`.
+
+**Inheritance and interfaces.** `TYPE B EXTENDS A` takes over every field and
+every method of `A` – the field defaults included – and may add its own fields
+and override methods. `ISA(obj, "A")` tells whether the object is an `A` or
+derived from one. An `INTERFACE` names the methods a type has to offer, and
+`IMPLEMENTS` checks that while parsing:
+
+```basic
+INTERFACE DRAWN
+  SUB draw: x, y
+ENDINTERFACE
+
+TYPE SHAPE
+  x AS FLOAT
+  y AS FLOAT
+
+  METHOD draw: px, py
+    x = px
+    y = py
+  ENDMETHOD
+ENDTYPE
+
+TYPE CIRCLE EXTENDS SHAPE IMPLEMENTS DRAWN
+  r AS FLOAT
+ENDTYPE
+```
+
+A `TYPE` that misses a method of a named interface is a parse error, and so is
+an unknown base type or a cycle (`A EXTENDS B`, `B EXTENDS A`).
+
+**Strict mode.** `OPTION STRICT` at the top of a program (or `--strict` on the
+command line) turns a variable that was never assigned into a runtime error
+instead of silently reading `0`/`""`. Assigning to a name still creates it.
 
 ## Command reference
 
@@ -544,6 +640,13 @@ reported by name instead of playing silence.
 `FILE_WRITE_STR channel, text$` · `FILE_WRITE_LINE channel, text$` ·
 `FILE_EXISTS(path)` · `FILE_SIZE(path)` · `FILE_COPY source, target` ·
 `FILE_RENAME source, target` · `FILE_DELETE path` · `DIR_MAKE path`
+
+**Arrays and dictionaries**
+`ARRAY_SORT array[, direction[, field$]]` · `ARRAY_FIND(array, value[, start])` ·
+`DICT_NEW()` · `DICT_SET d,key$,value` · `DICT_GET(d,key$[,default])` ·
+`DICT_HAS(d,key$)` · `DICT_DELETE d,key$` · `DICT_COUNT(d)` · `DICT_KEY$(d,i)` ·
+`DICT_VALUE(d,i)` · `DICT_KEYS(d)` · `DICT_VALUES(d)` · `DICT_CLEAR d` ·
+`ISA(value, "TYPE")`
 
 **Network**
 `NET_LISTEN port` · `NET_ACCEPT listener` · `NET_CONNECT host,port[,timeout]` ·
@@ -1043,9 +1146,11 @@ program runs restarts it, and the console says so. *Settings → General →
 (`?IF` …), sockets behind Steam's newer `ISteamNetworkingSockets` (lobbies,
 connection handles), joystick/gamepad, movies,
 `MEM2SPRITE`/`SPRITE2MEM`/`MEM2FONT`/`FONT2MEM`,
-`SORTARRAY`, `FINDPATH`, `FILEREQUEST`, `SHELLCMD`, `ADDRESSOF`/`CALLBYNAME`,
-`ENCRYPT$`/`DECRYPT$`, `SETSHOEBOX`. The need for these is either 3D-,
-platform- or security-related; the 2D core is complete.
+`FINDPATH`, `FILEREQUEST`, `SHELLCMD`, `ADDRESSOF`/`CALLBYNAME`,
+`ENCRYPT$`/`DECRYPT$`, `SETSHOEBOX`. `SORTARRAY` is no longer missing:
+`ARRAY_SORT` and `ARRAY_FIND` sort and search in place. The need for the
+remaining ones is either 3D-, platform- or security-related; the 2D core is
+complete.
 
 ## Examples
 
@@ -1071,6 +1176,12 @@ platform- or security-related; the 2D core is complete.
 | `examples/18_field_arrays` | **Arrays inside a TYPE**: one `BAG` with `fixed[3] AS ITEM`, `slots[] AS ITEM` and `coins[SLOT_COUNT]`. `fixed` is filled by the field defaults, `slots` grows with `DIMPUSH` and is resized with `DIM`, `REDIM` keeps the coin values that still fit. Two bags show that every object owns its arrays; `LEN`, `FOREACH` and a `METHOD` that pushes and sums work on the fields – plus console lines for `--headless` |
 | `examples/19_grid` | **A map with two dimensions**: `tiles[MW, MH] AS TILE` on a `WORLD` TYPE drives a small maze - walls, coins and a goal, walked with the arrow keys. The level is a block of ASCII rows that `build()` turns into cells, and a plain `DIM seen[MW, MH]` remembers the way; `LEN(world.tiles[0])`, `tiles[x, y]` and `world.art(x, y)` show the two indices at work. A `DEBUG` line before the loop prints the map size, so `--headless` shows something too |
 | `examples/20_hotreload` | **Hot reload in action**: a window with a sprite, a bitmap font and a sound, each with its replacement next to it. Press `1`, `2` or `3` (the program copies `tile-alt.png` over `tile.png` with `FILE_COPY`) or edit the files from outside - the loaded asset changes under the same number, and the size printed beside the sprite and the font (`SPRITE_SIZE`, `FONT_SIZE`) shows it; the sound panel prints the file size and the console line names every reload. `4` plays the sound, `R` calls `ASSET_RELOAD()`, `H` switches `HOT_RELOAD` off and on. `tools/swap-asset.py` swaps or randomises the files from a shell. |
+| `examples/21_sortfind` | **Sorting and searching**: `ARRAY_SORT` on numbers, on text and on a TYPE array by field (`ARRAY_SORT players, -1, "score"`), plus `ARRAY_FIND` for the first index or `-1`. Space switches the leaderboard between high and low score; equal scores keep their order. A `DEBUG` line names the sorted head, so `--headless` shows something too |
+| `examples/22_dict` | **Dictionaries**: `DICT_NEW`/`DICT_SET`/`DICT_GET` count the words of a sentence, `DICT_KEYS` hands the keys out as an array that `ARRAY_SORT` then sorts for the display. Space removes the first key (`DICT_DELETE`) and finally refills the table, ESC ends. `DICT_COUNT`, `LEN`, `DICT_KEY$`/`DICT_VALUE` and the missing-key default run along |
+| `examples/23_trycatch` | **TRY with several CATCH blocks**: `CATCH e$ WHEN …` picks a branch by the message, a bare `CATCH e$` catches the rest, and `FINALLY` counts its runs. Three scenarios rotate (an own `THROW`, an array index out of range, another `THROW`); space jumps to the next one |
+| `examples/24_strict` | **`OPTION STRICT`**: `savegame%` would only exist after loading a save game, so the sum reads a name that was never assigned - a catchable error instead of a silent `0`. Everything else keeps working, and assigning a name still creates it |
+| `examples/25_callbacks` | **Functions as values**: `@doubleIt`, `@square` and `@plus100` are stored in `action`, passed to `apply`/`total` and called by name. Space switches the callback and the same loop prints other results |
+| `examples/26_inherit` | **Inheritance and interfaces**: `TYPE CIRCLE EXTENDS SHAPE IMPLEMENTS DRAWABLE, NAMED` inherits fields, defaults and methods and overrides `label`/`draw`; `SQUARE` derives from `RECT`. Each object draws itself, and `ISA` answers for TYPE, base and interface |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
@@ -1148,7 +1259,7 @@ changed in the settings. Details are in [ide/README.md](ide/README.md).
 ## Tests
 
 ```bash
-./build/gbx.exe --tests tests/language_tests.gbx     # 222 language tests
+./build/gbx.exe --tests tests/language_tests.gbx     # 263 language tests
 ctest --test-dir build --output-on-failure           # through CTest
 python tools/check_render.py                         # pixel check offscreen
 python tools/check_commands.py                       # every command once
@@ -1223,6 +1334,28 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
 ## Changelog
 
 **October 2026**
+
+* **One language for sources and tools**: interpreter, IDE, tests and examples
+  speak English only – `--lang`/`GBX_LANG` are gone and every message of the
+  examples and the checking scripts was rewritten. Six new examples:
+  `21_sortfind`, `22_dict`, `23_trycatch`, `24_strict`, `25_callbacks` and
+  `26_inherit`. The IDE ships `CHEATSHEET.html`, built from its own command
+  dataset, one compact line per command. `OPTION STRICT`, `INTERFACE`,
+  `ENDINTERFACE`, `EXTENDS` and `IMPLEMENTS` are in the dataset now, so they
+  are highlighted, completed, documented on hover and in the reference;
+  the outline lists interfaces in their own group, a TYPE line names its base
+  and interfaces, and `Enter` behind a block header only adds the closing
+  keyword when the block does not have one yet. 415 dataset entries. Version
+  1.2.32.
+
+* **Collections, callbacks, inheritance and a strict mode**: `ARRAY_SORT` and
+  `ARRAY_FIND` sort and search arrays in place (TYPE arrays by field),
+  `DICT_NEW` and its commands bring a dictionary, `@name` passes a `FUNCTION`
+  as a value, `TRY` takes several `CATCH` blocks with `WHEN`, `FINALLY` finally
+  has a body (`ENDTRY`), `OPTION STRICT`/`--strict` turn a never assigned
+  variable into an error, and `TYPE … EXTENDS` plus `INTERFACE`/`IMPLEMENTS`
+  bring inheritance and interfaces (`ISA` asks at runtime). 263 language
+  checks.
 
 * **`examples/20_hotreload`**: a demo for the new hot reload. A window shows a
   sprite, a bitmap font and a sound, each with its alternative next to it:

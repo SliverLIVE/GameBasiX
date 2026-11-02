@@ -1,7 +1,6 @@
 // GameBasiX - Software-Mixer fuer WAV- und MP3-Sounds und Musik
 #include "audio.h"
 
-#include "i18n.h"
 
 #include <algorithm>
 #include <cmath>
@@ -51,7 +50,7 @@ bool convertToDevice(const void* data, size_t bytes, const SDL_AudioSpec& src,
     SDL_AudioSpec dst = deviceSpec();
     SDL_AudioStream* conv = SDL_CreateAudioStream(&src, &dst);
     if (!conv) {
-        err = "Audiokonvertierung fehlgeschlagen";
+        err = "Audio conversion failed";
         return false;
     }
     SDL_PutAudioStreamData(conv, data, static_cast<int>(bytes));
@@ -65,7 +64,7 @@ bool convertToDevice(const void* data, size_t bytes, const SDL_AudioSpec& src,
     }
     SDL_DestroyAudioStream(conv);
     if (out.empty()) {
-        err = "Datei ohne Audiodaten";
+        err = "file without audio data";
         return false;
     }
     return true;
@@ -91,7 +90,7 @@ bool decodeMp3(const std::vector<uint8_t>& bytes, std::vector<float>& samples, s
     const int result = mp3dec_load_buf(&decoder, bytes.data(), size, &info, nullptr, nullptr);
     if (result != 0 || !info.buffer || !info.samples || info.channels <= 0 || info.hz <= 0) {
         std::free(info.buffer);
-        err = "MP3 konnte nicht dekodiert werden";
+        err = "MP3 could not be decoded";
         return false;
     }
 
@@ -118,11 +117,11 @@ bool loadAudio(const std::string& file, std::vector<float>& samples, std::string
 
     std::vector<uint8_t> bytes;
     if (!readFileBytes(file, bytes)) {
-        err = "Datei nicht lesbar";
+        err = "file not readable";
         return false;
     }
     if (!looksLikeMp3(bytes)) {
-        err = "Format nicht erkannt, WAV oder MP3 erwartet";
+        err = "format not recognised, WAV or MP3 expected";
         return false;
     }
     return decodeMp3(bytes, samples, err);
@@ -132,14 +131,14 @@ bool loadAudio(const std::string& file, std::vector<float>& samples, std::string
 bool Audio::init() {
     if (headless) return true;
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
-        std::fprintf(stderr, i18n::tr("Audio konnte nicht initialisiert werden: %s\n").c_str(),
+        std::fprintf(stderr, "Audio could not be initialised: %s\n",
                      SDL_GetError());
         return false;
     }
     SDL_AudioSpec spec = deviceSpec();
     stream_ = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, audioCallback, this);
     if (!stream_) {
-        std::fprintf(stderr, i18n::tr("Audiogeraet konnte nicht geoeffnet werden: %s\n").c_str(),
+        std::fprintf(stderr, "Audio device could not be opened: %s\n",
                      SDL_GetError());
         return false;
     }
@@ -170,7 +169,7 @@ bool Audio::loadSound(const std::string& file, int id, int buffers, std::string&
     std::vector<float> samples;
     std::string detail;
     if (!loadAudio(file, samples, detail)) {
-        err = "Sound konnte nicht geladen werden: " + file + " - " + detail;
+        err = "Sound could not be loaded: " + file + " - " + detail;
         return false;
     }
 
@@ -267,7 +266,7 @@ bool Audio::playMusic(const std::string& file, bool loop, std::string& err) {
     std::vector<float> samples;
     std::string detail;
     if (!loadAudio(file, samples, detail)) {
-        err = "Musik konnte nicht geladen werden: " + file + " - " + detail;
+        err = "Music could not be loaded: " + file + " - " + detail;
         return false;
     }
     s.samples = std::move(samples);

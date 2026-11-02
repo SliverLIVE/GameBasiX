@@ -410,5 +410,23 @@ HOT_RELOAD 1
 ASSERT HOT_RELOAD_ON() = 1, "HOT_RELOAD 1 schaltet ein"
 ASSERT ASSET_RELOAD() >= 0, "ASSET_RELOAD"
 
+' ------------------------------------------ Arrays ordnen, Dictionary, ISA
+DIM sortier[3]
+sortier[0] = 3 : sortier[1] = 1 : sortier[2] = 2
+ASSERT ARRAY_SORT(sortier[]) = 3 AND sortier[0] = 1, "ARRAY_SORT"
+ASSERT ARRAY_FIND(sortier[], 2) = 1, "ARRAY_FIND"
+
+d = DICT_NEW()
+DICT_SET(d, "a", 1)
+ASSERT DICT_GET(d, "a") = 1, "DICT_GET"
+ASSERT DICT_HAS(d, "a") = 1, "DICT_HAS"
+ASSERT DICT_COUNT(d) = 1 AND LEN(d) = 1, "DICT_COUNT"
+ASSERT DICT_KEY$(d, 0) = "a" AND DICT_VALUE(d, 0) = 1, "DICT_KEY$/DICT_VALUE"
+ASSERT LEN(DICT_KEYS(d)) = 1 AND LEN(DICT_VALUES(d)) = 1, "DICT_KEYS/DICT_VALUES"
+ASSERT DICT_DELETE(d, "a") = 1, "DICT_DELETE"
+DICT_CLEAR d
+ASSERT DICT_COUNT(d) = 0, "DICT_CLEAR"
+ASSERT ISA(d, "dict") = 1, "ISA"
+
 STDOUT "BEFEHLSTEST FERTIG" + CHR$(10)
 END

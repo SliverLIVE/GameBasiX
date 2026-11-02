@@ -53,6 +53,8 @@ std::string Value::text() const {
         case VT::Str: return s;
         case VT::Array: return "[Array]";
         case VT::Record: return rec && rec->def ? "[" + rec->def->name + "]" : "[TYPE]";
+        case VT::Dict: return "[Dict]";
+        case VT::Func: return "@" + s;
     }
     return "";
 }
@@ -65,6 +67,8 @@ bool Value::truthy() const {
         case VT::Str: return !s.empty();
         case VT::Array: return arr && !arr->items.empty();
         case VT::Record: return rec != nullptr;
+        case VT::Dict: return dict && !dict->map.empty();
+        case VT::Func: return !s.empty();
     }
     return false;
 }
@@ -75,9 +79,21 @@ int TypeDef::fieldIndex(const std::string& fname) const {
     return -1;
 }
 
-bool TypeDef::hasMethod(const std::string& mname) const {
+bool TypeDef::hasOwnMethod(const std::string& mname) const {
     for (const auto& name : methods)
         if (name == mname) return true;
+    return false;
+}
+
+bool TypeDef::hasMethod(const std::string& mname) const {
+    for (const TypeDef* t = this; t; t = t->base)
+        if (t->hasOwnMethod(mname)) return true;
+    return false;
+}
+
+bool TypeDef::isA(const std::string& tname) const {
+    for (const TypeDef* t = this; t; t = t->base)
+        if (t->name == tname) return true;
     return false;
 }
 
@@ -108,6 +124,8 @@ bool valueEquals(const Value& a, const Value& b) {
             case VT::Null: return true;
             case VT::Array: return a.arr == b.arr;
             case VT::Record: return a.rec == b.rec;
+            case VT::Dict: return a.dict == b.dict;
+            case VT::Func: return a.s == b.s;
             default: break;
         }
     }

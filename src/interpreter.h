@@ -56,6 +56,8 @@ private:
     Slot* findLocalSlot(const std::string& name);
     Value* selfField(const std::string& name);
     Value callMethod(const Expr& call);
+    // Methode in der TYPE-Kette suchen: eigene zuerst, dann die der Basis.
+    const FuncDef* findMethod(const TypeDef* def, const std::string& name) const;
     Slot* createAssignmentSlot(const std::string& name, TypeHint hint);
     void declareGlobal(const Stmt& s);
     void declareLocal(const Stmt& s);

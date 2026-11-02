@@ -149,7 +149,7 @@ try {
     const builtins = new Set([...source.matchAll(/add\("([^"]+)"/g)].map((match) => match[1].toUpperCase()));
     const entries = new Map(dataset.commands.map((entry) => [entry.name.toUpperCase(), entry]));
 
-    assert.equal(builtins.size, 229, 'Interpreter-Befehle');
+    assert.equal(builtins.size, 243, 'Interpreter-Befehle');
     for (const name of builtins) assert.ok(entries.has(name), `${name} fehlt im Datensatz`);
     // Steuerwörter, die früher in der Vervollständigung fehlten.
     for (const keyword of ['INCLUDE', 'IF', 'ENDIF', 'SWAP', 'INC', 'DEC', 'TRY', 'CATCH', 'FINALLY', 'ENDTRY', 'THROW', 'STATIC']) {
@@ -163,6 +163,14 @@ try {
     // INLINE ist ein Schlüsselwort der Sprache (C++-Blöcke), kein Befehl.
     assert.equal(entries.get('INLINE')?.kind, 'keyword', 'INLINE fehlt');
     assert.equal(entries.get('ENDINLINE')?.kind, 'keyword', 'ENDINLINE fehlt');
+    // Sprachbloecke aus dem Parser: ohne Datensatz gab es weder Vorschlag
+    // noch Referenztext fuer OPTION STRICT, INTERFACE, EXTENDS, IMPLEMENTS.
+    for (const keyword of ['OPTION', 'STRICT', 'INTERFACE', 'ENDINTERFACE', 'EXTENDS', 'IMPLEMENTS']) {
+      assert.equal(entries.get(keyword)?.kind, 'keyword', `${keyword} ist kein Schluesselwort`);
+    }
+    assert.equal(entries.get('OPTION')?.signature, 'OPTION STRICT', 'OPTION-Signatur');
+    assert.equal(entries.get('INTERFACE')?.signature, 'INTERFACE name', 'INTERFACE-Signatur');
+    assert.equal(entries.get('IMPLEMENTS')?.signature, 'IMPLEMENTS first[, second]', 'IMPLEMENTS-Signatur');
     // Befehle ohne Funktion dürfen im Datensatz nicht auftauchen.
     assert.ok(!entries.has('IMPORT'), 'IMPORT gibt es in GBX nicht');
     // Gamepad-Tasten und -Achsen sind Konstanten, keine Befehle.
@@ -665,7 +673,7 @@ END
   await check('EXE läuft ohne Projektordner', () => {
     const run = spawnSync(looseExe, ['--tests'], { cwd: looseDir, encoding: 'utf8', timeout: 30000 });
     assert.equal(run.status, 0, run.stderr || run.stdout);
-    assert.match(`${run.stdout}${run.stderr}`, /0 fehlgeschlagen/);
+    assert.match(`${run.stdout}${run.stderr}`, /0 (?:fehlgeschlagen|failed)/);
   });
 } finally {
   await server.close();

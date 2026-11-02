@@ -1,0 +1,103 @@
+' ============================================================
+' Sorting and searching - ARRAY_SORT and ARRAY_FIND
+' Run: gbx examples/21_sortfind/sortfind.gbxproj
+'
+'   ARRAY_SORT field[]               ascending (numbers or text)
+'   ARRAY_SORT field[], -1           descending
+'   ARRAY_SORT field[], 1, "score%"  TYPE array, by this field
+'   ARRAY_FIND(field[], value)       first index, or -1
+' The array itself is sorted; the return value is its length.
+' ============================================================
+
+CONSTANT PLAYER_COUNT = 6
+
+TYPE PLAYER
+  name$
+  score%
+ENDTYPE
+
+GLOBAL players[PLAYER_COUNT] AS PLAYER
+GLOBAL numbers[8]
+GLOBAL words$[5]
+
+players[0].name$ = "Ada" : players[0].score% = 120
+players[1].name$ = "Ben" : players[1].score% = 45
+players[2].name$ = "Cleo" : players[2].score% = 210
+players[3].name$ = "Dev" : players[3].score% = 45
+players[4].name$ = "Eve" : players[4].score% = 175
+players[5].name$ = "Flo" : players[5].score% = 90
+
+numbers[0] = 42 : numbers[1] = 7 : numbers[2] = 19 : numbers[3] = 3
+numbers[4] = 88 : numbers[5] = 7 : numbers[6] = 56 : numbers[7] = 21
+
+words$[0] = "delta" : words$[1] = "alpha" : words$[2] = "charlie"
+words$[3] = "bravo" : words$[4] = "echo"
+
+ARRAY_SORT numbers
+found% = ARRAY_FIND(numbers, 19)
+missing% = ARRAY_FIND(numbers, 99)
+ARRAY_SORT words$
+
+direction% = -1
+ARRAY_SORT players, direction%, "score"
+
+DEBUG "numbers: " + STR$(numbers[0]) + "," + STR$(numbers[1]) + "," + STR$(numbers[2]) + ",...," + STR$(numbers[7]) + CHR$(10)
+DEBUG "ARRAY_FIND 19 -> " + STR$(found%) + ", 99 -> " + STR$(missing%) + CHR$(10)
+DEBUG "best: " + players[0].name$ + " " + STR$(players[0].score%) + CHR$(10)
+
+SCREEN_SET 760, 520, 0
+WINDOW_TITLE "GameBasiX - sorting and searching"
+LIMIT_FPS 60
+
+WHILE TRUE
+  SCREEN_CLEAR RGB(10, 14, 22)
+
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "ARRAY_SORT / ARRAY_FIND", 50, 24
+  TEXT_COLOR RGB(140, 170, 205)
+  PRINT "space: switch the leaderboard between high and low score", 50, 52
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "numbers, ascending - ARRAY_FIND(19) = " + STR$(found%) + ", ARRAY_FIND(99) = " + STR$(missing%), 50, 96
+  TEXT_COLOR RGB(200, 214, 232)
+  line$ = ""
+  FOR i = 0 TO LEN(numbers) - 1
+    IF i > 0 THEN line$ = line$ + ", "
+    line$ = line$ + STR$(numbers[i])
+  NEXT
+  PRINT line$, 70, 122
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "words, ascending - text sorts alphabetically", 50, 168
+  TEXT_COLOR RGB(200, 214, 232)
+  line$ = ""
+  FOR i = 0 TO LEN(words$) - 1
+    IF i > 0 THEN line$ = line$ + ", "
+    line$ = line$ + words$[i]
+  NEXT
+  PRINT line$, 70, 194
+
+  TEXT_COLOR RGB(120, 200, 160)
+  IF direction% < 0 THEN
+    PRINT "players by score, descending (ARRAY_SORT players, -1, ""score"")", 50, 248
+  ELSE
+    PRINT "players by score, ascending (ARRAY_SORT players, 1, ""score"")", 50, 248
+  ENDIF
+  FOR i = 0 TO LEN(players) - 1
+    TEXT_COLOR RGB(200, 214, 232)
+    PRINT STR$(i + 1) + ". " + players[i].name$, 70, 278 + i * 24
+    PRINT STR$(players[i].score%), 260, 278 + i * 24
+  NEXT
+
+  TEXT_COLOR RGB(160, 176, 200)
+  PRINT "equal scores keep their order - ARRAY_SORT is stable", 50, 440
+  PRINT "press ESC to end", 50, 466
+
+  IF KEY_PRESSED(KEY_SPACE) THEN
+    direction% = -direction%
+    ARRAY_SORT players, direction%, "score"
+  ENDIF
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  SCREEN_SHOW
+WEND

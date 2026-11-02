@@ -8,12 +8,12 @@
 const char* tokenKindName(Tok k) {
     switch (k) {
         case Tok::Ident: return "Bezeichner";
-        case Tok::Int: return "Ganzzahl";
-        case Tok::Float: return "Kommazahl";
+        case Tok::Int: return "integer";
+        case Tok::Float: return "float";
         case Tok::Str: return "String";
         case Tok::Sym: return "Symbol";
-        case Tok::Newline: return "Zeilenende";
-        case Tok::Eof: return "Dateiende";
+        case Tok::Newline: return "end of line";
+        case Tok::Eof: return "end of file";
         case Tok::Inline: return "INLINE-Block";
     }
     return "?";
@@ -208,7 +208,7 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
                 val.push_back(ch);
                 ++p;
             }
-            if (!closed) fail("String wurde nicht geschlossen", t.line);
+            if (!closed) fail("String is not terminated", t.line);
             t.text = val;
             out.push_back(std::move(t));
             continue;
@@ -224,7 +224,7 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
                 p += 2;
                 size_t hs = p;
                 while (p < n && std::isxdigit(static_cast<unsigned char>(src[p]))) ++p;
-                if (p == hs) fail("Ungueltige Hexadezimalzahl", line);
+                if (p == hs) fail("Invalid hexadecimal number", line);
                 std::string hex = src.substr(hs, p - hs);
                 t.kind = Tok::Int;
                 t.ival = static_cast<int64_t>(std::strtoull(hex.c_str(), nullptr, 16));
@@ -302,7 +302,7 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
             out.push_back(std::move(t));
             continue;
         }
-        static const char* singles = "+-*/=()[],.:;?^&|";
+        static const char* singles = "+-*/=()[],.:;?^&|@";
         if (std::strchr(singles, static_cast<char>(c)) != nullptr) {
             Token t;
             t.kind = Tok::Sym;
@@ -313,7 +313,7 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
             continue;
         }
 
-        fail(std::string("Unerwartetes Zeichen '") + static_cast<char>(c) + "'", line);
+        fail(std::string("Unexpected character '") + static_cast<char>(c) + "'", line);
     }
 
     out.push_back(Token{Tok::Eof, "", 0, 0.0, line});

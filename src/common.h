@@ -4,8 +4,6 @@
 #include <stdexcept>
 #include <string>
 
-#include "i18n.h"
-
 struct SrcPos {
     std::string file;
     int line = 0;
@@ -17,10 +15,10 @@ struct BasicError : std::runtime_error {
     SrcPos pos;
     bool compile;
 
-    // Die Meldung wird beim Entstehen übersetzt, damit what() und der
-    // Debugger dieselbe Sprache liefern wie die übrigen Ausgaben.
+    // Meldungen stehen im Quelltext auf Englisch; what() und der Debugger
+    // geben sie unverändert weiter.
     BasicError(const std::string& msg, SrcPos p, bool isCompile = false)
-        : std::runtime_error(i18n::tr(msg)), pos(std::move(p)), compile(isCompile) {}
+        : std::runtime_error(msg), pos(std::move(p)), compile(isCompile) {}
 
     std::string location() const {
         std::string out = pos.file.empty() ? "<program>" : pos.file;
@@ -30,6 +28,6 @@ struct BasicError : std::runtime_error {
 
     std::string fullMessage() const {
         return location() + ": " +
-               (compile ? i18n::tr("Syntaxfehler: ") : i18n::tr("Laufzeitfehler: ")) + what();
+               (compile ? "Syntax error: " : "Runtime error: ") + what();
     }
 };

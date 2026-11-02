@@ -20,7 +20,6 @@
 #include <utility>
 #include <vector>
 
-#include "i18n.h"
 #include "inline.h"
 
 #ifdef _WIN32
@@ -142,7 +141,7 @@ std::string sanitizedStem(const std::string& name) {
     }
     const size_t first = out.find_first_not_of(" .");
     const size_t last = out.find_last_not_of(" .");
-    if (first == std::string::npos) return "spiel";
+    if (first == std::string::npos) return "game";
     return out.substr(first, last - first + 1);
 }
 
@@ -202,7 +201,7 @@ bool collectFiles(const fs::path& root, const fs::path& target, std::vector<Pack
     fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec);
     const fs::recursive_directory_iterator end;
     if (ec) {
-        error = "Projektordner laesst sich nicht lesen: " + root.string();
+        error = "Project folder cannot be read: " + root.string();
         return false;
     }
 
@@ -239,7 +238,7 @@ bool collectFiles(const fs::path& root, const fs::path& target, std::vector<Pack
 
         total += size;
         if (total > kMaxPackage) {
-            error = "Quellen sind zu gross fuer ein Paket (Grenze 256 MB).";
+            error = "Sources are too large for a package (limit 256 MB).";
             return false;
         }
         sources.push_back(PackedFile{relName, entry.path(), size});
@@ -273,7 +272,7 @@ bool copyRange(std::ifstream& in, uint64_t offset, uint64_t size, std::ostream& 
     in.clear();
     in.seekg(static_cast<std::streamoff>(offset));
     if (!in) {
-        error = "Paket laesst sich nicht lesen.";
+        error = "Package cannot be read.";
         return false;
     }
     char buffer[65536];
@@ -287,7 +286,7 @@ bool copyRange(std::ifstream& in, uint64_t offset, uint64_t size, std::ostream& 
         }
         out.write(buffer, want);
         if (!out) {
-            error = "Schreiben fehlgeschlagen.";
+            error = "Write failed.";
             return false;
         }
         left -= static_cast<uint64_t>(want);
@@ -301,7 +300,7 @@ bool patchSubsystem(const fs::path& exe, std::string& error) {
 #ifdef _WIN32
     std::fstream file(exe, std::ios::binary | std::ios::in | std::ios::out);
     if (!file) {
-        error = "EXE laesst sich nicht oeffnen: " + exe.string();
+        error = "EXE cannot be opened: " + exe.string();
         return false;
     }
     unsigned char dos[64];
@@ -326,12 +325,12 @@ bool patchSubsystem(const fs::path& exe, std::string& error) {
     unsigned char magic[2] = {};
     file.read(reinterpret_cast<char*>(magic), sizeof(magic));
     if (!file) {
-        error = "Optional-Kopf fehlt.";
+        error = "Optional-Kopf missing.";
         return false;
     }
     const uint16_t kind = static_cast<uint16_t>(magic[0] | (magic[1] << 8));
     if (kind != 0x10b && kind != 0x20b) {
-        error = "Unbekanntes EXE-Format.";
+        error = "Unknown EXE format.";
         return false;
     }
     // Das Subsystem steht in beiden Formaten an derselben Stelle (0x44).
@@ -340,7 +339,7 @@ bool patchSubsystem(const fs::path& exe, std::string& error) {
     unsigned char subsystem[2] = {};
     file.read(reinterpret_cast<char*>(subsystem), sizeof(subsystem));
     if (!file) {
-        error = "Subsystem-Feld fehlt.";
+        error = "Subsystem-Feld missing.";
         return false;
     }
     if (subsystem[0] == 2 && subsystem[1] == 0) return true;  // schon Fenster
@@ -349,7 +348,7 @@ bool patchSubsystem(const fs::path& exe, std::string& error) {
     file.write(reinterpret_cast<const char*>(gui), sizeof(gui));
     file.flush();
     if (!file) {
-        error = "Subsystem liess sich nicht schreiben.";
+        error = "The subsystem could not be written.";
         return false;
     }
     return true;
@@ -409,7 +408,7 @@ bool mountSelf(std::string& entryPath, bool& found, std::string& error) {
     const uint64_t indexSize = reader.u64();
     const uint64_t dataSize = reader.u64();
     if (!reader.ok || indexSize == 0 || indexSize + dataSize + kFooterSize > static_cast<uint64_t>(fileSize)) {
-        error = "Spielpaket ist beschaedigt (Fuss passt nicht zur Datei).";
+        error = "Game package is damaged (footer does not match the file).";
         return false;
     }
 
@@ -419,14 +418,14 @@ bool mountSelf(std::string& entryPath, bool& found, std::string& error) {
     std::string index(static_cast<size_t>(indexSize), '\0');
     in.read(index.data(), static_cast<std::streamsize>(index.size()));
     if (!in) {
-        error = "Spielpaket ist beschaedigt (Index fehlt).";
+        error = "Game package is damaged (index missing).";
         return false;
     }
 
     Reader entries(index);
     const uint32_t count = entries.u32();
     if (!entries.ok || count == 0 || count > 100000) {
-        error = "Spielpaket ist beschaedigt (Index unlesbar).";
+        error = "Game package is damaged (index unreadable).";
         return false;
     }
 
@@ -440,21 +439,21 @@ bool mountSelf(std::string& entryPath, bool& found, std::string& error) {
     for (uint32_t i = 0; i < count; ++i) {
         const uint32_t nameLength = entries.u32();
         if (!entries.ok || nameLength == 0 || nameLength > 4096) {
-            error = "Spielpaket ist beschaedigt (Dateiname unlesbar).";
+            error = "Game package is damaged (file name unreadable).";
             return false;
         }
         Entry entry;
         entry.name = entries.bytes(nameLength);
         entry.size = entries.u64();
         if (!entries.ok) {
-            error = "Spielpaket ist beschaedigt (Eintrag unlesbar).";
+            error = "Game package is damaged (entry unreadable).";
             return false;
         }
         expected += entry.size;
         list.push_back(std::move(entry));
     }
     if (expected != dataSize) {
-        error = "Spielpaket ist beschaedigt (Groessen passen nicht).";
+        error = "Game package is damaged (sizes do not match).";
         return false;
     }
 
@@ -470,7 +469,7 @@ bool mountSelf(std::string& entryPath, bool& found, std::string& error) {
 
     const fs::path mount = fs::temp_directory_path(ec) / "gbx-run" / tag;
     if (ec) {
-        error = "Temp-Ordner nicht verfuegbar.";
+        error = "Temp folder not available.";
         return false;
     }
     const fs::path marker = mount / ".complete";
@@ -489,14 +488,14 @@ bool mountSelf(std::string& entryPath, bool& found, std::string& error) {
         fs::remove_all(mount, clearError);
         fs::create_directories(mount, clearError);
         if (clearError) {
-            error = "Paketordner laesst sich nicht anlegen: " + mount.string();
+            error = "Package folder cannot be created: " + mount.string();
             return false;
         }
 
         uint64_t offset = indexStart + indexSize;
         for (const Entry& entry : list) {
             if (!safeName(entry.name)) {
-                error = "Ungueltiger Dateiname im Paket: " + entry.name;
+                error = "Invalid file name in the package: " + entry.name;
                 return false;
             }
             const fs::path out = mount / fs::path(entry.name);
@@ -504,7 +503,7 @@ bool mountSelf(std::string& entryPath, bool& found, std::string& error) {
             if (!out.parent_path().empty()) fs::create_directories(out.parent_path(), dirError);
             std::ofstream file(out, std::ios::binary | std::ios::trunc);
             if (!file) {
-                error = "Datei aus dem Paket laesst sich nicht schreiben: " + out.string();
+                error = "File from the package cannot be written: " + out.string();
                 return false;
             }
             if (!copyRange(in, offset, entry.size, file, error)) return false;
@@ -517,14 +516,14 @@ bool mountSelf(std::string& entryPath, bool& found, std::string& error) {
 
     std::string entryName;
     if (!readFileText(mount / kEntryName, entryName)) {
-        error = "Spielpaket ohne Einstiegspunkt.";
+        error = "Game package without an entry point.";
         return false;
     }
     while (!entryName.empty() && (entryName.back() == '\n' || entryName.back() == '\r' ||
                                   entryName.back() == ' '))
         entryName.pop_back();
     if (entryName.empty()) {
-        error = "Spielpaket ohne Einstiegspunkt.";
+        error = "Game package without an entry point.";
         return false;
     }
 
@@ -533,7 +532,7 @@ bool mountSelf(std::string& entryPath, bool& found, std::string& error) {
     const fs::path programDir = fs::path(self).parent_path();
     fs::current_path(programDir, ec);
     if (ec) {
-        error = "Wechsel in den Programmordner fehlgeschlagen: " + programDir.string();
+        error = "Changing to the program folder failed: " + programDir.string();
         return false;
     }
     entryPath = (mount / fs::path(entryName)).string();
@@ -545,20 +544,20 @@ bool exportProject(const Program& prog, const ProjectConfig& cfg, const std::str
     std::error_code ec;
     const fs::path self = executablePath();
     if (self.empty()) {
-        error = "Die laufende EXE laesst sich nicht bestimmen.";
+        error = "The running EXE cannot be determined.";
         return false;
     }
 
     const fs::path root = fs::absolute(fs::path(cfg.projectDir), ec).lexically_normal();
     if (ec) {
-        error = "Projektordner laesst sich nicht bestimmen.";
+        error = "The project folder cannot be determined.";
         return false;
     }
     fs::path outFile = target.empty() ? (root / (sanitizedStem(cfg.name) + exeExtension()))
                                       : fs::absolute(fs::path(target), ec);
     outFile = outFile.lexically_normal();
     if (samePath(outFile, self)) {
-        error = "Das Ziel ist die laufende gbx.exe. Bitte einen anderen Dateinamen waehlen.";
+        error = "The target is the running gbx.exe. Choose a different file name.";
         return false;
     }
 
@@ -572,11 +571,11 @@ bool exportProject(const Program& prog, const ProjectConfig& cfg, const std::str
     fs::path entryRelative = fs::relative(startFile, root, ec);
     const std::string entryName = entryRelative.generic_string();
     if (ec || entryName.empty() || entryName.rfind("..", 0) == 0) {
-        error = "Die Einstiegsdatei muss im Projektordner liegen.";
+        error = "The entry file must be inside the project folder.";
         return false;
     }
 
-    std::printf("%s\n", i18n::tr("Sammle Projektdateien ...").c_str());
+    std::printf("Collecting project files ...\n");
     std::fflush(stdout);
     std::vector<PackedFile> sources;
     std::vector<PackedFile> assets;
@@ -588,7 +587,7 @@ bool exportProject(const Program& prog, const ProjectConfig& cfg, const std::str
     std::vector<std::pair<std::string, std::string>> extras;
     uint64_t inlineSize = 0;
     if (gbxinline_runtime::present(prog)) {
-        std::printf("%s\n", i18n::tr("Uebersetze INLINE-Bloecke ...").c_str());
+        std::printf("Translating INLINE blocks ...\n");
         std::fflush(stdout);
         std::string library;
         try {
@@ -599,7 +598,7 @@ bool exportProject(const Program& prog, const ProjectConfig& cfg, const std::str
         }
         std::string bytes;
         if (!readFileText(library, bytes)) {
-            error = "INLINE-Bibliothek laesst sich nicht lesen: " + library;
+            error = "INLINE library cannot be read: " + library;
             return false;
         }
         inlineSize = bytes.size();
@@ -632,12 +631,12 @@ bool exportProject(const Program& prog, const ProjectConfig& cfg, const std::str
 
     std::ifstream base(self, std::ios::binary);
     if (!base) {
-        error = "Die laufende EXE laesst sich nicht lesen: " + self.string();
+        error = "The running EXE cannot be read: " + self.string();
         return false;
     }
     std::ofstream out(outFile, std::ios::binary | std::ios::trunc);
     if (!out) {
-        error = "Ziel laesst sich nicht schreiben: " + outFile.string();
+        error = "Target cannot be written: " + outFile.string();
         return false;
     }
     out << base.rdbuf();
@@ -647,7 +646,7 @@ bool exportProject(const Program& prog, const ProjectConfig& cfg, const std::str
     for (const PackedFile& file : sources) {
         std::ifstream source(file.path, std::ios::binary);
         if (!source) {
-            error = "Datei laesst sich nicht lesen: " + file.path.string();
+            error = "File cannot be read: " + file.path.string();
             return false;
         }
         out << source.rdbuf();
@@ -664,13 +663,13 @@ bool exportProject(const Program& prog, const ProjectConfig& cfg, const std::str
     out.close();
     base.close();
     if (!written) {
-        error = "Schreiben fehlgeschlagen: " + outFile.string();
+        error = "Write failed: " + outFile.string();
         return false;
     }
 
     std::string patchError;
     if (!patchSubsystem(outFile, patchError)) {
-        std::printf("%s\n", i18n::tr("Hinweis: " + patchError).c_str());
+        std::printf("Note: %s\n", patchError.c_str());
     }
 
     // Assets bleiben bewusst ausserhalb der EXE: Sie werden neben das Spiel
@@ -683,22 +682,22 @@ bool exportProject(const Program& prog, const ProjectConfig& cfg, const std::str
         if (!dest.parent_path().empty()) fs::create_directories(dest.parent_path(), copyError);
         fs::copy_file(asset.path, dest, fs::copy_options::overwrite_existing, copyError);
         if (copyError) {
-            error = "Asset laesst sich nicht kopieren: " + asset.path.string();
+            error = "Asset cannot be copied: " + asset.path.string();
             return false;
         }
         ++copied;
     }
 
     std::ostringstream text;
-    text << i18n::tr("EXE erstellt: ") << outFile.string() << "\n";
-    text << "  " << sources.size() << i18n::tr(" Quelldateien im Paket, ")
-         << (dataSize / 1024) << i18n::tr(" KB");
-    if (copied > 0) text << i18n::tr(", ") << copied << i18n::tr(" Assets daneben kopiert");
-    if (inlineSize > 0) text << i18n::tr(", INLINE-Bibliothek eingebettet");
+    text << "EXE created: " << outFile.string() << "\n";
+    text << "  " << sources.size() << " source files in the package, "
+         << (dataSize / 1024) << " KB";
+    if (copied > 0) text << ", " << copied << " assets copied next to it";
+    if (inlineSize > 0) text << ", INLINE library embedded";
     text << "\n";
     if (!selfContained()) {
-        text << i18n::tr("  Hinweis: Dieser Interpreter braucht C++-Laufzeit-DLLs. Fuer eine "
-                         "EXE ohne fremde DLLs mit -DGBX_STATIC_RUNTIME=ON bauen.\n");
+        text << "  Note: this interpreter needs the C++ runtime DLLs. For an EXE "
+                         "without them, build with -DGBX_STATIC_RUNTIME=ON.\n";
     }
     report = text.str();
     return true;

@@ -11,14 +11,15 @@ import { checkLine, splitStatements, commandParamLabels } from './line-check.js'
 // absichtlich nicht dabei: Sie werden aufgerufen, nicht als Block benutzt.
 const CONTROL = new Set([
   'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF', 'FOR', 'TO', 'STEP', 'NEXT',
-  'WHILE', 'WEND', 'REPEAT', 'UNTIL', 'FOREACH', 'IN', 'SELECT', 'CASE',
+  'WHILE', 'WEND', 'ENDWHILE', 'REPEAT', 'UNTIL', 'FOREACH', 'IN', 'SELECT', 'CASE',
   'DEFAULT', 'ENDSELECT', 'BREAK', 'CONTINUE', 'GOTO', 'GOSUB', 'RETURN',
   'EXIT', 'FUNCTION', 'ENDFUNCTION', 'SUB', 'ENDSUB', 'TYPE', 'ENDTYPE',
-  'METHOD', 'ENDMETHOD',
+  'METHOD', 'ENDMETHOD', 'INTERFACE', 'ENDINTERFACE', 'EXTENDS', 'IMPLEMENTS',
+  'OPTION', 'STRICT',
   'GLOBAL', 'LOCAL', 'STATIC', 'CONSTANT', 'CONST', 'ENUM', 'ENDENUM',
   'DIM', 'REDIM',
   'DIMDEL', 'DIMPUSH', 'BYREF', 'AS', 'LET', 'END', 'INCLUDE', 'SWAP',
-  'INC', 'DEC', 'TRY', 'CATCH', 'FINALLY', 'ENDTRY', 'THROW',
+  'INC', 'DEC', 'TRY', 'CATCH', 'WHEN', 'FINALLY', 'ENDTRY', 'THROW',
   'AND', 'OR', 'NOT', 'TRUE', 'FALSE'
 ]);
 
@@ -395,11 +396,12 @@ const OPEN_BLOCKS = {
   REPEAT: 'UNTIL',
   SELECT: 'ENDSELECT',
   TYPE: 'ENDTYPE',
+  INTERFACE: 'ENDINTERFACE',
   ENUM: 'ENDENUM'
 };
 const CLOSERS = new Set(Object.values(OPEN_BLOCKS));
 // Blöcke, bei denen ein Abschluss automatisch ergänzt werden darf.
-const AUTO_CLOSE_BLOCKS = new Set(['FUNCTION', 'SUB', 'METHOD', 'IF', 'FOR', 'FOREACH', 'WHILE', 'REPEAT', 'SELECT', 'TYPE', 'ENUM']);
+const AUTO_CLOSE_BLOCKS = new Set(['FUNCTION', 'SUB', 'METHOD', 'IF', 'FOR', 'FOREACH', 'WHILE', 'REPEAT', 'SELECT', 'TYPE', 'INTERFACE', 'ENUM']);
 
 const norm = (s) => String(s || '').toUpperCase();
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -418,11 +420,13 @@ export function analyzeSource(text) {
   const variables = new Map();
   const constants = new Map();
   const enums = new Map();
+  const interfaces = new Map();
   const labels = new Set();
   const labelDefs = [];
   let currentType = null;
   let currentMethod = null;
   let currentEnum = null;
+  let currentInterface = null;
   // Letzter Wert des offenen ENUM: ohne "=" zaehlt der naechste eins weiter.
   let enumLastValue = '';
 
@@ -474,6 +478,31 @@ export function analyzeSource(text) {
           type: 'INTEGER',
           line: lineNo,
           enum: currentEnum
+        });
+      }
+      return;
+    }
+
+    // INTERFACE ... ENDINTERFACE: Die Schnittstelle listet nur die Koepfe
+    // ihrer Methoden, einen Rumpf gibt es nicht. Sie gehoert in die
+    // Gliederung und nicht zu den TYPEs: Mit AS laesst sich nicht darauf
+    // zeigen, und die Methodenzeilen sind keine echten Funktionen.
+    if (currentInterface) {
+      if (/^ENDINTERFACE\b/i.test(line)) {
+        const done = interfaces.get(currentInterface);
+        if (done) done.endLine = lineNo;
+        currentInterface = null;
+        return;
+      }
+      const head = /^(SUB|FUNCTION|METHOD)\s+([A-Za-z_]\w*[$%#]?)\s*(?::\s*(.*))?$/i.exec(line);
+      const owner = interfaces.get(currentInterface);
+      if (head && owner) {
+        owner.methods.push({
+          name: head[2],
+          kind: norm(head[1]),
+          params: parseParams(head[3] || ''),
+          returnType: suffixType(head[2]) || 'NUMERIC',
+          line: lineNo
         });
       }
       return;
@@ -556,10 +585,28 @@ export function analyzeSource(text) {
       return;
     }
 
-    m = /^TYPE\s+([A-Za-z_]\w*)/i.exec(line);
+    m = /^INTERFACE\s+([A-Za-z_]\w*)/i.exec(line);
     if (m) {
+      currentInterface = norm(m[1]);
+      interfaces.set(currentInterface, { name: m[1], methods: [], line: lineNo, endLine: lineNo });
+      return;
+    }
+
+    // Kopfzeile `TYPE B EXTENDS A IMPLEMENTS I, J`: Basis und
+    // Schnittstellen gehoeren zur Anzeige in der Gliederung.
+    m = /^TYPE\s+([A-Za-z_]\w*)(.*)$/i.exec(line);
+    if (m) {
+      const base = /(?:^|\s)EXTENDS\s+([A-Za-z_]\w*)/i.exec(m[2] || '');
+      const impl = /(?:^|\s)IMPLEMENTS\s+(.+)$/i.exec(m[2] || '');
       currentType = norm(m[1]);
-      types.set(currentType, { name: m[1], members: [], methods: [], line: lineNo });
+      types.set(currentType, {
+        name: m[1],
+        base: base ? base[1] : '',
+        interfaces: impl ? impl[1].split(',').map((part) => part.trim()).filter(Boolean) : [],
+        members: [],
+        methods: [],
+        line: lineNo
+      });
       return;
     }
 
@@ -617,9 +664,11 @@ export function analyzeSource(text) {
       return;
     }
 
-    m = /^FOREACH\s+([A-Za-z_]\w*[$%#]?)\s+IN\b/i.exec(line);
+    m = /^FOREACH\s+([A-Za-z_]\w*[$%#]?)\s+IN\s+(.+?)\s*$/i.exec(line);
     if (m) {
-      addVar(m[1], suffixType(m[1]), 'FOREACH', lineNo);
+      // Die Quelle wird gemerkt: der Elementtyp ergibt sich erst aus dem Array
+      // (`FOREACH c IN liste[]`), das auch weiter unten stehen darf.
+      addVar(m[1], suffixType(m[1]), 'FOREACH', lineNo, { array: false, foreachArray: m[2] });
       return;
     }
 
@@ -657,15 +706,56 @@ export function analyzeSource(text) {
     entry.endLine = entry.values.length ? entry.values[entry.values.length - 1].line : entry.line;
   }
 
-  return {
+  const result = {
     functions: [...functions.values()],
     types: [...types.values()],
+    interfaces: [...interfaces.values()],
     variables: [...variables.values()],
     constants: [...constants.values()],
     enums: [...enums.values()],
     labels: [...labels],
     labelDefs
   };
+
+  // `FOREACH c IN liste[]`: c ist ein Element von liste. Der Typ wird erst
+  // hier aufgeloest, weil GLOBAL/DIM auch unterhalb der Schleife stehen darf.
+  for (const variable of result.variables) {
+    const elementType = foreachElementType(result, variable);
+    if (elementType) variable.type = elementType;
+  }
+  return result;
+}
+
+/**
+ * Elementtyp des Arrays hinter `FOREACH x IN quelle[]`. Die Quelle darf ein
+ * Feld-Array sein (`bag.slots[]`); aufgeloest wird ueber dieselben Symbole wie
+ * bei `obj.feld`. Ohne Array-Kennung bleibt das Ergebnis leer.
+ */
+function foreachElementType(symbols, variable) {
+  const source = variable?.foreachArray;
+  if (!source) return '';
+  const variables = symbols?.variables || [];
+  const types = symbols?.types || [];
+  const findType = (name) => types.find((item) => norm(item.name) === norm(memberBaseName(name)));
+  const path = String(source)
+    .replace(/\[[^\]]*\]/g, '')
+    .split('.')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!path.length) return '';
+  const root = variables.find((item) => norm(item.name) === norm(memberBaseName(path[0])));
+  if (!root) return '';
+  if (path.length === 1) return root.array ? root.type : '';
+  let type = findType(root.type);
+  let member = null;
+  for (const part of path.slice(1)) {
+    member = (type?.members || []).find(
+      (item) => norm(memberBaseName(item.name)) === norm(memberBaseName(part))
+    );
+    if (!member) return '';
+    type = findType(member.type);
+  }
+  return member?.array ? member.type : '';
 }
 
 function stripCommentsAndStrings(text) {
@@ -1061,8 +1151,12 @@ export function resolveMemberChain(symbols, parts) {
   const findType = (name) => types.find((item) => norm(item.name) === norm(memberBaseName(name)));
   if (!parts?.length) return null;
   const variable = variables.find((item) => norm(item.name) === norm(memberBaseName(parts[0])));
-  if (!variable?.type) return null;
-  let type = findType(variable.type);
+  if (!variable) return null;
+  // Bei `FOREACH c IN liste[]` steht der Elementtyp nicht am Namen, sondern
+  // am durchlaufenen Array - auch wenn das Array in einer anderen Datei liegt.
+  const variableType = findType(variable.type) ? variable.type : foreachElementType(symbols, variable);
+  if (!variableType) return null;
+  let type = findType(variableType);
   if (!type) return null;
   const path = [variable.name];
   for (const part of parts.slice(1)) {
@@ -1174,9 +1268,11 @@ export function openBlocksAt(text, lineNumber) {
       stack.push({ kind, closer: OPEN_BLOCKS[kind], line: index + 1 });
       continue;
     }
-    if (CLOSERS.has(kind)) {
+    // ENDWHILE ist ein Synonym fuer WEND (siehe parseWhile in parser.cpp).
+    const closer = kind === 'ENDWHILE' ? 'WEND' : kind;
+    if (CLOSERS.has(closer)) {
       for (let i = stack.length - 1; i >= 0; i--) {
-        if (stack[i].closer === kind) {
+        if (stack[i].closer === closer) {
           stack.splice(i, 1);
           break;
         }
@@ -1203,8 +1299,32 @@ export function openerInLine(text) {
 }
 
 /**
+ * Steht das Gegenstück zu `opener` schon unterhalb von `fromLine`? Ein
+ * Abschluss zählt, solange kein neuer Block derselben Art beginnt – dessen
+ * Abschluss gehört dann zu ihm. Die Einrückung spielt bewusst keine Rolle,
+ * damit auch ein nicht eingerückter Rumpf erkannt wird.
+ */
+export function closerExistsBelow(model, fromLine, opener) {
+  const closer = String(opener?.closer || '').toUpperCase();
+  const kind = String(opener?.kind || '').toUpperCase();
+  if (!closer || !model) return false;
+  const closerStart = new RegExp(`^${closer}\\b`);
+  const kindStart = kind ? new RegExp(`^${kind}\\b`) : null;
+  const limit = model.getLineCount();
+  for (let line = fromLine + 1; line <= limit; line++) {
+    const code = stripCommentsAndStrings(model.getLineContent(line)).trim().toUpperCase();
+    if (!code) continue;
+    if (closerStart.test(code)) return true;
+    // Ein neuer Block derselben Art: der gesuchte Abschluss gehört zu ihm.
+    if (kindStart?.test(code)) return false;
+  }
+  return false;
+}
+
+/**
  * Ergänzt nach dem Drücken von Enter hinter einem Blockanfang den passenden
- * Abschluss (z. B. WEND nach WHILE), solange die nächste Zeile frei ist.
+ * Abschluss (z. B. WEND nach WHILE) – aber nur, wenn der Block nicht schon
+ * weiter unten abgeschlossen ist.
  */
 export function attachBlockAutoClose(monaco, editor) {
   editor.onKeyDown((event) => {
@@ -1226,8 +1346,8 @@ export function attachBlockAutoClose(monaco, editor) {
       if (!model2 || model2 !== model || !current) return;
       if (current.lineNumber !== openerLine + 1) return;
       if (model2.getLineContent(current.lineNumber).trim()) return;
-      const nextLine = current.lineNumber < model2.getLineCount() ? model2.getLineContent(current.lineNumber + 1) : '';
-      if (nextLine.trim().toUpperCase().startsWith(opener.closer)) return;
+      // Steht das Gegenstück schon unterhalb, darf nichts dazu kommen.
+      if (closerExistsBelow(model2, current.lineNumber, opener)) return;
       // Rumpf eine Stufe einrücken, Abschluss auf Höhe des Blockanfangs.
       const bodyIndent = indent + '    ';
       const lineLength = model2.getLineContent(current.lineNumber).length;
@@ -1433,8 +1553,8 @@ export function registerGbx(monaco, dataset, options = {}) {
       { open: '[', close: ']' }
     ],
     indentationRules: {
-      increaseIndentPattern: /^\s*(FUNCTION|SUB|IF|FOR|WHILE|REPEAT|SELECT|TYPE|ENUM|TRY|ELSE|ELSEIF|CASE|DEFAULT|CATCH|FINALLY)\b(?!.*\bTHEN\b.*\S).*/i,
-      decreaseIndentPattern: /^\s*(ENDIF|ENDFUNCTION|ENDSUB|ENDMETHOD|ENDTYPE|ENDSELECT|ENDENUM|ENDTRY|NEXT|WEND|UNTIL|ELSE|ELSEIF|CASE|DEFAULT|CATCH|FINALLY)\b/i
+      increaseIndentPattern: /^\s*(FUNCTION|SUB|IF|FOR|WHILE|REPEAT|SELECT|TYPE|ENUM|TRY|ELSE|ELSEIF|CASE|DEFAULT|CATCH|FINALLY|INTERFACE)\b(?!.*\bTHEN\b.*\S).*/i,
+      decreaseIndentPattern: /^\s*(ENDIF|ENDFUNCTION|ENDSUB|ENDMETHOD|ENDTYPE|ENDSELECT|ENDENUM|ENDTRY|ENDINTERFACE|NEXT|WEND|ENDWHILE|UNTIL|ELSE|ELSEIF|CASE|DEFAULT|CATCH|FINALLY)\b/i
     }
   });
 

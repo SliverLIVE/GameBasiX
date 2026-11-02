@@ -103,11 +103,14 @@ def main():
     # ------------------------------------------------------------- Headless
     headless = run(["--headless", "--tests", SCRIPT], {"GBX_TEST_STDIN": "1"})
     output = headless.stdout + headless.stderr
-    match = re.search(r"(\d+) Pruefungen, (\d+) fehlgeschlagen", headless.stdout)
+    match = re.search(r"(\d+) (?:Pruefungen|checks), (\d+) (?:fehlgeschlagen|failed)",
+                      headless.stdout)
     check(headless.returncode == 0, "Headless-Durchlauf",
           "" if headless.returncode == 0 else f"Rueckgabe {headless.returncode}")
-    check("ASSERT FEHLGESCHLAGEN" not in output, "Headless: keine fehlgeschlagenen Asserts",
-          "\n".join(line for line in output.splitlines() if "FEHLGESCHLAGEN" in line))
+    check("ASSERT FAILED" not in output and "ASSERT FEHLGESCHLAGEN" not in output,
+          "Headless: keine fehlgeschlagenen Asserts",
+          "\n".join(line for line in output.splitlines()
+                    if "FAILED" in line or "FEHLGESCHLAGEN" in line))
     check(bool(match), "Headless: Pruefungen gezaehlt")
     if match:
         total, failed = int(match.group(1)), int(match.group(2))
@@ -122,7 +125,8 @@ def main():
     output = render.stdout + render.stderr
     check(render.returncode == 0, "Durchlauf mit Renderer",
           "" if render.returncode == 0 else f"Rueckgabe {render.returncode}")
-    check("ASSERT FEHLGESCHLAGEN" not in output, "Renderer: keine fehlgeschlagenen Asserts",
+    check("ASSERT FAILED" not in output and "ASSERT FEHLGESCHLAGEN" not in output,
+          "Renderer: keine fehlgeschlagenen Asserts",
           "\n".join(line for line in output.splitlines() if "FEHLGESCHLAGEN" in line))
     check("BEFEHLSTEST FERTIG" in render.stdout, "Renderer: Programm bis zum Ende gelaufen")
 

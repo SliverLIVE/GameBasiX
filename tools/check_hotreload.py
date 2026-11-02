@@ -152,7 +152,7 @@ def main():
         check("start 20x20" in out, "erste Datei geladen")
         check("size 32x24" in out, "erste Aenderung nachgeladen")
         check("size 12x40" in out, "zweite Aenderung nachgeladen")
-        check("Hot Reload: Grafik tile.png neu geladen" in out, "Meldung im Konsolenfenster")
+        check("Hot Reload: graphics tile.png reloaded" in out, "Meldung im Konsolenfenster")
 
         write_png(os.path.join(folder, "tile.png"), 20, 20)
         code, out = case_sprite(folder, QUIET, [(1.2, 32, 24)])
@@ -163,8 +163,8 @@ def main():
 
         code, out = case_font_sound(folder)
         check(code == 0, "Programm mit Schrift und Sound gelaufen", f"Rueckgabe {code}")
-        check("Hot Reload: Schrift font.png neu geladen" in out, "Bitmap-Schrift nachgeladen")
-        check("Hot Reload: Sound beep.wav neu geladen" in out, "Sound nachgeladen")
+        check("Hot Reload: font font.png reloaded" in out, "Bitmap-Schrift nachgeladen")
+        check("Hot Reload: sound beep.wav reloaded" in out, "Sound nachgeladen")
     finally:
         shutil.rmtree(folder, ignore_errors=True)
 

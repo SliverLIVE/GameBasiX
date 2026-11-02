@@ -80,8 +80,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const std::wstring ide = root + L"\\ide";
 
     if (!dirExists(ide) || !fileExists(ide + L"\\package.json")) {
-        fail(L"Der Ordner \"ide\" mit der IDE wurde neben " + std::wstring(kExe) +
-             L" nicht gefunden.\n\nErwartet: " + ide);
+        fail(L"The \"ide\" folder with the editor was not found next to " + std::wstring(kExe) +
+             L".\n\nExpected: " + ide);
         return 1;
     }
 
@@ -89,7 +89,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const std::wstring electron = ide + L"\\node_modules\\electron\\dist\\electron.exe";
     if (!kWebOnly && fileExists(electron)) {
         if (launch(electron, quoted(ide), ide, CREATE_NO_WINDOW)) return 0;
-        fail(L"Electron ließ sich nicht starten:\n" + electron);
+        fail(L"Electron could not be started:\n" + electron);
         return 1;
     }
 
@@ -103,14 +103,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     }
 
     if (!hasNode) {
-        fail(L"Node.js wurde nicht gefunden.\n\n"
-             L"GBX Studio braucht Node.js (https://nodejs.org) und einmalig im "
-             L"Ordner \"ide\":\n    npm install");
+        fail(L"Node.js was not found.\n\n"
+             L"GBX Studio needs Node.js (https://nodejs.org) and a one-time install "
+             L"in the \"ide\" folder:\n    npm install");
         return 1;
     }
 
-    fail(L"GBX Studio ist nicht startklar.\n\n"
-         L"Einmalig im Ordner \"ide\" ausführen:\n    npm install\n\n" +
+    fail(L"GBX Studio is not ready to start.\n\n"
+         L"Run this once in the \"ide\" folder:\n    npm install\n\n" +
          std::wstring(kHint));
     return 1;
 }

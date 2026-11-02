@@ -2,7 +2,6 @@
 #include "graphics.h"
 
 #include "gbx_icon_png.h"
-#include "i18n.h"
 
 #include <algorithm>
 #include <cmath>
@@ -86,7 +85,7 @@ bool Gfx::init(int w, int h, const std::string& title, bool fullscreen, bool res
     }
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMEPAD)) {
-        std::fprintf(stderr, i18n::tr("SDL_Init fehlgeschlagen: %s\n").c_str(), SDL_GetError());
+        std::fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
     SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
@@ -95,13 +94,13 @@ bool Gfx::init(int w, int h, const std::string& title, bool fullscreen, bool res
 
     window_ = SDL_CreateWindow(title_.c_str(), width_, height_, flags);
     if (!window_) {
-        std::fprintf(stderr, i18n::tr("Fenster konnte nicht erstellt werden: %s\n").c_str(),
+        std::fprintf(stderr, "Window could not be created: %s\n",
                      SDL_GetError());
         return false;
     }
     renderer_ = SDL_CreateRenderer(window_, nullptr);
     if (!renderer_) {
-        std::fprintf(stderr, i18n::tr("Renderer konnte nicht erstellt werden: %s\n").c_str(),
+        std::fprintf(stderr, "Renderer could not be created: %s\n",
                      SDL_GetError());
         return false;
     }
@@ -223,7 +222,7 @@ bool Gfx::setWindowIcon(const std::string& file) {
     }
     if (!ok || w <= 0 || h <= 0 || rgba.empty()) {
         std::fprintf(stderr, "%s\n",
-                     (i18n::tr("Spiel-Icon konnte nicht geladen werden: ") + file).c_str());
+                     ("Game icon could not be loaded: " + file).c_str());
         return false;
     }
     SDL_Surface* surface =
@@ -676,7 +675,7 @@ bool Gfx::loadImagePixels(const std::string& file, std::vector<uint8_t>& out, in
     stbi_set_flip_vertically_on_load(0);
     unsigned char* data = stbi_load(file.c_str(), &w, &h, &comp, 4);
     if (!data) {
-        err = "Bild konnte nicht geladen werden: " + file;
+        err = "Image could not be loaded: " + file;
         return false;
     }
     out.assign(data, data + static_cast<size_t>(w) * h * 4);
@@ -711,7 +710,7 @@ bool Gfx::loadSprite(const std::string& file, int id, std::string& err) {
     if (!headless) {
         sp.tex = makeTexture(rgba, w, h);
         if (!sp.tex) {
-            err = "Textur konnte nicht erstellt werden: " + file;
+            err = "Texture could not be created: " + file;
             return false;
         }
     }
@@ -744,23 +743,23 @@ void Gfx::deleteSprite(int id) {
 
 bool Gfx::grabSprite(int id, int x, int y, int w, int h, std::string& err) {
     if (headless || !renderer_) {
-        err = "SPRITE_GRAB ist im Headless-Modus nicht verfuegbar";
+        err = "SPRITE_GRAB is not available in headless mode";
         return false;
     }
     if (w <= 0 || h <= 0) {
-        err = "SPRITE_GRAB: ungueltige Groesse";
+        err = "SPRITE_GRAB: invalid size";
         return false;
     }
     SDL_Rect rect{x, y, w, h};
     SDL_Surface* surf = SDL_RenderReadPixels(renderer_, &rect);
     if (!surf) {
-        err = std::string("SPRITE_GRAB fehlgeschlagen: ") + SDL_GetError();
+        err = std::string("SPRITE_GRAB failed: ") + SDL_GetError();
         return false;
     }
     SDL_Surface* conv = SDL_ConvertSurface(surf, SDL_PIXELFORMAT_RGBA32);
     SDL_DestroySurface(surf);
     if (!conv) {
-        err = "SPRITE_GRAB: Konvertierung fehlgeschlagen";
+        err = "SPRITE_GRAB: conversion failed";
         return false;
     }
     std::vector<uint8_t> rgba(static_cast<size_t>(w) * h * 4);
@@ -791,7 +790,7 @@ bool Gfx::grabSprite(int id, int x, int y, int w, int h, std::string& err) {
 bool Gfx::saveSprite(const std::string& file, int id, std::string& err) {
     const Sprite* s = findSprite(id);
     if (!s || !s->hasPixels) {
-        err = "SPRITE_SAVE: Sprite " + std::to_string(id) + " hat keine Bilddaten";
+        err = "SPRITE_SAVE: sprite " + std::to_string(id) + " has no image data";
         return false;
     }
     std::string ext = lowerExt(file);
@@ -800,24 +799,24 @@ bool Gfx::saveSprite(const std::string& file, int id, std::string& err) {
         ok = stbi_write_png(file.c_str(), s->w, s->h, 4, s->pixels.data(), s->w * 4) != 0;
     else
         ok = stbi_write_bmp(file.c_str(), s->w, s->h, 4, s->pixels.data()) != 0;
-    if (!ok) err = "SPRITE_SAVE: Schreiben fehlgeschlagen: " + file;
+    if (!ok) err = "SPRITE_SAVE: writing failed: " + file;
     return ok;
 }
 
 bool Gfx::saveBmp(const std::string& file, std::string& err) {
     if (headless || !renderer_) {
-        err = "SCREEN_SAVE_BMP ist im Headless-Modus nicht verfuegbar";
+        err = "SCREEN_SAVE_BMP is not available in headless mode";
         return false;
     }
     SDL_Surface* surf = SDL_RenderReadPixels(renderer_, nullptr);
     if (!surf) {
-        err = std::string("SCREEN_SAVE_BMP: Bildschirm konnte nicht gelesen werden: ") + SDL_GetError();
+        err = std::string("SCREEN_SAVE_BMP: screen could not be read: ") + SDL_GetError();
         return false;
     }
     SDL_Surface* conv = SDL_ConvertSurface(surf, SDL_PIXELFORMAT_RGBA32);
     SDL_DestroySurface(surf);
     if (!conv) {
-        err = "SCREEN_SAVE_BMP: Konvertierung fehlgeschlagen";
+        err = "SCREEN_SAVE_BMP: conversion failed";
         return false;
     }
     std::vector<uint8_t> rgba(static_cast<size_t>(conv->w) * conv->h * 4);
@@ -835,7 +834,7 @@ bool Gfx::saveBmp(const std::string& file, std::string& err) {
         ok = stbi_write_png(file.c_str(), w, h, 4, rgba.data(), w * 4) != 0;
     else
         ok = stbi_write_bmp(file.c_str(), w, h, 4, rgba.data()) != 0;
-    if (!ok) err = "SCREEN_SAVE_BMP: Schreiben fehlgeschlagen: " + file;
+    if (!ok) err = "SCREEN_SAVE_BMP: writing failed: " + file;
     return ok;
 }
 
@@ -1007,7 +1006,7 @@ bool Gfx::loadBackground(const std::string& file, std::string& err) {
     if (headless) return true;
     SDL_Texture* tex = makeTexture(rgba, w, h);
     if (!tex) {
-        err = "BACKGROUND_LOAD: Textur konnte nicht erstellt werden";
+        err = "BACKGROUND_LOAD: texture could not be created";
         return false;
     }
     if (background_) SDL_DestroyTexture(background_);
@@ -1234,23 +1233,23 @@ bool Gfx::loadBitmapFont(const std::string& file, int id, std::string& err) {
 
 bool Gfx::loadTtfFont(const std::string& file, int id, int points, std::string& err) {
     if (!hasTtf()) {
-        err = "TTF-Unterstuetzung ist in diesem Build nicht aktiviert";
+        err = "TTF support is not enabled in this build";
         return false;
     }
 #ifdef GBX_HAVE_TTF
     if (!g_ftLibrary && FT_Init_FreeType(&g_ftLibrary) != 0) {
-        err = "FreeType konnte nicht initialisiert werden";
+        err = "FreeType could not be initialised";
         return false;
     }
     FT_Face face = nullptr;
     if (FT_New_Face(g_ftLibrary, file.c_str(), 0, &face) != 0) {
-        err = "TTF-Schrift konnte nicht geladen werden: " + file;
+        err = "TTF font could not be loaded: " + file;
         return false;
     }
     int pts = points > 0 ? points : 16;
     if (FT_Set_Pixel_Sizes(face, 0, static_cast<FT_UInt>(pts)) != 0) {
         FT_Done_Face(face);
-        err = "TTF-Schriftgroesse nicht unterstuetzt: " + file;
+        err = "TTF font size not supported: " + file;
         return false;
     }
     FontSlot f;
@@ -1287,7 +1286,7 @@ bool Gfx::loadTtfFont(const std::string& file, int id, int points, std::string& 
     (void)file;
     (void)id;
     (void)points;
-    err = "TTF-Unterstuetzung ist in diesem Build nicht aktiviert";
+    err = "TTF support is not enabled in this build";
     return false;
 #endif
 }

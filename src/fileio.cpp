@@ -13,11 +13,11 @@ FileSet::~FileSet() {
 
 bool FileSet::open(int channel, const std::string& path, int mode, std::string& error) {
     if (channel <= 0) {
-        error = "Kanal muss groesser als 0 sein";
+        error = "Channel must be greater than 0";
         return false;
     }
     if (files_.find(channel) != files_.end()) {
-        error = "Kanal " + std::to_string(channel) + " ist bereits offen";
+        error = "Channel " + std::to_string(channel) + " is already open";
         return false;
     }
 
@@ -25,7 +25,7 @@ bool FileSet::open(int channel, const std::string& path, int mode, std::string& 
     if (mode == 1) {
         std::error_code ec;
         if (!fs::is_regular_file(fs::path(path), ec)) {
-            error = "Datei nicht gefunden: " + path;
+            error = "File not found: " + path;
             return false;
         }
         flags |= std::ios::in;
@@ -34,7 +34,7 @@ bool FileSet::open(int channel, const std::string& path, int mode, std::string& 
     } else if (mode == -1) {
         flags |= std::ios::out | std::ios::app;
     } else {
-        error = "Modus muss 1 (lesen), 0 (schreiben) oder -1 (anhaengen) sein";
+        error = "Mode must be 1 (read), 0 (write) or -1 (append)";
         return false;
     }
 
@@ -42,7 +42,7 @@ bool FileSet::open(int channel, const std::string& path, int mode, std::string& 
     entry.mode = mode;
     entry.stream.open(path, flags);
     if (!entry.stream.is_open()) {
-        error = "Datei laesst sich nicht oeffnen: " + path;
+        error = "File cannot be opened: " + path;
         return false;
     }
     files_.emplace(channel, std::move(entry));

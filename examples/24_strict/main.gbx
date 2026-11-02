@@ -1,0 +1,77 @@
+' ============================================================
+' OPTION STRICT - a variable that was never assigned is an error
+' Run: gbx examples/24_strict/strict.gbxproj
+'
+' Without the option a name that was never assigned reads 0 or "".
+' With OPTION STRICT (or --strict on the command line) the
+' interpreter reports a runtime error instead, which TRY catches.
+' Assigning a name still creates it.
+'
+' Typical case: a value only comes into being on a path that was
+' never taken - here loading a save game.
+' ============================================================
+
+'OPTION STRICT
+
+score% = 0
+bonus% = 12
+message$ = "(no error yet)"
+caught% = 0
+
+' Only set while a save game is loaded.
+IF FALSE THEN
+  savegame% = 42
+ENDIF
+
+' Everything here is set beforehand - strict mode does not mind.
+score% = score% + bonus% * 2
+score% = score% + 5
+
+' Without a save game "savegame%" does not exist at runtime.
+TRY
+  score% = score% + savegame%
+CATCH e$
+  message$ = e$
+  caught% = 1
+ENDTRY
+
+DEBUG "score: " + STR$(score%) + CHR$(10)
+DEBUG "caught: " + STR$(caught%) + " - " + message$ + CHR$(10)
+
+SCREEN_SET 760, 520, 0
+WINDOW_TITLE "GameBasiX - OPTION STRICT"
+LIMIT_FPS 60
+
+WHILE TRUE
+  SCREEN_CLEAR RGB(10, 14, 22)
+
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "OPTION STRICT", 50, 24
+  TEXT_COLOR RGB(140, 170, 205)
+  PRINT "a variable that was never assigned is a runtime error", 50, 52
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "normal arithmetic still works", 50, 104
+  TEXT_COLOR RGB(200, 214, 232)
+  PRINT "score% = score% + bonus% * 2 + 5  ->  " + STR$(score%), 70, 132
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "the save game was never loaded, so savegame% does not exist", 50, 190
+  TEXT_COLOR RGB(200, 214, 232)
+  PRINT "caught: " + STR$(caught%), 70, 218
+  PRINT message$, 70, 244
+
+  TEXT_COLOR RGB(160, 176, 200)
+  PRINT "Without OPTION STRICT the same line would read 0 and the sum", 50, 310
+  PRINT "would silently stay wrong - that is the bug this mode removes.", 50, 336
+  PRINT "Assigning a name still creates it, so normal code needs no change:", 50, 380
+  PRINT "  fresh% = 3     ' fine, creates fresh%", 70, 408
+  PRINT "--strict on the command line switches the mode on for one run.", 50, 452
+
+  TEXT_COLOR RGB(140, 170, 205)
+  PRINT "press ESC to end", 50, 486
+
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  SCREEN_SHOW
+WEND

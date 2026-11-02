@@ -185,6 +185,8 @@ private:
             }
             propagateTypes(stmt->body);
             propagateTypes(stmt->body2);
+            propagateTypes(stmt->finallyBody);
+            for (const auto& clause : stmt->catches) propagateTypes(clause.body);
             for (const auto& block : stmt->cases) propagateTypes(block.body);
         }
     }
@@ -193,6 +195,9 @@ private:
         const std::string base = withoutSuffix(name);
         if (name == "IIF" || base == "IIF") return true;
         if (funcs_.count(name) || funcs_.count(base)) return true;
+        // Ein Name, der als Variable vorkommt, kann eine FUNCTION halten
+        // (`aktion = @doppelt`) und wird ueber den Namen aufgerufen.
+        if (defined_.count(name) || defined_.count(base)) return true;
         // In einer METHOD sind auch die eigenen Methoden ohne Objekt aufrufbar.
         if (!currentOwner_.empty()) {
             auto type = prog_.types.find(currentOwner_);
@@ -257,7 +262,7 @@ private:
                 collectTarget(s.e2.get());
                 break;
             case SK::Try:
-                if (!s.name.empty()) defined_.insert(s.name);
+                for (const auto& clause : s.catches) defined_.insert(clause.name);
                 break;
             case SK::Label:
                 labels_.insert(s.name);
@@ -278,6 +283,11 @@ private:
         for (const auto& arg : s.exprs) collectExpr(arg.get());
         collectBlock(s.body);
         collectBlock(s.body2);
+        for (const auto& clause : s.catches) {
+            collectExpr(clause.guard.get());
+            collectBlock(clause.body);
+        }
+        collectBlock(s.finallyBody);
         for (const auto& block : s.cases) {
             for (const auto& test : block.tests) {
                 collectExpr(test.lo.get());
@@ -294,15 +304,15 @@ private:
     void checkStmt(const Stmt& s) {
         switch (s.kind) {
             case SK::Call:
-                if (!knownCallable(s.name)) issue(s.pos, "Unbekannter Befehl: " + withoutSuffix(s.name));
+                if (!knownCallable(s.name)) issue(s.pos, "Unknown command: " + withoutSuffix(s.name));
                 break;
             case SK::Goto:
-                if (!labels_.count(s.name)) issue(s.pos, "Unbekannte Marke: " + s.name);
+                if (!labels_.count(s.name)) issue(s.pos, "Unknown label: " + s.name);
                 break;
             case SK::Gosub:
                 // GOSUB springt in ein Unterprogramm (SUB), nicht auf eine Marke.
                 if (!funcs_.count(s.name) && !funcs_.count(withoutSuffix(s.name))) {
-                    issue(s.pos, "Unbekanntes Unterprogramm: " + s.name);
+                    issue(s.pos, "Unknown subroutine: " + s.name);
                 }
                 break;
             default:
@@ -314,6 +324,11 @@ private:
         for (const auto& arg : s.exprs) checkExpr(arg.get());
         checkBlock(s.body);
         checkBlock(s.body2);
+        for (const auto& clause : s.catches) {
+            checkExpr(clause.guard.get());
+            checkBlock(clause.body);
+        }
+        checkBlock(s.finallyBody);
         for (const auto& block : s.cases) {
             for (const auto& test : block.tests) {
                 checkExpr(test.lo.get());
@@ -331,8 +346,8 @@ private:
         if (type == prog_.types.end() || !type->second) return;
         if (type->second->hasMethod(e->text)) return;
         const std::string hint = closestName(type->second->methods, e->text);
-        issue(e->pos, "Unbekannte Methode: " + e->text + " (" + base + ")" +
-                          (hint.empty() ? "" : " - meintest du " + hint + "?"));
+        issue(e->pos, "Unknown method: " + e->text + " (" + base + ")" +
+                          (hint.empty() ? "" : " - did you mean " + hint + "?"));
     }
 
     /** Prueft, ob der TYPE der Basis ein solches Feld kennt (`p.nam$`). */
@@ -347,8 +362,8 @@ private:
             names.push_back(field.name);
         }
         const std::string hint = closestName(names, e->text);
-        issue(e->pos, "Unbekanntes Feld: " + e->text + " (" + base + ")" +
-                          (hint.empty() ? "" : " - meintest du " + hint + "?"));
+        issue(e->pos, "Unknown field: " + e->text + " (" + base + ")" +
+                          (hint.empty() ? "" : " - did you mean " + hint + "?"));
     }
 
     void checkExpr(const Expr* e) {
@@ -360,12 +375,15 @@ private:
                 const auto value = prog_.enumValues.find(e->text);
                 std::string hint;
                 if (value != prog_.enumValues.end() && !value->second.empty()) {
-                    hint = " - meintest du " + value->second.front() + "." + e->text + "?";
+                    hint = " - did you mean " + value->second.front() + "." + e->text + "?";
                 }
-                issue(e->pos, "Unbekannter Name: " + e->text + hint);
+                issue(e->pos, "Unknown name: " + e->text + hint);
             }
         } else if (e->kind == EK::Call) {
-            if (!knownCallable(e->text)) issue(e->pos, "Unbekannte Funktion: " + withoutSuffix(e->text));
+            if (!knownCallable(e->text)) issue(e->pos, "Unknown function: " + withoutSuffix(e->text));
+        } else if (e->kind == EK::FuncRef) {
+            if (!funcs_.count(e->text) && !funcs_.count(withoutSuffix(e->text)))
+                issue(e->pos, "Unknown function: " + withoutSuffix(e->text));
         } else if (e->kind == EK::Field) {
             checkField(e);
         } else if (e->kind == EK::MethodCall) {

@@ -53,7 +53,7 @@ def expect_clean(work, title, source):
 
 def expect_error(work, title, source, line, text):
     code, stderr, path = run_check(work, source)
-    wanted = f"{path}:{line}: Fehler: {text}"
+    wanted = f"{path}:{line}: Error: {text}"
     hits = [row for row in stderr.splitlines() if wanted in row.replace("\\", os.sep)]
     check(code == 2 and hits, title, stderr.strip() or f"Rueckgabe {code}")
 
@@ -67,13 +67,13 @@ def main():
         print(f"Namenspruefung ({work})")
 
         # ---------------------------------------------------- unbekannte Namen
-        expect_error(work, "unbekannter Befehl", "bla\n", 1, "Unbekannter Befehl: BLA")
-        expect_error(work, "unbekannte Variable", 'PRINT foo, 0, 0\nEND\n', 1, "Unbekannter Name: FOO")
-        expect_error(work, "unbekannte Funktion", "x = NOPE(1)\nEND\n", 1, "Unbekannte Funktion: NOPE")
-        expect_error(work, "Tippfehler in der Mitte", "x = 1\ny = x + zzz\nEND\n", 2, "Unbekannter Name: ZZZ")
-        expect_error(work, "unbekannte Marke", "GOTO spaeter\nEND\n", 1, "Unbekannte Marke: SPAETER")
+        expect_error(work, "unbekannter Befehl", "bla\n", 1, "Unknown command: BLA")
+        expect_error(work, "unbekannte Variable", 'PRINT foo, 0, 0\nEND\n', 1, "Unknown name: FOO")
+        expect_error(work, "unbekannte Funktion", "x = NOPE(1)\nEND\n", 1, "Unknown function: NOPE")
+        expect_error(work, "Tippfehler in der Mitte", "x = 1\ny = x + zzz\nEND\n", 2, "Unknown name: ZZZ")
+        expect_error(work, "unbekannte Marke", "GOTO spaeter\nEND\n", 1, "Unknown label: SPAETER")
         expect_error(
-            work, "unbekanntes Unterprogramm", "GOSUB gibtEsNicht\nEND\n", 1, "Unbekanntes Unterprogramm: GIBTESNICHT"
+            work, "unbekanntes Unterprogramm", "GOSUB gibtEsNicht\nEND\n", 1, "Unknown subroutine: GIBTESNICHT"
         )
 
         # ------------------------------------------------- Include-Zyklen
@@ -92,7 +92,7 @@ def main():
         )
         chain = "ring_a.gbx -> ring_b.gbx -> ring_a.gbx"
         check(
-            result.returncode == 2 and "Zyklischer INCLUDE: " + chain in result.stderr,
+            result.returncode == 2 and "Cyclic INCLUDE: " + chain in result.stderr,
             "Include-Zyklus wird gemeldet",
             result.stderr.strip(),
         )
@@ -106,7 +106,7 @@ def main():
             capture_output=True,
         )
         check(
-            result.returncode == 2 and "Zyklischer INCLUDE: selbst.gbx -> selbst.gbx" in result.stderr,
+            result.returncode == 2 and "Cyclic INCLUDE: selbst.gbx -> selbst.gbx" in result.stderr,
             "Include auf sich selbst wird gemeldet",
             result.stderr.strip(),
         )
@@ -210,21 +210,21 @@ END
             "unbekanntes Feld mit Vorschlag",
             types_source.replace('p.name$ = "ok"', 'p.nam$ = "tippfehler"'),
             14,
-            "Unbekanntes Feld: NAM (PUNKT) - meintest du NAME?",
+            "Unknown field: NAM (PUNKT) - did you mean NAME?",
         )
         expect_error(
             work,
             "unbekanntes Feld in verschachteltem TYPE",
             types_source.replace('r.links.name$ = "ok"', 'r.links.nam$ = "x"'),
             17,
-            "Unbekanntes Feld: NAM (PUNKT)",
+            "Unknown field: NAM (PUNKT)",
         )
         expect_error(
             work,
             "unbekanntes Feld in einem TYPE-Array",
             types_source.replace("feld[0].y = 2", "feld[0].yy = 2"),
             20,
-            "Unbekanntes Feld: YY (PUNKT)",
+            "Unknown field: YY (PUNKT)",
         )
         expect_clean(
             work,
@@ -304,21 +304,21 @@ END
             "unbekannte Methode mit Vorschlag",
             method_source.replace("k.skalieren(3)", "k.skaliern(3)"),
             22,
-            "Unbekannte Methode: SKALIERN (KISTE) - meintest du SKALIEREN?",
+            "Unknown method: SKALIERN (KISTE) - did you mean SKALIEREN?",
         )
         expect_error(
             work,
             "SELF ausserhalb einer METHOD",
             "TYPE T\n  x AS FLOAT\nENDTYPE\nLOCAL t AS T\nPRINT self.x, 0, 0\nEND\n",
             5,
-            "Unbekannter Name: SELF",
+            "Unknown name: SELF",
         )
         expect_error(
             work,
             "unbekanntes Feld ueber SELF",
             method_source.replace("RETURN w * h", "RETURN self.nam"),
             6,
-            "Unbekanntes Feld: NAM (KISTE)",
+            "Unknown field: NAM (KISTE)",
         )
 
         # ------------------------------------------------------------- ENUM
@@ -340,7 +340,7 @@ END
             "nackter ENUM-Wert mit Vorschlag",
             enum_source.replace("phase% = PHASE.STOP", "phase% = STOP"),
             8,
-            "Unbekannter Name: STOP - meintest du PHASE.STOP?",
+            "Unknown name: STOP - did you mean PHASE.STOP?",
         )
         expect_clean(
             work,
@@ -362,14 +362,14 @@ END
             work, "TYPE T\n  x AS FLOAT\n  FUNCTION f:\n    RETURN 1\n  ENDFUNCTION\nENDTYPE\nEND\n"
         )
         check(
-            code == 2 and f"{path}:3: Syntaxfehler:" in stderr and "METHOD" in stderr,
+            code == 2 and f"{path}:3: Syntax error:" in stderr and "METHOD" in stderr,
             "FUNCTION in einem TYPE verweist auf METHOD",
             stderr.strip() or f"Rueckgabe {code}",
         )
 
         # ------------------------------------------------------ mehrere Meldungen
         code, stderr, path = run_check(work, "a = b\nc = d\nEND\n")
-        rows = [row for row in stderr.splitlines() if ": Fehler:" in row]
+        rows = [row for row in stderr.splitlines() if ": Error:" in row]
         check(
             len(rows) == 2 and code == 2,
             "alle unbekannten Namen werden gemeldet",
@@ -437,7 +437,7 @@ END
         # -------------------------------------------------------------- stdin
         code, stderr, path = run_check(work, "nurEinTippfehler\n", name="live.gbx", stdin=True)
         check(
-            code == 2 and f"{path}:1: Fehler: Unbekannter Befehl: NUREINTIPPFEHLER" in stderr,
+            code == 2 and f"{path}:1: Error: Unknown command: NUREINTIPPFEHLER" in stderr,
             "stdin nennt die echte Datei",
             stderr.strip() or f"Rueckgabe {code}",
         )

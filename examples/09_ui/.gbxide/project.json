@@ -7,18 +7,66 @@
   "height": 680,
   "fullscreen": false,
   "resizable": true,
+  "icon": "",
   "frameRate": 60,
   "vsync": true,
   "audio": false,
   "volume": 1,
   "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeSources": [],
+  "nativeFlags": "",
   "sources": [
     "main.gbx",
     "UI.gbx"
   ],
-  "openFiles": [
-    "main.gbx",
-    "UI.gbx"
-  ],
-  "createdAt": "2026-10-24T10:00:00.000Z"
+  "openFiles": [],
+  "createdAt": "2026-10-24T10:00:00.000Z",
+  "layout": {
+    "sidebar": 248,
+    "reference": 352,
+    "bottom": 291
+  },
+  "dock": {
+    "zones": {
+      "left": [
+        "files",
+        "outline"
+      ],
+      "right": [
+        "reference"
+      ],
+      "bottom": [
+        "problems",
+        "output",
+        "console",
+        "debug"
+      ]
+    },
+    "collapsed": {
+      "files": false,
+      "outline": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "heights": {
+      "files": 280,
+      "outline": 576,
+      "reference": 340,
+      "problems": 220,
+      "output": 220,
+      "console": 220,
+      "debug": 260
+    },
+    "open": {
+      "left": true,
+      "right": true,
+      "bottom": true
+    },
+    "active": "console"
+  }
 }

@@ -42,8 +42,9 @@ program's window one key press away.</sub>
   search reads the project sources, skips comments, string literals and
   `INLINE` blocks; renaming opens the affected files as tabs and writes them
   when you save.
-* **Outline** – globals, constants, functions, SUBs and TYPEs of the current
-  file, one click away.
+* **Outline** – globals, constants, functions, SUBs, TYPEs and INTERFACEs of
+  the current file, one click away; a TYPE shows its `EXTENDS` base and the
+  `IMPLEMENTS` interfaces.
 * **Reference** – every command, keyword and `KEY_*` constant with signature,
   description and example, in German and English, searchable and filterable by
   category.
@@ -324,9 +325,9 @@ Each entry describes what the command does in **German and English**; the texts
 live in `data/gbx-descriptions.json` and are original wording, not manual
 quotes. The active language is shown in the reference panel, in hovers and in
 completion. The **DE**/**EN** switch in the top right changes the whole
-interface – including messages from the interpreter and the IDE console,
-because the IDE sets `GBX_LANG` accordingly. Signature argument names switch
-too (`farbe` → `colour`).
+interface and the IDE console; messages coming from the interpreter stay
+English in both languages, because `gbx` reports every error in English.
+Signature argument names switch too (`farbe` → `colour`).
 
 Language details (0-based string functions, inclusive `RND`, SDL scancodes,
 WAV/MP3 audio, `SCREEN_SCALE`) are noted in the respective entry and in the

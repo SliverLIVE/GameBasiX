@@ -4,13 +4,15 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-enum class VT { Null, Int, Float, Str, Array, Record };
+enum class VT { Null, Int, Float, Str, Array, Record, Dict, Func };
 
 struct TypeDef;
 struct ArrayObj;
 struct RecordObj;
+struct DictObj;
 
 struct Value {
     VT type = VT::Null;
@@ -19,6 +21,7 @@ struct Value {
     std::string s;
     std::shared_ptr<ArrayObj> arr;
     std::shared_ptr<RecordObj> rec;
+    std::shared_ptr<DictObj> dict;
 
     static Value mkNull() { return Value(); }
     static Value mkInt(int64_t v) {
@@ -37,12 +40,21 @@ struct Value {
     static Value mkRecord(std::shared_ptr<RecordObj> r0) {
         Value r; r.type = VT::Record; r.rec = std::move(r0); return r;
     }
+    static Value mkDict(std::shared_ptr<DictObj> d) {
+        Value r; r.type = VT::Dict; r.dict = std::move(d); return r;
+    }
+    // Funktionswert: s traegt den Namen der FUNCTION.
+    static Value mkFunc(std::string name) {
+        Value r; r.type = VT::Func; r.s = std::move(name); return r;
+    }
 
     bool isNull() const { return type == VT::Null; }
     bool isNum() const { return type == VT::Int || type == VT::Float; }
     bool isStr() const { return type == VT::Str; }
     bool isArray() const { return type == VT::Array; }
     bool isRecord() const { return type == VT::Record; }
+    bool isDict() const { return type == VT::Dict; }
+    bool isFunc() const { return type == VT::Func; }
 
     double asDouble() const;
     int64_t asInt() const;
@@ -56,6 +68,34 @@ struct ArrayObj {
     VT elemVT = VT::Float;   // Elementtyp fuer Zahlen/Strings
     bool isTypeArray = false;
     std::string elemType;    // Name des TYPE-Elements, falls isTypeArray
+};
+
+// Dictionary: Schluessel sind immer Text, die Werte beliebig. `keys` haelt die
+// Reihenfolge der ersten Einfuegung, damit DICT_KEY$/FOREACH stabil laufen.
+struct DictObj {
+    std::vector<std::string> keys;
+    std::unordered_map<std::string, Value> map;
+
+    size_t size() const { return map.size(); }
+    bool has(const std::string& k) const { return map.find(k) != map.end(); }
+    void set(const std::string& k, Value v) {
+        auto it = map.find(k);
+        if (it == map.end()) keys.push_back(k);
+        map[k] = std::move(v);
+    }
+    void erase(const std::string& k) {
+        if (map.erase(k) == 0) return;
+        for (size_t i = 0; i < keys.size(); ++i) {
+            if (keys[i] == k) {
+                keys.erase(keys.begin() + static_cast<std::ptrdiff_t>(i));
+                break;
+            }
+        }
+    }
+    void clear() {
+        map.clear();
+        keys.clear();
+    }
 };
 
 struct FieldDef {
@@ -74,8 +114,18 @@ struct TypeDef {
     std::string name;
     std::vector<FieldDef> fields;
     std::vector<std::string> methods;  // Namen der METHODen zu diesem TYPE
+    // Vererbung: "TYPE B EXTENDS A". Nach dem Aufloesen (resolveTypes) sind
+    // die Felder der Basis bereits in `fields` enthalten; `base` zeigt nur
+    // noch fuer die Methodensuche und ISA() auf die Basis.
+    std::string baseName;
+    TypeDef* base = nullptr;
+    std::vector<std::string> interfaces;  // "TYPE B IMPLEMENTS I, J"
+
     int fieldIndex(const std::string& fname) const;
-    bool hasMethod(const std::string& mname) const;
+    bool hasMethod(const std::string& mname) const;     // mit Basis
+    bool hasOwnMethod(const std::string& mname) const;  // nur dieser TYPE
+    // "ist ein A" - der TYPE selbst oder eine seiner Basen.
+    bool isA(const std::string& tname) const;
 };
 
 struct RecordObj {

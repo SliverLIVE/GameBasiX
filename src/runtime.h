@@ -41,6 +41,9 @@ struct Runtime {
 
     bool headless = false;
     bool testsMode = false;
+    // OPTION STRICT / --strict: eine nie zugewiesene Variable ist ein Fehler
+    // statt still 0.
+    bool strict = false;
     bool quit = false;
     int exitCode = 0;
 

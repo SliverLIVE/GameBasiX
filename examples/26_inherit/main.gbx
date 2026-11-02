@@ -1,0 +1,133 @@
+' ============================================================
+' Inheritance and interfaces - EXTENDS, IMPLEMENTS, ISA
+' Run: gbx examples/26_inherit/inherit.gbxproj
+'
+'   INTERFACE DRAWABLE        names the methods a TYPE must provide
+'   TYPE CIRCLE EXTENDS SHAPE inherits fields, defaults and methods
+'   IMPLEMENTS DRAWABLE       checked while compiling
+'   ISA(obj, "SHAPE")         asks at runtime for TYPE, base or interface
+' A METHOD of the same name in the derived TYPE hides the inherited one.
+' ============================================================
+
+INTERFACE DRAWABLE
+  SUB draw: x, y
+ENDINTERFACE
+
+INTERFACE NAMED
+  FUNCTION label()
+ENDINTERFACE
+
+TYPE SHAPE
+  x AS FLOAT
+  y AS FLOAT
+  color% = 200
+
+  METHOD label:
+    RETURN "shape"
+  ENDMETHOD
+
+  METHOD draw: px, py
+    x = px
+    y = py
+  ENDMETHOD
+ENDTYPE
+
+TYPE CIRCLE EXTENDS SHAPE IMPLEMENTS DRAWABLE, NAMED
+  radius AS FLOAT = 30
+
+  METHOD label:
+    RETURN "circle r=" + STR$(radius)
+  ENDMETHOD
+
+  METHOD draw: px, py
+    x = px
+    y = py
+    DRAW_CIRCLE_FILLED(x, y, radius, color%)
+  ENDMETHOD
+ENDTYPE
+
+TYPE RECT EXTENDS SHAPE IMPLEMENTS DRAWABLE, NAMED
+  width AS FLOAT = 90
+  height AS FLOAT = 55
+
+  METHOD label:
+    RETURN "rect " + STR$(width) + "x" + STR$(height)
+  ENDMETHOD
+
+  METHOD draw: px, py
+    x = px
+    y = py
+    DRAW_RECT(x - width / 2, y - height / 2, width, height, color%)
+  ENDMETHOD
+ENDTYPE
+
+TYPE SQUARE EXTENDS RECT
+  edge AS FLOAT = 44
+
+  METHOD label:
+    RETURN "square " + STR$(edge)
+  ENDMETHOD
+
+  METHOD draw: px, py
+    x = px
+    y = py
+    DRAW_RECT(x - edge / 2, y - edge / 2, edge, edge, color%)
+  ENDMETHOD
+ENDTYPE
+
+GLOBAL circle AS CIRCLE
+GLOBAL rect AS RECT
+GLOBAL square AS SQUARE
+
+' The inherited fields exist; each object sets its own values.
+circle.color% = 90
+rect.color% = 60
+square.color% = 220
+
+circle.draw(200, 250)
+rect.draw(430, 250)
+square.draw(640, 250)
+
+DEBUG "circle: " + circle.label() + "  x=" + STR$(circle.x) + " color=" + STR$(circle.color%) + CHR$(10)
+DEBUG "rect: " + rect.label() + "  x=" + STR$(rect.x) + CHR$(10)
+DEBUG "square: " + square.label() + "  inherits from RECT and SHAPE" + CHR$(10)
+DEBUG "ISA: SHAPE=" + STR$(ISA(circle, "SHAPE")) + " CIRCLE=" + STR$(ISA(circle, "CIRCLE")) + " DRAWABLE=" + STR$(ISA(circle, "DRAWABLE")) + " RECT=" + STR$(ISA(circle, "RECT")) + CHR$(10)
+
+SCREEN_SET 760, 520, 0
+WINDOW_TITLE "GameBasiX - inheritance and interfaces"
+LIMIT_FPS 60
+
+WHILE TRUE
+  SCREEN_CLEAR RGB(10, 14, 22)
+
+  ' Every object draws itself - the method comes from its TYPE.
+  circle.draw(200, 250)
+  rect.draw(430, 250)
+  square.draw(640, 250)
+
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "EXTENDS / IMPLEMENTS / ISA", 50, 24
+  TEXT_COLOR RGB(140, 170, 205)
+  PRINT "three objects, one base TYPE - each draws with its own METHOD", 50, 52
+
+  TEXT_COLOR RGB(200, 214, 232)
+  PRINT circle.label(), 70, 88
+  PRINT rect.label(), 300, 88
+  PRINT square.label(), 560, 88
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "inherited fields and defaults", 50, 330
+  TEXT_COLOR RGB(200, 214, 232)
+  PRINT "circle.x = " + STR$(circle.x) + "   circle.y = " + STR$(circle.y) + "   color% = " + STR$(circle.color%), 70, 358
+  PRINT "rect.x = " + STR$(rect.x) + "   square.x = " + STR$(square.x), 70, 384
+  PRINT "the default color% = 200 comes from SHAPE, each object changed its own", 70, 410
+
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "ISA at runtime", 50, 448
+  TEXT_COLOR RGB(200, 214, 232)
+  PRINT "ISA(circle, ""SHAPE"") = " + STR$(ISA(circle, "SHAPE")) + "   ISA(circle, ""DRAWABLE"") = " + STR$(ISA(circle, "DRAWABLE")) + "   ISA(circle, ""RECT"") = " + STR$(ISA(circle, "RECT")), 70, 476
+
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  SCREEN_SHOW
+WEND

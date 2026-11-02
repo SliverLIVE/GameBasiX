@@ -1,7 +1,6 @@
 // GameBasiX - eingebaute Befehle und Funktionen
 #include "builtins.h"
 
-#include "i18n.h"
 
 #include <algorithm>
 #include <cctype>
@@ -20,7 +19,7 @@
 // ------------------------------------------------------------------- BArgs
 
 void BArgs::require(size_t n) const {
-    if (vals.size() < n) fail("Zu wenige Argumente");
+    if (vals.size() < n) fail("Too few arguments");
 }
 
 [[noreturn]] void BArgs::fail(const std::string& msg) const {
@@ -28,12 +27,12 @@ void BArgs::require(size_t n) const {
 }
 
 double BArgs::num(size_t i) const {
-    if (i >= vals.size()) fail("Argument " + std::to_string(i + 1) + " fehlt");
+    if (i >= vals.size()) fail("Argument " + std::to_string(i + 1) + " missing");
     return vals[i].asDouble();
 }
 
 int64_t BArgs::integer(size_t i) const {
-    if (i >= vals.size()) fail("Argument " + std::to_string(i + 1) + " fehlt");
+    if (i >= vals.size()) fail("Argument " + std::to_string(i + 1) + " missing");
     return vals[i].asInt();
 }
 
@@ -54,7 +53,7 @@ Value* BArgs::out(size_t i) const {
 
 void BArgs::setOut(size_t i, Value v) const {
     Value* p = out(i);
-    if (!p) fail("Ausgabevariable erwartet (Argument " + std::to_string(i + 1) + ")");
+    if (!p) fail("Output variable expected (argument " + std::to_string(i + 1) + ")");
     *p = std::move(v);
 }
 
@@ -63,6 +62,13 @@ namespace {
 constexpr double kPi = 3.14159265358979323846;
 
 Value ok() { return Value::mkInt(0); }
+
+// Dictionary-Argument pruefen; der Aufruf von fail() bricht ab.
+DictObj* dictArg(BArgs& a, size_t i) {
+    if (i >= a.vals.size() || !a.vals[i].isDict() || !a.vals[i].dict)
+        a.fail("Dictionary als Argument " + std::to_string(i + 1) + " expected");
+    return a.vals[i].dict.get();
+}
 
 uint32_t colorOf(BArgs& a, size_t i) {
     return static_cast<uint32_t>(a.integer(i)) & 0xFFFFFF;
@@ -129,21 +135,21 @@ void watchSprite(Runtime& rt, const std::string& path, const std::string& label,
 
 int channelArg(BArgs& a, size_t i) {
     int64_t ch = a.integer(i);
-    if (ch <= 0) a.fail("Kanal muss groesser als 0 sein");
+    if (ch <= 0) a.fail("Channel must be greater than 0");
     return static_cast<int>(ch);
 }
 
 int readChannel(BArgs& a, size_t i) {
     int ch = channelArg(a, i);
     if (!a.rt.files.readable(ch))
-        a.fail("Kanal " + std::to_string(ch) + " ist nicht zum Lesen geoeffnet");
+        a.fail("Channel " + std::to_string(ch) + " is not open for reading");
     return ch;
 }
 
 int writeChannel(BArgs& a, size_t i) {
     int ch = channelArg(a, i);
     if (!a.rt.files.writable(ch))
-        a.fail("Kanal " + std::to_string(ch) + " ist nicht zum Schreiben geoeffnet");
+        a.fail("Channel " + std::to_string(ch) + " is not open for writing");
     return ch;
 }
 
@@ -163,7 +169,7 @@ void writeBits(BArgs& a, int ch, int64_t value, size_t count) {
     uint64_t bits = static_cast<uint64_t>(value);
     for (size_t i = 0; i < count; ++i)
         buf[i] = static_cast<unsigned char>((bits >> (8 * i)) & 0xFF);
-    if (!a.rt.files.writeBytes(ch, buf, count)) a.fail("Schreiben fehlgeschlagen");
+    if (!a.rt.files.writeBytes(ch, buf, count)) a.fail("Write failed");
 }
 
 std::string readText(BArgs& a, int ch, size_t count) {
@@ -256,7 +262,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             if (!a.truthy(0)) {
                 ++a.rt.assertFailures;
                 std::string msg = a.vals.size() > 1 ? a.str(1) : "";
-                std::fprintf(stderr, i18n::tr("ASSERT FEHLGESCHLAGEN %s:%d%s%s\n").c_str(),
+                std::fprintf(stderr, "ASSERT FAILED %s:%d%s%s\n",
                              a.pos.file.c_str(),
                              a.pos.line, msg.empty() ? "" : ": ", msg.c_str());
             }
@@ -658,7 +664,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         });
         add("INPUT", 1, 3, [](BArgs& a) {
             Value* target = a.out(0);
-            if (!target) a.fail("erwartet eine Variable als erstes Argument");
+            if (!target) a.fail("expects a variable as first argument");
             float x = a.vals.size() > 1 ? static_cast<float>(a.num(1)) : 0.0f;
             float y = a.vals.size() > 2 ? static_cast<float>(a.num(2)) : 0.0f;
             std::string buf = target->isStr() ? target->s : target->text();
@@ -827,7 +833,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         });
         add("SQR", 1, 1, [](BArgs& a) {
             double v = a.num(0);
-            if (v < 0) a.fail("SQR: negative Zahl");
+            if (v < 0) a.fail("SQR: negative number");
             return Value::mkFloat(std::sqrt(v));
         });
         add("SIN", 1, 1, [](BArgs& a) { return Value::mkFloat(std::sin(a.num(0) * kPi / 180.0)); });
@@ -852,12 +858,12 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("LOGN", 1, 1, [](BArgs& a) { return Value::mkFloat(std::log(a.num(0))); });
         add("MOD", 2, 2, [](BArgs& a) {
             int64_t b = a.integer(1);
-            if (b == 0) a.fail("Division durch Null");
+            if (b == 0) a.fail("Division by zero");
             return Value::mkInt(a.integer(0) % b);
         });
         add("FMOD", 2, 2, [](BArgs& a) {
             double b = a.num(1);
-            if (b == 0) a.fail("Division durch Null");
+            if (b == 0) a.fail("Division by zero");
             return Value::mkFloat(std::fmod(a.num(0), b));
         });
         add("MIN", 2, 2, [](BArgs& a) {
@@ -910,6 +916,8 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("LEN", 1, 2, [](BArgs& a) {
             if (a.vals[0].isArray() && a.vals[0].arr)
                 return Value::mkInt(static_cast<int64_t>(a.vals[0].arr->items.size()));
+            if (a.vals[0].isDict() && a.vals[0].dict)
+                return Value::mkInt(static_cast<int64_t>(a.vals[0].dict->size()));
             std::string s = a.str(0);
             if (a.vals.size() > 1 && a.truthy(1)) {
                 int w = 0, h = 0;
@@ -948,6 +956,155 @@ std::unordered_map<std::string, Builtin>& builtins() {
                 }
             }
             return Value::mkInt(size);
+        });
+
+        // ------------------------------------------------------ Arrays ordnen
+        // ARRAY_SORT(feld [, richtung [, feldname$]])
+        // Sortiert an Ort und Stelle: 1 aufsteigend (Vorgabe), -1 absteigend.
+        // Bei einem TYPE-Array nennt feldname$ das Vergleichsfeld.
+        add("ARRAY_SORT", 1, 3, [](BArgs& a) {
+            if (!a.vals[0].isArray() || !a.vals[0].arr)
+                a.fail("array expected as first argument");
+            auto arr = a.vals[0].arr;
+            const bool desc = a.vals.size() > 1 && a.integer(1) < 0;
+            const std::string key = a.vals.size() > 2 ? a.str(2) : std::string();
+            auto field = [&](const Value& v) -> Value {
+                if (key.empty()) return v;
+                if (!v.isRecord() || !v.rec || !v.rec->def)
+                    a.fail("ARRAY_SORT mit Feldname braucht ein TYPE-Array");
+                // Feldnamen stehen im TYPE in Grossbuchstaben; der Aufrufer
+                // darf sie trotzdem klein schreiben.
+                const std::string want = upperAscii(key);
+                int idx = -1;
+                for (size_t fi = 0; fi < v.rec->def->fields.size(); ++fi)
+                    if (upperAscii(v.rec->def->fields[fi].name) == want) {
+                        idx = static_cast<int>(fi);
+                        break;
+                    }
+                if (idx < 0) {
+                    std::string known;
+                    for (const auto& f : v.rec->def->fields) {
+                        if (!known.empty()) known += ", ";
+                        known += f.name;
+                    }
+                    a.fail("TYPE '" + v.rec->def->name + "' has no field '" + key +
+                           (known.empty() ? "' (der TYPE hat keine Felder)" : "' (Felder: " + known + ")"));
+                }
+                return v.rec->fields[static_cast<size_t>(idx)];
+            };
+            auto less = [&](const Value& x, const Value& y) -> bool {
+                const Value l = field(x), r = field(y);
+                if (l.isStr() || r.isStr()) return l.text() < r.text();
+                if (l.isNum() && r.isNum()) return l.asDouble() < r.asDouble();
+                a.fail("ARRAY_SORT compares numbers and text only");
+                return false;
+            };
+            std::stable_sort(arr->items.begin(), arr->items.end(),
+                             [&](const Value& x, const Value& y) {
+                                 return desc ? less(y, x) : less(x, y);
+                             });
+            return Value::mkInt(static_cast<int64_t>(arr->items.size()));
+        });
+        // ARRAY_FIND(feld, wert [, start]) -> Index oder -1
+        add("ARRAY_FIND", 2, 3, [](BArgs& a) {
+            if (!a.vals[0].isArray() || !a.vals[0].arr)
+                a.fail("array expected as first argument");
+            const auto& items = a.vals[0].arr->items;
+            int64_t i = a.vals.size() > 2 ? a.integer(2) : 0;
+            if (i < 0) i += static_cast<int64_t>(items.size());
+            if (i < 0) i = 0;
+            for (; i < static_cast<int64_t>(items.size()); ++i)
+                if (valueEquals(items[static_cast<size_t>(i)], a.vals[1])) return Value::mkInt(i);
+            return Value::mkInt(-1);
+        });
+
+        // -------------------------------------------------------- Dictionary
+        add("DICT_NEW", 0, 0, [](BArgs&) {
+            return Value::mkDict(std::make_shared<DictObj>());
+        });
+        add("DICT_SET", 3, 3, [](BArgs& a) {
+            dictArg(a, 0)->set(a.str(1), a.vals[2]);
+            return a.vals[0];
+        });
+        add("DICT_GET", 2, 3, [](BArgs& a) {
+            DictObj* d = dictArg(a, 0);
+            auto it = d->map.find(a.str(1));
+            if (it != d->map.end()) return it->second;
+            if (a.vals.size() > 2) return a.vals[2];
+            return Value::mkInt(0);
+        });
+        add("DICT_HAS", 2, 2, [](BArgs& a) {
+            return Value::mkInt(dictArg(a, 0)->has(a.str(1)) ? 1 : 0);
+        });
+        add("DICT_DELETE", 2, 2, [](BArgs& a) {
+            DictObj* d = dictArg(a, 0);
+            const std::string k = a.str(1);
+            const bool had = d->has(k);
+            d->erase(k);
+            return Value::mkInt(had ? 1 : 0);
+        });
+        add("DICT_COUNT", 1, 1, [](BArgs& a) {
+            return Value::mkInt(static_cast<int64_t>(dictArg(a, 0)->size()));
+        });
+        add("DICT_CLEAR", 1, 1, [](BArgs& a) {
+            dictArg(a, 0)->clear();
+            return ok();
+        });
+        add("DICT_KEY$", 2, 2, [](BArgs& a) {
+            DictObj* d = dictArg(a, 0);
+            int64_t i = a.integer(1);
+            if (i < 0) i += static_cast<int64_t>(d->keys.size());
+            if (i < 0 || i >= static_cast<int64_t>(d->keys.size()))
+                a.fail("DICT_KEY$: Index ausserhalb");
+            return Value::mkStr(d->keys[static_cast<size_t>(i)]);
+        });
+        add("DICT_VALUE", 2, 2, [](BArgs& a) {
+            DictObj* d = dictArg(a, 0);
+            int64_t i = a.integer(1);
+            if (i < 0) i += static_cast<int64_t>(d->keys.size());
+            if (i < 0 || i >= static_cast<int64_t>(d->keys.size()))
+                a.fail("DICT_VALUE: Index ausserhalb");
+            auto it = d->map.find(d->keys[static_cast<size_t>(i)]);
+            return it == d->map.end() ? Value::mkNull() : it->second;
+        });
+        add("DICT_KEYS", 1, 1, [](BArgs& a) {
+            DictObj* d = dictArg(a, 0);
+            auto arr = std::make_shared<ArrayObj>();
+            arr->elemVT = VT::Str;
+            for (const auto& k : d->keys) arr->items.push_back(Value::mkStr(k));
+            return Value::mkArray(arr);
+        });
+        add("DICT_VALUES", 1, 1, [](BArgs& a) {
+            DictObj* d = dictArg(a, 0);
+            auto arr = std::make_shared<ArrayObj>();
+            for (const auto& k : d->keys) {
+                auto it = d->map.find(k);
+                if (it != d->map.end()) arr->items.push_back(it->second);
+            }
+            return Value::mkArray(arr);
+        });
+
+        // -------------------------------------------------- Typen zur Laufzeit
+        // ISA(objekt, "NAME"): TYPE selbst oder eine seiner Basen.
+        add("ISA", 2, 2, [](BArgs& a) {
+            const std::string want = upperAscii(a.str(1));
+            const Value& v = a.vals[0];
+            if (v.isRecord() && v.rec && v.rec->def) {
+                for (const TypeDef* t = v.rec->def; t; t = t->base) {
+                    if (upperAscii(t->name) == want) return Value::mkInt(1);
+                    // Ein INTERFACE gilt ebenfalls als erfuellt.
+                    for (const auto& iface : t->interfaces)
+                        if (upperAscii(iface) == want) return Value::mkInt(1);
+                }
+                return Value::mkInt(0);
+            }
+            if (want == "ARRAY") return Value::mkInt(v.isArray() ? 1 : 0);
+            if (want == "DICT" || want == "DICTIONARY") return Value::mkInt(v.isDict() ? 1 : 0);
+            if (want == "FUNCTION") return Value::mkInt(v.isFunc() ? 1 : 0);
+            if (want == "STRING") return Value::mkInt(v.isStr() ? 1 : 0);
+            if (want == "INTEGER") return Value::mkInt(v.type == VT::Int ? 1 : 0);
+            if (want == "FLOAT" || want == "NUMBER") return Value::mkInt(v.type == VT::Float ? 1 : 0);
+            return Value::mkInt(0);
         });
         add("ASC", 1, 2, [](BArgs& a) {
             std::string s = a.str(0);
@@ -1042,7 +1199,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         // Gegenstueck zu SPLIT_STRING: Elemente mit einem Trenner verbinden.
         add("JOIN$", 2, 4, [](BArgs& a) {
             if (!a.vals[0].isArray() || !a.vals[0].arr)
-                a.fail("Array als erstes Argument erwartet");
+                a.fail("array expected as first argument");
             const std::string sep = a.str(1);
             const auto& items = a.vals[0].arr->items;
             int64_t start = a.vals.size() > 2 ? a.integer(2) : 0;
@@ -1117,8 +1274,8 @@ std::unordered_map<std::string, Builtin>& builtins() {
                         }
                         if (digits && j < tpl.size() && tpl[j] == '}') {
                             if (index + 1 >= a.vals.size())
-                                a.fail("Platzhalter {" + std::to_string(index) +
-                                       "} hat kein Argument");
+                                a.fail("placeholder {" + std::to_string(index) +
+                                       "} has no argument");
                             out += a.vals[index + 1].text();
                             i = j;
                             continue;
@@ -1129,7 +1286,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
                 return Value::mkStr(out);
             }
             if (a.vals.size() < 3)
-                a.fail("entweder eine Vorlage mit {0}, {1} ... oder Breite, Nachkommastellen und Zahl");
+                a.fail("either a template with {0}, {1} ... or width, decimals and number");
             int width = static_cast<int>(a.integer(0));
             int dec = clampi(a.integer(1), 0, 18);
             double v = a.num(2);
@@ -1149,9 +1306,9 @@ std::unordered_map<std::string, Builtin>& builtins() {
             int ch = static_cast<int>(a.integer(0));
             std::string file = a.str(1);
             int mode = static_cast<int>(a.integer(2));
-            if (ch <= 0) a.fail("Kanal muss groesser als 0 sein");
+            if (ch <= 0) a.fail("Channel must be greater than 0");
             if (mode != 1 && mode != 0 && mode != -1)
-                a.fail("Modus muss 1 (lesen), 0 (schreiben) oder -1 (anhaengen) sein");
+                a.fail("Mode must be 1 (read), 0 (write) or -1 (append)");
             std::string path = mode == 1 ? a.rt.resolveAsset(file) : outputPath(a.rt, file);
             std::string err;
             if (!a.rt.files.open(ch, path, mode, err)) {
@@ -1167,23 +1324,23 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("FILE_SEEK", 3, 3, [](BArgs& a) {
             int ch = channelArg(a, 0);
             if (!a.rt.files.isOpen(ch))
-                a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
+                a.fail("Channel " + std::to_string(ch) + " is not open");
             int origin = static_cast<int>(a.integer(2));
             if (origin < -1 || origin > 1)
-                a.fail("Ursprung muss -1 (Ende), 0 (Anfang) oder 1 (Position) sein");
-            if (!a.rt.files.seek(ch, a.integer(1), origin)) a.fail("FILE_SEEK fehlgeschlagen");
+                a.fail("Origin must be -1 (end), 0 (start) or 1 (position)");
+            if (!a.rt.files.seek(ch, a.integer(1), origin)) a.fail("FILE_SEEK failed");
             return ok();
         });
         add("FILE_POSITION", 1, 1, [](BArgs& a) {
             int ch = channelArg(a, 0);
             if (!a.rt.files.isOpen(ch))
-                a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
+                a.fail("Channel " + std::to_string(ch) + " is not open");
             return Value::mkInt(a.rt.files.position(ch));
         });
         add("FILE_EOF", 1, 1, [](BArgs& a) {
             int ch = channelArg(a, 0);
             if (!a.rt.files.isOpen(ch))
-                a.fail("Kanal " + std::to_string(ch) + " ist nicht offen");
+                a.fail("Channel " + std::to_string(ch) + " is not open");
             return Value::mkInt(a.rt.files.atEnd(ch) ? 1 : 0);
         });
 
@@ -1243,8 +1400,8 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("FILE_READ_STR", 3, 3, [](BArgs& a) {
             int ch = readChannel(a, 0);
             int64_t count = a.integer(2);
-            if (count < 0) a.fail("Laenge muss 0 oder groesser sein");
-            if (count > 64 * 1024 * 1024) a.fail("Laenge ist zu gross");
+            if (count < 0) a.fail("Length must be 0 or greater");
+            if (count > 64 * 1024 * 1024) a.fail("Length is too large");
             a.setOut(1, Value::mkStr(readText(a, ch, static_cast<size_t>(count))));
             return ok();
         });
@@ -1291,7 +1448,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             double v = a.num(1);
             unsigned char buf[8];
             std::memcpy(buf, &v, sizeof(buf));
-            if (!a.rt.files.writeBytes(ch, buf, sizeof(buf))) a.fail("Schreiben fehlgeschlagen");
+            if (!a.rt.files.writeBytes(ch, buf, sizeof(buf))) a.fail("Write failed");
             return ok();
         });
         add("FILE_WRITE_FLOAT", 2, 2, [](BArgs& a) {
@@ -1299,19 +1456,19 @@ std::unordered_map<std::string, Builtin>& builtins() {
             float v = static_cast<float>(a.num(1));
             unsigned char buf[4];
             std::memcpy(buf, &v, sizeof(buf));
-            if (!a.rt.files.writeBytes(ch, buf, sizeof(buf))) a.fail("Schreiben fehlgeschlagen");
+            if (!a.rt.files.writeBytes(ch, buf, sizeof(buf))) a.fail("Write failed");
             return ok();
         });
         add("FILE_WRITE_STR", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             std::string text = a.str(1);
-            if (!a.rt.files.writeBytes(ch, text.data(), text.size())) a.fail("Schreiben fehlgeschlagen");
+            if (!a.rt.files.writeBytes(ch, text.data(), text.size())) a.fail("Write failed");
             return ok();
         });
         add("FILE_WRITE_LINE", 2, 2, [](BArgs& a) {
             int ch = writeChannel(a, 0);
             std::string text = a.str(1) + "\r\n";
-            if (!a.rt.files.writeBytes(ch, text.data(), text.size())) a.fail("Schreiben fehlgeschlagen");
+            if (!a.rt.files.writeBytes(ch, text.data(), text.size())) a.fail("Write failed");
             return ok();
         });
 
@@ -1333,10 +1490,10 @@ std::unordered_map<std::string, Builtin>& builtins() {
             std::string dst = outputPath(a.rt, a.str(1));
             std::error_code ec;
             if (!std::filesystem::is_regular_file(std::filesystem::path(src), ec))
-                a.fail("Datei nicht gefunden: " + a.str(0));
+                a.fail("File not found: " + a.str(0));
             std::filesystem::copy_file(std::filesystem::path(src), std::filesystem::path(dst),
                                        std::filesystem::copy_options::overwrite_existing, ec);
-            if (ec) a.fail("Kopieren fehlgeschlagen: " + ec.message());
+            if (ec) a.fail("Kopieren failed: " + ec.message());
             return Value::mkInt(1);
         });
         add("FILE_RENAME", 2, 2, [](BArgs& a) {
@@ -1344,25 +1501,25 @@ std::unordered_map<std::string, Builtin>& builtins() {
             std::string dst = outputPath(a.rt, a.str(1));
             std::error_code ec;
             if (!std::filesystem::is_regular_file(std::filesystem::path(src), ec))
-                a.fail("Datei nicht gefunden: " + a.str(0));
+                a.fail("File not found: " + a.str(0));
             std::filesystem::rename(std::filesystem::path(src), std::filesystem::path(dst), ec);
-            if (ec) a.fail("Umbenennen fehlgeschlagen: " + ec.message());
+            if (ec) a.fail("Umbenennen failed: " + ec.message());
             return Value::mkInt(1);
         });
         add("FILE_DELETE", 1, 1, [](BArgs& a) {
             std::string path = a.rt.resolveAsset(a.str(0));
             std::error_code ec;
             if (!std::filesystem::is_regular_file(std::filesystem::path(path), ec))
-                a.fail("Datei nicht gefunden: " + a.str(0));
+                a.fail("File not found: " + a.str(0));
             std::filesystem::remove(std::filesystem::path(path), ec);
-            if (ec) a.fail("Loeschen fehlgeschlagen: " + ec.message());
+            if (ec) a.fail("Loeschen failed: " + ec.message());
             return Value::mkInt(1);
         });
         add("DIR_MAKE", 1, 1, [](BArgs& a) {
             std::string path = outputPath(a.rt, a.str(0));
             std::error_code ec;
             std::filesystem::create_directories(std::filesystem::path(path), ec);
-            if (ec) a.fail("Ordner laesst sich nicht anlegen: " + ec.message());
+            if (ec) a.fail("Folder cannot be created: " + ec.message());
             return Value::mkInt(1);
         });
 
@@ -1370,7 +1527,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         auto netName = [](Net::Kind kind) -> const char* {
             switch (kind) {
                 case Net::Kind::Listener: return "Server";
-                case Net::Kind::Stream: return "Verbindung";
+                case Net::Kind::Stream: return "connection";
                 case Net::Kind::Datagram: return "UDP-Socket";
             }
             return "Handle";
@@ -1378,7 +1535,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         auto netWant = [netName](BArgs& a, Net::Kind want) -> int {
             const int handle = static_cast<int>(a.integer(0));
             if (!a.rt.net.known(handle))
-                a.fail("unbekanntes Netzwerk-Handle " + std::to_string(handle));
+                a.fail("unknown network handle " + std::to_string(handle));
             if (a.rt.net.kindOf(handle) != want)
                 a.fail(std::string("Handle ") + std::to_string(handle) + " ist kein " +
                        netName(want));
@@ -1443,7 +1600,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("NET_CLOSE", 1, 1, [](BArgs& a) {
             const int handle = static_cast<int>(a.integer(0));
             if (!a.rt.net.known(handle)) {
-                a.rt.netError = "unbekanntes Netzwerk-Handle " + std::to_string(handle);
+                a.rt.netError = "unknown network handle " + std::to_string(handle);
                 return Value::mkInt(0);
             }
             if (a.rt.net.kindOf(handle) == Net::Kind::Datagram) {
@@ -1458,7 +1615,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("NET_PORT", 1, 1, [](BArgs& a) {
             const int handle = static_cast<int>(a.integer(0));
             if (!a.rt.net.known(handle)) {
-                a.rt.netError = "unbekanntes Netzwerk-Handle " + std::to_string(handle);
+                a.rt.netError = "unknown network handle " + std::to_string(handle);
                 return Value::mkInt(0);
             }
             return Value::mkInt(a.rt.net.portOf(handle));
@@ -1516,7 +1673,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             errno = 0;
             const unsigned long long id = std::strtoull(text.c_str(), &end, 10);
             if (text.empty() || end == text.c_str() || errno != 0)
-                a.fail("SteamID muss eine Zahl sein: " + a.str(i));
+                a.fail("SteamID must be a number: " + a.str(i));
             return id;
         };
 
@@ -1563,7 +1720,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             const bool reliable = a.vals.size() > 3 ? a.truthy(3) : true;
             const int sent = a.rt.steam.sendPacket(to, a.str(1), channel, reliable);
             if (sent == 0 && !a.rt.steam.ready())
-                a.rt.steam.fail("Steam ist nicht bereit - erst STEAM_INIT aufrufen");
+                a.rt.steam.fail("Steam is not ready - call STEAM_INIT first");
             return Value::mkInt(sent);
         });
         add("STEAM_P2P_AVAILABLE", 0, 1, [](BArgs& a) {

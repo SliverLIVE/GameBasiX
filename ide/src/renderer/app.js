@@ -5465,7 +5465,7 @@ async function indexProjectSymbols() {
 
 const OUTLINE_KEY = 'gbxstudio.outline.v1';
 const outlineState = { collapsed: new Set(), rows: [], timer: null, activeEl: null };
-const OUTLINE_KINDS = { globals: 'VAR', functions: 'FN', subs: 'SUB', types: 'TYP', enums: 'ENUM', constants: 'CON', labels: 'LBL' };
+const OUTLINE_KINDS = { globals: 'VAR', functions: 'FN', subs: 'SUB', types: 'TYP', interfaces: 'INT', enums: 'ENUM', constants: 'CON', labels: 'LBL' };
 
 function readOutlinePrefs() {
   try {
@@ -5491,7 +5491,9 @@ function persistOutlinePrefs() {
 function outlineGroups(model) {
   const analysis = analysisFor(model);
   const totalLines = model.getLineCount();
-  const blocks = [...analysis.functions, ...analysis.types].map((entry) => entry.line).sort((a, b) => a - b);
+  const blocks = [...analysis.functions, ...analysis.types, ...(analysis.interfaces || [])]
+    .map((entry) => entry.line)
+    .sort((a, b) => a - b);
   const endOf = (line) => {
     const next = blocks.find((block) => block > line);
     return next ? next - 1 : totalLines;
@@ -5521,9 +5523,15 @@ function outlineGroups(model) {
     t('Types'),
     analysis.types.map((type) => ({
       name: type.name,
-      detail: type.methods?.length
-        ? t('{n} Felder · {m} Methoden', { n: type.members.length, m: type.methods.length })
-        : t('{n} Felder', { n: type.members.length }),
+      detail: [
+        type.methods?.length
+          ? t('{n} Felder · {m} Methoden', { n: type.members.length, m: type.methods.length })
+          : t('{n} Felder', { n: type.members.length }),
+        type.base ? `EXTENDS ${type.base}` : '',
+        type.interfaces?.length ? `IMPLEMENTS ${type.interfaces.join(', ')}` : ''
+      ]
+        .filter(Boolean)
+        .join(' · '),
       line: type.line,
       endLine: endOf(type.line),
       members: [
@@ -5538,6 +5546,21 @@ function outlineGroups(model) {
           line: method.line || type.line
         }))
       ]
+    }))
+  );
+  add(
+    'interfaces',
+    t('Interfaces'),
+    (analysis.interfaces || []).map((entry) => ({
+      name: entry.name,
+      detail: t('{n} Methoden', { n: (entry.methods || []).length }),
+      line: entry.line,
+      endLine: entry.endLine || entry.line,
+      members: (entry.methods || []).map((method) => ({
+        name: method.name,
+        detail: `${method.kind}(${(method.params || []).map((param) => param.name).join(', ')})`,
+        line: method.line || entry.line
+      }))
     }))
   );
   add(

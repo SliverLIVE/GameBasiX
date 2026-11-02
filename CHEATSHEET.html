@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameBasiX cheat sheet</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #141a22;
+    --line: #222b36;
+    --text: #e6ebf2;
+    --muted: #8b99a8;
+    --accent: #7ed184;
+    --command: #8fd6ff;
+    --function: #b8f0a8;
+    --keyword: #d7c2ff;
+    --constant: #ffd68a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(900px 500px at 15% -10%, #1b2a22 0%, transparent 60%),
+      radial-gradient(700px 400px at 95% 0%, #1a2431 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font: 15px/1.55 ui-sans-serif, "Segoe UI", system-ui, -apple-system, sans-serif;
+    padding: 0 0 60px;
+  }
+  .wrap { max-width: 1260px; margin: 0 auto; padding: 0 24px; }
+
+  header.head { padding: 32px 0 16px; }
+  h1 {
+    margin: 0;
+    font-size: 30px;
+    letter-spacing: -0.5px;
+    font-weight: 700;
+  }
+  h1 span { color: var(--accent); font-weight: 600; }
+  .sub { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
+  .meta { margin: 8px 0 0; color: #6f7d8c; font-size: 12px; }
+
+  nav.toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  nav.toc a {
+    display: inline-block;
+    padding: 3px 9px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: #c3cdd9;
+    text-decoration: none;
+    font-size: 12px;
+    background: #121821;
+  }
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  section { margin-top: 22px; }
+  h2 {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0 0 5px;
+    padding: 6px 2px 5px;
+    font-size: 16px;
+    letter-spacing: 0.2px;
+    background: linear-gradient(180deg, var(--bg) 68%, rgba(13, 17, 23, 0));
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  h2 .count { color: var(--muted); font-size: 12px; font-weight: 400; }
+
+  .rows { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--panel); }
+  .row {
+    display: grid;
+    grid-template-columns: minmax(200px, 29%) 1fr;
+    gap: 12px;
+    padding: 3px 11px;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row:hover { background: #1a212b; }
+  code {
+    font: 12.5px/1.3 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color: var(--command);
+    word-break: break-word;
+  }
+  .row[data-kind="function"] code { color: var(--function); }
+  .row[data-kind="keyword"] code { color: var(--keyword); }
+  .row[data-kind="constant"] code { color: var(--constant); }
+  .desc { margin: 0; color: #c4cfdb; font-size: 12.5px; line-height: 1.35; }
+  .kind {
+    margin-left: 7px;
+    color: #4f5a67;
+    font: 9.5px/1.3 ui-monospace, Consolas, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid var(--line); color: #6f7d8c; font-size: 12px; }
+
+  @media (max-width: 760px) {
+    .row { grid-template-columns: 1fr; gap: 4px; }
+    h1 { font-size: 24px; }
+  }
+  @media print {
+    body { background: #fff; color: #111; padding: 0; }
+    nav.toc, .kind { display: none; }
+    h2 { position: static; background: none; color: #111; }
+    .rows { border-color: #ccc; background: #fff; }
+    .row { border-color: #ddd; }
+    .row:hover { background: #fff; }
+    code { color: #0b3d91; }
+    .desc { color: #222; }
+    .sub, .meta, footer { color: #555; }
+  }
+</style>
+</head>
+<body>
+<header class="head wrap">
+  <h1>GameBasiX <span>cheat sheet</span></h1>
+  <p class="sub">Commands, functions, keywords and constants, grouped by category</p>
+  <p class="meta">411 entries &middot; generated from ide/data/gbx-dataset.json</p>
+  <nav class="toc" aria-label="Jump to">
+    <a href="#fenster-und-bildschirm">Window and screen <span style="opacity:.55">18</span></a>
+    <a href="#zeichnen">Drawing <span style="opacity:.55">12</span></a>
+    <a href="#bildpuffer-und-text">Screen buffer and text <span style="opacity:.55">17</span></a>
+    <a href="#sprites">Sprites <span style="opacity:.55">18</span></a>
+    <a href="#eingabe">Input <span style="opacity:.55">16</span></a>
+    <a href="#sound">Sound <span style="opacity:.55">11</span></a>
+    <a href="#mathe">Maths <span style="opacity:.55">29</span></a>
+    <a href="#strings">Strings <span style="opacity:.55">19</span></a>
+    <a href="#dateien">Files <span style="opacity:.55">31</span></a>
+    <a href="#arrays">Arrays <span style="opacity:.55">4</span></a>
+    <a href="#arrays-und-dictionaries">Arrays and dictionaries <span style="opacity:.55">14</span></a>
+    <a href="#netzwerk">Network <span style="opacity:.55">18</span></a>
+    <a href="#steam">Steam <span style="opacity:.55">19</span></a>
+    <a href="#laufzeit-und-debug">Runtime and debug <span style="opacity:.55">18</span></a>
+    <a href="#sprache">Language <span style="opacity:.55">71</span></a>
+    <a href="#konstanten">Constants <span style="opacity:.55">96</span></a>
+  </nav>
+</header>
+<main class="wrap">
+<section id="fenster-und-bildschirm">
+  <h2>Window and screen<span class="count">18</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="command"><div><code>DESKTOP_SIZE w,h</code><span class="kind">command</span></div><p class="desc">Writes the monitor width and height in pixels into the two variables.</p></div>
+    <div class="row" data-kind="command"><div><code>LIMIT_FPS fps[,vsync]</code><span class="kind">command</span></div><p class="desc">Throttles the main loop to the given frame rate. The second argument also turns VSYNC on or off; 0 removes the limit.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_BLACK</code><span class="kind">command</span></div><p class="desc">Paints the screen black and drops a loaded background image; the remembered background colour stays.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_CLEAR [color]</code><span class="kind">command</span></div><p class="desc">Clears the screen in the given colour and remembers it for the following frames.</p></div>
+    <div class="row" data-kind="function"><div><code>SCREEN_FULLSCREEN()</code><span class="kind">function</span></div><p class="desc">Returns 1 while the window runs fullscreen, otherwise 0.</p></div>
+    <div class="row" data-kind="function"><div><code>SCREEN_HEIGHT()</code><span class="kind">function</span></div><p class="desc">Returns the height of the drawing area in pixels.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_SCALE w,h</code><span class="kind">command</span></div><p class="desc">Draws internally at a fixed resolution and stretches the result to the window.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_SET w,h,fullscreen</code><span class="kind">command</span></div><p class="desc">Opens the game window with a width and height in pixels.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_SHOW</code><span class="kind">command</span></div><p class="desc">Shows the finished frame and starts the next one. Usually the last statement of the main loop.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_SIZE w,h</code><span class="kind">command</span></div><p class="desc">Writes the width and height of the current window into the two variables.</p></div>
+    <div class="row" data-kind="function"><div><code>SCREEN_WIDTH()</code><span class="kind">function</span></div><p class="desc">Returns the width of the drawing area in pixels.</p></div>
+    <div class="row" data-kind="command"><div><code>SET_ALPHA_MODE a</code><span class="kind">command</span></div><p class="desc">Decides how transparency is blended while drawing: 0 normal, positive values additive, negative values as alpha with 1+value.</p></div>
+    <div class="row" data-kind="command"><div><code>SET_ALPHA_TEST value</code><span class="kind">command</span></div><p class="desc">Sets the threshold below which pixels become fully transparent when images are loaded.</p></div>
+    <div class="row" data-kind="command"><div><code>SET_COLOR_KEY color</code><span class="kind">command</span></div><p class="desc">Remembers a colour that becomes transparent the next time images are loaded. Sprites already loaded stay as they are.</p></div>
+    <div class="row" data-kind="command"><div><code>SET_SMOOTHING on</code><span class="kind">command</span></div><p class="desc">Turns smooth shading on or off: with 1, polygons and scaled sprites are filtered instead of sampled sharply.</p></div>
+    <div class="row" data-kind="command"><div><code>SET_VIEWPORT x,y,w,h</code><span class="kind">command</span></div><p class="desc">Sets the region that is drawn into. Everything outside it is clipped.</p></div>
+    <div class="row" data-kind="command"><div><code>VIEWPORT x,y,w,h</code><span class="kind">command</span></div><p class="desc">Reads the current viewport into the four variables.</p></div>
+    <div class="row" data-kind="command"><div><code>WINDOW_TITLE &quot;text&quot;</code><span class="kind">command</span></div><p class="desc">Changes the window title while the program is running.</p></div>
+  </div>
+</section>
+<section id="zeichnen">
+  <h2>Drawing<span class="count">12</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="command"><div><code>DRAW_CIRCLE x,y,r[,color]</code><span class="kind">command</span></div><p class="desc">Draws a circle outline. Centre and radius are given in pixels.</p></div>
+    <div class="row" data-kind="command"><div><code>DRAW_CIRCLE_FILLED x,y,r[,color]</code><span class="kind">command</span></div><p class="desc">Draws a completely filled circle.</p></div>
+    <div class="row" data-kind="command"><div><code>DRAW_LINE x1,y1,x2,y2,color</code><span class="kind">command</span></div><p class="desc">Draws a straight line from the first point to the second.</p></div>
+    <div class="row" data-kind="command"><div><code>DRAW_RECT x,y,w,h,color</code><span class="kind">command</span></div><p class="desc">Fills a rectangle starting at its top left corner.</p></div>
+    <div class="row" data-kind="command"><div><code>DRAW_RECT_BORDER x,y,w,h,color</code><span class="kind">command</span></div><p class="desc">Draws only the outline of a rectangle and leaves the inside untouched.</p></div>
+    <div class="row" data-kind="function"><div><code>PIXEL_GET(x,y)</code><span class="kind">function</span></div><p class="desc">Reads the colour of one pixel from the current screen.</p></div>
+    <div class="row" data-kind="command"><div><code>PIXEL_SET x,y,color</code><span class="kind">command</span></div><p class="desc">Colours exactly one pixel at the given position.</p></div>
+    <div class="row" data-kind="command"><div><code>POLY_BEGIN sprite,mode</code><span class="kind">command</span></div><p class="desc">Starts a polygon, optionally textured by a sprite. The following POLY_POINT calls provide the corners, POLY_END finishes it.</p></div>
+    <div class="row" data-kind="command"><div><code>POLY_END</code><span class="kind">command</span></div><p class="desc">Closes and draws the polygon started with POLY_BEGIN.</p></div>
+    <div class="row" data-kind="command"><div><code>POLY_POINT x,y,u,v,color</code><span class="kind">command</span></div><p class="desc">Adds one corner of a polygon: screen position, texture coordinate and colour.</p></div>
+    <div class="row" data-kind="command"><div><code>POLY_STRIP</code><span class="kind">command</span></div><p class="desc">Starts a new strip inside the current polygon: the following corners no longer join the previous ones.</p></div>
+    <div class="row" data-kind="function"><div><code>RGB(r,g,b)</code><span class="kind">function</span></div><p class="desc">Builds a colour for the drawing commands from red, green and blue parts (0 to 255 each).</p></div>
+  </div>
+</section>
+<section id="bildpuffer-und-text">
+  <h2>Screen buffer and text<span class="count">17</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="command"><div><code>BACKGROUND_LOAD &quot;image.png&quot;</code><span class="kind">command</span></div><p class="desc">Loads an image as a background that sits behind everything else.</p></div>
+    <div class="row" data-kind="function"><div><code>FONT_CURRENT()</code><span class="kind">function</span></div><p class="desc">Returns the id of the font currently used for text.</p></div>
+    <div class="row" data-kind="command"><div><code>FONT_LOAD &quot;file&quot;,id[,size]</code><span class="kind">command</span></div><p class="desc">Loads a bitmap font from a raster image or a TrueType font (.ttf/.otf) at the given point size.</p></div>
+    <div class="row" data-kind="command"><div><code>FONT_SET id[,scale[,color]]</code><span class="kind">command</span></div><p class="desc">Selects the font for PRINT and TEXT_DRAW, optionally with a scale factor and a new text colour.</p></div>
+    <div class="row" data-kind="command"><div><code>FONT_SIZE w,h</code><span class="kind">command</span></div><p class="desc">Writes the character width and line height of the current font into the two variables.</p></div>
+    <div class="row" data-kind="command"><div><code>INPUT var,x,y</code><span class="kind">command</span></div><p class="desc">Reads a line of input at the given position. Text goes into a string, a numeric variable receives the number.</p></div>
+    <div class="row" data-kind="function"><div><code>LEN(text[,pixels])</code><span class="kind">function</span></div><p class="desc">Returns the number of characters in a string; with a second argument its drawn width in pixels.</p></div>
+    <div class="row" data-kind="command"><div><code>PRINT &quot;text&quot;,x,y[,kerning]</code><span class="kind">command</span></div><p class="desc">Writes text in the current font and text colour. The fourth argument (kerning) is ignored.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_CREATE screen,sprite,w,h</code><span class="kind">command</span></div><p class="desc">Creates an extra screen whose content ends up in a sprite; SCREEN_USE switches to it.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_FADE &quot;image.png&quot;[,ms]</code><span class="kind">command</span></div><p class="desc">Fades an image in over the given duration, for example as a transition between scenes.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_SAVE_BMP &quot;file.bmp&quot;</code><span class="kind">command</span></div><p class="desc">Saves the current screen as a BMP file. Needs a real window and fails in headless mode.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_TO_BACKGROUND</code><span class="kind">command</span></div><p class="desc">Turns the current screen content into the background image.</p></div>
+    <div class="row" data-kind="command"><div><code>SCREEN_USE id</code><span class="kind">command</span></div><p class="desc">Switches to a screen created with SCREEN_CREATE; 0 returns to the window.</p></div>
+    <div class="row" data-kind="command"><div><code>TEXT_COLOR color</code><span class="kind">command</span></div><p class="desc">Sets the colour PRINT and TEXT_DRAW use when no colour argument is given.</p></div>
+    <div class="row" data-kind="command"><div><code>TEXT_DRAW &quot;text&quot;,x,y[,color]</code><span class="kind">command</span></div><p class="desc">Writes text in the given colour without changing the colour set with TEXT_COLOR.</p></div>
+    <div class="row" data-kind="function"><div><code>TEXT_HEIGHT(text)</code><span class="kind">function</span></div><p class="desc">Returns the height the text occupies when drawn, in pixels.</p></div>
+    <div class="row" data-kind="function"><div><code>TEXT_WIDTH(text)</code><span class="kind">function</span></div><p class="desc">Returns the width TEXT_DRAW would use for the text in pixels – for several lines the longest one.</p></div>
+  </div>
+</section>
+<section id="sprites">
+  <h2>Sprites<span class="count">18</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="function"><div><code>ANIM_COLLIDE(...)</code><span class="kind">function</span></div><p class="desc">Checks two animation frames for overlap: sprite id, tile number and position for each side.</p></div>
+    <div class="row" data-kind="command"><div><code>ANIM_DRAW id,frame,x,y</code><span class="kind">command</span></div><p class="desc">Draws a single tile of an animation: sprite id, tile number and target position.</p></div>
+    <div class="row" data-kind="command"><div><code>ANIM_DRAW_ROTATED_SCALED id,frame,x,y,angle,zoom%</code><span class="kind">command</span></div><p class="desc">Draws one tile of an animation rotated and scaled by a percentage.</p></div>
+    <div class="row" data-kind="command"><div><code>ANIM_DRAW_STRETCHED id,frame,x,y,w,h</code><span class="kind">command</span></div><p class="desc">Draws one animation tile stretched to a freely chosen width and height.</p></div>
+    <div class="row" data-kind="command"><div><code>ANIM_LOAD &quot;sheet.png&quot;,id,tilew,tileh</code><span class="kind">command</span></div><p class="desc">Loads an image as an animation and splits it into tiles of a fixed size.</p></div>
+    <div class="row" data-kind="command"><div><code>ANIM_SET_TILES id,w,h</code><span class="kind">command</span></div><p class="desc">Splits an already loaded sprite into tiles of the given size.</p></div>
+    <div class="row" data-kind="function"><div><code>RECT_COLLIDE(x1,y1,w1,h1,x2,y2,w2,h2)</code><span class="kind">function</span></div><p class="desc">Tests two rectangles against each other and returns 1 as soon as they overlap.</p></div>
+    <div class="row" data-kind="function"><div><code>SPRITE_COLLIDE(id1,x1,y1,id2,x2,y2)</code><span class="kind">function</span></div><p class="desc">Checks two sprites at their positions for overlap and returns 1 on a hit.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_DRAW id,x,y</code><span class="kind">command</span></div><p class="desc">Draws a loaded sprite at the given position; x and y are the top left corner.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_DRAW_ROTATED id,x,y,angle</code><span class="kind">command</span></div><p class="desc">Draws a sprite rotated around its centre; the angle is given in degrees.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_DRAW_ROTATED_SCALED id,x,y,angle,zoom%</code><span class="kind">command</span></div><p class="desc">Draws a sprite rotated and scaled by a percentage.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_DRAW_SCALED id,x,y,fx%,fy%</code><span class="kind">command</span></div><p class="desc">Scales a sprite in X and Y separately; 100 means the original size.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_DRAW_STRETCHED id,x,y,w,h</code><span class="kind">command</span></div><p class="desc">Draws a sprite stretched to the given width and height.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_GRAB id,x,y,w,h</code><span class="kind">command</span></div><p class="desc">Copies part of the screen into a sprite. Needs a real window and fails in headless mode.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_LOAD &quot;image.png&quot;, id</code><span class="kind">command</span></div><p class="desc">Loads an image under the given id so the drawing commands can use it.</p></div>
+    <div class="row" data-kind="function"><div><code>SPRITE_NEW()</code><span class="kind">function</span></div><p class="desc">Hands out the next free sprite id without loading an image.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_SAVE &quot;file.png&quot;,id</code><span class="kind">command</span></div><p class="desc">Writes a loaded sprite to disk as a PNG file.</p></div>
+    <div class="row" data-kind="command"><div><code>SPRITE_SIZE id,w,h</code><span class="kind">command</span></div><p class="desc">Writes the width and height of a loaded sprite into the two variables.</p></div>
+  </div>
+</section>
+<section id="eingabe">
+  <h2>Input<span class="count">16</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="command"><div><code>ALLOW_ESCAPE on</code><span class="kind">command</span></div><p class="desc">Decides whether the Esc key may close the program.</p></div>
+    <div class="row" data-kind="function"><div><code>INKEY$()</code><span class="kind">function</span></div><p class="desc">Returns the characters typed since the last call and empties the buffer; with no input it returns an empty string.</p></div>
+    <div class="row" data-kind="function"><div><code>JOY_AXIS(pad,axis)</code><span class="kind">function</span></div><p class="desc">Returns one axis of a gamepad: sticks from -1 to 1, triggers from 0 to 1.</p></div>
+    <div class="row" data-kind="function"><div><code>JOY_BUTTON(pad,button)</code><span class="kind">function</span></div><p class="desc">Returns 1 while the gamepad button is held – like KEY_DOWN for the keyboard.</p></div>
+    <div class="row" data-kind="function"><div><code>JOY_COUNT()</code><span class="kind">function</span></div><p class="desc">Returns the number of connected gamepads. Valid pad numbers are 0 to count-1. Without a gamepad it returns 0.</p></div>
+    <div class="row" data-kind="function"><div><code>JOY_PRESSED(pad,button)</code><span class="kind">function</span></div><p class="desc">Returns 1 in exactly the frame the gamepad button went down – like KEY_PRESSED for the keyboard.</p></div>
+    <div class="row" data-kind="function"><div><code>KEY_DOWN(scancode)</code><span class="kind">function</span></div><p class="desc">Returns 1 while the key is held down. The parameter is an SDL scancode, most conveniently given as a KEY_* constant.</p></div>
+    <div class="row" data-kind="function"><div><code>KEY_PRESSED(scancode)</code><span class="kind">function</span></div><p class="desc">Returns 1 only in the frame in which the key was pressed.</p></div>
+    <div class="row" data-kind="command"><div><code>KEY_WAIT</code><span class="kind">command</span></div><p class="desc">Holds the program until a key is pressed or released. It returns no value.</p></div>
+    <div class="row" data-kind="function"><div><code>MOUSE_AXIS(axis)</code><span class="kind">function</span></div><p class="desc">Returns one mouse value: 0 = x, 1 = y, 2 = wheel, 3/4/5 = left, right, middle button.</p></div>
+    <div class="row" data-kind="function"><div><code>MOUSE_COUNT()</code><span class="kind">function</span></div><p class="desc">Returns the number of mice. GameBasiX works with one mouse and therefore always reports 1.</p></div>
+    <div class="row" data-kind="command"><div><code>MOUSE_MOVE x,y</code><span class="kind">command</span></div><p class="desc">Moves the mouse pointer to the given position inside the window.</p></div>
+    <div class="row" data-kind="function"><div><code>MOUSE_PRESSED(button)</code><span class="kind">function</span></div><p class="desc">Returns 1 only in the frame the button was pressed: 0 left, 1 right, 2 middle.</p></div>
+    <div class="row" data-kind="command"><div><code>MOUSE_STATE mx,my,left,right</code><span class="kind">command</span></div><p class="desc">Writes the mouse position and button state into four variables: x, y, left button, right button.</p></div>
+    <div class="row" data-kind="command"><div><code>MOUSE_WAIT</code><span class="kind">command</span></div><p class="desc">Holds the program until a mouse button is pressed. It returns no value.</p></div>
+    <div class="row" data-kind="command"><div><code>SET_SYSTEM_POINTER on</code><span class="kind">command</span></div><p class="desc">Shows the system mouse pointer (1) or hides it (0).</p></div>
+  </div>
+</section>
+<section id="sound">
+  <h2>Sound<span class="count">11</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="command"><div><code>MUSIC_PAUSE on</code><span class="kind">command</span></div><p class="desc">Pauses the music (1) or resumes it where it stopped (0).</p></div>
+    <div class="row" data-kind="command"><div><code>MUSIC_PLAY &quot;music.mp3&quot;,loop</code><span class="kind">command</span></div><p class="desc">Starts background music (.wav or .mp3). The second argument decides whether it repeats at the end.</p></div>
+    <div class="row" data-kind="function"><div><code>MUSIC_PLAYING()</code><span class="kind">function</span></div><p class="desc">Returns 1 while music is playing.</p></div>
+    <div class="row" data-kind="command"><div><code>MUSIC_STOP</code><span class="kind">command</span></div><p class="desc">Stops the running music.</p></div>
+    <div class="row" data-kind="command"><div><code>MUSIC_VOLUME v</code><span class="kind">command</span></div><p class="desc">Sets the music volume between 0 and 1.</p></div>
+    <div class="row" data-kind="command"><div><code>SOUND_LOAD &quot;sound.wav&quot;,id[,buffer]</code><span class="kind">command</span></div><p class="desc">Loads a sound (.wav or .mp3) under an id. The optional buffer count allows the same sound to play several times at once.</p></div>
+    <div class="row" data-kind="function"><div><code>SOUND_NEW()</code><span class="kind">function</span></div><p class="desc">Hands out the next free sound id.</p></div>
+    <div class="row" data-kind="function"><div><code>SOUND_PLAY(id,pan,volume)</code><span class="kind">function</span></div><p class="desc">Plays a loaded sound with panning and volume and returns the channel that can be used to stop it again.</p></div>
+    <div class="row" data-kind="function"><div><code>SOUND_PLAYING(channel)</code><span class="kind">function</span></div><p class="desc">Returns 1 while a sound is still playing on the channel.</p></div>
+    <div class="row" data-kind="command"><div><code>SOUND_STOP channel</code><span class="kind">command</span></div><p class="desc">Stops the sound on the given channel.</p></div>
+    <div class="row" data-kind="command"><div><code>SOUND_STOP_ALL</code><span class="kind">command</span></div><p class="desc">Stops every sound on every channel immediately.</p></div>
+  </div>
+</section>
+<section id="mathe">
+  <h2>Maths<span class="count">29</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="function"><div><code>ABS(m)</code><span class="kind">function</span></div><p class="desc">Returns the magnitude of a number, that is the value without its sign.</p></div>
+    <div class="row" data-kind="function"><div><code>ACOS(a)</code><span class="kind">function</span></div><p class="desc">Returns the angle in degrees whose cosine is the given value.</p></div>
+    <div class="row" data-kind="function"><div><code>ASIN(a)</code><span class="kind">function</span></div><p class="desc">Returns the angle in degrees whose sine is the given value.</p></div>
+    <div class="row" data-kind="function"><div><code>ATAN(dy,dx)</code><span class="kind">function</span></div><p class="desc">Returns the angle in degrees from opposite and adjacent side. Without the second value dx = 1, which computes the arc tangent.</p></div>
+    <div class="row" data-kind="function"><div><code>BAND(num1, num2)</code><span class="kind">function</span></div><p class="desc">Combines two integers bit by bit with AND.</p></div>
+    <div class="row" data-kind="function"><div><code>BNOT(num1)</code><span class="kind">function</span></div><p class="desc">Inverts every bit of an integer.</p></div>
+    <div class="row" data-kind="function"><div><code>BOR(num1, num2)</code><span class="kind">function</span></div><p class="desc">Combines two integers bit by bit with OR.</p></div>
+    <div class="row" data-kind="function"><div><code>BXOR(num1, num2)</code><span class="kind">function</span></div><p class="desc">Combines two integers bit by bit with exclusive OR.</p></div>
+    <div class="row" data-kind="command"><div><code>CEIL value</code><span class="kind">command</span></div><p class="desc">Rounds up to the next whole number and returns it as a float.</p></div>
+    <div class="row" data-kind="function"><div><code>COS(angle)</code><span class="kind">function</span></div><p class="desc">Returns the cosine of an angle given in degrees.</p></div>
+    <div class="row" data-kind="command"><div><code>FLOOR value</code><span class="kind">command</span></div><p class="desc">Rounds down to the previous whole number and returns it as a float.</p></div>
+    <div class="row" data-kind="function"><div><code>FMOD(a,b)</code><span class="kind">function</span></div><p class="desc">Returns the remainder of a division with floating point numbers.</p></div>
+    <div class="row" data-kind="function"><div><code>IIF(condition, a, b)</code><span class="kind">function</span></div><p class="desc">Picks one of two values based on the condition.</p></div>
+    <div class="row" data-kind="function"><div><code>INTEGER(b)</code><span class="kind">function</span></div><p class="desc">Cuts off the decimals and returns a whole number.</p></div>
+    <div class="row" data-kind="command"><div><code>INTEGER64 value</code><span class="kind">command</span></div><p class="desc">Like INTEGER but works with 64 bits and therefore carries very large numbers.</p></div>
+    <div class="row" data-kind="function"><div><code>LOGN(n)</code><span class="kind">function</span></div><p class="desc">Returns the natural logarithm to base e.</p></div>
+    <div class="row" data-kind="command"><div><code>MAX a, b</code><span class="kind">command</span></div><p class="desc">Returns the larger of the two values; two strings can be compared the same way.</p></div>
+    <div class="row" data-kind="command"><div><code>MIN a, b</code><span class="kind">command</span></div><p class="desc">Returns the smaller of the two values; two strings can be compared the same way.</p></div>
+    <div class="row" data-kind="function"><div><code>MOD(a,b)</code><span class="kind">function</span></div><p class="desc">Returns the remainder of an integer division.</p></div>
+    <div class="row" data-kind="function"><div><code>NUMBER(str)</code><span class="kind">function</span></div><p class="desc">Turns text into a float; a number is returned unchanged.</p></div>
+    <div class="row" data-kind="function"><div><code>POW(a,b)</code><span class="kind">function</span></div><p class="desc">Raises the first number to the power of the second.</p></div>
+    <div class="row" data-kind="function"><div><code>RND(max)</code><span class="kind">function</span></div><p class="desc">Returns a random integer from 0 up to and including the given limit.</p></div>
+    <div class="row" data-kind="command"><div><code>RND_SEED n</code><span class="kind">command</span></div><p class="desc">Sets the seed of the random generator so that a sequence becomes reproducible.</p></div>
+    <div class="row" data-kind="command"><div><code>SGN n</code><span class="kind">command</span></div><p class="desc">Returns -1 for negative values, 1 for positive ones and 0 for zero.</p></div>
+    <div class="row" data-kind="function"><div><code>SHL(num, shift)</code><span class="kind">function</span></div><p class="desc">Shifts the bits of an integer to the left, which multiplies it by powers of two.</p></div>
+    <div class="row" data-kind="function"><div><code>SHR(num, shift)</code><span class="kind">function</span></div><p class="desc">Shifts the bits of an integer to the right, which divides it by powers of two.</p></div>
+    <div class="row" data-kind="function"><div><code>SIN(angle)</code><span class="kind">function</span></div><p class="desc">Returns the sine of an angle given in degrees.</p></div>
+    <div class="row" data-kind="function"><div><code>SQR(number)</code><span class="kind">function</span></div><p class="desc">Returns the square root. For a negative number the interpreter raises a runtime error.</p></div>
+    <div class="row" data-kind="function"><div><code>TAN(angle)</code><span class="kind">function</span></div><p class="desc">Returns the tangent of an angle given in degrees.</p></div>
+  </div>
+</section>
+<section id="strings">
+  <h2>Strings<span class="count">19</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="function"><div><code>ASC(text[,index])</code><span class="kind">function</span></div><p class="desc">Returns the character code at the given position, or of the first character without an index. The index starts at 0.</p></div>
+    <div class="row" data-kind="function"><div><code>CHR$(num)</code><span class="kind">function</span></div><p class="desc">Turns a character code back into a character.</p></div>
+    <div class="row" data-kind="function"><div><code>FORMAT$(places,decimals,number)</code><span class="kind">function</span></div><p class="desc">Formats a number with a fixed total width and a fixed number of decimals (width 0 leaves it open) – or fills a text template…</p></div>
+    <div class="row" data-kind="function"><div><code>HEX$(n)</code><span class="kind">function</span></div><p class="desc">Writes an integer as hexadecimal text in upper case without a prefix.</p></div>
+    <div class="row" data-kind="function"><div><code>INSTR(text,search[,start])</code><span class="kind">function</span></div><p class="desc">Searches for a string from the start position and returns where it was found, otherwise -1. The index starts at 0.</p></div>
+    <div class="row" data-kind="function"><div><code>INSTR_REVERSE(haystack, needle, start1)</code><span class="kind">function</span></div><p class="desc">Searches from the end and returns the last match, otherwise -1.</p></div>
+    <div class="row" data-kind="function"><div><code>JOIN$(array$[], separator[, start[, count]])</code><span class="kind">function</span></div><p class="desc">Joins the elements of an array with a separator into one text – the counterpart of SPLIT_STRING.</p></div>
+    <div class="row" data-kind="function"><div><code>LCASE$(text)</code><span class="kind">function</span></div><p class="desc">Turns upper case letters into lower case.</p></div>
+    <div class="row" data-kind="function"><div><code>LEFT$(text, count)</code><span class="kind">function</span></div><p class="desc">Returns the first characters of a string.</p></div>
+    <div class="row" data-kind="function"><div><code>LTRIM$(text, chars)</code><span class="kind">function</span></div><p class="desc">Removes the given characters at the start; without an argument spaces and line breaks.</p></div>
+    <div class="row" data-kind="function"><div><code>MID$(text,start[,length])</code><span class="kind">function</span></div><p class="desc">Cuts a part of the string starting at the given position, without a length up to the end. The start is 0-based.</p></div>
+    <div class="row" data-kind="function"><div><code>REPLACE$(where, find, repl)</code><span class="kind">function</span></div><p class="desc">Replaces every occurrence of one string with another.</p></div>
+    <div class="row" data-kind="function"><div><code>RIGHT$(text, count)</code><span class="kind">function</span></div><p class="desc">Returns the last characters of a string.</p></div>
+    <div class="row" data-kind="function"><div><code>RTRIM$(text, chars)</code><span class="kind">function</span></div><p class="desc">Removes the given characters at the end; without an argument spaces and line breaks.</p></div>
+    <div class="row" data-kind="function"><div><code>SPLIT_STRING(text, array$[], separator[, empty])</code><span class="kind">function</span></div><p class="desc">Splits a string at the separator and stores the parts in a string array. Empty parts are dropped unless the last argument is 0.</p></div>
+    <div class="row" data-kind="command"><div><code>STR$ value</code><span class="kind">command</span></div><p class="desc">Turns a value into text the way PRINT would show it.</p></div>
+    <div class="row" data-kind="function"><div><code>TRIM$(text, chars)</code><span class="kind">function</span></div><p class="desc">Removes the given characters at both ends; without an argument spaces and line breaks.</p></div>
+    <div class="row" data-kind="function"><div><code>UCASE$(text)</code><span class="kind">function</span></div><p class="desc">Turns lower case letters into upper case.</p></div>
+    <div class="row" data-kind="command"><div><code>VAL text</code><span class="kind">command</span></div><p class="desc">Parses a number from text. Anything that is not a number becomes 0.</p></div>
+  </div>
+</section>
+<section id="dateien">
+  <h2>Files<span class="count">31</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="command"><div><code>DIR_MAKE path</code><span class="kind">command</span></div><p class="desc">Creates a folder including any missing parent folders.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_CLOSE channel</code><span class="kind">command</span></div><p class="desc">Closes the channel and flushes buffered data to disk.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_COPY source, target</code><span class="kind">command</span></div><p class="desc">Copies a file and overwrites an existing target.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_DELETE path</code><span class="kind">command</span></div><p class="desc">Deletes a file.</p></div>
+    <div class="row" data-kind="function"><div><code>FILE_EOF(channel)</code><span class="kind">function</span></div><p class="desc">Returns 1 when the read position is at the end of the file, otherwise 0.</p></div>
+    <div class="row" data-kind="function"><div><code>FILE_EXISTS(path)</code><span class="kind">function</span></div><p class="desc">Returns 1 if the file exists, otherwise 0.</p></div>
+    <div class="row" data-kind="function"><div><code>FILE_OPEN(channel, file, mode)</code><span class="kind">function</span></div><p class="desc">Opens a file on a channel: mode 1 reads, 0 writes a new file, -1 appends. Returns 1 on success, otherwise 0.</p></div>
+    <div class="row" data-kind="function"><div><code>FILE_POSITION(channel)</code><span class="kind">function</span></div><p class="desc">Returns the current position in the file in bytes.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_BYTE channel, var%</code><span class="kind">command</span></div><p class="desc">Reads a signed byte (-128 to 127).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_DOUBLE channel, var#</code><span class="kind">command</span></div><p class="desc">Reads an 8-byte floating point number (double) – the native number format of GameBasiX.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_FLOAT channel, var#</code><span class="kind">command</span></div><p class="desc">Reads a 4-byte floating point number (float).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_LINE channel, text$</code><span class="kind">command</span></div><p class="desc">Reads one line up to the line break and strips a trailing CR.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_LONG channel, var%</code><span class="kind">command</span></div><p class="desc">Reads a signed 32-bit number (little endian).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_STR channel, text$, count</code><span class="kind">command</span></div><p class="desc">Reads the given number of characters into a string.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_UBYTE channel, var%</code><span class="kind">command</span></div><p class="desc">Reads an unsigned byte (0 to 255).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_ULONG channel, var%</code><span class="kind">command</span></div><p class="desc">Reads an unsigned 32-bit number (little endian).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_UWORD channel, var%</code><span class="kind">command</span></div><p class="desc">Reads an unsigned 16-bit number (little endian).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_READ_WORD channel, var%</code><span class="kind">command</span></div><p class="desc">Reads a signed 16-bit number (little endian).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_RENAME source, target</code><span class="kind">command</span></div><p class="desc">Renames a file or moves it.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_SEEK channel, offset, origin</code><span class="kind">command</span></div><p class="desc">Sets the file position: origin 0 is the start, 1 the current position, -1 the end.</p></div>
+    <div class="row" data-kind="function"><div><code>FILE_SIZE(path)</code><span class="kind">function</span></div><p class="desc">Returns the file size in bytes, or -1 if the file is missing.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_BYTE channel, value</code><span class="kind">command</span></div><p class="desc">Writes the low byte of a number.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_DOUBLE channel, value#</code><span class="kind">command</span></div><p class="desc">Writes an 8-byte floating point number (double).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_FLOAT channel, value#</code><span class="kind">command</span></div><p class="desc">Writes a 4-byte floating point number (float).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_LINE channel, text$</code><span class="kind">command</span></div><p class="desc">Writes a line and appends CRLF.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_LONG channel, value</code><span class="kind">command</span></div><p class="desc">Writes a 32-bit number (little endian).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_STR channel, text$</code><span class="kind">command</span></div><p class="desc">Writes text without an additional line break.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_UBYTE channel, value</code><span class="kind">command</span></div><p class="desc">Writes the low byte of a number (unsigned).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_ULONG channel, value</code><span class="kind">command</span></div><p class="desc">Writes an unsigned 32-bit number (little endian).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_UWORD channel, value</code><span class="kind">command</span></div><p class="desc">Writes an unsigned 16-bit number (little endian).</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_WORD channel, value</code><span class="kind">command</span></div><p class="desc">Writes a 16-bit number (little endian).</p></div>
+  </div>
+</section>
+<section id="arrays">
+  <h2>Arrays<span class="count">4</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="function"><div><code>ARRAY_BOUNDS(a[], dimension)</code><span class="kind">function</span></div><p class="desc">Returns the size of the given dimension; 0 is the first one.</p></div>
+    <div class="row" data-kind="command"><div><code>DIMDATA a[], value, ...</code><span class="kind">command</span></div><p class="desc">Fills an array from a list of values and returns how many there were.</p></div>
+    <div class="row" data-kind="function"><div><code>FONT_NEW()</code><span class="kind">function</span></div><p class="desc">Hands out the next free font id.</p></div>
+    <div class="row" data-kind="function"><div><code>SCREEN_NEW()</code><span class="kind">function</span></div><p class="desc">Hands out the next free screen id for SCREEN_CREATE.</p></div>
+  </div>
+</section>
+<section id="arrays-und-dictionaries">
+  <h2>Arrays and dictionaries<span class="count">14</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="function"><div><code>ARRAY_FIND(array, value[, start])</code><span class="kind">function</span></div><p class="desc">Searches a value and returns the first index or -1; start moves where the search begins.</p></div>
+    <div class="row" data-kind="command"><div><code>ARRAY_SORT array[, direction[, field$]]</code><span class="kind">command</span></div><p class="desc">Sorts an array in place: 1 ascending (default), -1 descending.</p></div>
+    <div class="row" data-kind="command"><div><code>DICT_CLEAR d</code><span class="kind">command</span></div><p class="desc">Empties the dictionary.</p></div>
+    <div class="row" data-kind="function"><div><code>DICT_COUNT(d)</code><span class="kind">function</span></div><p class="desc">Number of entries – the same as LEN(d).</p></div>
+    <div class="row" data-kind="command"><div><code>DICT_DELETE d,key$</code><span class="kind">command</span></div><p class="desc">Removes a key and returns 1 when it was there.</p></div>
+    <div class="row" data-kind="function"><div><code>DICT_GET(d,key$[,default])</code><span class="kind">function</span></div><p class="desc">Returns the value for a key, or the default (0 without one).</p></div>
+    <div class="row" data-kind="function"><div><code>DICT_HAS(d,key$)</code><span class="kind">function</span></div><p class="desc">Tells whether a key exists.</p></div>
+    <div class="row" data-kind="function"><div><code>DICT_KEY$(d,i)</code><span class="kind">function</span></div><p class="desc">Key at a position, in insertion order.</p></div>
+    <div class="row" data-kind="function"><div><code>DICT_KEYS(d)</code><span class="kind">function</span></div><p class="desc">All keys as an array.</p></div>
+    <div class="row" data-kind="function"><div><code>DICT_NEW()</code><span class="kind">function</span></div><p class="desc">Creates an empty dictionary. Keys are text, values anything; like an array it is a reference.</p></div>
+    <div class="row" data-kind="command"><div><code>DICT_SET d,key$,value</code><span class="kind">command</span></div><p class="desc">Stores a value under a key, overwriting an existing one.</p></div>
+    <div class="row" data-kind="function"><div><code>DICT_VALUE(d,i)</code><span class="kind">function</span></div><p class="desc">Value at a position, in insertion order.</p></div>
+    <div class="row" data-kind="function"><div><code>DICT_VALUES(d)</code><span class="kind">function</span></div><p class="desc">All values as an array.</p></div>
+    <div class="row" data-kind="function"><div><code>ISA(value, &quot;TYPE&quot;)</code><span class="kind">function</span></div><p class="desc">Checks whether a value is of the named TYPE, derived from it, or fulfils an INTERFACE.</p></div>
+  </div>
+</section>
+<section id="netzwerk">
+  <h2>Network<span class="count">18</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="function"><div><code>NET_ACCEPT(listener)</code><span class="kind">function</span></div><p class="desc">Accepts one waiting connection: a new handle, 0 when none is pending, -1 on error.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_CLOSE(handle)</code><span class="kind">function</span></div><p class="desc">Closes a TCP server or connection and releases the handle.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_CONNECT(host, port, timeout)</code><span class="kind">function</span></div><p class="desc">Connects as a client to host and port and returns a handle.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_CONNECTED(handle)</code><span class="kind">function</span></div><p class="desc">1 while the connection is open, 0 after the other side closed it.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_ERROR$()</code><span class="kind">function</span></div><p class="desc">The last network error, for example &quot;port in use&quot; or &quot;connection refused&quot;.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_IP$()</code><span class="kind">function</span></div><p class="desc">The machine&#x27;s own IPv4 address on the local network so other players can enter it; 127.0.0.1 when none is found.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_LISTEN(port)</code><span class="kind">function</span></div><p class="desc">Starts a TCP server on a port (0 picks a free one) and returns a handle; 0 means failure and NET_ERROR$ names the reason.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_PEER$(handle)</code><span class="kind">function</span></div><p class="desc">Address of the other side as ip:port.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_PENDING(handle)</code><span class="kind">function</span></div><p class="desc">Reports how many bytes are ready to read on a TCP connection.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_PORT(handle)</code><span class="kind">function</span></div><p class="desc">The local port of a server or connection - with NET_LISTEN(0) the one that was actually bound.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_RECV$(handle)</code><span class="kind">function</span></div><p class="desc">Reads everything that arrived since the last call and returns it as text, an empty string when nothing is buffered.</p></div>
+    <div class="row" data-kind="function"><div><code>NET_SEND(handle, text)</code><span class="kind">function</span></div><p class="desc">Sends text (UTF-8) over a TCP connection and returns the bytes written.</p></div>
+    <div class="row" data-kind="function"><div><code>UDP_CLOSE(handle)</code><span class="kind">function</span></div><p class="desc">Closes a UDP socket and releases the handle.</p></div>
+    <div class="row" data-kind="function"><div><code>UDP_FROM$(handle)</code><span class="kind">function</span></div><p class="desc">Sender of the last packet read, as ip:port.</p></div>
+    <div class="row" data-kind="function"><div><code>UDP_OPEN(port)</code><span class="kind">function</span></div><p class="desc">Opens a UDP socket on a port (0 picks a free one) and returns a handle.</p></div>
+    <div class="row" data-kind="function"><div><code>UDP_PORT(handle)</code><span class="kind">function</span></div><p class="desc">The bound local UDP port; with UDP_OPEN(0) the one that was chosen.</p></div>
+    <div class="row" data-kind="function"><div><code>UDP_RECV$(handle)</code><span class="kind">function</span></div><p class="desc">The next pending packet as text, an empty string when there is none. Returns immediately.</p></div>
+    <div class="row" data-kind="function"><div><code>UDP_SEND(handle, host, port, text)</code><span class="kind">function</span></div><p class="desc">Sends one packet to host:port. UDP is connectionless, so loss and order are up to the program.</p></div>
+  </div>
+</section>
+<section id="steam">
+  <h2>Steam<span class="count">19</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="function"><div><code>STEAM_APP_ID()</code><span class="kind">function</span></div><p class="desc">The app id Steam is running with.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_ERROR$()</code><span class="kind">function</span></div><p class="desc">The last Steam error, for example when steam_api is missing or Steam is not running.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_FRIENDS()</code><span class="kind">function</span></div><p class="desc">Number of friends in the Steam friend list.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_FRIEND_ID$(i)</code><span class="kind">function</span></div><p class="desc">SteamID of the friend at this index in the list.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_FRIEND_NAME$(i)</code><span class="kind">function</span></div><p class="desc">Persona name of the friend at this index.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_FRIEND_STATE(i)</code><span class="kind">function</span></div><p class="desc">Online state of the friend (0 offline, 1 online, 2 busy, 3 away, ...).</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_ID$()</code><span class="kind">function</span></div><p class="desc">The 64-bit SteamID as text - as a number a FLOAT would lose digits.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_INIT(appid)</code><span class="kind">function</span></div><p class="desc">Loads steam_api (steam_api64.dll or libsteam_api.so) and calls SteamAPI_Init.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_NAME$()</code><span class="kind">function</span></div><p class="desc">The Steam name of the signed-in player.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_P2P_ACCEPT(id)</code><span class="kind">function</span></div><p class="desc">Explicitly accepts a player&#x27;s P2P session.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_P2P_AVAILABLE([channel])</code><span class="kind">function</span></div><p class="desc">How many bytes are ready to read on the channel.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_P2P_CLOSE(id)</code><span class="kind">function</span></div><p class="desc">Ends the P2P session with a player.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_P2P_FROM$()</code><span class="kind">function</span></div><p class="desc">SteamID of the sender of the last packet read.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_P2P_RECV$([channel])</code><span class="kind">function</span></div><p class="desc">Reads the next P2P packet from the channel; empty when none is pending.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_P2P_SEND(id, text, channel, reliable)</code><span class="kind">function</span></div><p class="desc">Sends a packet to a SteamID (as text). reliable=1 (default) arrives in order, 0 is for values the next packet replaces anyway.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_P2P_STATE(id)</code><span class="kind">function</span></div><p class="desc">State of the P2P session: 0 none, 1 connecting, 2 direct, 3 through Steam&#x27;s relay.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_READY()</code><span class="kind">function</span></div><p class="desc">1 when STEAM_INIT succeeded.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_RUN()</code><span class="kind">function</span></div><p class="desc">Pumps Steam&#x27;s callbacks; call it once per frame. Returns 1 when Steam is ready.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_SHUTDOWN</code><span class="kind">command</span></div><p class="desc">Shuts the Steam API down (SteamAPI_Shutdown).</p></div>
+  </div>
+</section>
+<section id="laufzeit-und-debug">
+  <h2>Runtime and debug<span class="count">18</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="command"><div><code>ASSERT condition[,text]</code><span class="kind">command</span></div><p class="desc">Checks a condition. If it fails, the test run counts an error, prints the message and the program exits with code 1.</p></div>
+    <div class="row" data-kind="function"><div><code>ASSET_RELOAD()</code><span class="kind">function</span></div><p class="desc">Reloads every image, font, sound and the music the program has loaded and returns how many files were replaced.</p></div>
+    <div class="row" data-kind="function"><div><code>COMMAND_LINE$()</code><span class="kind">function</span></div><p class="desc">Returns the arguments the program was started with.</p></div>
+    <div class="row" data-kind="command"><div><code>DEBUG text</code><span class="kind">command</span></div><p class="desc">Writes text without a line break to the error output; the IDE shows it in the console.</p></div>
+    <div class="row" data-kind="function"><div><code>DELTA_TIME()</code><span class="kind">function</span></div><p class="desc">Returns the milliseconds since the last SCREEN_SHOW, handy for smooth movement.</p></div>
+    <div class="row" data-kind="function"><div><code>ELAPSED_TIME()</code><span class="kind">function</span></div><p class="desc">Returns the time since the program started in milliseconds.</p></div>
+    <div class="row" data-kind="function"><div><code>ENV$(name)</code><span class="kind">function</span></div><p class="desc">Reads an environment variable; if it is not set an empty string comes back.</p></div>
+    <div class="row" data-kind="command"><div><code>HOT_RELOAD value</code><span class="kind">command</span></div><p class="desc">Switches reloading of changed assets off (`0`) or back on (`1`).</p></div>
+    <div class="row" data-kind="function"><div><code>HOT_RELOAD_ON()</code><span class="kind">function</span></div><p class="desc">Returns 1 when changed assets are reloaded by themselves, otherwise 0.</p></div>
+    <div class="row" data-kind="function"><div><code>PLATFORM_INFO$(&quot;os&quot;)</code><span class="kind">function</span></div><p class="desc">Returns information about the platform: “os” gives the system name, “version” the SDL version.</p></div>
+    <div class="row" data-kind="command"><div><code>SET_ENV name, value</code><span class="kind">command</span></div><p class="desc">Sets an environment variable for the running program.</p></div>
+    <div class="row" data-kind="command"><div><code>SLEEP ms</code><span class="kind">command</span></div><p class="desc">Pauses the program for the given time in milliseconds.</p></div>
+    <div class="row" data-kind="function"><div><code>SOURCE_FILE$()</code><span class="kind">function</span></div><p class="desc">Returns the name of the file the call appears in.</p></div>
+    <div class="row" data-kind="function"><div><code>SOURCE_LINE()</code><span class="kind">function</span></div><p class="desc">Returns the line number of the call.</p></div>
+    <div class="row" data-kind="command"><div><code>STDERR text</code><span class="kind">command</span></div><p class="desc">Writes text without a line break to the error output.</p></div>
+    <div class="row" data-kind="function"><div><code>STDIN$()</code><span class="kind">function</span></div><p class="desc">Reads one line from standard input.</p></div>
+    <div class="row" data-kind="command"><div><code>STDOUT text</code><span class="kind">command</span></div><p class="desc">Writes text without a line break to standard output.</p></div>
+    <div class="row" data-kind="command"><div><code>WAIT_INPUT</code><span class="kind">command</span></div><p class="desc">Waits for a key press or mouse click while the window keeps presenting frames.</p></div>
+  </div>
+</section>
+<section id="sprache">
+  <h2>Language<span class="count">71</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="keyword"><div><code>AND</code><span class="kind">keyword</span></div><p class="desc">Logical AND in conditions. It stops evaluating as soon as the result is clear and returns 1 or 0.</p></div>
+    <div class="row" data-kind="keyword"><div><code>AS</code><span class="kind">keyword</span></div><p class="desc">States the type of a variable, parameter or TYPE field: LOCAL box AS BOX.</p></div>
+    <div class="row" data-kind="keyword"><div><code>BREAK</code><span class="kind">keyword</span></div><p class="desc">Leaves the innermost loop or a SELECT right away.</p></div>
+    <div class="row" data-kind="keyword"><div><code>BYREF</code><span class="kind">keyword</span></div><p class="desc">Passes a parameter by reference so the function can change the original value. Works with array elements and TYPE fields too.</p></div>
+    <div class="row" data-kind="keyword"><div><code>CASE</code><span class="kind">keyword</span></div><p class="desc">One branch in SELECT with one or more values. Several CASE blocks follow each other.</p></div>
+    <div class="row" data-kind="keyword"><div><code>CATCH</code><span class="kind">keyword</span></div><p class="desc">Catches an error from the TRY block. The message ends up in the given string variable.</p></div>
+    <div class="row" data-kind="keyword"><div><code>CONST</code><span class="kind">keyword</span></div><p class="desc">Short form of CONSTANT.</p></div>
+    <div class="row" data-kind="keyword"><div><code>CONSTANT</code><span class="kind">keyword</span></div><p class="desc">Defines a name with a fixed value that cannot be changed.</p></div>
+    <div class="row" data-kind="keyword"><div><code>CONTINUE</code><span class="kind">keyword</span></div><p class="desc">Jumps straight to the next pass of the innermost loop.</p></div>
+    <div class="row" data-kind="keyword"><div><code>DEC</code><span class="kind">keyword</span></div><p class="desc">Decreases a variable by 1, or by the given step.</p></div>
+    <div class="row" data-kind="keyword"><div><code>DEFAULT</code><span class="kind">keyword</span></div><p class="desc">The branch in SELECT that runs when no CASE matches.</p></div>
+    <div class="row" data-kind="keyword"><div><code>DIM a[n][, ...]</code><span class="kind">keyword</span></div><p class="desc">Creates an array. DIM a[10] gives the slots 0 to 9; extra brackets add dimensions and AS TYP makes it a TYPE array.</p></div>
+    <div class="row" data-kind="keyword"><div><code>DIMDEL a[], index</code><span class="kind">keyword</span></div><p class="desc">Removes one slot from an array; everything after it moves up one place.</p></div>
+    <div class="row" data-kind="keyword"><div><code>DIMPUSH a[], value</code><span class="kind">keyword</span></div><p class="desc">Appends a value to the end of an array.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ELSE</code><span class="kind">keyword</span></div><p class="desc">The branch of an IF that runs when the condition is false.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ELSEIF</code><span class="kind">keyword</span></div><p class="desc">Another condition inside the same IF block.</p></div>
+    <div class="row" data-kind="keyword"><div><code>END</code><span class="kind">keyword</span></div><p class="desc">Ends the program immediately.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDENUM</code><span class="kind">keyword</span></div><p class="desc">Closes an ENUM block.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDFUNCTION</code><span class="kind">keyword</span></div><p class="desc">Closes a FUNCTION.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDIF</code><span class="kind">keyword</span></div><p class="desc">Ends a multi-line IF block.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDINLINE</code><span class="kind">keyword</span></div><p class="desc">Ends an INLINE block. Everything in between goes to the C++ compiler unchanged.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDINTERFACE</code><span class="kind">keyword</span></div><p class="desc">Closes an INTERFACE.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDMETHOD</code><span class="kind">keyword</span></div><p class="desc">Closes a METHOD.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDSELECT</code><span class="kind">keyword</span></div><p class="desc">Ends a SELECT.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDSUB</code><span class="kind">keyword</span></div><p class="desc">Closes a SUB.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDTRY</code><span class="kind">keyword</span></div><p class="desc">Ends a TRY block when FINALLY is not used.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDTYPE</code><span class="kind">keyword</span></div><p class="desc">Closes a TYPE definition.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDWHILE</code><span class="kind">keyword</span></div><p class="desc">Ends a WHILE loop - the same as WEND.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENUM</code><span class="kind">keyword</span></div><p class="desc">Groups named numbers: ENUM name … ENDENUM.</p></div>
+    <div class="row" data-kind="keyword"><div><code>EXIT</code><span class="kind">keyword</span></div><p class="desc">Leaves a FUNCTION or SUB early.</p></div>
+    <div class="row" data-kind="keyword"><div><code>EXTENDS base</code><span class="kind">keyword</span></div><p class="desc">Names the base TYPE behind a TYPE header; the new TYPE inherits its fields and methods: TYPE B EXTENDS A.</p></div>
+    <div class="row" data-kind="keyword"><div><code>FINALLY</code><span class="kind">keyword</span></div><p class="desc">Ends the TRY block. FINALLY has no code of its own; CATCH and FINALLY close the block.</p></div>
+    <div class="row" data-kind="keyword"><div><code>FOR</code><span class="kind">keyword</span></div><p class="desc">Counting loop: FOR i = start TO end [STEP step] … NEXT.</p></div>
+    <div class="row" data-kind="keyword"><div><code>FOREACH</code><span class="kind">keyword</span></div><p class="desc">Walks over every element of an array or TYPE array; the loop variable refers to the element itself.</p></div>
+    <div class="row" data-kind="keyword"><div><code>FUNCTION</code><span class="kind">keyword</span></div><p class="desc">Defines a function with a return value: FUNCTION name: parameter … ENDFUNCTION, return with RETURN.</p></div>
+    <div class="row" data-kind="keyword"><div><code>GLOBAL</code><span class="kind">keyword</span></div><p class="desc">Declares a variable that is valid throughout the program.</p></div>
+    <div class="row" data-kind="keyword"><div><code>GOSUB</code><span class="kind">keyword</span></div><p class="desc">Calls a SUB and continues after its ENDSUB at this point.</p></div>
+    <div class="row" data-kind="keyword"><div><code>GOTO</code><span class="kind">keyword</span></div><p class="desc">Jumps to a label inside the same section (main program, SUB or FUNCTION).</p></div>
+    <div class="row" data-kind="keyword"><div><code>IF</code><span class="kind">keyword</span></div><p class="desc">Starts a condition. One line with THEN, otherwise a block up to ENDIF.</p></div>
+    <div class="row" data-kind="keyword"><div><code>IMPLEMENTS first[, second]</code><span class="kind">keyword</span></div><p class="desc">Lists the INTERFACEs a TYPE fulfils: TYPE B IMPLEMENTS I, J.</p></div>
+    <div class="row" data-kind="keyword"><div><code>IN</code><span class="kind">keyword</span></div><p class="desc">Joins the loop variable and the array in FOREACH.</p></div>
+    <div class="row" data-kind="keyword"><div><code>INC</code><span class="kind">keyword</span></div><p class="desc">Increases a variable by 1, or by the given step.</p></div>
+    <div class="row" data-kind="keyword"><div><code>INCLUDE</code><span class="kind">keyword</span></div><p class="desc">Pulls in another source file. The path is relative to the including file, duplicate includes are ignored.</p></div>
+    <div class="row" data-kind="keyword"><div><code>INLINE</code><span class="kind">keyword</span></div><p class="desc">Starts a block of C++ code. At top level (or with INLINE DEFINE) it holds definitions compiled once at startup; inside code…</p></div>
+    <div class="row" data-kind="keyword"><div><code>INTERFACE name</code><span class="kind">keyword</span></div><p class="desc">Starts an interface. It holds only SUB and FUNCTION headers without a body; ENDINTERFACE closes it and TYPE ...</p></div>
+    <div class="row" data-kind="keyword"><div><code>LET</code><span class="kind">keyword</span></div><p class="desc">Optional start of an assignment: LET x = 5 is the same as x = 5.</p></div>
+    <div class="row" data-kind="keyword"><div><code>LOCAL</code><span class="kind">keyword</span></div><p class="desc">Declares a variable that only exists inside the current FUNCTION or SUB.</p></div>
+    <div class="row" data-kind="keyword"><div><code>METHOD</code><span class="kind">keyword</span></div><p class="desc">Defines a method of a TYPE: METHOD name: parameter … ENDMETHOD. The colon after the name is mandatory.</p></div>
+    <div class="row" data-kind="keyword"><div><code>NEXT</code><span class="kind">keyword</span></div><p class="desc">Ends the body of a FOR loop and starts the next pass.</p></div>
+    <div class="row" data-kind="keyword"><div><code>NOT</code><span class="kind">keyword</span></div><p class="desc">Inverts a condition. NOT binds weaker than a comparison.</p></div>
+    <div class="row" data-kind="keyword"><div><code>OPTION STRICT</code><span class="kind">keyword</span></div><p class="desc">Switches language options on. Only OPTION STRICT exists so far: every variable must be assigned before it is read, otherwise the…</p></div>
+    <div class="row" data-kind="keyword"><div><code>OR</code><span class="kind">keyword</span></div><p class="desc">Logical OR in conditions. It stops evaluating as soon as the result is clear and returns 1 or 0.</p></div>
+    <div class="row" data-kind="keyword"><div><code>REDIM a[n]</code><span class="kind">keyword</span></div><p class="desc">Resizes an array and keeps the values already stored in it.</p></div>
+    <div class="row" data-kind="keyword"><div><code>REPEAT</code><span class="kind">keyword</span></div><p class="desc">A loop that runs at least once and is tested at the end with UNTIL.</p></div>
+    <div class="row" data-kind="keyword"><div><code>RETURN</code><span class="kind">keyword</span></div><p class="desc">Leaves a FUNCTION and returns the value behind it; inside a SUB it ends the call without a value.</p></div>
+    <div class="row" data-kind="keyword"><div><code>SELECT</code><span class="kind">keyword</span></div><p class="desc">Multiple choice: checks the CASE blocks in turn, DEFAULT catches the rest.</p></div>
+    <div class="row" data-kind="keyword"><div><code>SELF</code><span class="kind">keyword</span></div><p class="desc">The object itself inside a METHOD. self.x reads or writes a field, self.method() calls one of its own methods.</p></div>
+    <div class="row" data-kind="keyword"><div><code>STATIC</code><span class="kind">keyword</span></div><p class="desc">Declares a local variable that keeps its value between calls.</p></div>
+    <div class="row" data-kind="keyword"><div><code>STEP</code><span class="kind">keyword</span></div><p class="desc">Step size of a FOR loop; negative values count downwards.</p></div>
+    <div class="row" data-kind="keyword"><div><code>STRICT</code><span class="kind">keyword</span></div><p class="desc">Only valid after OPTION; makes unassigned variables a runtime error - the same as the --strict switch.</p></div>
+    <div class="row" data-kind="keyword"><div><code>SUB</code><span class="kind">keyword</span></div><p class="desc">Defines a parameterless procedure called with GOSUB: SUB name: … ENDSUB. The colon after the name is mandatory.</p></div>
+    <div class="row" data-kind="keyword"><div><code>SWAP</code><span class="kind">keyword</span></div><p class="desc">Swaps the values of two variables, fields or array elements.</p></div>
+    <div class="row" data-kind="keyword"><div><code>THEN</code><span class="kind">keyword</span></div><p class="desc">Separates the condition of an IF from the statement that follows when it is true.</p></div>
+    <div class="row" data-kind="keyword"><div><code>THROW</code><span class="kind">keyword</span></div><p class="desc">Raises an error with the given message that TRY/CATCH can catch.</p></div>
+    <div class="row" data-kind="keyword"><div><code>TO</code><span class="kind">keyword</span></div><p class="desc">Separates the start and the end of a FOR loop.</p></div>
+    <div class="row" data-kind="keyword"><div><code>TRY</code><span class="kind">keyword</span></div><p class="desc">Starts a block whose runtime errors can be caught by CATCH.</p></div>
+    <div class="row" data-kind="keyword"><div><code>TYPE</code><span class="kind">keyword</span></div><p class="desc">Defines a custom data type with fields and optional METHODs; fields may be nested TYPEs.</p></div>
+    <div class="row" data-kind="keyword"><div><code>UNTIL</code><span class="kind">keyword</span></div><p class="desc">Ends a REPEAT loop as soon as the condition is true.</p></div>
+    <div class="row" data-kind="keyword"><div><code>WEND</code><span class="kind">keyword</span></div><p class="desc">Closes a WHILE loop.</p></div>
+    <div class="row" data-kind="keyword"><div><code>WHEN condition</code><span class="kind">keyword</span></div><p class="desc">Condition behind a CATCH: the block only runs when it is true; the message is in the error variable.</p></div>
+    <div class="row" data-kind="keyword"><div><code>WHILE</code><span class="kind">keyword</span></div><p class="desc">Loop that checks its condition before each pass and runs until WEND.</p></div>
+  </div>
+</section>
+<section id="konstanten">
+  <h2>Constants<span class="count">96</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="constant"><div><code>FALSE</code><span class="kind">constant</span></div><p class="desc">False, that is 0.</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_A</code><span class="kind">constant</span></div><p class="desc">Bottom face button (Xbox A, PlayStation Cross)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_AXIS_LT</code><span class="kind">constant</span></div><p class="desc">Left trigger (0 … 1)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_AXIS_LX</code><span class="kind">constant</span></div><p class="desc">Left stick, horizontal (-1 … 1)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_AXIS_LY</code><span class="kind">constant</span></div><p class="desc">Left stick, vertical (-1 … 1)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_AXIS_RT</code><span class="kind">constant</span></div><p class="desc">Right trigger (0 … 1)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_AXIS_RX</code><span class="kind">constant</span></div><p class="desc">Right stick, horizontal (-1 … 1)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_AXIS_RY</code><span class="kind">constant</span></div><p class="desc">Right stick, vertical (-1 … 1)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_B</code><span class="kind">constant</span></div><p class="desc">Right face button (Xbox B, PlayStation Circle)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_BACK</code><span class="kind">constant</span></div><p class="desc">Back button</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_DOWN</code><span class="kind">constant</span></div><p class="desc">D-pad down</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_GUIDE</code><span class="kind">constant</span></div><p class="desc">Guide button</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_LB</code><span class="kind">constant</span></div><p class="desc">Left shoulder (LB/L1)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_LEFT</code><span class="kind">constant</span></div><p class="desc">D-pad left</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_LSTICK</code><span class="kind">constant</span></div><p class="desc">Left stick pressed</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_RB</code><span class="kind">constant</span></div><p class="desc">Right shoulder (RB/R1)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_RIGHT</code><span class="kind">constant</span></div><p class="desc">D-pad right</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_RSTICK</code><span class="kind">constant</span></div><p class="desc">Right stick pressed</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_START</code><span class="kind">constant</span></div><p class="desc">Start button</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_UP</code><span class="kind">constant</span></div><p class="desc">D-pad up</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_X</code><span class="kind">constant</span></div><p class="desc">Left face button (Xbox X, PlayStation Square)</p></div>
+    <div class="row" data-kind="constant"><div><code>JOY_Y</code><span class="kind">constant</span></div><p class="desc">Top face button (Xbox Y, PlayStation Triangle)</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_0</code><span class="kind">constant</span></div><p class="desc">Digit 0</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_1</code><span class="kind">constant</span></div><p class="desc">Digit 1</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_2</code><span class="kind">constant</span></div><p class="desc">Digit 2</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_3</code><span class="kind">constant</span></div><p class="desc">Digit 3</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_4</code><span class="kind">constant</span></div><p class="desc">Digit 4</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_5</code><span class="kind">constant</span></div><p class="desc">Digit 5</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_6</code><span class="kind">constant</span></div><p class="desc">Digit 6</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_7</code><span class="kind">constant</span></div><p class="desc">Digit 7</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_8</code><span class="kind">constant</span></div><p class="desc">Digit 8</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_9</code><span class="kind">constant</span></div><p class="desc">Digit 9</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_A</code><span class="kind">constant</span></div><p class="desc">Key A</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_B</code><span class="kind">constant</span></div><p class="desc">Key B</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_BACKSPACE</code><span class="kind">constant</span></div><p class="desc">Backspace</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_C</code><span class="kind">constant</span></div><p class="desc">Key C</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_COMMA</code><span class="kind">constant</span></div><p class="desc">Comma</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_D</code><span class="kind">constant</span></div><p class="desc">Key D</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_DELETE</code><span class="kind">constant</span></div><p class="desc">Delete</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_DOWN</code><span class="kind">constant</span></div><p class="desc">Arrow down</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_E</code><span class="kind">constant</span></div><p class="desc">Key E</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_END</code><span class="kind">constant</span></div><p class="desc">End</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_ENTER</code><span class="kind">constant</span></div><p class="desc">Enter</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_EQUALS</code><span class="kind">constant</span></div><p class="desc">Equals sign</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_ESC</code><span class="kind">constant</span></div><p class="desc">Escape</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F</code><span class="kind">constant</span></div><p class="desc">Key F</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F1</code><span class="kind">constant</span></div><p class="desc">Function key F1</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F10</code><span class="kind">constant</span></div><p class="desc">Function key F10</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F11</code><span class="kind">constant</span></div><p class="desc">Function key F11</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F12</code><span class="kind">constant</span></div><p class="desc">Function key F12</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F2</code><span class="kind">constant</span></div><p class="desc">Function key F2</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F3</code><span class="kind">constant</span></div><p class="desc">Function key F3</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F4</code><span class="kind">constant</span></div><p class="desc">Function key F4</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F5</code><span class="kind">constant</span></div><p class="desc">Function key F5</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F6</code><span class="kind">constant</span></div><p class="desc">Function key F6</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F7</code><span class="kind">constant</span></div><p class="desc">Function key F7</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F8</code><span class="kind">constant</span></div><p class="desc">Function key F8</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_F9</code><span class="kind">constant</span></div><p class="desc">Function key F9</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_G</code><span class="kind">constant</span></div><p class="desc">Key G</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_H</code><span class="kind">constant</span></div><p class="desc">Key H</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_HOME</code><span class="kind">constant</span></div><p class="desc">Home</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_I</code><span class="kind">constant</span></div><p class="desc">Key I</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_INSERT</code><span class="kind">constant</span></div><p class="desc">Insert</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_J</code><span class="kind">constant</span></div><p class="desc">Key J</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_K</code><span class="kind">constant</span></div><p class="desc">Key K</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_L</code><span class="kind">constant</span></div><p class="desc">Key L</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_LALT</code><span class="kind">constant</span></div><p class="desc">Left Alt</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_LCTRL</code><span class="kind">constant</span></div><p class="desc">Left Ctrl</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_LEFT</code><span class="kind">constant</span></div><p class="desc">Arrow left</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_LSHIFT</code><span class="kind">constant</span></div><p class="desc">Left shift</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_M</code><span class="kind">constant</span></div><p class="desc">Key M</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_MINUS</code><span class="kind">constant</span></div><p class="desc">Minus</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_N</code><span class="kind">constant</span></div><p class="desc">Key N</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_O</code><span class="kind">constant</span></div><p class="desc">Key O</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_P</code><span class="kind">constant</span></div><p class="desc">Key P</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_PERIOD</code><span class="kind">constant</span></div><p class="desc">Period</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_PGDN</code><span class="kind">constant</span></div><p class="desc">Page down</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_PGUP</code><span class="kind">constant</span></div><p class="desc">Page up</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_Q</code><span class="kind">constant</span></div><p class="desc">Key Q</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_R</code><span class="kind">constant</span></div><p class="desc">Key R</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_RALT</code><span class="kind">constant</span></div><p class="desc">Right Alt</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_RCTRL</code><span class="kind">constant</span></div><p class="desc">Right Ctrl</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_RIGHT</code><span class="kind">constant</span></div><p class="desc">Arrow right</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_RSHIFT</code><span class="kind">constant</span></div><p class="desc">Right shift</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_S</code><span class="kind">constant</span></div><p class="desc">Key S</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_SPACE</code><span class="kind">constant</span></div><p class="desc">Space</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_T</code><span class="kind">constant</span></div><p class="desc">Key T</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_TAB</code><span class="kind">constant</span></div><p class="desc">Tab</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_U</code><span class="kind">constant</span></div><p class="desc">Key U</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_UP</code><span class="kind">constant</span></div><p class="desc">Arrow up</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_V</code><span class="kind">constant</span></div><p class="desc">Key V</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_W</code><span class="kind">constant</span></div><p class="desc">Key W</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_X</code><span class="kind">constant</span></div><p class="desc">Key X</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_Y</code><span class="kind">constant</span></div><p class="desc">Key Y</p></div>
+    <div class="row" data-kind="constant"><div><code>KEY_Z</code><span class="kind">constant</span></div><p class="desc">Key Z</p></div>
+    <div class="row" data-kind="constant"><div><code>TRUE</code><span class="kind">constant</span></div><p class="desc">True, that is 1.</p></div>
+  </div>
+</section>
+<footer>GameBasiX - BASIC for 2D games. Names without brackets are commands, names with brackets are functions.</footer>
+</main>
+</body>
+</html>

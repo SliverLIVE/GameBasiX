@@ -37,6 +37,7 @@ const CATEGORY_KEYS = {
   Math: 'Mathe',
   Strings: 'Strings',
   Files: 'Dateien',
+  'Arrays and dictionaries': 'Arrays und Dictionaries',
   Network: 'Netzwerk',
   Steam: 'Steam',
   'Runtime and debug': 'Laufzeit und Debug'
@@ -83,6 +84,14 @@ const KEYWORDS = new Set([
   'ENDTYPE',
   'METHOD',
   'ENDMETHOD',
+  'INTERFACE',
+  'ENDINTERFACE',
+  'EXTENDS',
+  'IMPLEMENTS',
+  'OPTION',
+  'STRICT',
+  'ENDWHILE',
+  'WHEN',
   'SELF',
   'GLOBAL',
   'LOCAL',
@@ -118,6 +127,19 @@ const KEYWORDS = new Set([
 // Namen, die der Interpreter als Anweisung kennt (kein Befehl mit Argumenten).
 // Sie stammen aus parseStatement() in src/parser.cpp.
 const STATEMENTS = KEYWORDS;
+
+// Ein Schluesselwort zeigt in Referenz und Vorschlag die vollstaendige
+// Schreibweise: OPTION gibt es nur als OPTION STRICT.
+const KEYWORD_SIGNATURES = {
+  OPTION: 'OPTION STRICT',
+  STRICT: 'STRICT',
+  INTERFACE: 'INTERFACE name',
+  ENDINTERFACE: 'ENDINTERFACE',
+  EXTENDS: 'EXTENDS base',
+  IMPLEMENTS: 'IMPLEMENTS first[, second]',
+  ENDWHILE: 'ENDWHILE',
+  WHEN: 'WHEN condition'
+};
 
 const NOTES = {
   'FORMAT$': {
@@ -426,13 +448,14 @@ function parseReference(markdown, existing) {
 
   for (const name of KEYWORDS) {
     if (commands.has(name)) continue;
+    const keywordSignature = KEYWORD_SIGNATURES[name] || name;
     commands.set(name, {
       name,
       displayName: name,
       kind: 'keyword',
       category: 'Sprache',
-      signature: name,
-      syntax: [name],
+      signature: keywordSignature,
+      syntax: [keywordSignature],
       description: descriptionFor(name),
       sample: '',
       returnType: 'Schlüsselwort',
