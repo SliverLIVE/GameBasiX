@@ -23,6 +23,7 @@
 #include <unordered_map>
 
 #include "gbx_inline.h"
+#include "graphics.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -58,6 +59,9 @@ std::string g_returnText;  // Ziel fuer set_string, gueltig bis zum Rueckgabewer
 GbxHost g_host;
 bool g_hostReady = false;
 
+// Ziel fuer host->blit_screen; der Interpreter setzt es nach Gfx::init.
+Gfx* g_graphics = nullptr;
+
 std::string upperAscii(std::string text) {
     for (char& c : text)
         if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
@@ -88,6 +92,10 @@ void hostSetString(GbxHost*, GbxValue* ret, const char* text) {
     ret->text = g_returnText.c_str();
 }
 
+void hostBlit(GbxHost*, const void* rgba, int width, int height, int stride) {
+    if (g_graphics) g_graphics->blitPixels(rgba, width, height, stride);
+}
+
 void hostLog(GbxHost*, const char* text) {
     if (!text) return;
     std::printf("%s\n", text);
@@ -101,6 +109,7 @@ GbxHost makeHost() {
     host.set_string = hostSetString;
     host.log = hostLog;
     host.user = nullptr;
+    host.blit_screen = hostBlit;
     return host;
 }
 
@@ -1284,6 +1293,8 @@ void scanNames(const std::string& code, const std::vector<fs::path>& searchDirs,
 }  // namespace
 
 namespace gbxinline_runtime {
+
+void setGraphics(Gfx* graphics) { g_graphics = graphics; }
 
 void setNativeOptions(std::vector<std::string> libs, std::vector<std::string> libDirs,
                       std::vector<std::string> flags) {

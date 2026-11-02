@@ -1,0 +1,170 @@
+' ============================================================
+' A two-dimensional map - feld[x, y] on a TYPE and a DIM board[w, h]
+' Run: gbx examples/19_grid/grid.gbxproj
+'
+' One pair of brackets may hold several values, and each value is one
+' dimension:
+'   tiles[MW, MH] AS TILE     a field of a TYPE, two dimensions
+'   DIM seen[MW, MH]          a plain array with two dimensions
+'   tiles[x, y]               the cell at column x, row y
+'   tiles[x][y]               the same cell, written with two brackets
+' Read it like a table: the first number counts across, the second down.
+' How many dimensions an array has is up to the program - three or four
+' work the same way, only the memory grows with every dimension.
+' ============================================================
+
+CONSTANT TW = 34          ' tile size in pixels
+CONSTANT MW = 21          ' tiles across
+CONSTANT MH = 12          ' tiles down
+
+' The level as text, one row per entry: # wall, o coin, X goal, . free
+GLOBAL level$[MH]
+level$[0]  = "#####################"
+level$[1]  = "#o.......#.........o#"
+level$[2]  = "#..####..#..####....#"
+level$[3]  = "#..#...........#....#"
+level$[4]  = "#..#..o..###...#..o.#"
+level$[5]  = "#.....o..#...........#"
+level$[6]  = "#..####..#..#####...#"
+level$[7]  = "#........#..........#"
+level$[8]  = "#..o..####..o.......#"
+level$[9]  = "#........#.......X..#"
+level$[10] = "#........#..........#"
+level$[11] = "#####################"
+
+TYPE TILE
+  art% = 0                ' 0 free, 1 wall, 2 coin, 3 goal
+ENDTYPE
+
+TYPE WORLD
+  tiles[MW, MH] AS TILE
+  coins% = 0
+  taken% = 0
+
+  ' Fill the grid from the level text. tiles[x, y] is one cell.
+  METHOD build:
+    coins% = 0
+    taken% = 0
+    FOR y% = 0 TO MH - 1
+      row$ = level$[y%]
+      FOR x% = 0 TO MW - 1
+        c$ = MID$(row$, x%, 1)
+        tiles[x%, y%].art% = 0
+        IF c$ = "#"
+          tiles[x%, y%].art% = 1
+        ELSEIF c$ = "o"
+          tiles[x%, y%].art% = 2
+          coins% = coins% + 1
+        ELSEIF c$ = "X"
+          tiles[x%, y%].art% = 3
+        ENDIF
+      NEXT
+    NEXT
+  ENDMETHOD
+
+  METHOD walkable: x%, y%
+    IF x% < 0 OR y% < 0 OR x% >= MW OR y% >= MH THEN RETURN FALSE
+    RETURN tiles[x%, y%].art% <> 1
+  ENDMETHOD
+
+  METHOD art: x%, y%
+    RETURN tiles[x%, y%].art%
+  ENDMETHOD
+
+  METHOD take: x%, y%
+    tiles[x%, y%].art% = 0
+    taken% = taken% + 1
+  ENDMETHOD
+ENDTYPE
+
+GLOBAL world AS WORLD
+world.build()
+
+' A plain two-dimensional array next to it: the cells the player has seen.
+DIM seen[MW, MH]
+
+DEBUG "map " + STR$(LEN(world.tiles)) + " x " + STR$(LEN(world.tiles[0])) + " tiles, " + STR$(world.coins%) + " coins" + CHR$(10)
+
+' Start in the upper left corner
+px% = 1
+py% = 1
+seen[px%, py%] = 1
+steps% = 0
+won% = FALSE
+
+SCREEN_SET MW * TW, MH * TW + 56, 0
+WINDOW_TITLE "GameBasiX - a map with two dimensions"
+LIMIT_FPS 60
+
+WHILE TRUE
+  ' ---------------------------------------------------------- Eingabe
+  dx% = 0
+  dy% = 0
+  IF KEY_PRESSED(KEY_LEFT) THEN dx% = -1
+  IF KEY_PRESSED(KEY_RIGHT) THEN dx% = 1
+  IF KEY_PRESSED(KEY_UP) THEN dy% = -1
+  IF KEY_PRESSED(KEY_DOWN) THEN dy% = 1
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  IF dx% <> 0 OR dy% <> 0
+    nx% = px% + dx%
+    ny% = py% + dy%
+    IF world.walkable(nx%, ny%)
+      px% = nx%
+      py% = ny%
+      steps% = steps% + 1
+      seen[px%, py%] = 1
+      IF world.art(px%, py%) = 2 THEN world.take(px%, py%)
+      IF world.art(px%, py%) = 3 AND NOT won%
+        won% = TRUE
+        DEBUG "goal reached after " + STR$(steps%) + " steps, " + STR$(world.taken%) + " of " + STR$(world.coins%) + " coins" + CHR$(10)
+      ENDIF
+    ENDIF
+  ENDIF
+
+  ' ---------------------------------------------------------- Zeichnen
+  SCREEN_CLEAR RGB(12, 16, 24)
+
+  FOR y% = 0 TO MH - 1
+    FOR x% = 0 TO MW - 1
+      sx% = x% * TW
+      sy% = y% * TW
+      a% = world.art(x%, y%)
+      IF a% = 1
+        ' Wall: a raised block, darker at the bottom edge
+        DRAW_RECT sx%, sy%, TW - 1, TW - 1, RGB(46, 58, 78)
+        DRAW_RECT sx%, sy%, TW - 1, 6, RGB(62, 78, 104)
+      ELSE
+        ' Free cell: a checkerboard so the grid is visible, and the
+        ' cells already walked through glow a little.
+        IF MOD(x% + y%, 2) = 0
+          DRAW_RECT sx%, sy%, TW - 1, TW - 1, RGB(20, 26, 38)
+        ELSE
+          DRAW_RECT sx%, sy%, TW - 1, TW - 1, RGB(24, 30, 44)
+        ENDIF
+        IF seen[x%, y%] = 1 THEN DRAW_RECT sx%, sy%, TW - 1, TW - 1, RGB(28, 40, 58)
+        IF a% = 2
+          DRAW_CIRCLE_FILLED sx% + TW / 2, sy% + TW / 2, TW / 4, RGB(240, 200, 70)
+        ELSEIF a% = 3
+          DRAW_RECT_BORDER sx% + 3, sy% + 3, TW - 7, TW - 7, RGB(120, 230, 150)
+          DRAW_RECT_BORDER sx% + 7, sy% + 7, TW - 15, TW - 15, RGB(120, 230, 150)
+        ENDIF
+      ENDIF
+    NEXT
+  NEXT
+
+  ' The player sits on the grid, so its position is a pair of indices.
+  DRAW_RECT px% * TW + 5, py% * TW + 5, TW - 11, TW - 11, RGB(110, 200, 255)
+
+  ' ---------------------------------------------------------- HUD
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "Coins " + STR$(world.taken%) + " of " + STR$(world.coins%), 14, MH * TW + 6
+  TEXT_COLOR RGB(150, 170, 200)
+  PRINT "tiles[x, y] - arrows to walk, ESC to quit", 14, MH * TW + 26
+  IF won%
+    TEXT_COLOR RGB(120, 230, 150)
+    PRINT "Goal! " + STR$(steps%) + " steps", MW * TW - 190, MH * TW + 6
+  ENDIF
+
+  SCREEN_SHOW
+WEND

@@ -1,0 +1,2 @@
+// GBX-Icon fuer gbx.exe; exportierte Spiele uebernehmen es mit der EXE.
+IDI_ICON1 ICON "../ide/assets/icon.ico"

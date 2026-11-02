@@ -101,6 +101,7 @@ ProjectConfig loadProject(const std::string& path) {
             else if (key == "HEIGHT") cfg.height = std::max(64, std::atoi(val.c_str()));
             else if (key == "FULLSCREEN") cfg.fullscreen = toBool(val);
             else if (key == "RESIZABLE") cfg.resizable = toBool(val);
+            else if (key == "ICON") cfg.icon = val;
         } else if (section == "GRAPHICS") {
             if (key == "FPS") cfg.fps = std::atof(val.c_str());
             else if (key == "VSYNC") cfg.vsync = toBool(val);

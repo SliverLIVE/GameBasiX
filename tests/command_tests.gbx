@@ -400,5 +400,15 @@ ASSERT ARRAY_BOUNDS(zahlen[], 0) = 4, "ARRAY_BOUNDS"
 DIMDATA werte[], 3, 4, 5
 ASSERT ARRAY_BOUNDS(werte[], 0) = 3 AND werte[2] = 5, "DIMDATA"
 
+' --------------------------------------------------------------- Assets
+' Geaenderte Dateien nachladen: HOT_RELOAD schaltet das Nachladen zwischen
+' zwei Bildern ab, ASSET_RELOAD laedt alles sofort neu.
+ASSERT HOT_RELOAD_ON() = 1, "HOT_RELOAD_ON ist standardmaessig an"
+HOT_RELOAD 0
+ASSERT HOT_RELOAD_ON() = 0, "HOT_RELOAD 0 schaltet ab"
+HOT_RELOAD 1
+ASSERT HOT_RELOAD_ON() = 1, "HOT_RELOAD 1 schaltet ein"
+ASSERT ASSET_RELOAD() >= 0, "ASSET_RELOAD"
+
 STDOUT "BEFEHLSTEST FERTIG" + CHR$(10)
 END

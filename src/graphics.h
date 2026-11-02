@@ -10,6 +10,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -54,6 +55,9 @@ struct PolyVertex {
 class Gfx {
 public:
     bool headless = false;
+    // Wird einmal pro Bild aufgerufen, direkt nach dem Praesentieren. Der
+    // Interpreter haengt hier das Nachladen geaenderter Assets ein.
+    std::function<void()> onFrame;
 
     bool init(int w, int h, const std::string& title, bool fullscreen, bool resizable);
     void shutdown();
@@ -61,6 +65,10 @@ public:
     // Fenster / Bildschirm
     void setScreen(int w, int h, int fullscreen);
     void setTitle(const std::string& title);
+    // Fenster- und Taskleisten-Icon aus PNG, BMP, JPG oder ICO.
+    bool setWindowIcon(const std::string& file);
+    // Ohne eigenes Icon: das eingebaute GBX-Icon.
+    void setDefaultWindowIcon();
     int screenWidth() const { return width_; }
     int screenHeight() const { return height_; }
     bool isFullscreen() const { return fullscreen_; }
@@ -82,6 +90,11 @@ public:
     void setAlphaMode(double alpha) { alphaMode_ = alpha; }
     void drawLine(float x1, float y1, float x2, float y2, uint32_t color);
     void drawRect(float x, float y, float w, float h, uint32_t color);
+    /* Kopiert ein RGBA8-Bild (Zeilen von oben nach unten, stride in Bytes) in
+       den aktuellen Zeichenbereich - etwa das Ergebnis eines
+       Vulkan-Offscreen-Frames. Das Bild wird auf den Viewport bzw. den
+       aktiven Screen skaliert; 2D-Zeichnen geht danach normal darauf weiter. */
+    void blitPixels(const void* rgba, int w, int h, int stride);
     void drawCircle(float cx, float cy, float r, uint32_t color, bool filled);
     void setPixel(int x, int y, uint32_t color);
     uint32_t getPixel(int x, int y);
@@ -93,6 +106,9 @@ public:
 
     // Sprites
     bool loadSprite(const std::string& file, int id, std::string& err);
+    // Dasselbe fuer Hot Reload: die Kachelgroesse einer Animation bleibt
+    // erhalten, sonst waere ANIM_LOAD nach dem Nachladen wieder flach.
+    bool reloadSprite(const std::string& file, int id, std::string& err);
     bool grabSprite(int id, int x, int y, int w, int h, std::string& err);
     bool saveSprite(const std::string& file, int id, std::string& err);
     bool spriteInfo(int id, int& w, int& h) const;
@@ -132,6 +148,9 @@ public:
 
     // Text
     bool loadBitmapFont(const std::string& file, int id, std::string& err);
+    // Laedt eine Schrift unter derselben Nummer neu und behaelt die
+    // eingestellte Skalierung (Punkte > 0 = TTF, sonst Bitmap).
+    bool reloadFont(int id, const std::string& file, int points, std::string& err);
     bool loadTtfFont(const std::string& file, int id, int points, std::string& err);
     bool hasTtf() const;
     void setFont(int id);
@@ -188,6 +207,11 @@ private:
 
     SDL_Texture* background_ = nullptr;
     int bgW_ = 0, bgH_ = 0;
+
+    // Zwischenbild fuer blitPixels(); bleibt fuer die naechste Bildflaeche
+    // stehen, damit nicht jedes Frame eine Textur neu entsteht.
+    SDL_Texture* videoTex_ = nullptr;
+    int videoW_ = 0, videoH_ = 0;
 
     int prescaleW_ = 0, prescaleH_ = 0;
     SDL_Rect viewport_{};

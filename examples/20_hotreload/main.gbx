@@ -1,0 +1,157 @@
+' ============================================================
+' Hot reload - change an asset and watch the running game
+' Run: gbx examples/20_hotreload/hotreload.gbxproj
+'
+' The interpreter watches every image, font and sound it has loaded.
+' Replace one of these files while the program runs - save it from an
+' editor, or press 1 / 2 / 3 here - and the game picks the new version
+' up without a restart:
+'
+'   assets/tile.png   32x32 blue diamond   <-> tile-alt.png  48x48 ring
+'   assets/font.png   8x8 bitmap font      <-> font-alt.png  12x8, bold
+'   assets/beep.wav   440 Hz, 140 ms       <-> beep-alt.wav  660 Hz, 320 ms
+'
+' The sprite and font panels print the size of the loaded asset, so a
+' reload shows a different number (48 pixels wide, 12 pixel cells). The
+' sound panel prints the file size; that the mixer really swapped the
+' samples is confirmed by the line the interpreter writes to the console
+' ("Hot Reload: Sound ... neu geladen") and by the other pitch on key 4.
+' R reloads everything at once, H switches the watching off and on.
+' ============================================================
+
+CONSTANT W = 760
+CONSTANT H = 470
+
+SPRITE_LOAD "assets/tile.png", 1
+FONT_LOAD "assets/font.png", 2
+SOUND_LOAD "assets/beep.wav", 3, 2
+
+swapped1 = 0
+swapped2 = 0
+swapped3 = 0
+status$ = "no change yet - press 1, 2 or 3, or edit a file from outside"
+
+SCREEN_SET W, H, 0
+WINDOW_TITLE "GameBasiX - hot reload"
+LIMIT_FPS 60
+
+SPRITE_SIZE 1, dw, dh
+DEBUG "hot reload demo: sprite " + STR$(dw) + "x" + STR$(dh) + ", sound " + STR$(FILE_SIZE("assets/beep.wav")) + " bytes" + CHR$(10)
+
+WHILE TRUE
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  ' ---------------------------------------------------------- Tauschen
+  IF KEY_PRESSED(KEY_1)
+    IF swapped1 = 0
+      FILE_COPY "assets/tile-alt.png", "assets/tile.png"
+      swapped1 = 1
+      status$ = "tile.png replaced with the 48x48 ring"
+    ELSE
+      FILE_COPY "assets/tile-orig.png", "assets/tile.png"
+      swapped1 = 0
+      status$ = "tile.png back to the 32x32 diamond"
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_2)
+    IF swapped2 = 0
+      FILE_COPY "assets/font-alt.png", "assets/font.png"
+      swapped2 = 1
+      status$ = "font.png replaced with the 12x8 bold atlas"
+    ELSE
+      FILE_COPY "assets/font-orig.png", "assets/font.png"
+      swapped2 = 0
+      status$ = "font.png back to the 8x8 atlas"
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_3)
+    IF swapped3 = 0
+      FILE_COPY "assets/beep-alt.wav", "assets/beep.wav"
+      swapped3 = 1
+      status$ = "beep.wav replaced with 660 Hz, 320 ms"
+    ELSE
+      FILE_COPY "assets/beep-orig.wav", "assets/beep.wav"
+      swapped3 = 0
+      status$ = "beep.wav back to 440 Hz, 140 ms"
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_4) THEN SOUND_PLAY 3, 0, 1
+  IF KEY_PRESSED(KEY_R)
+    loaded = ASSET_RELOAD()
+    status$ = "ASSET_RELOAD() loaded " + STR$(loaded) + " file(s)"
+  ENDIF
+  IF KEY_PRESSED(KEY_H)
+    IF HOT_RELOAD_ON() = 1
+      HOT_RELOAD 0
+      status$ = "watching is off - changes wait for R"
+    ELSE
+      HOT_RELOAD 1
+      status$ = "watching is on - changed files land by themselves"
+    ENDIF
+  ENDIF
+
+  ' ---------------------------------------------------------- Zeichnen
+  SCREEN_CLEAR RGB(12, 16, 24)
+
+  FONT_SET 0, 2
+  TEXT_COLOR RGB(235, 242, 252)
+  PRINT "Hot reload", 28, 20
+  FONT_SET 0, 1
+  TEXT_COLOR RGB(150, 170, 200)
+  PRINT "Save an asset while the game runs - or press 1, 2, 3. Nothing restarts.", 28, 56
+
+  ' --- Sprite -------------------------------------------------------
+  DRAW_RECT_BORDER 28, 88, 220, 250, RGB(46, 58, 78)
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "SPRITE_LOAD 1", 44, 100
+  SPRITE_DRAW_STRETCHED 1, 60, 126, 96, 96
+  SPRITE_SIZE 1, sw, sh
+  TEXT_COLOR RGB(210, 220, 236)
+  PRINT "assets/tile.png", 44, 240
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT STR$(sw) + " x " + STR$(sh) + " px", 44, 262
+
+  ' --- Schrift ------------------------------------------------------
+  DRAW_RECT_BORDER 268, 88, 236, 250, RGB(46, 58, 78)
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "FONT_LOAD 2", 284, 100
+  FONT_SET 2
+  TEXT_COLOR RGB(226, 236, 250)
+  PRINT "Hello", 284, 132
+  PRINT "GameBasiX", 284, 152
+  TEXT_COLOR RGB(200, 170, 240)
+  PRINT "hot reload!", 284, 172
+  FONT_SET 0, 1
+  FONT_SIZE fw, fh
+  TEXT_COLOR RGB(210, 220, 236)
+  PRINT "assets/font.png", 284, 240
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT STR$(fw) + " x " + STR$(fh) + " px per character", 284, 262
+
+  ' --- Sound --------------------------------------------------------
+  DRAW_RECT_BORDER 524, 88, 208, 250, RGB(46, 58, 78)
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "SOUND_LOAD 3", 540, 100
+  TEXT_COLOR RGB(210, 220, 236)
+  PRINT "assets/beep.wav", 540, 130
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT STR$(FILE_SIZE("assets/beep.wav")) + " bytes", 540, 152
+  TEXT_COLOR RGB(150, 170, 200)
+  PRINT "press 4", 540, 190
+  PRINT "to play it", 540, 208
+
+  ' --- Fusszeile ----------------------------------------------------
+  TEXT_COLOR RGB(230, 238, 250)
+  PRINT "1 tile   2 font   3 sound   4 play   R reload all   H watching", 28, 362
+  IF HOT_RELOAD_ON() = 1
+    TEXT_COLOR RGB(120, 200, 160)
+    PRINT "watching: on", 28, 386
+  ELSE
+    TEXT_COLOR RGB(240, 160, 120)
+    PRINT "watching: off (R loads by hand)", 28, 386
+  ENDIF
+  TEXT_COLOR RGB(170, 186, 210)
+  PRINT status$, 28, 414
+
+  SCREEN_SHOW
+WEND

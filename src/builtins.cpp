@@ -114,6 +114,17 @@ std::string outputPath(Runtime& rt, const std::string& file) {
 
 #define ASSET(i) a.rt.resolveAsset(a.str(i))
 
+// Jede geladene Grafik wird beobachtet: aendert sich die Datei, ersetzt der
+// Interpreter sie unter derselben Nummer (Hot Reload).
+void watchSprite(Runtime& rt, const std::string& path, const std::string& label, int id) {
+    AssetWatch watch;
+    watch.kind = AssetWatch::Kind::Sprite;
+    watch.path = path;
+    watch.label = label;
+    watch.id = id;
+    rt.hot.watch(watch);
+}
+
 // --------------------------------------------------------------- Dateien
 
 int channelArg(BArgs& a, size_t i) {
@@ -441,14 +452,19 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("SCREEN_NEW", 0, 0, [](BArgs& a) { return Value::mkInt(a.rt.gfx.nextScreenId()); });
         add("SPRITE_LOAD", 2, 2, [](BArgs& a) {
             std::string err;
-            if (!a.rt.gfx.loadSprite(ASSET(0), static_cast<int>(a.integer(1)), err)) a.fail(err);
+            const std::string path = ASSET(0);
+            const int id = static_cast<int>(a.integer(1));
+            if (!a.rt.gfx.loadSprite(path, id, err)) a.fail(err);
+            watchSprite(a.rt, path, a.str(0), id);
             return ok();
         });
         add("ANIM_LOAD", 4, 4, [](BArgs& a) {
             std::string err;
+            const std::string path = ASSET(0);
             int id = static_cast<int>(a.integer(1));
-            if (!a.rt.gfx.loadSprite(ASSET(0), id, err)) a.fail(err);
+            if (!a.rt.gfx.loadSprite(path, id, err)) a.fail(err);
             a.rt.gfx.setSpriteAnim(id, static_cast<int>(a.integer(2)), static_cast<int>(a.integer(3)));
+            watchSprite(a.rt, path, a.str(0), id);
             return ok();
         });
         add("ANIM_SET_TILES", 3, 3, [](BArgs& a) {
@@ -548,7 +564,13 @@ std::unordered_map<std::string, Builtin>& builtins() {
         // -------------------------------------------------------- Bildpuffer
         add("BACKGROUND_LOAD", 1, 1, [](BArgs& a) {
             std::string err;
-            if (!a.rt.gfx.loadBackground(ASSET(0), err)) a.fail(err);
+            const std::string path = ASSET(0);
+            if (!a.rt.gfx.loadBackground(path, err)) a.fail(err);
+            AssetWatch watch;
+            watch.kind = AssetWatch::Kind::Background;
+            watch.path = path;
+            watch.label = a.str(0);
+            a.rt.hot.watch(watch);
             return ok();
         });
         add("SCREEN_SAVE_BMP", 1, 1, [](BArgs& a) {
@@ -592,14 +614,22 @@ std::unordered_map<std::string, Builtin>& builtins() {
             std::string ext = lowerExt(file);
             std::string err;
             bool ttf = ext == "ttf" || ext == "otf" || (ext.empty() && size > 0);
+            std::string path = ASSET(0);
+            int points = 0;
             if (ttf) {
-                std::string path = ASSET(0);
                 if (ext.empty()) path = a.rt.resolveAsset(file + ".ttf");
-                int pts = size > 0 ? size : 16;
-                if (!a.rt.gfx.loadTtfFont(path, id, pts, err)) a.fail(err);
+                points = size > 0 ? size : 16;
+                if (!a.rt.gfx.loadTtfFont(path, id, points, err)) a.fail(err);
             } else {
-                if (!a.rt.gfx.loadBitmapFont(ASSET(0), id, err)) a.fail(err);
+                if (!a.rt.gfx.loadBitmapFont(path, id, err)) a.fail(err);
             }
+            AssetWatch watch;
+            watch.kind = AssetWatch::Kind::Font;
+            watch.path = path;
+            watch.label = file;
+            watch.id = id;
+            watch.points = points;
+            a.rt.hot.watch(watch);
             return ok();
         });
         add("FONT_SET", 1, 3, [](BArgs& a) {
@@ -717,9 +747,17 @@ std::unordered_map<std::string, Builtin>& builtins() {
         // ------------------------------------------------------------ Sound
         add("SOUND_LOAD", 2, 3, [](BArgs& a) {
             std::string err;
+            const std::string path = ASSET(0);
+            const int id = static_cast<int>(a.integer(1));
             int buffers = a.vals.size() > 2 ? static_cast<int>(a.integer(2)) : 1;
-            if (!a.rt.audio.loadSound(ASSET(0), static_cast<int>(a.integer(1)), buffers, err))
-                a.fail(err);
+            if (!a.rt.audio.loadSound(path, id, buffers, err)) a.fail(err);
+            AssetWatch watch;
+            watch.kind = AssetWatch::Kind::Sound;
+            watch.path = path;
+            watch.label = a.str(0);
+            watch.id = id;
+            watch.buffers = buffers;
+            a.rt.hot.watch(watch);
             return ok();
         });
         add("SOUND_PLAY", 1, 3, [](BArgs& a) {
@@ -736,8 +774,15 @@ std::unordered_map<std::string, Builtin>& builtins() {
         });
         add("MUSIC_PLAY", 1, 2, [](BArgs& a) {
             std::string err;
+            const std::string path = ASSET(0);
             bool loop = a.vals.size() > 1 ? a.truthy(1) : true;
-            if (!a.rt.audio.playMusic(ASSET(0), loop, err)) a.fail(err);
+            if (!a.rt.audio.playMusic(path, loop, err)) a.fail(err);
+            AssetWatch watch;
+            watch.kind = AssetWatch::Kind::Music;
+            watch.path = path;
+            watch.label = a.str(0);
+            watch.loop = loop;
+            a.rt.hot.watch(watch);
             return ok();
         });
         add("MUSIC_STOP", 0, 0, [](BArgs& a) {
@@ -754,6 +799,20 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("MUSIC_VOLUME", 1, 1, [](BArgs& a) {
             a.rt.audio.setMusicVolume(a.num(0));
             return ok();
+        });
+
+        // ------------------------------------------------------------ Assets
+        // Geaenderte Dateien laden: von selbst zwischen zwei Bildern, oder
+        // sofort mit ASSET_RELOAD(). HOT_RELOAD off schaltet das Nachladen ab.
+        add("ASSET_RELOAD", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.hot.reloadAll(a.rt));
+        });
+        add("HOT_RELOAD", 1, 1, [](BArgs& a) {
+            a.rt.hot.setEnabled(a.truthy(0));
+            return ok();
+        });
+        add("HOT_RELOAD_ON", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.hot.enabled() ? 1 : 0);
         });
 
         // ------------------------------------------------------------- Mathe

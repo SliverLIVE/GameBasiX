@@ -319,14 +319,17 @@ ExprP Parser::parsePostfix() {
                 // "a[]" - Zugriff auf das komplette Array (ARRAY_BOUNDS, LEN, FOREACH ...)
                 continue;
             }
-            ExprP idx = parseExpr();
-            expectSym("]");
-            auto node = std::make_unique<Expr>();
-            node->kind = EK::Index;
-            node->pos = p;
-            node->a = std::move(e);
-            node->b = std::move(idx);
-            e = std::move(node);
+            // map[x, y] ist die Kurzform von map[x][y]: jede Dimension bekommt
+            // einen eigenen Index-Knoten, damit Auswertung und Zuweisung
+            // unveraendert bleiben.
+            for (ExprP& idx : parseBracketList()) {
+                auto node = std::make_unique<Expr>();
+                node->kind = EK::Index;
+                node->pos = p;
+                node->a = std::move(e);
+                node->b = std::move(idx);
+                e = std::move(node);
+            }
             continue;
         }
         if (isSym(".")) {
@@ -430,6 +433,19 @@ std::vector<ExprP> Parser::parseArgList(bool parens) {
     return args;
 }
 
+// Nach einer geoeffneten Klammer: die Werte bis zur schliessenden Klammer.
+// `[x, y]` liefert zwei Ausdruecke, `[x][y]` bleibt bei zwei Klammern.
+std::vector<ExprP> Parser::parseBracketList() {
+    std::vector<ExprP> values;
+    for (;;) {
+        values.push_back(parseExpr());
+        if (acceptSym(",")) continue;
+        expectSym("]");
+        break;
+    }
+    return values;
+}
+
 ExprP Parser::parseLValue() {
     if (cur().kind != Tok::Ident) error("Variable erwartet");
     SrcPos p{path_, cur().line};
@@ -442,14 +458,17 @@ ExprP Parser::parseLValue() {
     for (;;) {
         if (isSym("[")) {
             advance();
-            ExprP idx = parseExpr();
-            expectSym("]");
-            auto node = std::make_unique<Expr>();
-            node->kind = EK::Index;
-            node->pos = p;
-            node->a = std::move(e);
-            node->b = std::move(idx);
-            e = std::move(node);
+            // "a[] = 5" hat kein Ziel: das waere das ganze Array als Wert.
+            if (acceptSym("]"))
+                error("Index fehlt: '" + e->text + "[]' ist kein Zuweisungsziel");
+            for (ExprP& idx : parseBracketList()) {
+                auto node = std::make_unique<Expr>();
+                node->kind = EK::Index;
+                node->pos = p;
+                node->a = std::move(e);
+                node->b = std::move(idx);
+                e = std::move(node);
+            }
             continue;
         }
         if (isSym(".")) {
@@ -1006,8 +1025,8 @@ StmtP Parser::parseDim(bool redim) {
     }
     s->e1 = std::move(member);
     while (acceptSym("[")) {
-        s->exprs.push_back(parseExpr());
-        expectSym("]");
+        if (acceptSym("]")) error("Array-Groesse erwartet (z.B. DIM a[10])");
+        for (ExprP& size : parseBracketList()) s->exprs.push_back(std::move(size));
     }
     std::string tn = parseTypeNameIfPresent();
     if (!tn.empty()) {
@@ -1040,10 +1059,11 @@ StmtP Parser::parseDecl(DeclScope scope) {
         d->hint = suffixHint(cur().text);
         advance();
         // GLOBAL/LOCAL/STATIC kennen auch die Array-Form: die Klammern tun
-        // dasselbe wie bei DIM, nur in einem festen Bereich.
+        // dasselbe wie bei DIM, nur in einem festen Bereich. Mehrere Werte in
+        // einer Klammer sind mehrere Dimensionen (feld[3, 4] = feld[3][4]).
         while (acceptSym("[")) {
-            d->exprs.push_back(parseExpr());
-            expectSym("]");
+            if (acceptSym("]")) error("Array-Groesse erwartet (z.B. GLOBAL a[10])");
+            for (ExprP& size : parseBracketList()) d->exprs.push_back(std::move(size));
         }
         if (!d->exprs.empty()) {
             d->kind = SK::Dim;
@@ -1395,21 +1415,25 @@ void Parser::parseType() {
         advance();
         FieldDef fd;
         fd.name = fname;
-        // Feld-Array: `items[4] AS ITEM`, `nums[3]` oder `states[]` für ein
+        // Feld-Array: `items[4] AS ITEM`, `nums[3, 3]` oder `states[]` für ein
         // leeres Array, das mit DIMPUSH waechst. Die Klammern stehen wie bei
-        // DIM direkt hinter dem Namen; jedes Paar ist eine Dimension.
+        // DIM direkt hinter dem Namen; jeder Wert ist eine Dimension, innerhalb
+        // einer Klammer durch Komma getrennt oder in eigenen Klammern.
         std::vector<ExprP> dims;
         int rank = 0;
         while (acceptSym("[")) {
-            rank += 1;
             if (acceptSym("]")) {
-                dims.push_back(ExprP{});  // [] = ohne feste Groesse
+                // `tiles[]` bzw. `tiles[,]`: jede leere Klammer ist eine
+                // Dimension ohne feste Groesse, also ein Array, das waechst.
+                dims.push_back(ExprP{});
+                rank += 1;
                 continue;
             }
-            dims.push_back(parseExpr());
-            expectSym("]");
+            for (ExprP& size : parseBracketList()) {
+                dims.push_back(std::move(size));
+                rank += 1;
+            }
         }
-        if (rank > 4) error("TYPE-Feld: hoechstens 4 Dimensionen");
         fd.isArray = rank > 0;
         fd.rank = rank;
         std::string tn = parseTypeNameIfPresent();

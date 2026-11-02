@@ -855,6 +855,18 @@
     "de": "Pausiert das Programm für die angegebene Zeit in Millisekunden.",
     "en": "Pauses the program for the given time in milliseconds."
   },
+  "ASSET_RELOAD": {
+    "de": "Lädt alle Bilder, Schriften, Sounds und die Musik neu, die das Programm geladen hat, und liefert die Anzahl der erfolgreich ersetzten Dateien. Geht eine Datei unter, bleibt der alte Stand erhalten. Ohne diesen Aufruf passiert dasselbe von selbst zwischen zwei Bildern, sobald sich eine Datei ändert (siehe HOT_RELOAD).",
+    "en": "Reloads every image, font, sound and the music the program has loaded and returns how many files were replaced. A file that fails to load keeps the old version. Without this call the same happens between two frames on its own as soon as a file changes (see HOT_RELOAD)."
+  },
+  "HOT_RELOAD": {
+    "de": "Schaltet das Nachladen geänderter Assets ab (`0`) oder wieder ein (`1`). Solange es an ist, prüft der Interpreter etwa alle 200 ms die Zeitstempel der geladenen Dateien und ersetzt geänderte unter derselben Nummer – das Spiel läuft weiter, nichts muss neu gestartet werden. Musik beginnt nach dem Nachladen von vorn.",
+    "en": "Switches reloading of changed assets off (`0`) or back on (`1`). While it is on, the interpreter checks the timestamps of the loaded files about every 200 ms and replaces changed ones under the same number – the game keeps running and nothing has to be restarted. Music starts over after a reload."
+  },
+  "HOT_RELOAD_ON": {
+    "de": "Liefert 1, wenn geänderte Assets von selbst nachgeladen werden, sonst 0.",
+    "en": "Returns 1 when changed assets are reloaded by themselves, otherwise 0."
+  },
   "SET_SMOOTHING": {
     "de": "Schaltet weiche Farbübergänge ein oder aus: bei 1 werden Polygone und skalierte Sprites geglättet statt scharf gerechnet.",
     "en": "Turns smooth shading on or off: with 1, polygons and scaled sprites are filtered instead of sampled sharply."

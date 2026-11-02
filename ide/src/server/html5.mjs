@@ -389,13 +389,14 @@ function packFiles(root, names) {
   return files;
 }
 
-function htmlTemplate({ title, width, height }) {
+function htmlTemplate({ title, width, height, icon }) {
   return `<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]))}</title>
+${icon ? `<link rel="icon" href="${icon}">` : ''}
 <style>
   html, body { margin: 0; height: 100%; background: #0b0e14; overflow: hidden; }
   body { display: flex; align-items: center; justify-content: center; }
@@ -633,10 +634,23 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
     'utf8'
   );
 
+  // Spiel-Icon: als Favicon neben die index.html legen. Ohne eigenes Icon
+  // bekommt der Export das GBX-Icon der IDE.
+  let favicon = '';
+  const iconSource = project?.icon
+    ? path.resolve(projectDir, project.icon)
+    : path.join(appRoot, 'assets', 'icon-256.png');
+  const iconExt = path.extname(iconSource).toLowerCase();
+  if (pathExists(iconSource) && ['.png', '.ico', '.bmp', '.jpg', '.jpeg'].includes(iconExt)) {
+    favicon = project?.icon ? `icon${iconExt}` : 'icon.png';
+    await fsp.copyFile(iconSource, path.join(outDir, favicon));
+  }
+
   const html = htmlTemplate({
     title: payload.title,
     width: payload.width,
-    height: payload.height
+    height: payload.height,
+    icon: favicon
   });
   await fsp.writeFile(path.join(outDir, 'index.html'), html, 'utf8');
 

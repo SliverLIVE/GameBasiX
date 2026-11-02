@@ -75,6 +75,10 @@ private:
     ExprP parsePrimary();
     ExprP parseLValue();
     std::vector<ExprP> parseArgList(bool parens);
+    // Liest nach einer geoeffneten Klammer "a, b, c]" und gibt die Ausdruecke
+    // zurueck. Mehrere Werte in einer Klammer sind die Kurzform von mehreren
+    // Klammern: map[x, y] heisst map[x][y], DIM feld[3, 4] heisst feld[3][4].
+    std::vector<ExprP> parseBracketList();
 
     TypeHint suffixHint(const std::string& name) const;
     std::string stripSuffix(const std::string& name) const;

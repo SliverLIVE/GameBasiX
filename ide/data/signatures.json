@@ -511,6 +511,16 @@
   "SLEEP": [
     "SLEEP ms#"
   ],
+  "ASSET_RELOAD": [
+    "n% = ASSET_RELOAD()"
+  ],
+  "HOT_RELOAD": [
+    "HOT_RELOAD 1",
+    "HOT_RELOAD 0"
+  ],
+  "HOT_RELOAD_ON": [
+    "n% = HOT_RELOAD_ON()"
+  ],
   "SET_SMOOTHING": [
     "SET_SMOOTHING mode%"
   ],

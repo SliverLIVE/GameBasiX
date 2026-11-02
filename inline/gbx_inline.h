@@ -30,7 +30,7 @@
 #ifndef GBX_INLINE_H
 #define GBX_INLINE_H
 
-#define GBX_INLINE_VERSION 2
+#define GBX_INLINE_VERSION 3
 
 /* Entry points of a library built from INLINE blocks. The interpreter writes
  * GBX_INLINE_EXPORT in front of them, so the same text compiles both as a
@@ -105,6 +105,14 @@ typedef struct GbxHost {
     void (*set_string)(struct GbxHost* host, GbxValue* ret, const char* text);
     void (*log)(struct GbxHost* host, const char* text);
     void* user;
+
+    /* Ab Version 3: ein RGBA8-Bild in den aktuellen GBX-Zeichenbereich
+     * kopieren (oben nach unten, stride in Bytes). Danach zeichnet BASIC
+     * normal darauf weiter. Fuer Vulkan-, Video- oder eigene Renderer, deren
+     * Bild als Pixelpuffer ankommt. Fehlt der Eintrag (aeltere Version),
+     * bleibt das Bild einfach weg. */
+    void (*blit_screen)(struct GbxHost* host, const void* rgba, int width, int height,
+                        int stride);
 } GbxHost;
 
 #ifdef __cplusplus
@@ -186,6 +194,16 @@ inline void retText(GbxValue* ret, const std::string& value) {
 
 inline void retText(GbxValue* ret, const char* value) {
     retText(ret, std::string(value ? value : ""));
+}
+
+/** Copies RGBA8 pixels (top-down, stride in bytes) into the current GBX
+ *  screen; BASIC drawing continues on top of it. Does nothing when the host
+ *  is older than version 3 or when the program runs headless. */
+inline void blitScreen(const void* rgba, int width, int height, int stride = 0) {
+    GbxHost* host = hostPointer();
+    if (host && host->blit_screen && rgba && width > 0 && height > 0) {
+        host->blit_screen(host, rgba, width, height, stride > 0 ? stride : width * 4);
+    }
 }
 
 /** Writes a line to the IDE console or to stdout. */

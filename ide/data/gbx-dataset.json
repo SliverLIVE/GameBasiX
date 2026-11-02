@@ -2,8 +2,8 @@
  "meta": {
   "app": "GameBasiX",
   "version": 1,
-  "generatedAt": "2026-10-29T00:08:46.166Z",
-  "commands": 290,
+  "generatedAt": "2026-10-29T23:54:53.259Z",
+  "commands": 293,
   "note": "Aus der Befehlsliste der README erzeugt; die Beschreibungen sind eigene Texte auf Deutsch und Englisch. Spracheigenschaften stehen im Eintrag „Sprachdetails“. "
  },
  "categories": [
@@ -683,6 +683,30 @@
    "signatureEn": "ASSERT condition[,text]",
    "syntaxEn": [
     "ASSERT condition[,text]"
+   ]
+  },
+  {
+   "name": "ASSET_RELOAD",
+   "displayName": "ASSET_RELOAD",
+   "kind": "function",
+   "category": "Laufzeit und Debug",
+   "signature": "ASSET_RELOAD()",
+   "syntax": [
+    "ASSET_RELOAD()"
+   ],
+   "description": {
+    "de": "Lädt alle Bilder, Schriften, Sounds und die Musik neu, die das Programm geladen hat, und liefert die Anzahl der erfolgreich ersetzten Dateien. Geht eine Datei unter, bleibt der alte Stand erhalten. Ohne diesen Aufruf passiert dasselbe von selbst zwischen zwei Bildern, sobald sich eine Datei ändert (siehe HOT_RELOAD).",
+    "en": "Reloads every image, font, sound and the music the program has loaded and returns how many files were replaced. A file that fails to load keeps the old version. Without this call the same happens between two frames on its own as soon as a file changes (see HOT_RELOAD)."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "ASSET_RELOAD()",
+   "syntaxEn": [
+    "ASSET_RELOAD()"
    ]
   },
   {
@@ -3831,6 +3855,62 @@
    "signatureEn": "HEX$(n)",
    "syntaxEn": [
     "HEX$(n)"
+   ]
+  },
+  {
+   "name": "HOT_RELOAD",
+   "displayName": "HOT_RELOAD",
+   "kind": "command",
+   "category": "Laufzeit und Debug",
+   "signature": "HOT_RELOAD value",
+   "syntax": [
+    "HOT_RELOAD value"
+   ],
+   "description": {
+    "de": "Schaltet das Nachladen geänderter Assets ab (`0`) oder wieder ein (`1`). Solange es an ist, prüft der Interpreter etwa alle 200 ms die Zeitstempel der geladenen Dateien und ersetzt geänderte unter derselben Nummer – das Spiel läuft weiter, nichts muss neu gestartet werden. Musik beginnt nach dem Nachladen von vorn.",
+    "en": "Switches reloading of changed assets off (`0`) or back on (`1`). While it is on, the interpreter checks the timestamps of the loaded files about every 200 ms and replaces changed ones under the same number – the game keeps running and nothing has to be restarted. Music starts over after a reload."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "signatureEn": "HOT_RELOAD value",
+   "syntaxEn": [
+    "HOT_RELOAD value"
+   ]
+  },
+  {
+   "name": "HOT_RELOAD_ON",
+   "displayName": "HOT_RELOAD_ON",
+   "kind": "function",
+   "category": "Laufzeit und Debug",
+   "signature": "HOT_RELOAD_ON()",
+   "syntax": [
+    "HOT_RELOAD_ON()"
+   ],
+   "description": {
+    "de": "Liefert 1, wenn geänderte Assets von selbst nachgeladen werden, sonst 0.",
+    "en": "Returns 1 when changed assets are reloaded by themselves, otherwise 0."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "HOT_RELOAD_ON()",
+   "syntaxEn": [
+    "HOT_RELOAD_ON()"
    ]
   },
   {

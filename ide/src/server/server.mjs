@@ -17,6 +17,7 @@ import {
   addNativeLibrary,
   createFile,
   createProject,
+  copyProjectIcon,
   deleteFile,
   deleteFolder,
   deleteTemplate,
@@ -732,6 +733,17 @@ async function routeApi(req, res, url) {
     try {
       const project = await saveProject(body.project, body.projectDir);
       return json(res, 200, { ok: true, project });
+    } catch (error) {
+      return fail(res, error);
+    }
+  }
+
+  // Spiel-Icon: gewaehlte Datei ins Projekt uebernehmen (Kopie nach assets/).
+  if (pathname === '/api/project/icon' && method === 'POST') {
+    const body = await readBody(req);
+    if (!body.dir || !body.source) return fail(res, new Error('Projektordner oder Bild fehlt.'));
+    try {
+      return json(res, 200, { ok: true, ...(await copyProjectIcon(body.dir, body.source)) });
     } catch (error) {
       return fail(res, error);
     }

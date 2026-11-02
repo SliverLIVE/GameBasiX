@@ -12,6 +12,7 @@
 #include "audio.h"
 #include "fileio.h"
 #include "graphics.h"
+#include "hotreload.h"
 #include "net.h"
 #include "project.h"
 #include "steam.h"
@@ -29,6 +30,7 @@ struct Runtime {
     ProjectConfig cfg;
     Gfx gfx;
     Audio audio;
+    HotReload hot;  // Assets, die im laufenden Programm nachgeladen werden
     FileSet files;
     Net net;
     Steam steam;

@@ -23,6 +23,9 @@ struct GotoSignal { std::string label; };
 constexpr int kMaxCallDepth = 256;
 constexpr int kMaxRecordDepth = 24;
 constexpr double kMaxLoopIterations = 100000000.0;
+// Obergrenze fuer die Zellen eines Arrays: eine Dimension allein sagt wenig
+// ueber den Speicher (feld[1000, 1000, 1000] sind eine Milliarde Werte).
+constexpr int64_t kMaxArrayCells = 100000000;
 
 bool bothInt(const Value& a, const Value& b) { return a.type == VT::Int && b.type == VT::Int; }
 
@@ -63,7 +66,20 @@ std::string debugTypeName(const Value& v) {
         case VT::Float: return "FLOAT";
         case VT::Str: return "STRING";
         case VT::Array:
-            if (v.arr) return "ARRAY[" + std::to_string(v.arr->items.size()) + "]";
+            if (v.arr) {
+                // Mehrdimensional: ARRAY[3]×[4] statt nur ARRAY[3], damit der
+                // Debugger die Form zeigt und nicht nur die aeussere Laenge.
+                std::string out = "ARRAY[" + std::to_string(v.arr->items.size()) + "]";
+                const ArrayObj* inner = v.arr.get();
+                int levels = 0;
+                while (levels < 3 && !inner->items.empty() && inner->items[0].isArray() &&
+                       inner->items[0].arr) {
+                    inner = inner->items[0].arr.get();
+                    out += "×[" + std::to_string(inner->items.size()) + "]";
+                    ++levels;
+                }
+                return out;
+            }
             return "ARRAY";
         case VT::Record:
             if (v.rec && v.rec->def) return v.rec->def->name;
@@ -338,6 +354,7 @@ public:
                 return false;
             }
         }
+        interp_.checkArraySizes(sizes, SrcPos{});
         auto fresh = interp_.makeArray(sizes, 0, arr->elemVT,
                                        arr->isTypeArray ? arr->elemType : std::string());
         interp_.copyArrayData(*fresh, *arr);
@@ -687,6 +704,8 @@ void Interpreter::execDim(const Stmt& s, bool redim) {
         if (len > 100000000) runtimeError("DIM: Array zu gross", s.pos);
         sizes.push_back(static_cast<int>(len));
     }
+    // Beliebig viele Dimensionen, aber nicht beliebig viele Zellen.
+    checkArraySizes(sizes, s.pos);
     // DIM p.items[10]: Groesse eines Feld-Arrays aendern. Das Array gehoert zum
     // Record, deshalb wird es dort ersetzt; die Daten bleiben bei REDIM so weit
     // wie moeglich erhalten.
@@ -694,7 +713,6 @@ void Interpreter::execDim(const Stmt& s, bool redim) {
         if (s.e1->kind != EK::Field)
             runtimeError("DIM: Ziel muss ein Array oder ein Feld sein", s.pos);
         if (sizes.empty()) runtimeError("DIM: Array-Groesse fehlt (z.B. DIM a[10])", s.pos);
-        if (sizes.size() > 4) runtimeError("DIM: hoechstens 4 Dimensionen", s.pos);
         Value base = eval(*s.e1->a);
         if (!base.isRecord() || !base.rec)
             runtimeError("DIM: links vom Punkt steht kein TYPE", s.pos);
@@ -728,7 +746,6 @@ void Interpreter::execDim(const Stmt& s, bool redim) {
         }
         return;
     }
-    if (sizes.size() > 4) runtimeError("DIM: hoechstens 4 Dimensionen", s.pos);
 
     VT elemVT = hintToVT(s.hint);
     if (elemVT == VT::Null) elemVT = VT::Float;
@@ -971,6 +988,10 @@ void Interpreter::assign(const Expr& target, Value v) {
             runtimeError("Zuweisung: Ausdruck ist kein Array", target.pos);
         ArrayObj* arr = base.arr.get();
         size_t idx = static_cast<size_t>(toIndex(*target.b, arr->items.size(), target.pos));
+        // Eine Reihe eines mehrdimensionalen Arrays ist selbst ein Array; ein
+        // einzelner Wert wuerde sie ersetzen und die Zellen verschwinden.
+        if (arr->items[idx].isArray() && !v.isArray() && !v.isRecord())
+            runtimeError("Ebene ist ein Array - mit [x, y] in die Zelle schreiben", target.pos);
         if (arr->isTypeArray) {
             if (!v.isRecord()) v = makeRecord(arr->elemType);
         } else if (!v.isArray() && !v.isRecord()) {
@@ -1086,6 +1107,18 @@ Value Interpreter::defaultElement(VT elemVT, const std::string& typeName) {
     return defaultValueFor(elemVT);
 }
 
+void Interpreter::checkArraySizes(const std::vector<int>& sizes, const SrcPos& pos) const {
+    int64_t cells = 1;
+    for (int size : sizes) {
+        if (size <= 0) continue;  // eine leere Dimension laesst das Array leer
+        cells *= static_cast<int64_t>(size);
+        if (cells > kMaxArrayCells)
+            runtimeError("DIM: Array zu gross (" + std::to_string(cells) + " Zellen, hoechstens " +
+                             std::to_string(kMaxArrayCells) + ")",
+                         pos);
+    }
+}
+
 std::shared_ptr<ArrayObj> Interpreter::makeArray(const std::vector<int>& sizes, size_t dim,
                                                  VT elemVT, const std::string& typeName) {
     auto arr = std::make_shared<ArrayObj>();
@@ -1119,6 +1152,7 @@ std::shared_ptr<ArrayObj> Interpreter::makeFieldArray(const std::string& typeNam
         }
     }
     if (sizes.empty()) sizes.push_back(0);
+    checkArraySizes(sizes, SrcPos{});
     VT elemVT = fd.type;
     if (elemVT == VT::Null) elemVT = VT::Float;
     return makeArray(sizes, 0, elemVT, fd.typeName);

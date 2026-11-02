@@ -15,6 +15,7 @@ struct ProjectConfig {
     int height = 600;
     bool fullscreen = false;
     bool resizable = true;
+    std::string icon;                // Fenster-/Taskleisten-Icon (PNG, BMP, ICO)
 
     double fps = 60.0;
     bool vsync = true;

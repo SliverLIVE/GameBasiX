@@ -48,6 +48,9 @@ const state = {
   building: false,
   // Zielplattform des Bauen-Knopfs: 'exe' oder 'html5'.
   buildTarget: localStorage.getItem('gbxstudio.buildTarget') === 'html5' ? 'html5' : 'exe',
+  // Codeaenderung speichern -> laufendes Programm neu starten.
+  hotCode: localStorage.getItem('gbxstudio.hotCode') !== '0',
+  restarting: false,
   running: false,
   debug: emptyDebugState(),
   dirtySinceBuild: false,
@@ -2070,6 +2073,9 @@ function insertPathAtCursor(rel) {
 // Datei passiert dasselbe (siehe gbx-lang.js).
 const CPP_FILE = /\.(h|hh|hpp|hxx|inl|ipp|c|cc|cpp|cxx)$/i;
 const INLINE_SOURCE = /\.(gbx|h|hh|hpp|hxx|inl|ipp|c|cc|cpp|cxx)$/i;
+// Dateien, bei denen sich ein Neustart des laufenden Programms lohnt. Bilder,
+// Schriften und Sounds brauchen ihn nicht - die laedt der Interpreter nach.
+const SOURCE_FILE = /\.(gbx|gbxproj)$/i;
 
 function languageFor(file) {
   if (/\.gbx$/i.test(file)) return 'gbx';
@@ -3033,6 +3039,11 @@ async function saveTab(tab) {
     scheduleIndex();
     // Eine geänderte Anmeldung in einer .h- oder .gbx-Datei wirkt sofort.
     if (INLINE_SOURCE.test(tab.path)) scheduleInlineScan();
+    // Läuft das Programm, startet eine geänderte Quelldatei es neu. Bilder,
+    // Schriften und Sounds lädt der Interpreter dagegen selbst nach.
+    if (state.hotCode && state.running && !state.restarting && SOURCE_FILE.test(tab.path)) {
+      restartProgram(tab.path);
+    }
     return true;
   } catch (error) {
     toast(error.message, 'error');
@@ -3369,6 +3380,10 @@ async function settingsDialog() {
         <div class="hint">${t('Gilt sofort für die Oberfläche und für die Meldungen des Interpreters.')}</div>
       </div>
       <div class="field">
+        <label class="check"><input type="checkbox" id="set-hotcode" ${state.hotCode ? 'checked' : ''}> ${t('Laufendes Programm nach dem Speichern neu starten')}</label>
+        <div class="hint">${t('Gilt für .gbx- und .gbxproj-Dateien: Speichern startet das laufende Programm neu. Bilder, Schriften und Sounds lädt der Interpreter dagegen ohne Neustart nach.')}</div>
+      </div>
+      <div class="field">
         <label>${t('gbx.exe (Interpreter)')}</label>
         <div class="path-row">
           <input type="text" id="set-gbx" value="${escapeAttr(gbx.path || '')}" spellcheck="false">
@@ -3460,6 +3475,15 @@ async function settingsDialog() {
         <label class="check"><input type="checkbox" id="set-resizable" ${p.resizable !== false ? 'checked' : ''} ${state.project ? '' : 'disabled'}> ${t('Fenster skalierbar')}</label>
         <label class="check"><input type="checkbox" id="set-vsync" ${p.vsync !== false ? 'checked' : ''} ${state.project ? '' : 'disabled'}> ${t('VSYNC')}</label>
         <label class="check"><input type="checkbox" id="set-audio" ${p.audio !== false ? 'checked' : ''} ${state.project ? '' : 'disabled'}> ${t('Sound und Musik')}</label>
+      </div>
+      <div class="field">
+        <label>${t('Spiel-Icon')}</label>
+        <div class="path-row">
+          <input type="text" id="set-icon" value="${escapeAttr(p.icon || '')}" spellcheck="false" placeholder="assets/icon.png" ${state.project ? '' : 'disabled'}>
+          <button type="button" class="btn ghost" id="set-icon-pick" ${state.project ? '' : 'disabled'}>${t('Wählen …')}</button>
+          <button type="button" class="btn ghost" id="set-icon-clear" ${state.project ? '' : 'disabled'}>${t('Entfernen')}</button>
+        </div>
+        <div class="hint">${t('PNG, BMP, ICO oder JPG. Das Bild erscheint in der Titelleiste und in der Taskleiste des Spiels; der HTML5-Export nutzt es als Favicon. Relative Pfade gelten ab dem Projektordner.')}</div>
       </div>
       <div class="field">
         <label>${t('Asset-Ordner')}</label>
@@ -3575,6 +3599,37 @@ async function settingsDialog() {
       for (const pane of panes) pane.classList.toggle('active', pane.dataset.pane === tab.dataset.tab);
     })
   );
+
+  /* Spiel-Icon: Datei wählen; liegt sie außerhalb des Projekts, kopiert der
+     Server sie in den Asset-Ordner. */
+  const iconInput = body.querySelector('#set-icon');
+  body.querySelector('#set-icon-pick').addEventListener('click', async () => {
+    if (!desktop?.openFile) {
+      toast(t('Die Dateiauswahl gibt es nur in der Desktop-Version.'), 'warn');
+      return;
+    }
+    const picked = await desktop.openFile({
+      title: t('Spiel-Icon wählen'),
+      defaultPath: state.projectDir,
+      filters: [{ name: t('Bilder'), extensions: ['png', 'bmp', 'ico', 'jpg', 'jpeg'] }]
+    });
+    if (!picked) return;
+    try {
+      const result = await post('/api/project/icon', { dir: state.projectDir, source: picked });
+      iconInput.value = result.path;
+      toast(
+        result.copied
+          ? t('Icon nach {path} kopiert.', { path: result.path })
+          : t('Icon übernommen.'),
+        'ok'
+      );
+    } catch (error) {
+      toast(error.message, 'error');
+    }
+  });
+  body.querySelector('#set-icon-clear').addEventListener('click', () => {
+    iconInput.value = '';
+  });
 
   body.querySelector('#set-check').addEventListener('click', async () => {
     const info = body.querySelector('#set-gbx-info');
@@ -3917,6 +3972,15 @@ async function settingsDialog() {
           try {
             const chosenLanguage = body.querySelector('#set-language').value;
             const fontsKey = body.querySelector('#set-fonts-key');
+            // Neustart nach dem Speichern ist eine Eigenschaft der IDE, nicht
+            // des Projekts - sie bleibt lokal gespeichert.
+            const hotCode = body.querySelector('#set-hotcode').checked;
+            state.hotCode = hotCode;
+            try {
+              localStorage.setItem('gbxstudio.hotCode', hotCode ? '1' : '0');
+            } catch {
+              /* Speicher nicht verfügbar */
+            }
             const settingsBody = {
               gbxPath: body.querySelector('#set-gbx').value.trim(),
               cxxPath: body.querySelector('#set-cxx').value.trim(),
@@ -3951,6 +4015,7 @@ async function settingsDialog() {
               state.project.resizable = body.querySelector('#set-resizable').checked;
               state.project.vsync = body.querySelector('#set-vsync').checked;
               state.project.audio = body.querySelector('#set-audio').checked;
+              state.project.icon = body.querySelector('#set-icon').value.trim().split('\\').join('/');
               state.project.assetDir = body.querySelector('#set-assets').value.trim();
               state.project.nativeLibs = splitWords(body.querySelector('#set-native-libs').value);
               state.project.nativeLibDirs = splitWords(body.querySelector('#set-native-libdirs').value);
@@ -4876,12 +4941,12 @@ async function stopDebug() {
 /* Starten                                                             */
 /* ------------------------------------------------------------------ */
 
-async function runProgram() {
+async function runProgram({ keepConsole = false } = {}) {
   if (!state.project || state.running || state.building) return;
   const saved = await saveAll();
   if (!saved) return toast(t('Speichern fehlgeschlagen'), 'error');
   showPanel('console');
-  $('console').textContent = '';
+  if (!keepConsole) $('console').textContent = '';
   const entry = state.project.entry || 'main.gbx';
   appendTo($('console'), t('Starte {path}', { path: entry }) + '\n\n', 'muted');
   try {
@@ -4894,6 +4959,9 @@ async function runProgram() {
       if (event.type === 'log') appendTo($('console'), event.text, event.level);
       else if (event.type === 'started') setBuildStatus(t('Programm läuft (PID {pid})', { pid: event.pid ?? '?' }));
     }, (done) => {
+      // Nach einem Neustart läuft schon der nächste Auftrag; dessen Zustand
+      // darf das Ende des alten nicht überschreiben.
+      if (state.runJobId !== result.jobId) return;
       state.running = false;
       state.runJobId = '';
       updateButtons();
@@ -4914,6 +4982,27 @@ async function stopProgram() {
   } catch (error) {
     toast(error.message, 'error');
   }
+}
+
+/** Geänderte Quelldatei im laufenden Programm: neu starten statt von Hand
+ *  stoppen und starten. Bilder und Sounds lädt der Interpreter nach. */
+async function restartProgram(changedPath = '') {
+  if (!state.running || state.restarting) return;
+  state.restarting = true;
+  const jobId = state.runJobId;
+  state.runJobId = '';
+  state.running = false;
+  updateButtons();
+  try {
+    await post('/api/stop', { jobId });
+  } catch {
+    // Der Lauf kann schon zu Ende sein.
+  }
+  // Dem alten Fenster Zeit lassen, bevor das neue aufgeht.
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  state.restarting = false;
+  appendTo($('console'), t('Neu gestartet nach dem Speichern: {path}', { path: changedPath }) + '\n', 'muted');
+  await runProgram({ keepConsole: true });
 }
 
 /* ------------------------------------------------------------------ */

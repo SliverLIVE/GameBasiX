@@ -417,6 +417,9 @@ int main(int argc, char** argv) {
     }
     rt.gfx.headless = headless;
     rt.audio.headless = headless;
+    // Bilder, Schriften und Sounds beobachten: aendert sich eine Datei, laedt
+    // der Interpreter sie zwischen zwei Bildern neu (ASSET_RELOAD/HOT_RELOAD).
+    rt.gfx.onFrame = [&rt]() { rt.hot.tick(rt); };
     {
         std::string cl;
         for (int i = 1; i < argc; ++i) {
@@ -430,6 +433,16 @@ int main(int argc, char** argv) {
     if (!rt.gfx.init(cfg.width, cfg.height, cfg.title, cfg.fullscreen, cfg.resizable)) {
         reportFatal(i18n::tr("Grafik konnte nicht initialisiert werden.\n"));
         return 2;
+    }
+    // Ab hier darf ein INLINE-Block Bilder an den Screen schicken.
+    gbxinline_runtime::setGraphics(&rt.gfx);
+    if (!cfg.icon.empty()) {
+        // Relativ zum Projektordner; in einem Spielpaket liegt das Icon neben
+        // der EXE (resolveAsset sucht beide Orte ab).
+        rt.gfx.setWindowIcon(rt.resolveAsset(cfg.icon));
+    } else {
+        // Ohne eigene Angabe traegt das Spiel das GBX-Icon.
+        rt.gfx.setDefaultWindowIcon();
     }
     rt.gfx.setLimitFps(cfg.fps, cfg.vsync);
     if (cfg.audio && !headless) {

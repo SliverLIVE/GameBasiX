@@ -12,10 +12,16 @@
 #include "ast.h"
 #include "value.h"
 
+class Gfx;
+
 namespace gbxinline_runtime {
 
 /** Gibt es INLINE-Bloecke? Ohne Bloecke wird nie ein Compiler gestartet. */
 bool present(const Program& prog);
+
+/** Ziel fuer das Bild aus host->blit_screen (siehe inline/gbx_inline.h).
+ *  Wird nach Gfx::init gesetzt; ohne Angabe wird der Aufruf ignoriert. */
+void setGraphics(Gfx* graphics);
 
 /** Gibt es Schritt-Bloecke (INLINE mitten im Code)? */
 bool hasSteps(const Program& prog);

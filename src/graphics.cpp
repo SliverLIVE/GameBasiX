@@ -1,12 +1,15 @@
 // GameBasiX - SDL3-Grafik-, Text- und Eingabeschicht
 #include "graphics.h"
 
+#include "gbx_icon_png.h"
 #include "i18n.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
+#include <iterator>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -118,6 +121,134 @@ bool Gfx::init(int w, int h, const std::string& title, bool fullscreen, bool res
     return true;
 }
 
+namespace {
+
+uint16_t icoU16(const unsigned char* p) {
+    return static_cast<uint16_t>(p[0] | (p[1] << 8));
+}
+
+uint32_t icoU32(const unsigned char* p) {
+    return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
+           (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
+}
+
+/* Ein .ico enthaelt mehrere Groessen. Genommen wird die groesste; sie liegt
+   entweder als PNG (Vista und spaeter) oder als BMP ohne Dateikopf vor. */
+bool loadIcoPixels(const std::string& file, std::vector<uint8_t>& rgba, int& w, int& h) {
+    std::ifstream in(file, std::ios::binary);
+    if (!in) return false;
+    std::vector<unsigned char> data((std::istreambuf_iterator<char>(in)),
+                                   std::istreambuf_iterator<char>());
+    if (data.size() < 22 || data[0] != 0 || data[1] != 0 || data[2] != 1 || data[3] != 0) return false;
+    const size_t count = icoU16(&data[4]);
+    const unsigned char* best = nullptr;
+    size_t bestSize = 0;
+    int bestW = 0;
+    for (size_t i = 0; i < count; ++i) {
+        const size_t entry = 6 + i * 16;
+        if (entry + 16 > data.size()) break;
+        const int entryW = data[entry] == 0 ? 256 : data[entry];
+        const size_t offset = icoU32(&data[entry + 12]);
+        const size_t size = icoU32(&data[entry + 8]);
+        if (size == 0 || offset + size > data.size()) continue;
+        if (entryW > bestW) {
+            bestW = entryW;
+            best = &data[offset];
+            bestSize = size;
+        }
+    }
+    if (!best) return false;
+    static const unsigned char kPng[8] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+    if (bestSize >= 8 && std::memcmp(best, kPng, 8) == 0) {
+        int comp = 0;
+        unsigned char* pixels =
+            stbi_load_from_memory(best, static_cast<int>(bestSize), &w, &h, &comp, 4);
+        if (!pixels) return false;
+        rgba.assign(pixels, pixels + static_cast<size_t>(w) * h * 4);
+        stbi_image_free(pixels);
+        return true;
+    }
+    // BMP im ICO: BITMAPINFOHEADER, Zeilen von unten, 24 oder 32 Bit.
+    if (bestSize < 40) return false;
+    const uint32_t header = icoU32(best);
+    if (header < 40 || header + 8 > bestSize) return false;
+    const int32_t bitmapW = static_cast<int32_t>(icoU32(best + 4));
+    const int32_t bitmapH = static_cast<int32_t>(icoU32(best + 8));
+    const uint16_t bpp = icoU16(best + 14);
+    const uint32_t compression = icoU32(best + 16);
+    if (bitmapW <= 0 || bitmapH <= 0 || (bpp != 32 && bpp != 24)) return false;
+    if (compression != 0 && compression != 3) return false;
+    w = bitmapW;
+    h = bitmapH / 2;  // die Hoehe zaehlt Deck- und Datenbild
+    if (h <= 0) return false;
+    const size_t stride = ((static_cast<size_t>(w) * bpp + 31) / 32) * 4;
+    const size_t pixelsAt = header;
+    if (pixelsAt + stride * static_cast<size_t>(h) > bestSize) return false;
+    rgba.assign(static_cast<size_t>(w) * h * 4, 255);
+    bool hasAlpha = false;
+    for (int y = 0; y < h; ++y) {
+        const unsigned char* row = best + pixelsAt + stride * static_cast<size_t>(h - 1 - y);
+        for (int x = 0; x < w; ++x) {
+            const size_t src = static_cast<size_t>(x) * (bpp / 8);
+            const size_t dst = (static_cast<size_t>(y) * w + x) * 4;
+            rgba[dst + 0] = row[src + 2];
+            rgba[dst + 1] = row[src + 1];
+            rgba[dst + 2] = row[src + 0];
+            if (bpp == 32) {
+                rgba[dst + 3] = row[src + 3];
+                if (row[src + 3]) hasAlpha = true;
+            }
+        }
+    }
+    // Aeltere Werkzeuge schreiben 32 Bit ohne Alphakanal: dann ist das Bild
+    // deckend und nicht komplett durchsichtig.
+    if (bpp == 32 && !hasAlpha) {
+        for (size_t i = 3; i < rgba.size(); i += 4) rgba[i] = 255;
+    }
+    return true;
+}
+
+}  // namespace
+
+bool Gfx::setWindowIcon(const std::string& file) {
+    if (headless || !window_ || file.empty()) return false;
+    int w = 0, h = 0;
+    std::vector<uint8_t> rgba;
+    std::string err;
+    bool ok = false;
+    if (lowerExt(file) == "ico") {
+        ok = loadIcoPixels(file, rgba, w, h);
+    } else {
+        ok = loadImagePixels(file, rgba, w, h, err);
+    }
+    if (!ok || w <= 0 || h <= 0 || rgba.empty()) {
+        std::fprintf(stderr, "%s\n",
+                     (i18n::tr("Spiel-Icon konnte nicht geladen werden: ") + file).c_str());
+        return false;
+    }
+    SDL_Surface* surface =
+        SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGBA32, rgba.data(), w * 4);
+    if (!surface) return false;
+    SDL_SetWindowIcon(window_, surface);
+    SDL_DestroySurface(surface);
+    return true;
+}
+
+void Gfx::setDefaultWindowIcon() {
+    if (headless || !window_) return;
+    int w = 0, h = 0, comp = 0;
+    unsigned char* pixels = stbi_load_from_memory(
+        kGbxDefaultIconPng, static_cast<int>(sizeof(kGbxDefaultIconPng)), &w, &h, &comp, 4);
+    if (!pixels) return;
+    SDL_Surface* surface = SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGBA32, pixels, w * 4);
+    if (surface) {
+        SDL_SetWindowIcon(window_, surface);
+        SDL_DestroySurface(surface);
+    }
+    stbi_image_free(pixels);
+}
+
+
 void Gfx::shutdown() {
     if (headless) return;
     closeGamepads();
@@ -143,6 +274,9 @@ void Gfx::shutdown() {
 #endif
     for (auto& [id, tex] : screens_) SDL_DestroyTexture(tex);
     screens_.clear();
+    if (videoTex_) SDL_DestroyTexture(videoTex_);
+    videoTex_ = nullptr;
+    videoW_ = videoH_ = 0;
     if (background_) SDL_DestroyTexture(background_);
     background_ = nullptr;
     if (renderer_) SDL_DestroyRenderer(renderer_);
@@ -352,6 +486,41 @@ void Gfx::drawRect(float x, float y, float w, float h, uint32_t color) {
     SDL_RenderFillRect(renderer_, &r);
 }
 
+void Gfx::blitPixels(const void* rgba, int w, int h, int stride) {
+    if (headless || !renderer_ || !rgba || w <= 0 || h <= 0) return;
+    if (stride <= 0) stride = w * 4;
+    if (!videoTex_ || videoW_ != w || videoH_ != h) {
+        if (videoTex_) SDL_DestroyTexture(videoTex_);
+        videoTex_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA32,
+                                      SDL_TEXTUREACCESS_STREAMING, w, h);
+        videoW_ = w;
+        videoH_ = h;
+        if (videoTex_) {
+            SDL_SetTextureBlendMode(videoTex_, SDL_BLENDMODE_NONE);
+            SDL_SetTextureScaleMode(videoTex_, SDL_SCALEMODE_LINEAR);
+        }
+    }
+    if (!videoTex_) return;
+    if (!SDL_UpdateTexture(videoTex_, nullptr, rgba, stride)) return;
+
+    SDL_FRect dst;
+    if (haveViewport_) {
+        dst.x = static_cast<float>(viewport_.x);
+        dst.y = static_cast<float>(viewport_.y);
+        dst.w = static_cast<float>(viewport_.w);
+        dst.h = static_cast<float>(viewport_.h);
+    } else if (targetScreen_ >= 0) {
+        // Auf einem virtuellen Screen gilt dessen Groesse, nicht die des Fensters.
+        float tw = static_cast<float>(width_), th = static_cast<float>(height_);
+        auto it = screens_.find(targetScreen_);
+        if (it != screens_.end()) SDL_GetTextureSize(it->second, &tw, &th);
+        dst = SDL_FRect{0, 0, tw, th};
+    } else {
+        dst = SDL_FRect{0, 0, static_cast<float>(width_), static_cast<float>(height_)};
+    }
+    SDL_RenderTexture(renderer_, videoTex_, nullptr, &dst);
+}
+
 void Gfx::drawCircle(float cx, float cy, float r, uint32_t color, bool filled) {
     if (headless || !renderer_) return;
     if (r <= 0) return;
@@ -551,6 +720,18 @@ bool Gfx::loadSprite(const std::string& file, int id, std::string& err) {
     if (it != sprites_.end() && it->second.tex && it->second.ownsTexture)
         SDL_DestroyTexture(it->second.tex);
     sprites_[id] = std::move(sp);
+    return true;
+}
+
+bool Gfx::reloadSprite(const std::string& file, int id, std::string& err) {
+    int frameW = 0, frameH = 0;
+    auto it = sprites_.find(id);
+    if (it != sprites_.end()) {
+        frameW = it->second.frameW;
+        frameH = it->second.frameH;
+    }
+    if (!loadSprite(file, id, err)) return false;
+    if (frameW > 0 && frameH > 0) setSpriteAnim(id, frameW, frameH);
     return true;
 }
 
@@ -1111,6 +1292,17 @@ bool Gfx::loadTtfFont(const std::string& file, int id, int points, std::string& 
 #endif
 }
 
+bool Gfx::reloadFont(int id, const std::string& file, int points, std::string& err) {
+    int scale = 1;
+    auto it = fonts_.find(id);
+    if (it != fonts_.end() && it->second.scale > 0) scale = it->second.scale;
+    const bool ok = points > 0 ? loadTtfFont(file, id, points, err) : loadBitmapFont(file, id, err);
+    if (!ok) return false;
+    auto after = fonts_.find(id);
+    if (after != fonts_.end()) after->second.scale = scale;
+    return true;
+}
+
 void Gfx::setFont(int id) {
     if (fonts_.find(id) != fonts_.end()) currentFont_ = id;
 }
@@ -1346,6 +1538,7 @@ void Gfx::present() {
         SDL_RenderPresent(renderer_);
         beginFrameImpl();
     }
+    if (onFrame) onFrame();
     Uint64 now = SDL_GetTicks();
     lastFrameDuration_ = now - frameStart_;
     frameStart_ = now;

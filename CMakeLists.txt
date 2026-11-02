@@ -88,6 +88,7 @@ add_executable(gbx
   src/steam.cpp
   src/graphics.cpp
   src/audio.cpp
+  src/hotreload.cpp
   src/project.cpp
   src/runtime.cpp
 )
@@ -130,6 +131,8 @@ endif()
 #   GBXStudio_web.exe  immer der Browser (Server im eigenen Konsolenfenster)
 if(WIN32)
   enable_language(RC)
+  # Das GBX-Icon steckt in der EXE - exportierte Spiele tragen es mit.
+  target_sources(gbx PRIVATE src/gbx.rc)
   function(gbx_studio_launcher target description)
     set(GBX_STUDIO_DESCRIPTION "${description}")
     set(GBX_STUDIO_INTERNAL_NAME "${target}")
@@ -270,4 +273,10 @@ if(Python3_Interpreter_FOUND)
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/check_debug.py
                    $<TARGET_FILE:gbx>)
   set_tests_properties(debug PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+  # Hot Reload: geaenderte Bilder, Schriften und Sounds im laufenden Programm
+  add_test(NAME hotreload
+           COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/check_hotreload.py
+                   $<TARGET_FILE:gbx>)
+  set_tests_properties(hotreload PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()

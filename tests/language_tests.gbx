@@ -713,6 +713,102 @@ FINALLY
 ASSERT faErsetzt, "Skalar auf ein Feld-Array meldet einen Fehler"
 ASSERT korb.punkte[0].name$ = "p", "Feld-Array bleibt nach dem Fehler heil"
 
+' -------------------------------- Arrays mit mehreren Dimensionen
+' Mehrere Werte in einer Klammer sind mehrere Dimensionen: map[x, y] ist die
+' Kurzform von map[x][y], DIM feld[w, h] von DIM feld[w][h]. Wie viele
+' Dimensionen ein Array hat, entscheidet die Schreibweise im Programm.
+DIM ndMap[3, 4]
+FOR ndY = 0 TO 3
+  FOR ndX = 0 TO 2
+    ndMap[ndX, ndY] = ndX * 10 + ndY
+  NEXT
+NEXT
+ASSERT ndMap[2, 3] = 23, "DIM a[w, h] und Zugriff mit [x, y]"
+ASSERT ndMap[2][3] = 23, "[x][y] und [x, y] sind dasselbe"
+ASSERT LEN(ndMap) = 3, "LEN zaehlt die Reihen"
+ASSERT LEN(ndMap[0]) = 4, "LEN auf eine Reihe zaehlt die Spalten"
+ndMap[1, 1] += 5
+ASSERT ndMap[1, 1] = 16, "+= auf eine Zelle"
+ndBump(ndMap[0, 0])
+ASSERT ndMap[0, 0] = 1, "BYREF bekommt die Zelle"
+
+' Drei Dimensionen
+DIM ndWuerfel[2, 3, 4]
+ndWuerfel[1, 2, 3] = 42
+ASSERT ndWuerfel[1, 2, 3] = 42, "drei Dimensionen"
+ASSERT LEN(ndWuerfel[1]) = 3, "LEN auf die zweite Dimension"
+ASSERT LEN(ndWuerfel[1, 2]) = 4, "LEN auf die dritte Dimension"
+
+' GLOBAL mit zwei Groessen
+GLOBAL ndGlobal[2, 2]
+ndGlobal[1, 1] = 7
+ASSERT ndGlobal[1, 1] = 7, "GLOBAL a[w, h]"
+
+' REDIM behaelt, was noch passt
+REDIM ndMap[4, 5]
+ASSERT LEN(ndMap) = 4 AND LEN(ndMap[0]) = 5, "REDIM aendert beide Groessen"
+ASSERT ndMap[2, 3] = 23, "REDIM behaelt die Zellen"
+
+' Eine leere Dimension bleibt leer
+DIM ndLeer[2, 0]
+ASSERT LEN(ndLeer) = 2 AND LEN(ndLeer[0]) = 0, "leere Dimension"
+
+' FOREACH laeuft ueber die Reihen
+ndSumme = 0
+FOREACH ndReihe IN ndMap[]
+  ndSumme = ndSumme + LEN(ndReihe)
+NEXT
+ASSERT ndSumme = 20, "FOREACH ueber die Reihen"
+
+' Text und TYPE in zwei Dimensionen
+DIM ndText[2, 2] AS STRING
+ndText[1, 1] = "z"
+ASSERT ndText[1, 1] = "z", "Text-Array mit zwei Dimensionen"
+
+TYPE ND_PUNKT
+  wert
+ENDTYPE
+
+DIM ndBild[2, 2] AS ND_PUNKT
+ndBild[1, 1].wert = 6
+ASSERT ndBild[1, 1].wert = 6, "TYPE-Array mit zwei Dimensionen"
+ASSERT ndBild[0, 0].wert = 0, "Nachbarzelle bleibt bei 0"
+
+' Feld-Array mit zwei Dimensionen
+TYPE ND_FELD
+  kacheln[2, 3] AS ND_PUNKT
+  zahlen[2, 2]
+ENDTYPE
+
+LOCAL ndFeld AS ND_FELD
+ndFeld.kacheln[1, 2].wert = 9
+ASSERT ndFeld.kacheln[1, 2].wert = 9, "Feld-Array mit zwei Dimensionen"
+ASSERT LEN(ndFeld.kacheln) = 2 AND LEN(ndFeld.kacheln[0]) = 3, "Feld-Array kennt beide Groessen"
+DIM ndFeld.zahlen[3, 3]
+ASSERT LEN(ndFeld.zahlen) = 3 AND LEN(ndFeld.zahlen[0]) = 3, "DIM auf ein Feld mit zwei Dimensionen"
+ndFeld.zahlen[1, 1] = 4
+ndFeld.zahlen[2, 2] = 5
+REDIM ndFeld.zahlen[2, 2]
+ASSERT ndFeld.zahlen[1, 1] = 4, "REDIM im Feld behaelt die Zellen"
+
+' Eine Reihe ist selbst ein Array und laesst sich nicht mit einem Wert ersetzen
+ndReiheFehler = FALSE
+TRY
+  ndMap[0] = 1
+CATCH ndReiheErr$
+  ndReiheFehler = TRUE
+FINALLY
+ASSERT ndReiheFehler, "ein Wert ersetzt keine Reihe"
+
+' Zu viele Zellen werden abgelehnt
+ndZuGross = FALSE
+TRY
+  DIM ndRiesig[100000, 2000]
+CATCH ndGrossErr$
+  ndZuGross = TRUE
+FINALLY
+ASSERT ndZuGross, "zu grosses Array meldet einen Fehler"
+
 ' Konsole
 STDOUT "Sprachtests durchgelaufen." + CHR$(10)
 
@@ -726,4 +822,9 @@ ENDSUB
 FUNCTION sideEffect: BYREF c
   INC c
   RETURN 1
+ENDFUNCTION
+
+FUNCTION ndBump: BYREF zelle
+  zelle += 1
+  RETURN zelle
 ENDFUNCTION

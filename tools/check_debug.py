@@ -200,7 +200,7 @@ def test_broken_condition():
         session.close()
 
 
-INSPECT_SCRIPT = """' Wert-Tooltip im Haltepunkt (eval)\nTYPE PUNKT\n  px AS FLOAT\n  py AS FLOAT\n  name$ = "punkt"\nENDTYPE\n\nGLOBAL spieler AS PUNKT\nDIM zahlen[3]\nDIM leute[2] AS PUNKT\nzahlen[0] = 4\nzahlen[1] = 5\nzahlen[2] = 6\nspieler.px = 12.5\nspieler.py = 7\nleute[1].px = 99\nTYPE REGAL\n  faecher[2] AS PUNKT\n  notizen[]\nENDTYPE\nGLOBAL regal AS REGAL\nregal.faecher[1].px = 42\nregal.faecher[0].name$ = "eins"\nhalt = 1\n"""
+INSPECT_SCRIPT = """' Wert-Tooltip im Haltepunkt (eval)\nTYPE PUNKT\n  px AS FLOAT\n  py AS FLOAT\n  name$ = "punkt"\nENDTYPE\n\nGLOBAL spieler AS PUNKT\nDIM zahlen[3]\nDIM leute[2] AS PUNKT\nzahlen[0] = 4\nzahlen[1] = 5\nzahlen[2] = 6\nspieler.px = 12.5\nspieler.py = 7\nleute[1].px = 99\nTYPE REGAL\n  faecher[2] AS PUNKT\n  notizen[]\n  karte[2, 3]\nENDTYPE\nGLOBAL regal AS REGAL\nregal.faecher[1].px = 42\nregal.faecher[0].name$ = "eins"\nregal.karte[1, 2] = 5\nDIM gitter[3, 4]\ngitter[1, 2] = 7\nhalt = 1\n"""
 
 
 def test_inspect():
@@ -213,12 +213,12 @@ def test_inspect():
     try:
         session.event()
         # Letzte Zeile: dort sind alle Variablen angelegt.
-        session.send(f"bp\t{path}\t24")
+        session.send(f"bp\t{path}\t28")
         stop = wait_stop(session)
         if stop and stop.get("reason") == "start":
             session.send("run")
             stop = wait_stop(session)
-        check(bool(stop and stop.get("line") == 24), "Haltepunkt fuer den Tooltip", str(stop and stop.get("line")))
+        check(bool(stop and stop.get("line") == 28), "Haltepunkt fuer den Tooltip", str(stop and stop.get("line")))
         if not stop:
             return
 
@@ -271,6 +271,18 @@ def test_inspect():
         check("NOTIZEN · ARRAY[0]" in detail, "leeres Feld-Array im Tooltip", detail)
         one = evaluate(9, "regal.faecher[1].px")
         check(bool(one) and one.get("detail") == "42", "Feld-Array-Element ausgewertet", str(one))
+
+        # Mehrdimensionale Arrays: der Typ nennt beide Groessen, der Tooltip
+        # klappt die aeussere Ebene als Reihen auf.
+        grid = evaluate(10, "gitter")
+        check(bool(grid) and grid.get("type") == "ARRAY[3]\u00d7[4]", "Array mit zwei Dimensionen",
+              str(grid and grid.get("type")))
+        grid_detail = (grid or {}).get("detail", "")
+        check("[0] \u00b7 ARRAY[4]" in grid_detail, "Reihe wird als Array aufgeklappt", grid_detail)
+        check("[2] = 7" in grid_detail, "Zelle im Tooltip", grid_detail)
+        field_grid = evaluate(11, "regal.karte")
+        check(bool(field_grid) and field_grid.get("type") == "ARRAY[2]\u00d7[3]",
+              "Feld-Array mit zwei Dimensionen", str(field_grid and field_grid.get("type")))
 
         unknown = evaluate(6, "quatsch")
         check(bool(unknown) and unknown.get("ok") is False, "unbekannter Name wird abgelehnt", str(unknown))

@@ -54,6 +54,12 @@ program's window one key press away.</sub>
 * **Debugger** – breakpoints (also conditional), step in/over/out, locals,
   globals, call stack, pause-while-running and current values as a tooltip when
   hovering a variable.
+* **Hot reload** – while a program runs, saving an image, a font or a sound is
+  enough: the interpreter swaps the file into the running game under the same
+  sprite, font or sound number. A changed `.gbx`/`.gbxproj` cannot be reloaded
+  into a running interpreter, so saving one restarts the program – the console
+  line names the file that did it. *Settings → General → Restart the running
+  program after saving* turns that off; debugging sessions are left alone.
 * **Build** – a single-file Windows EXE or a self-contained HTML5 folder,
   chosen in the platform dropdown next to **Build**.
 * **Themes** – dark and light, plus Google Fonts download straight into the
@@ -281,6 +287,7 @@ width = 800
 height = 600
 fullscreen = 0
 resizable = 1
+icon = "assets/icon.png"          ; PNG, BMP or ICO
 
 [graphics]
 fps = 60
@@ -301,7 +308,9 @@ flags = -lmy -DFOO=1            ; further flags for the call
 
 The same fields are available under **Settings → Project**, including the three
 `[native]` fields (libraries, library folders and compiler flags, each space
-separated). The section is only written when it is filled, so projects without
+separated) and the game icon (`icon` in `[window]`, PNG/BMP/ICO; a file chosen
+outside the project is copied into `assets/`). Without an icon the game uses
+the GBX icon, in the window as well as in the web export and in Explorer. The section is only written when it is filled, so projects without
 libraries keep their usual file. Editor state (open
 tabs, the docked panel layout and the column widths) lives in
 `.gbxide/project.json`; that folder does not belong in the project archive.

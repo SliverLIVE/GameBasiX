@@ -224,6 +224,7 @@ const std::pair<const char*, const char*> kTable[] = {
     {"Audiogeraet konnte nicht geoeffnet werden: ", "Audio device could not be opened: "},
     {"SDL_Init fehlgeschlagen: ", "SDL_Init failed: "},
     {"Fenster konnte nicht erstellt werden: ", "Window could not be created: "},
+    {"Spiel-Icon konnte nicht geladen werden: ", "Game icon could not be loaded: "},
     {"Renderer konnte nicht erstellt werden: ", "Renderer could not be created: "},
 };
 

@@ -43,6 +43,7 @@ function defaultProject(name, sources) {
     height: 480,
     fullscreen: false,
     resizable: true,
+    icon: '',
     frameRate: 60,
     vsync: true,
     audio: true,
@@ -217,6 +218,7 @@ function parseProjectFile(text) {
   if (window.HEIGHT) out.height = Math.max(64, Math.round(iniNumber(window.HEIGHT, 480)));
   out.fullscreen = iniBool(window.FULLSCREEN, false);
   out.resizable = iniBool(window.RESIZABLE, true);
+  if (window.ICON) out.icon = window.ICON;
   if (graphics.FPS !== undefined) out.frameRate = Math.max(0, iniNumber(graphics.FPS, 60));
   out.vsync = iniBool(graphics.VSYNC, true);
   out.audio = iniBool(audio.ENABLED, true);
@@ -266,6 +268,7 @@ export function projectFileText(project) {
     `height = ${Math.max(64, Math.round(Number(p.height) || 480))}`,
     `fullscreen = ${bool(p.fullscreen)}`,
     `resizable = ${bool(p.resizable !== false)}`,
+    ...(p.icon ? [`icon = ${iniValue(p.icon)}`] : []),
     '',
     '[graphics]',
     `fps = ${Math.max(0, Math.round(Number(p.frameRate) || 0))}`,
@@ -346,6 +349,44 @@ export async function addNativeLibrary(projectDir, relativePath) {
   }
   await fsp.writeFile(file, lines.join('\r\n'), 'utf8');
   return { file: name, libs: all, changed: true };
+}
+
+const ICON_EXTENSIONS = new Set(['.png', '.bmp', '.ico', '.jpg', '.jpeg']);
+
+/**
+ * Nimmt ein gewaehltes Spiel-Icon ins Projekt auf: Eine Datei im Projekt
+ * bleibt, wo sie ist; eine von ausserhalb wird nach assets/ kopiert.
+ */
+export async function copyProjectIcon(projectDir, source) {
+  const dir = path.resolve(projectDir || '');
+  const file = path.resolve(String(source || ''));
+  const ext = path.extname(file).toLowerCase();
+  if (!ICON_EXTENSIONS.has(ext)) throw new Error('Bitte ein Bild waehlen: PNG, BMP, ICO oder JPG.');
+  let stat;
+  try {
+    stat = await fsp.stat(file);
+  } catch {
+    throw new Error('Die Bilddatei wurde nicht gefunden.');
+  }
+  if (!stat.isFile()) throw new Error('Bitte eine Bilddatei waehlen.');
+  if (isInside(dir, file)) {
+    return { path: path.relative(dir, file).split('\\').join('/'), copied: false };
+  }
+  const assets = path.join(dir, 'assets');
+  await fsp.mkdir(assets, { recursive: true });
+  const stem =
+    path
+      .basename(file, ext)
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+      .slice(0, 60) || 'icon';
+  let name = `${stem}${ext}`;
+  let target = path.join(assets, name);
+  for (let n = 2; fs.existsSync(target); n += 1) {
+    name = `${stem}-${n}${ext}`;
+    target = path.join(assets, name);
+  }
+  await fsp.copyFile(file, target);
+  return { path: `assets/${name}`, copied: true };
 }
 
 function readEntry(project, projectDir) {

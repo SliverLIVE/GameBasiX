@@ -19,8 +19,8 @@ ENUM values with their numbers and a value tooltip right next to the code.</sub>
 ## Highlights
 
 * Language: BASIC with `$`/`%`/`#` suffixes, `FUNCTION`/`SUB`, `TYPE` with
-  `METHOD`s, `ENUM`, arrays, `SELECT CASE`, `TRY`/`THROW`, and `+=` for short
-  assignments
+  `METHOD`s, `ENUM`, arrays with any number of dimensions (`map[x, y]`),
+  `SELECT CASE`, `TRY`/`THROW`, and `+=` for short assignments
 * Runtime: a C++17 interpreter (lexer → parser → AST), no compiler step in between
 * Graphics: SDL3 renderer, PNG/JPG/BMP sprites, rotation/zoom, polygons,
   render targets, software alpha modes
@@ -34,7 +34,8 @@ ENUM values with their numbers and a value tooltip right next to the code.</sub>
   packets and the friend list through the Steamworks flat API, loaded at
   runtime
 * Tooling: **GBX Studio** with live checks, a debugger, single-file EXE and
-  HTML5 export
+  HTML5 export - and hot reload: a changed image, font or sound is picked up
+  by the running game
 
 Ready to try it? `cmake -S . -B build -G Ninja && cmake --build build`, then
 `build/gbx.exe examples/09_ui/ui.gbxproj`.
@@ -157,6 +158,7 @@ width = 800
 height = 600
 fullscreen = 0
 resizable = 1
+icon = "assets/icon.png"     ; window and taskbar icon (PNG, BMP or ICO)
 
 [graphics]
 fps = 60                   ; 0 = unlimited
@@ -173,6 +175,14 @@ root = "assets"            ; additional search path for images/sounds
 Asset paths are searched in this order: project directory,
 `project directory/assets`, current directory. TTF names without a path are
 additionally looked up in `%WINDIR%\Fonts` (so `"arial.ttf"` works directly).
+
+The `icon` entry in `[window]` sets the icon of the game window and the
+taskbar (PNG, BMP or ICO; an ICO may contain several sizes, the largest one is
+used). GBX Studio offers the same field under **Settings → Project** and copies
+a file chosen outside the project into `assets/`. The HTML5 export uses the
+icon as the favicon of its `index.html`. Without an entry the game window and
+the web export use the GBX icon, and `gbx.exe` carries the same icon as a
+Windows resource, so exported games show it in Explorer too.
 
 A project can consist of several files: `INCLUDE "lib.gbx"` pulls in more
 source at that place. The path is relative to the file that contains the
@@ -555,7 +565,7 @@ reported by name instead of playing silence.
 `DEBUG` · `STDOUT` · `STDERR` · `STDIN$` · `SLEEP ms` · `DELTA_TIME()` ·
 `ELAPSED_TIME()` · `COMMAND_LINE$()` · `SOURCE_LINE()` · `SOURCE_FILE$()` ·
 `PLATFORM_INFO$("os")` · `ENV$` · `SET_ENV` · `ASSERT condition[,text]` ·
-`END` · `WAIT_INPUT`
+`ASSET_RELOAD()` · `HOT_RELOAD value` (`0` stops the watching, `1` resumes it) · `HOT_RELOAD_ON()` · `END` · `WAIT_INPUT`
 
 ## Language details
 
@@ -575,10 +585,21 @@ reported by name instead of playing silence.
 * **Formats**: `MID$`, `ASC` and `INSTR` are 0-based and `RND(max)` is
   inclusive. `SIN/COS/TAN` and `ATAN` work in degrees.
 * **Arrays**: `DIM a[n]` gives the indices `0…n-1`, negative indices count from
-  the end, at most 4 dimensions, `DIM a[0]` frees the memory. `GLOBAL a[n]`,
-  `LOCAL a[n]` and `STATIC a[n]` build the array in that scope instead – a
-  `LOCAL a[n]` inside a function hides a global array of the same name, a
-  `GLOBAL a[n]` in a function is visible everywhere afterwards.
+  the end, `DIM a[0]` frees the memory. `GLOBAL a[n]`, `LOCAL a[n]` and
+  `STATIC a[n]` build the array in that scope instead – a `LOCAL a[n]` inside a
+  function hides a global array of the same name, a `GLOBAL a[n]` in a function
+  is visible everywhere afterwards.
+* **Several dimensions**: every value in the brackets is one dimension, so
+  `DIM map[w, h]` builds a table and `map[x, y]` reads the cell at column `x`,
+  row `y`. `map[x][y]` is the same cell, `DIM map[w][h]` the same table. How
+  many dimensions an array has is up to the program – `DIM world[w, h, 4]`
+  works as well; the limit is the memory, one array may hold up to 100 million
+  cells. `LEN(map)` is the first dimension, `LEN(map[x])` the next one,
+  `REDIM` keeps the cells that still fit, and `FOREACH row IN map[]` walks the
+  rows. A TYPE field may have several dimensions too (`tiles[w, h] AS TILE`,
+  resized with `DIM bag.tiles[…]` and `REDIM`). A row is an array itself, so a
+  single value cannot replace it – writing `map[x] = 5` is an error that names
+  `[x, y]` as the way in.
 * **Function headers**: `FUNCTION`, `SUB` and `METHOD` always take a colon
   after the name, also without parameters: `FUNCTION draw:`, `SUB reset:`,
   `METHOD clear:`. A missing colon is a syntax error with the line number.
@@ -839,6 +860,11 @@ ENDFUNCTION
   `push(p)` appends `p` (like `DIMPUSH`: both share the record).
   Multi-dimensional arrays are changed with `resize(a, b)`, a single row with
   `field[i].asArray()`.
+* **Own renderers** can put a finished image behind the BASIC drawing:
+  `gbxinline::blitScreen(pixels, width, height, stride)` copies an RGBA8 image
+  (top-down rows, stride in bytes) into the current GBX screen, scaled to the
+  viewport or the active screen. This is the INLINE host version 3; it costs
+  one texture upload, so it also carries a software, video or Vulkan renderer.
 * **GBX commands** can be called directly in a step, like in BASIC:
   `PRINT(text_str, x, y)`, `DRAW_LINE(x1, y1, x2, y2, color)`, `DELTA_TIME()`.
   Every built-in command without `$` in its name is available as a C++
@@ -979,6 +1005,38 @@ file, so the next run links it in – no copying sources into a header and no
 command line. `.c` files go through the C++ frontend, because the bundled
 compiler has no C one.
 
+## Hot reload
+
+While a game runs, the interpreter keeps an eye on every image, font, sound and
+the music it has loaded. When one of those files changes - the editor saves,
+a paint program exports over it - the file is loaded again under the same
+sprite, font or sound number, so the running game shows the new picture in the
+next frame. Nothing restarts, no variable is lost.
+
+* The check runs about every 200 ms and touches at most 64 files per pass, so a
+  game with many sprites spreads the work over a few frames.
+* A file that cannot be loaded (still being written, for instance) is left
+alone and tried again; the old version keeps playing.
+* `ANIM_LOAD` keeps its tile width and height, a font keeps the scale from
+  `FONT_SET`. `HOT_RELOAD 0` turns the watching off, `HOT_RELOAD 1` turns it
+  back on and `HOT_RELOAD_ON()` asks for the state. `ASSET_RELOAD()` loads
+  every watched file at once and returns how many were replaced.
+* Music starts over after a reload, because the mixer plays from the new
+  sample data.
+
+```basic
+SPRITE_LOAD "assets/tile.png", 1
+' ... the game runs, tile.png is edited and saved ...
+' next frame: SPRITE_DRAW 1,x,y paints the new picture
+```
+
+[`examples/20_hotreload`](examples/20_hotreload) is a window that does exactly this: it loads a sprite, a bitmap font and a sound, keeps their replacements next to them and swaps them on a key press - or edit the files from outside while it runs. [`tools/swap-asset.py`](tools/swap-asset.py) does that from a shell, including a random new image or tone.
+
+Code is a different matter: a changed `.gbx` file needs a new interpreter run.
+GBX Studio does that on its own - saving a `.gbx` or `.gbxproj` while the
+program runs restarts it, and the console says so. *Settings → General →
+"Restart the running program after saving"* turns that off.
+
 ## Deliberately not included
 
 3D (`X_*`), pulling in C++ templates (`IMPORT`, `REQUIRE`), preprocessor
@@ -1011,6 +1069,8 @@ platform- or security-related; the 2D core is complete.
 | `examples/16_enum` | **ENUM traffic light**: four named phases (`PHASE.STOP`, `PHASE.GET_READY`, `PHASE.GO`, `PHASE.SLOW_DOWN = 10`) drive a small state machine – `SELECT` over the ENUM values, a countdown with `-=`, the values on screen, and a console line per phase change so it shows up in `--headless` as well |
 | `examples/17_type_array` | **FOREACH over a TYPE array**: `GLOBAL cells[14] AS CELL`, a `LOCAL buckets[3]` inside a helper, one walk to fill the array, one to move and bounce the cells, one to count the living ones. Shows that `FOREACH c IN cells[]` hands out the element itself (changes stick), how a hand-written counter supplies the index, and how `BREAK` stops at the first burst cell – plus a console line after 540 simulated frames for `--headless` |
 | `examples/18_field_arrays` | **Arrays inside a TYPE**: one `BAG` with `fixed[3] AS ITEM`, `slots[] AS ITEM` and `coins[SLOT_COUNT]`. `fixed` is filled by the field defaults, `slots` grows with `DIMPUSH` and is resized with `DIM`, `REDIM` keeps the coin values that still fit. Two bags show that every object owns its arrays; `LEN`, `FOREACH` and a `METHOD` that pushes and sums work on the fields – plus console lines for `--headless` |
+| `examples/19_grid` | **A map with two dimensions**: `tiles[MW, MH] AS TILE` on a `WORLD` TYPE drives a small maze - walls, coins and a goal, walked with the arrow keys. The level is a block of ASCII rows that `build()` turns into cells, and a plain `DIM seen[MW, MH]` remembers the way; `LEN(world.tiles[0])`, `tiles[x, y]` and `world.art(x, y)` show the two indices at work. A `DEBUG` line before the loop prints the map size, so `--headless` shows something too |
+| `examples/20_hotreload` | **Hot reload in action**: a window with a sprite, a bitmap font and a sound, each with its replacement next to it. Press `1`, `2` or `3` (the program copies `tile-alt.png` over `tile.png` with `FILE_COPY`) or edit the files from outside - the loaded asset changes under the same number, and the size printed beside the sprite and the font (`SPRITE_SIZE`, `FONT_SIZE`) shows it; the sound panel prints the file size and the console line names every reload. `4` plays the sound, `R` calls `ASSET_RELOAD()`, `H` switches `HOT_RELOAD` off and on. `tools/swap-asset.py` swaps or randomises the files from a shell. |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
@@ -1055,6 +1115,14 @@ project defines itself. Renaming opens the affected files as tabs and changes
 them in the editor, so `Ctrl+Z` takes it back and nothing is written until you
 save.
 
+**Hot reload** needs no button while the program runs: save an image, a font or
+a sound and the interpreter swaps it into the running game (see
+[Hot reload](#hot-reload)). A changed `.gbx` file needs a new run, so saving one
+restarts the program - the console line *Neu gestartet nach dem Speichern* / 
+*Restarted after saving* says which file did it. *Settings → General → "Restart
+the running program after saving"* switches that off; debugging sessions are
+never restarted.
+
 ```bash
 cd ide
 npm install      # once
@@ -1080,7 +1148,7 @@ changed in the settings. Details are in [ide/README.md](ide/README.md).
 ## Tests
 
 ```bash
-./build/gbx.exe --tests tests/language_tests.gbx     # 133 language tests
+./build/gbx.exe --tests tests/language_tests.gbx     # 222 language tests
 ctest --test-dir build --output-on-failure           # through CTest
 python tools/check_render.py                         # pixel check offscreen
 python tools/check_commands.py                       # every command once
@@ -1155,6 +1223,42 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
 ## Changelog
 
 **October 2026**
+
+* **`examples/20_hotreload`**: a demo for the new hot reload. A window shows a
+  sprite, a bitmap font and a sound, each with its alternative next to it:
+  `1`, `2` and `3` copy the alternative over the live file with `FILE_COPY`
+  (and back), `4` plays the sound, `R` calls `ASSET_RELOAD()` and `H`
+  switches `HOT_RELOAD` off and on. The size printed beside each panel comes
+  from the loaded asset itself (`SPRITE_SIZE`, `FONT_SIZE`, `FILE_SIZE`), so
+  a reload is visible even without looking at the picture. Saving the files
+  from an editor works the same way; `tools/swap-asset.py` swaps or randomises
+  them from a shell. Version 1.2.31.
+
+* **Arrays with any number of dimensions**: every value inside the brackets is
+  one dimension – `DIM map[w, h]` builds a table and `map[x, y]` reads the cell
+  at column `x`, row `y`; `map[x][y]` and `DIM map[w][h]` keep working and mean
+  the same. How many dimensions an array has is up to the program – three or
+  four are no different, only the cells are capped at 100 million. `LEN` counts
+  one level at a time (`LEN(map)`, `LEN(map[0])`), `REDIM` keeps the cells that
+  still fit, `FOREACH` walks the rows, and a TYPE field may take several
+  dimensions too (`tiles[w, h] AS TILE`, resized with `DIM bag.tiles[…]`).
+  Writing a single value onto a row is an error that points at `[x, y]` instead
+  of silently dropping the row. New example `examples/19_grid`: a walkable map
+  whose `WORLD` TYPE holds `tiles[MW, MH]`, plus a plain `DIM seen[MW, MH]`.
+  Version 1.2.29.
+* **Hot reload**: while the game runs, the interpreter checks the images, fonts,
+  sounds and the music it has loaded about every 200 ms (64 files per pass) and
+  replaces a changed file under the same number – the game paints the new
+  picture in the next frame, nothing is restarted and no variable is lost.
+  `ANIM_LOAD` keeps its tile size, a font keeps the scale from `FONT_SET`, and a
+  file that is still being written is left alone and tried again next pass.
+  `HOT_RELOAD 0` stops the watching, `HOT_RELOAD 1` resumes it,
+  `HOT_RELOAD_ON()` asks for the state and `ASSET_RELOAD()` loads everything at
+  once. Code is different: a changed `.gbx` needs a new run, so GBX Studio
+  restarts the running program when a `.gbx` or `.gbxproj` is saved (Settings →
+  General → *Restart the running program after saving*).
+  `tools/check_hotreload.py` swaps a PNG, a bitmap font and a WAV under a
+  running program and checks what arrives. Version 1.2.30.
 
 * **Arrays as TYPE fields**: `fixed[3] AS ITEM`, `coins[4]` and `slots[] AS ITEM`
   declare a field as an array. The size expressions are evaluated for every new

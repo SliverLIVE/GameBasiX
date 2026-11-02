@@ -88,6 +88,8 @@ private:
     // Datentypen
     std::shared_ptr<ArrayObj> makeArray(const std::vector<int>& sizes, size_t dim, VT elemVT,
                                         const std::string& typeName);
+    // Prueft die Groessen eines (mehrdimensionalen) Arrays gegen die Grenze.
+    void checkArraySizes(const std::vector<int>& sizes, const SrcPos& pos) const;
     Value makeRecord(const std::string& typeName, int depth = 0);
     // Array eines TYPE-Feldes: Groessen aus Program::typeArrayDims, Elementtyp
     // aus der Felddefinition. "items[]" startet leer.
