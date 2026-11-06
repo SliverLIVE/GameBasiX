@@ -4,8 +4,8 @@
 '
 ' INLINE steps may call the built-in GBX commands:
 ' PRINT, TEXT_DRAW, DRAW_CIRCLE_FILLED, TEXT_COLOR ... They behave
-' as they do in BASIC. Parameters and fields arrive in lower case
-' (text$ -> text_str, x% -> x).
+' as they do in BASIC. Parameters and fields keep the spelling of the
+' source (text$ -> text_str, x% -> x, MyVar -> MyVar).
 ' ============================================================
 
 SCREEN_SET 640, 480, 0

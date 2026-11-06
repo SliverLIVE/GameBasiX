@@ -130,10 +130,15 @@ as a parameter or gets built in is known – including definitions from
 themselves. While executing, GBX stays lenient: a variable that was never
 assigned keeps returning the default value there.
 
+Argument counts are checked as well. A built-in command, `FUNCTION`, `SUB` or
+`METHOD` called with too few or too many arguments is reported before the
+program starts. Parameters with a default (`punct$ = "!"`) are optional; the
+check also catches a call that supplies none of the required parameters.
+
 Fields of TYPEs are checked as well: if the TYPE of a variable is known
 (`LOCAL p AS POINT`, `DIM field[2] AS POINT`, parameter `p AS POINT`, also via
 `q = p` and nested TYPEs), `p.x` has to be a field of that TYPE. `p.nam$`
-then reports `Unknown field: NAM (POINT) – did you mean NAME?`. If the TYPE is
+then reports `Unknown field: nam (POINT) - did you mean name?`. If the TYPE is
 not unambiguous – for example because the same name is declared differently in
 two functions – the check stays silent instead of guessing.
 
@@ -553,11 +558,13 @@ clearing) · `SCREEN_BLACK` · `SCREEN_SHOW` · `LIMIT_FPS fps[,vsync]` ·
 `SCREEN_SIZE w,h` · `DESKTOP_SIZE w,h` · `SCREEN_FULLSCREEN()` ·
 `WINDOW_TITLE "text"`* · `SCREEN_WIDTH()`* · `SCREEN_HEIGHT()`* ·
 `SET_VIEWPORT x,y,w,h` · `VIEWPORT x,y,w,h` · `SCREEN_SCALE w,h` ·
+`CAMERA_BEGIN x,y[,zoom[,angle]]` · `CAMERA_END` ·
+`CAMERA_SCREEN_TO_WORLD x,y,wx,wy` · `CAMERA_WORLD_TO_SCREEN x,y,sx,sy` ·
 `SET_SMOOTHING on` · `SET_ALPHA_MODE a` · `SET_ALPHA_TEST value` ·
 `SET_COLOR_KEY color`
 
 **Drawing**
-`RGB(r,g,b)` · `DRAW_LINE x1,y1,x2,y2,color` · `DRAW_RECT x,y,w,h,color` (filled) ·
+`RGB(r,g,b[,a])` · `DRAW_LINE x1,y1,x2,y2,color` · `DRAW_RECT x,y,w,h,color` (filled) ·
 `DRAW_RECT_BORDER x,y,w,h,color`* · `DRAW_CIRCLE x,y,r[,color]`* ·
 `DRAW_CIRCLE_FILLED x,y,r[,color]`* · `PIXEL_SET x,y,color` · `PIXEL_GET(x,y)` ·
 `POLY_BEGIN sprite,mode` · `POLY_POINT x,y,u,v,color` (u/v 0…1) · `POLY_STRIP` ·
@@ -662,7 +669,30 @@ reported by name instead of playing silence.
 `STEAM_FRIEND_ID$(i)` · `STEAM_FRIEND_NAME$(i)` · `STEAM_FRIEND_STATE(i)` ·
 `STEAM_P2P_SEND id,text[,channel[,reliable]]` · `STEAM_P2P_AVAILABLE([channel])` ·
 `STEAM_P2P_RECV$([channel])` · `STEAM_P2P_FROM$()` · `STEAM_P2P_ACCEPT id` ·
-`STEAM_P2P_CLOSE id` · `STEAM_P2P_STATE(id)` · `STEAM_ERROR$()`
+`STEAM_P2P_CLOSE id` · `STEAM_P2P_STATE(id)` · `STEAM_ERROR$()` ·
+`STEAM_ACHIEVEMENT name$` · `STEAM_ACHIEVED(name$)` · `STEAM_ACHIEVEMENTS()` ·
+`STEAM_ACHIEVEMENT_NAME$(index)` · `STEAM_STAT(name$)` · `STEAM_STAT_F(name$)` ·
+`STEAM_STAT_SET name$, value` · `STEAM_STAT_SETF name$, value` · `STEAM_STORE` ·
+`STEAM_BOARD name$[, ascending]` · `STEAM_BOARD_SCORE points[, keepbest]` ·
+`STEAM_BOARD_RANK()` · `STEAM_BOARD_TOP([count[, kind]])` · `STEAM_BOARD_COUNT()` ·
+`STEAM_BOARD_NAME$(index)` · `STEAM_BOARD_ID$(index)` ·
+`STEAM_BOARD_POINTS(index)` · `STEAM_BOARD_PLACE(index)` ·
+`STEAM_CLOUD_WRITE file$, text$` · `STEAM_CLOUD_READ$(file$)` ·
+`STEAM_CLOUD_EXISTS(file$)` · `STEAM_CLOUD_DELETE file$` · `STEAM_CLOUD_FILES()` ·
+`STEAM_CLOUD_NAME$(index)` · `STEAM_CLOUD_SIZE(file$)` ·
+`STEAM_LOBBY_CREATE [slots[, kind]]` · `STEAM_LOBBY_JOIN id$` · `STEAM_LOBBY_JOINED()` ·
+`STEAM_LOBBY_ID$()` · `STEAM_LOBBY_LEAVE` · `STEAM_LOBBY_OWNER$()` ·
+`STEAM_LOBBY_MEMBERS()` · `STEAM_LOBBY_MEMBER_ID$(index)` ·
+`STEAM_LOBBY_MEMBER_NAME$(index)` · `STEAM_LOBBY_SET key$, value$` ·
+`STEAM_LOBBY_GET$(key$)` · `STEAM_PRESENCE key$, value$` · `STEAM_PRESENCE$(key$)` ·
+`STEAM_PRESENCE_CLEAR key$` · `STEAM_OVERLAY [page$]` · `STEAM_OVERLAY_ON()` ·
+`STEAM_TICKET$()` · `STEAM_TICKET_CANCEL` · `STEAM_DLC_COUNT()` · `STEAM_DLC(appid)`
+
+**Tasks and jobs**
+`TASK_START("name")` → id · `TASK_STOP(id)` · `TASK_RUNNING(id)` · `TASK_COUNT()` ·
+`SPAWN(@function, args…)` → job · `JOB_DONE(job)` · `JOB_VALUE(job)` ·
+`JOB_ERROR$(job)` · `JOB_FREE(job)` · `FILE_READ_ASYNC(path)` → job ·
+`FILE_WRITE_ASYNC path, text` → job
 
 **Runtime and debug**
 `DEBUG` · `STDOUT` · `STDERR` · `STDIN$` · `SLEEP ms` · `DELTA_TIME()` ·
@@ -672,6 +702,12 @@ reported by name instead of playing silence.
 
 ## Language details
 
+* **Case**: commands, keywords and built-in type names ignore the spelling
+  (`PRINT`, `print` and `Dim` all work). Names you define yourself are
+  case-sensitive: variables, `FUNCTION`/`SUB`/`METHOD`, `TYPE`, `INTERFACE`,
+  `ENUM` and their values. `MyVar` and `myvar` are two different variables, and
+  `TYPE Circle` does not fit `DIM c AS CIRCLE`. A type suffix (`$`, `%`, `#`)
+  is part of the name.
 * **Key codes**: `KEY_DOWN()`/`KEY_PRESSED()` take SDL3 scancodes; the `KEY_*` constants
   save you the lookup.
 * **Gamepads**: `JOY_COUNT()` is the number of connected pads, `pad` is `0` up to
@@ -709,10 +745,12 @@ reported by name instead of playing silence.
 * **GOTO/GOSUB**: `GOTO` only jumps inside the current scope (main program,
   `SUB` or `FUNCTION`) and only to labels on its top level. `GOSUB` calls
   `SUB`s; there are no return labels.
-* **TRY/CATCH**: `FINALLY` ends the `TRY` block (no separate FINALLY body).
+* **TRY/CATCH**: `FINALLY` opens a block that always runs, and `ENDTRY` closes
+  the whole statement. The old form without a `FINALLY` body still parses.
 * **ENUM**: `ENDENUM` closes the block; a value is addressed as `ENUM.VALUE`
   (`STATE.RUN`), so several ENUMs may use the same short name. The bare name is
-  not defined – `--check` reports it with *meintest du STATE.RUN?*. Without `=`
+  not defined – `--check` reports it with *Unknown name: RUN - did you mean
+  STATE.RUN?*. Without `=`
   the first value is `0` and every further one is the previous value plus one –
   also after an explicit value (`JUMP = 10`, `FALL` becomes `11`). ENUM members
   are integers even when the expression yields a decimal number.
@@ -732,13 +770,23 @@ reported by name instead of playing silence.
   given – a TrueType font through FreeType. `FONT_SET id,scale` scales it.
   The kerning parameter of `PRINT` is ignored (bitmap fonts are monospaced).
 * **SET_ALPHA_MODE** is approximate: `> 0` additive, `< 0` alpha `1+value`,
-  `0` normal.
+  `0` normal. A fourth `RGB` argument sets opacity per colour (0 transparent
+  to 255 opaque); it is combined with the global alpha mode.
 * **`SET_ALPHA_TEST`/`SET_COLOR_KEY`** apply while loading images, not
   retroactively to sprites that are already loaded.
 * **`SCREEN_SAVE_BMP`/`SPRITE_GRAB`** need a real renderer; in `--headless` mode they
   report an error.
 * **SCREEN_SCALE** uses SDL logical presentation; `SET_VIEWPORT` is then in window
   coordinates.
+* **CAMERA_BEGIN** switches drawing to a 2D world camera. `x,y` is the world
+  point in the centre of the current viewport, `zoom` defaults to 1 and
+  `angle` defaults to 0 (degrees, counter-clockwise, like
+  `SPRITE_DRAW_ROTATED`). Draw the world between `CAMERA_BEGIN` and
+  `CAMERA_END`; draw the HUD after `CAMERA_END`. `CAMERA_SCREEN_TO_WORLD` and
+  `CAMERA_WORLD_TO_SCREEN` convert coordinates for mouse input and overlays.
+  A camera is closed automatically at the next `SCREEN_SHOW` if `CAMERA_END`
+  is missing. [`examples/28_camera`](examples/28_camera) is a complete demo
+  with a free camera, a fixed HUD and both coordinate conversions.
 * **`INLINE`** compiles the C++ blocks with `g++` (the package ships one):
   definitions are loaded as a DLL at startup, steps run in the middle of the
   code (see [INLINE](#inline-c-inside-the-basic-program)). Prebuilt libraries
@@ -902,9 +950,49 @@ for state that the next packet replaces anyway.
 
 Steam IDs are 64-bit numbers and are therefore passed as strings; a FLOAT would
 lose digits. `STEAM_READY()` tells whether the API is up, `STEAM_ERROR$()` why it
-is not, and `STEAM_SHUTDOWN` releases it. Lobbies and the newer
-`ISteamNetworkingSockets` are not covered – the old P2P packet API is enough for
-host/join by ID and needs no callback machinery.
+is not, and `STEAM_SHUTDOWN` releases it. Achievements, statistics and leaderboards work with the API names from your
+Steamworks app. `STEAM_ACHIEVEMENT name$` unlocks one and stores it,
+`STEAM_ACHIEVED(name$)` asks whether it is unlocked, and `STEAM_ACHIEVEMENTS()`
+with `STEAM_ACHIEVEMENT_NAME$(index)` list what the app defines. Integer stats
+use `STEAM_STAT(name$)` and `STEAM_STAT_SET name$, value`, float stats
+`STEAM_STAT_F(name$)` and `STEAM_STAT_SETF name$, value`; `STEAM_STORE` sends
+changed stats to Steam.
+
+```basic
+STEAM_ACHIEVEMENT "FIRST_WIN"
+STEAM_STAT_SET "kills", 42
+STEAM_STORE
+```
+
+`STEAM_BOARD name$[, ascending]` opens a leaderboard (and creates it when it is
+missing), `STEAM_BOARD_SCORE points[, keepbest]` uploads a score, and
+`STEAM_BOARD_RANK()` is your own place afterwards. `STEAM_BOARD_TOP [count[,
+kind]]` fetches the table - `kind` 0 global, 1 friends, 2 around you - and the
+following reads take an index: `STEAM_BOARD_NAME$`, `STEAM_BOARD_ID$`,
+`STEAM_BOARD_POINTS`, `STEAM_BOARD_PLACE`, plus `STEAM_BOARD_COUNT()`.
+
+`STEAM_CLOUD_WRITE file$, text$` stores a text file in Steam's cloud and
+`STEAM_CLOUD_READ$(file$)` reads it back (up to 1 MiB); `STEAM_CLOUD_EXISTS`,
+`STEAM_CLOUD_DELETE`, `STEAM_CLOUD_SIZE`, `STEAM_CLOUD_FILES` and
+`STEAM_CLOUD_NAME$` complete it. Names are plain file names without folders.
+
+`STEAM_LOBBY_CREATE [slots[, kind]]` opens a lobby (`kind` 0 private, 1 friends
+only, 2 public, 3 invisible) and `STEAM_LOBBY_JOIN id$` joins one. Afterwards
+`STEAM_LOBBY_JOINED()` says whether it worked, `STEAM_LOBBY_ID$`,
+`STEAM_LOBBY_OWNER$`, `STEAM_LOBBY_MEMBERS`, `STEAM_LOBBY_MEMBER_ID$` and
+`STEAM_LOBBY_MEMBER_NAME$` describe the lobby, `STEAM_LOBBY_SET key$, value$`
+and `STEAM_LOBBY_GET$(key$)` exchange small pieces of data between the players,
+and `STEAM_LOBBY_LEAVE` closes it.
+
+`STEAM_PRESENCE key$, value$` sets the line friends see next to your name,
+`STEAM_OVERLAY [page$]` opens the in-game overlay (`friends`, `achievements`,
+`settings`, ...), `STEAM_TICKET$()` returns the auth session ticket as hex for
+your own login server, and `STEAM_DLC(appid)` checks an add-on.
+
+Steam answers leaderboards and lobbies asynchronously; GameBasiX waits up to
+three seconds for the result, so open a board or create a lobby at a quiet
+moment. Only the newer `ISteamNetworkingSockets` interface is not covered - the
+P2P packet API above handles host and join by id without callback machinery.
 
 ## INLINE: C++ inside the BASIC program
 
@@ -939,8 +1027,9 @@ FUNCTION twice: value
 ENDFUNCTION
 ```
 
-* **Names**: BASIC variables are written in lower case in C++ (`counter`,
-  `result`). Texts get `_str` (`name$` → `name_str`), arrays become
+* **Names**: a BASIC name keeps the spelling of the source in C++ (`counter`
+  stays `counter`, `MyVar` stays `MyVar`; the language compares names
+  case-sensitively). Texts get `_str` (`name$` → `name_str`), arrays become
   `list[i]` (multi-dimensional too), TYPE variables `p` with the fields
   `p.x` and `p.name_str`, TYPE arrays `points[i].x`. INTEGER variables stay
   INTEGER when the step writes to them.
@@ -974,8 +1063,8 @@ ENDFUNCTION
   function; commands with `$` (`CHR$`, `LEFT$`) are called through
   `call("LEFT$", …)`, whose result provides `.num()` or `.text()`. Variables
   are passed as BYREF targets (`SPRITE_SIZE(id, w, h)`), numbers and texts
-  by value. `RGB` is named `rgb(r, g, b)` in C++ (the Windows macro owns the
-  name).
+  by value. `RGB` is named `rgb(r, g, b[, a])` in C++ (the Windows macro owns
+  the name).
 * **Limits**: your own `FUNCTION`s, `SUB`s and `METHOD`s cannot be called
   from a step, `RETURN`/`GOTO` cannot be triggered; GBX commands only in
   steps, not in functions registered with `GBX_INLINE_FN`.
@@ -1028,6 +1117,70 @@ build/gbx.exe --export game.exe examples/04_gbxarray/gbxarray.gbxproj
   (Ctrl+E) – there you can choose the location, and the log shows the embedded
   files.
 
+## Tasks, jobs and async files
+
+A `TASK` cooperates with the main loop instead of blocking it. It runs on a
+fiber on the main thread, so it may draw, print and change the same globals;
+only the moment it waits is different. `SCREEN_SHOW` stays in the main loop.
+
+```basic
+TASK bob:
+  FOR i = 1 TO 100
+    bobX = bobX + 4
+    AWAIT FRAME            ' continue with the next SCREEN_SHOW
+  NEXT
+  AWAIT 0.5                ' or wait half a second
+  bobY = bobY + 20
+ENDTASK
+
+id = TASK_START("bob")
+```
+
+`AWAIT FRAME` returns to the main loop and resumes after the next
+`SCREEN_SHOW`; `AWAIT seconds` waits without blocking the frame as well. The
+scheduler runs directly after the present, so a task can draw into the frame
+it just woke up in. `TASK_RUNNING(id)` says whether the task still exists,
+`TASK_STOP(id)` ends it and `TASK_COUNT()` counts the living tasks. An error
+inside a task is reported at the next frame like an error in the main program.
+The HTML5 player uses Emscripten's cooperative fibers, so `TASK` and `AWAIT`
+work there too.
+
+`SPAWN` is for pure work: on the desktop it copies the globals into a worker
+thread, runs a `FUNCTION` there and hands the return value back. The worker has
+its own interpreter, so it cannot touch the window, input, files, network,
+Steam or `INLINE`; commands like `PRINT`, `SCREEN_*`, `SPAWN` and `JOB_*` report
+`... is not allowed in SPAWN`. Arguments are passed by value, `BYREF` is not
+supported, and at most 32 jobs run at once. The main program keeps drawing
+while the worker computes. The HTML5 player has no worker threads: there
+`SPAWN`, `FILE_READ_ASYNC` and `FILE_WRITE_ASYNC` run their work immediately
+and return an already finished job, so they block that one frame.
+
+```basic
+FUNCTION sumTo: n
+  total = 0
+  FOR i = 1 TO n
+    total = total + i
+  NEXT
+  RETURN total
+ENDFUNCTION
+
+job = SPAWN(@sumTo, 200000)
+WHILE JOB_DONE(job) = 0
+  SCREEN_SHOW
+WEND
+PRINT "sum = " + STR$(JOB_VALUE(job)), 20, 20
+JOB_FREE(job)
+```
+
+`JOB_DONE` becomes true when the function returned or failed, `JOB_VALUE`
+returns its result (and raises the worker's error), `JOB_ERROR$` reads the
+message and `JOB_FREE` joins the thread and releases the slot. `FILE_READ_ASYNC`
+and `FILE_WRITE_ASYNC` use the same handles: `JOB_VALUE` is the file text, or
+the number of bytes written. They are the non-blocking counterpart of
+`FILE_OPEN` and are handy for loading a level or writing a log while the frame
+continues. [`examples/27_tasks`](examples/27_tasks) shows a task, a worker and
+an asynchronous read together.
+
 ## Games in the browser (HTML5)
 
 The interpreter also runs as WebAssembly. An export writes a folder that any
@@ -1067,8 +1220,10 @@ game-web/
   export rebuilds `html5/gbx.js` first (with the SDK); without the SDK it warns
   instead of silently shipping an outdated interpreter.
 * **What works**: graphics through SDL3 (WebGL), keyboard/mouse, audio after
-  the first user gesture, `LIMIT_FPS` (through `emscripten_sleep`), `SCREEN_SAVE_BMP`
-  into the virtual file system, TrueType fonts.
+  the first user gesture, `LIMIT_FPS` (through `emscripten_sleep`), `TASK` and
+  `AWAIT` through Emscripten's cooperative fibers, `SCREEN_SAVE_BMP` into the
+  virtual file system, TrueType fonts. `SPAWN` and the async file commands fall
+  back to synchronous work because the browser player has no worker threads.
 * **Fonts**: `FONT_LOAD "font.ttf", id, size` runs in the browser through
   Emscripten's FreeType port (`-sUSE_FREETYPE=1`), with kerning and
   anti-aliasing like on the desktop. The file has to be part of the project
@@ -1144,7 +1299,7 @@ program runs restarts it, and the console says so. *Settings → General →
 
 3D (`X_*`), pulling in C++ templates (`IMPORT`, `REQUIRE`), preprocessor
 (`?IF` …), sockets behind Steam's newer `ISteamNetworkingSockets` (lobbies,
-connection handles), joystick/gamepad, movies,
+connection handles), movies,
 `MEM2SPRITE`/`SPRITE2MEM`/`MEM2FONT`/`FONT2MEM`,
 `FINDPATH`, `FILEREQUEST`, `SHELLCMD`, `ADDRESSOF`/`CALLBYNAME`,
 `ENCRYPT$`/`DECRYPT$`, `SETSHOEBOX`. `SORTARRAY` is no longer missing:
@@ -1182,6 +1337,8 @@ complete.
 | `examples/24_strict` | **`OPTION STRICT`**: `savegame%` would only exist after loading a save game, so the sum reads a name that was never assigned - a catchable error instead of a silent `0`. Everything else keeps working, and assigning a name still creates it |
 | `examples/25_callbacks` | **Functions as values**: `@doubleIt`, `@square` and `@plus100` are stored in `action`, passed to `apply`/`total` and called by name. Space switches the callback and the same loop prints other results |
 | `examples/26_inherit` | **Inheritance and interfaces**: `TYPE CIRCLE EXTENDS SHAPE IMPLEMENTS DRAWABLE, NAMED` inherits fields, defaults and methods and overrides `label`/`draw`; `SQUARE` derives from `RECT`. Each object draws itself, and `ISA` answers for TYPE, base and interface |
+| `examples/27_tasks` | **Tasks, jobs and async files**: a `TASK` advances a pulse with `AWAIT FRAME` while a `SPAWN`ed pure function sums 1..200000 on a worker and `FILE_READ_ASYNC` reads `main.gbx`; the tasks poll `JOB_DONE`/`JOB_VALUE`, the main loop keeps drawing, and `JOB_FREE` joins every worker |
+| `examples/28_camera` | **2D camera**: a free camera over a large world - WASD/arrows move relative to the rotated view, Q/E rotate, +/- zoom, R resets. The world is drawn inside `CAMERA_BEGIN`/`CAMERA_END`, while the HUD stays fixed and shows the camera, the mouse position and the beacon converted with `CAMERA_SCREEN_TO_WORLD`/`CAMERA_WORLD_TO_SCREEN` |
 
 `UI.gbx` is a standalone library: put the file next to `main.gbx`,
 `INCLUDE "UI.gbx"`, create the widgets once and call `app.run()` every frame.
@@ -1333,6 +1490,38 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
 
 ## Changelog
 
+**November 2026**
+
+* **2D camera, tasks and asynchronous work**: `CAMERA_BEGIN x,y[,zoom[,angle]]`
+  and `CAMERA_END` draw a world with pan, zoom and rotation, while
+  `CAMERA_SCREEN_TO_WORLD` and `CAMERA_WORLD_TO_SCREEN` convert coordinates for
+  input and HUDs. `TASK` blocks cooperate with the main loop through
+  `AWAIT FRAME` and `AWAIT seconds`; `SPAWN(@function, args…)` computes on a
+  worker thread and returns a `JOB_*` handle, and `FILE_READ_ASYNC` /
+  `FILE_WRITE_ASYNC` use the same non-blocking handles. New examples
+  `27_tasks` and `28_camera` show both. Version 1.2.33.
+
+* **RGBA colours**: `RGB(r,g,b[,a])` takes an optional alpha from 0 to 255.
+  The fourth argument follows lines, rectangles, borders, circles, pixels,
+  polygons, text, `PRINT` and fonts, and combines with `SET_ALPHA_MODE`;
+  `INLINE` gets the matching `rgb(r,g,b,a)` overload. The editor's colour
+  swatch opens an alpha-aware picker, now compact and without the command help
+  underneath. Version 1.2.33.
+
+* **Steam achievements, stats, leaderboards and lobbies**: `STEAM_ACHIEVEMENT`,
+  `STEAM_STAT_SET`/`STEAM_STORE`, `STEAM_BOARD`/`STEAM_BOARD_SCORE`,
+  `STEAM_CLOUD_*`, `STEAM_LOBBY_*`, `STEAM_PRESENCE`, `STEAM_OVERLAY`,
+  `STEAM_TICKET$` and `STEAM_DLC` extend the existing friends and P2P API.
+  Leaderboards and lobbies wait up to three seconds for Steam's asynchronous
+  answer. Version 1.2.33.
+
+* **Editor and language checks**: command, `FUNCTION`, `SUB` and `METHOD` calls
+  are checked for the right number of arguments before the program starts;
+  user-defined names are case-sensitive while commands and keywords remain
+  case-insensitive. The reference panel has a draggable divider between list
+  and description, symbol navigation understands interfaces, and folding
+  arrows no longer toggle breakpoints. Version 1.2.33.
+
 **October 2026**
 
 * **One language for sources and tools**: interpreter, IDE, tests and examples
@@ -1466,7 +1655,7 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
   `STOP`. That removes the one real weakness of the first ENUM version – two
   ENUMs may use the same short name (`MASKE.ROT = 1`, `AMPEL.ROT = 0`) – and the
   point reads like the field and method access the language already has. A bare
-  name is a hard error with *meintest du PHASE.STOP?*, both in `--check` and in
+  name is a hard error with *did you mean PHASE.STOP?*, both in `--check` and in
   the warning the interpreter prints when it has to guess a value. The editor
   completes after `PHASE.`, shows the values on hover, groups them under the
   ENUM in the outline and jumps from `PHASE.STOP` to the declaration with F12.

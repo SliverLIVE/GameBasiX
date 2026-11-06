@@ -20,12 +20,15 @@
   "sources": [
     "main.gbx"
   ],
-  "openFiles": [],
+  "openFiles": [
+    "main.gbx"
+  ],
   "createdAt": "2026-10-23T12:20:53.988Z",
   "layout": {
     "sidebar": 248,
     "reference": 352,
-    "bottom": 208
+    "bottom": 208,
+    "refList": 0
   },
   "dock": {
     "zones": {

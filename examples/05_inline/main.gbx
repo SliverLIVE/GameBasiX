@@ -23,7 +23,7 @@ GLOBAL Radius = 130
 GLOBAL Frames = 0
 
 ' A block inside a FUNCTION runs at that point. The parameter u and the
-' local variable value are visible in C++ (lower case).
+' local variable value are visible in C++ under their own names.
 FUNCTION glow: u
   value = 0
   INLINE
@@ -35,7 +35,7 @@ ENDFUNCTION
 WHILE TRUE
   ' The block here runs on every pass and counts the frames.
   INLINE
-    frames = frames + 1;
+    Frames = Frames + 1;
   ENDINLINE
 
   ' ------------------------------------------------------------- Input

@@ -1,5 +1,7 @@
 // GameBasiX - eingebaute Befehle und Funktionen
 #include "builtins.h"
+#include "interpreter.h"
+#include "jobs.h"
 
 
 #include <algorithm>
@@ -10,7 +12,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -70,8 +74,8 @@ DictObj* dictArg(BArgs& a, size_t i) {
     return a.vals[i].dict.get();
 }
 
-uint32_t colorOf(BArgs& a, size_t i) {
-    return static_cast<uint32_t>(a.integer(i)) & 0xFFFFFF;
+Color colorOf(BArgs& a, size_t i) {
+    return static_cast<Color>(a.integer(i));
 }
 
 int clampi(int64_t v, int lo, int hi) {
@@ -257,6 +261,22 @@ std::unordered_map<std::string, Builtin>& builtins() {
 #endif
             return ok();
         });
+        add("TASK_START", 1, 1, [](BArgs& a) {
+            if (!a.rt.interp) a.fail("no interpreter");
+            return Value::mkInt(a.rt.interp->startTask(a.str(0), a.pos));
+        });
+        add("TASK_STOP", 1, 1, [](BArgs& a) {
+            if (!a.rt.interp) a.fail("no interpreter");
+            return Value::mkInt(a.rt.interp->stopTask(static_cast<int>(a.integer(0))) ? 1 : 0);
+        });
+        add("TASK_RUNNING", 1, 1, [](BArgs& a) {
+            if (!a.rt.interp) return Value::mkInt(0);
+            return Value::mkInt(a.rt.interp->taskRunning(static_cast<int>(a.integer(0))) ? 1 : 0);
+        });
+        add("TASK_COUNT", 0, 0, [](BArgs& a) {
+            if (!a.rt.interp) return Value::mkInt(0);
+            return Value::mkInt(a.rt.interp->taskCount());
+        });
         add("ASSERT", 1, 2, [](BArgs& a) {
             ++a.rt.assertCount;
             if (!a.truthy(0)) {
@@ -308,10 +328,10 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("SCREEN_CLEAR", 0, 1, [](BArgs& a) {
             int64_t col = a.vals.empty() ? 0 : a.integer(0);
             if (col == -1) {
-                a.rt.gfx.setClearColor(static_cast<uint32_t>(-1));
+                a.rt.gfx.setClearColor(static_cast<Color>(-1));
                 return ok();
             }
-            a.rt.gfx.clearScreen(static_cast<uint32_t>(col) & 0xFFFFFF);
+            a.rt.gfx.clearScreen(static_cast<Color>(col));
             return ok();
         });
         add("SCREEN_BLACK", 0, 0, [](BArgs& a) {
@@ -319,6 +339,8 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return ok();
         });
         add("SCREEN_SHOW", 0, 0, [](BArgs& a) {
+            if (a.rt.interp && a.rt.interp->inTask())
+                a.fail("SCREEN_SHOW is not allowed inside a TASK; use AWAIT FRAME");
             a.rt.gfx.present();
             if (a.rt.gfx.quitRequested()) a.rt.quit = true;
             return ok();
@@ -361,6 +383,35 @@ std::unordered_map<std::string, Builtin>& builtins() {
             else a.rt.gfx.setPrescaler(static_cast<int>(a.integer(0)), static_cast<int>(a.integer(1)));
             return ok();
         });
+        add("CAMERA_BEGIN", 2, 4, [](BArgs& a) {
+            const float zoom = a.vals.size() > 2 ? static_cast<float>(a.num(2)) : 1.0f;
+            const double angle = a.vals.size() > 3 ? a.num(3) : 0.0;
+            std::string err;
+            if (!a.rt.gfx.beginCamera(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)),
+                                      zoom, angle, err))
+                a.fail(err);
+            return ok();
+        });
+        add("CAMERA_END", 0, 0, [](BArgs& a) {
+            a.rt.gfx.endCamera();
+            return ok();
+        });
+        add("CAMERA_SCREEN_TO_WORLD", 4, 4, [](BArgs& a) {
+            float wx = 0.0f, wy = 0.0f;
+            a.rt.gfx.cameraScreenToWorld(static_cast<float>(a.num(0)),
+                                         static_cast<float>(a.num(1)), wx, wy);
+            a.setOut(2, Value::mkFloat(wx));
+            a.setOut(3, Value::mkFloat(wy));
+            return ok();
+        });
+        add("CAMERA_WORLD_TO_SCREEN", 4, 4, [](BArgs& a) {
+            float sx = 0.0f, sy = 0.0f;
+            a.rt.gfx.cameraWorldToScreen(static_cast<float>(a.num(0)),
+                                         static_cast<float>(a.num(1)), sx, sy);
+            a.setOut(2, Value::mkFloat(sx));
+            a.setOut(3, Value::mkFloat(sy));
+            return ok();
+        });
         add("SET_SMOOTHING", 0, 1, [](BArgs& a) {
             a.rt.gfx.setSmoothShading(a.truthy(0));
             return ok();
@@ -383,8 +434,11 @@ std::unordered_map<std::string, Builtin>& builtins() {
         });
 
         // ---------------------------------------------------------- Zeichnen
-        add("RGB", 3, 3, [](BArgs& a) {
-            return Value::mkInt(rgbInt(a.integer(0), a.integer(1), a.integer(2)));
+        add("RGB", 3, 4, [](BArgs& a) {
+            const int64_t rgb = rgbInt(a.integer(0), a.integer(1), a.integer(2));
+            if (a.vals.size() < 4) return Value::mkInt(rgb);
+            const uint8_t alpha = static_cast<uint8_t>(clampi(a.integer(3), 0, 255));
+            return Value::mkInt(static_cast<int64_t>(makeColor(static_cast<uint32_t>(rgb), alpha)));
         });
         add("DRAW_LINE", 5, 5, [](BArgs& a) {
             a.rt.gfx.drawLine(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)),
@@ -401,7 +455,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("DRAW_RECT_BORDER", 5, 5, [](BArgs& a) {
             float x = static_cast<float>(a.num(0)), y = static_cast<float>(a.num(1));
             float w = static_cast<float>(a.num(2)), h = static_cast<float>(a.num(3));
-            uint32_t c = colorOf(a, 4);
+            Color c = colorOf(a, 4);
             a.rt.gfx.drawLine(x, y, x + w, y, c);
             a.rt.gfx.drawLine(x + w, y, x + w, y + h, c);
             a.rt.gfx.drawLine(x + w, y + h, x, y + h, c);
@@ -409,13 +463,13 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return ok();
         });
         add("DRAW_CIRCLE", 4, 5, [](BArgs& a) {
-            uint32_t c = a.vals.size() > 3 ? colorOf(a, 3) : 0xFFFFFF;
+            Color c = a.vals.size() > 3 ? colorOf(a, 3) : 0xFFFFFF;
             a.rt.gfx.drawCircle(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)),
                                 static_cast<float>(a.num(2)), c, false);
             return ok();
         });
         add("DRAW_CIRCLE_FILLED", 4, 5, [](BArgs& a) {
-            uint32_t c = a.vals.size() > 3 ? colorOf(a, 3) : 0xFFFFFF;
+            Color c = a.vals.size() > 3 ? colorOf(a, 3) : 0xFFFFFF;
             a.rt.gfx.drawCircle(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)),
                                 static_cast<float>(a.num(2)), c, true);
             return ok();
@@ -438,7 +492,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
         add("POLY_POINT", 2, 5, [](BArgs& a) {
             float tx = a.vals.size() > 2 ? static_cast<float>(a.num(2)) : 0.0f;
             float ty = a.vals.size() > 3 ? static_cast<float>(a.num(3)) : 0.0f;
-            uint32_t c = a.vals.size() > 4 ? colorOf(a, 4) : 0xFFFFFF;
+            Color c = a.vals.size() > 4 ? colorOf(a, 4) : 0xFFFFFF;
             a.rt.gfx.polyVector(static_cast<float>(a.num(0)), static_cast<float>(a.num(1)), tx, ty, c);
             return ok();
         });
@@ -609,7 +663,7 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return ok();
         });
         add("TEXT_DRAW", 3, 4, [](BArgs& a) {
-            uint32_t c = a.vals.size() > 3 ? colorOf(a, 3) : a.rt.textColor;
+            Color c = a.vals.size() > 3 ? colorOf(a, 3) : a.rt.textColor;
             a.rt.gfx.drawText(a.str(0), static_cast<float>(a.num(1)), static_cast<float>(a.num(2)), c);
             return ok();
         });
@@ -1472,6 +1526,59 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return ok();
         });
 
+        // ------------------------------------------------- Jobs und async I/O
+        add("SPAWN", 1, 32, [](BArgs& a) {
+            if (!jobs::available()) a.fail("Background jobs are not available in this build");
+            if (!a.rt.prog) a.fail("no program");
+            const std::string target = a.vals[0].isFunc() ? a.vals[0].s : a.str(0);
+            std::vector<Value> args(a.vals.begin() + 1, a.vals.end());
+            return Value::mkInt(jobs::spawnFunction(*a.rt.prog, target, std::move(args),
+                                                    a.rt.globals, a.pos));
+        });
+        add("JOB_DONE", 1, 1, [](BArgs& a) {
+            return Value::mkInt(jobs::done(static_cast<int>(a.integer(0))) ? 1 : 0);
+        });
+        add("JOB_VALUE", 1, 1, [](BArgs& a) {
+            std::string error;
+            Value value = jobs::value(static_cast<int>(a.integer(0)), error);
+            if (!error.empty()) a.fail(error);
+            return value;
+        });
+        add("JOB_ERROR$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(jobs::error(static_cast<int>(a.integer(0))));
+        });
+        add("JOB_FREE", 1, 1, [](BArgs& a) {
+            return Value::mkInt(jobs::release(static_cast<int>(a.integer(0))) ? 1 : 0);
+        });
+        add("FILE_READ_ASYNC", 1, 1, [](BArgs& a) {
+            if (!jobs::available()) a.fail("Background jobs are not available in this build");
+            const std::string path = a.rt.resolveAsset(a.str(0));
+            const int id = jobs::submit([path]() {
+                std::ifstream in(path, std::ios::binary);
+                if (!in) throw BasicError("File not found: " + path, SrcPos{path, 0}, false);
+                std::ostringstream text;
+                text << in.rdbuf();
+                if (!in && !in.eof()) throw BasicError("Read failed: " + path, SrcPos{path, 0}, false);
+                return Value::mkStr(text.str());
+            });
+            if (id < 0) a.fail("Too many background jobs");
+            return Value::mkInt(id);
+        });
+        add("FILE_WRITE_ASYNC", 2, 2, [](BArgs& a) {
+            if (!jobs::available()) a.fail("Background jobs are not available in this build");
+            const std::string path = outputPath(a.rt, a.str(0));
+            std::string text = a.str(1);
+            const int id = jobs::submit([path, text = std::move(text)]() {
+                std::ofstream out(path, std::ios::binary);
+                if (!out) throw BasicError("File cannot be written: " + path, SrcPos{path, 0}, false);
+                out.write(text.data(), static_cast<std::streamsize>(text.size()));
+                if (!out) throw BasicError("Write failed: " + path, SrcPos{path, 0}, false);
+                return Value::mkInt(static_cast<int64_t>(text.size()));
+            });
+            if (id < 0) a.fail("Too many background jobs");
+            return Value::mkInt(id);
+        });
+
         add("FILE_EXISTS", 1, 1, [](BArgs& a) {
             std::string path = a.rt.resolveAsset(a.str(0));
             std::error_code ec;
@@ -1746,6 +1853,169 @@ std::unordered_map<std::string, Builtin>& builtins() {
             return Value::mkInt(a.rt.steam.sessionState(steamIdOf(a, 0)));
         });
         add("STEAM_ERROR$", 0, 0, [](BArgs& a) { return Value::mkStr(a.rt.steam.lastError()); });
+
+        // -------------------------------- Erfolge, Statistiken, Ranglisten
+        add("STEAM_ACHIEVEMENT", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.unlockAchievement(a.str(0)) ? 1 : 0);
+        });
+        add("STEAM_ACHIEVED", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.achievementUnlocked(a.str(0)) ? 1 : 0);
+        });
+        add("STEAM_ACHIEVEMENTS", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.achievementCount());
+        });
+        add("STEAM_ACHIEVEMENT_NAME$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.achievementName(static_cast<int>(a.integer(0))));
+        });
+        add("STEAM_STAT", 1, 1, [](BArgs& a) {
+            int value = 0;
+            a.rt.steam.getStatInt(a.str(0), value);
+            return Value::mkInt(value);
+        });
+        add("STEAM_STAT_F", 1, 1, [](BArgs& a) {
+            float value = 0.0f;
+            a.rt.steam.getStatFloat(a.str(0), value);
+            return Value::mkFloat(static_cast<double>(value));
+        });
+        add("STEAM_STAT_SET", 2, 2, [](BArgs& a) {
+            const bool ok = a.rt.steam.setStatInt(a.str(0), static_cast<int>(a.integer(1)));
+            return Value::mkInt(ok ? 1 : 0);
+        });
+        add("STEAM_STAT_SETF", 2, 2, [](BArgs& a) {
+            const bool ok = a.rt.steam.setStatFloat(a.str(0), static_cast<float>(a.num(1)));
+            return Value::mkInt(ok ? 1 : 0);
+        });
+        add("STEAM_STORE", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.storeStats() ? 1 : 0);
+        });
+
+        add("STEAM_BOARD", 1, 2, [](BArgs& a) {
+            const bool ascending = a.vals.size() > 1 ? a.truthy(1) : false;
+            return Value::mkInt(a.rt.steam.openBoard(a.str(0), ascending) ? 1 : 0);
+        });
+        add("STEAM_BOARD_SCORE", 1, 2, [](BArgs& a) {
+            const bool keepBest = a.vals.size() > 1 ? a.truthy(1) : true;
+            const int score = static_cast<int>(a.integer(0));
+            return Value::mkInt(a.rt.steam.uploadScore(score, keepBest) ? 1 : 0);
+        });
+        add("STEAM_BOARD_RANK", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.boardRank());
+        });
+        add("STEAM_BOARD_TOP", 0, 2, [](BArgs& a) {
+            const int count = a.vals.empty() ? 10 : static_cast<int>(a.integer(0));
+            const int kind = a.vals.size() > 1 ? static_cast<int>(a.integer(1)) : 0;
+            return Value::mkInt(a.rt.steam.downloadBoard(count, kind));
+        });
+        add("STEAM_BOARD_COUNT", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.boardCount());
+        });
+        add("STEAM_BOARD_NAME$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.boardName(static_cast<int>(a.integer(0))));
+        });
+        add("STEAM_BOARD_ID$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.boardUser(static_cast<int>(a.integer(0))));
+        });
+        add("STEAM_BOARD_POINTS", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.boardScore(static_cast<int>(a.integer(0))));
+        });
+        add("STEAM_BOARD_PLACE", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.boardPlace(static_cast<int>(a.integer(0))));
+        });
+
+        // ---------------------------------------------------- Cloud-Speicher
+        add("STEAM_CLOUD_WRITE", 2, 2, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.cloudWrite(a.str(0), a.str(1)) ? 1 : 0);
+        });
+        add("STEAM_CLOUD_READ$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.cloudRead(a.str(0)));
+        });
+        add("STEAM_CLOUD_EXISTS", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.cloudExists(a.str(0)) ? 1 : 0);
+        });
+        add("STEAM_CLOUD_DELETE", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.cloudDelete(a.str(0)) ? 1 : 0);
+        });
+        add("STEAM_CLOUD_FILES", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.cloudCount());
+        });
+        add("STEAM_CLOUD_NAME$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.cloudName(static_cast<int>(a.integer(0))));
+        });
+        add("STEAM_CLOUD_SIZE", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.cloudSize(a.str(0)));
+        });
+
+        // ---------------------------------------------------------- Lobbys
+        add("STEAM_LOBBY_CREATE", 0, 2, [](BArgs& a) {
+            const int slots = a.vals.empty() ? 4 : static_cast<int>(a.integer(0));
+            const int type = a.vals.size() > 1 ? static_cast<int>(a.integer(1)) : 2;
+            return Value::mkInt(a.rt.steam.createLobby(slots, type) ? 1 : 0);
+        });
+        add("STEAM_LOBBY_JOIN", 1, 1, [steamIdOf](BArgs& a) {
+            return Value::mkInt(a.rt.steam.joinLobby(steamIdOf(a, 0)) ? 1 : 0);
+        });
+        add("STEAM_LOBBY_JOINED", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.inLobby() ? 1 : 0);
+        });
+        add("STEAM_LOBBY_ID$", 0, 0, [](BArgs& a) {
+            const unsigned long long id = a.rt.steam.lobbyId();
+            return Value::mkStr(id ? std::to_string(id) : std::string());
+        });
+        add("STEAM_LOBBY_LEAVE", 0, 0, [](BArgs& a) {
+            a.rt.steam.leaveLobby();
+            return Value::mkInt(1);
+        });
+        add("STEAM_LOBBY_OWNER$", 0, 0, [](BArgs& a) {
+            const unsigned long long id = a.rt.steam.lobbyOwner();
+            return Value::mkStr(id ? std::to_string(id) : std::string());
+        });
+        add("STEAM_LOBBY_MEMBERS", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.lobbyMembers());
+        });
+        add("STEAM_LOBBY_MEMBER_ID$", 1, 1, [](BArgs& a) {
+            const unsigned long long id = a.rt.steam.lobbyMember(static_cast<int>(a.integer(0)));
+            return Value::mkStr(id ? std::to_string(id) : std::string());
+        });
+        add("STEAM_LOBBY_MEMBER_NAME$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.lobbyMemberName(static_cast<int>(a.integer(0))));
+        });
+        add("STEAM_LOBBY_SET", 2, 2, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.setLobbyData(a.str(0), a.str(1)) ? 1 : 0);
+        });
+        add("STEAM_LOBBY_GET$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.lobbyData(a.str(0)));
+        });
+
+        // ----------------------------- Presence, Overlay, Ticket und DLC
+        add("STEAM_PRESENCE", 2, 2, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.setPresence(a.str(0), a.str(1)) ? 1 : 0);
+        });
+        add("STEAM_PRESENCE$", 1, 1, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.presence(a.str(0)));
+        });
+        add("STEAM_PRESENCE_CLEAR", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.clearPresence(a.str(0)) ? 1 : 0);
+        });
+        add("STEAM_OVERLAY", 0, 1, [](BArgs& a) {
+            a.rt.steam.overlay(a.vals.empty() ? std::string() : a.str(0));
+            return Value::mkInt(1);
+        });
+        add("STEAM_OVERLAY_ON", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.overlayEnabled() ? 1 : 0);
+        });
+        add("STEAM_TICKET$", 0, 0, [](BArgs& a) {
+            return Value::mkStr(a.rt.steam.authTicket());
+        });
+        add("STEAM_TICKET_CANCEL", 0, 0, [](BArgs& a) {
+            a.rt.steam.cancelTicket();
+            return Value::mkInt(1);
+        });
+        add("STEAM_DLC_COUNT", 0, 0, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.dlcCount());
+        });
+        add("STEAM_DLC", 1, 1, [](BArgs& a) {
+            return Value::mkInt(a.rt.steam.dlcInstalled(static_cast<int>(a.integer(0))) ? 1 : 0);
+        });
 
         return t;
     }();

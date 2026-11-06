@@ -77,6 +77,8 @@ add_executable(gbx
   src/parser.cpp
   src/value.cpp
   src/interpreter.cpp
+  src/fiber.cpp
+  src/jobs.cpp
   src/inline.cpp
   src/lint.cpp
   src/package.cpp
@@ -103,7 +105,12 @@ add_custom_command(TARGET gbx POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           ${CMAKE_SOURCE_DIR}/inline/gbx_inline.h ${CMAKE_BINARY_DIR}/inline/gbx_inline.h
   COMMENT "Copying gbx_inline.h next to gbx.exe")
-target_link_libraries(gbx PRIVATE ${GBX_SDL_TARGET})
+if(NOT EMSCRIPTEN)
+  find_package(Threads REQUIRED)
+  target_link_libraries(gbx PRIVATE ${GBX_SDL_TARGET} Threads::Threads)
+else()
+  target_link_libraries(gbx PRIVATE ${GBX_SDL_TARGET})
+endif()
 # Winsock fuer die NET*-Befehle
 if(WIN32)
   target_link_libraries(gbx PRIVATE ws2_32)

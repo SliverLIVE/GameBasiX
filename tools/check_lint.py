@@ -67,13 +67,112 @@ def main():
         print(f"Namenspruefung ({work})")
 
         # ---------------------------------------------------- unbekannte Namen
-        expect_error(work, "unbekannter Befehl", "bla\n", 1, "Unknown command: BLA")
-        expect_error(work, "unbekannte Variable", 'PRINT foo, 0, 0\nEND\n', 1, "Unknown name: FOO")
+        expect_error(work, "unbekannter Befehl", "bla\n", 1, "Unknown command: bla")
+        expect_error(work, "unbekannte Variable", 'PRINT foo, 0, 0\nEND\n', 1, "Unknown name: foo")
         expect_error(work, "unbekannte Funktion", "x = NOPE(1)\nEND\n", 1, "Unknown function: NOPE")
-        expect_error(work, "Tippfehler in der Mitte", "x = 1\ny = x + zzz\nEND\n", 2, "Unknown name: ZZZ")
-        expect_error(work, "unbekannte Marke", "GOTO spaeter\nEND\n", 1, "Unknown label: SPAETER")
+        expect_error(work, "Tippfehler in der Mitte", "x = 1\ny = x + zzz\nEND\n", 2, "Unknown name: zzz")
+        expect_error(work, "unbekannte Marke", "GOTO spaeter\nEND\n", 1, "Unknown label: spaeter")
         expect_error(
-            work, "unbekanntes Unterprogramm", "GOSUB gibtEsNicht\nEND\n", 1, "Unknown subroutine: GIBTESNICHT"
+            work, "unbekanntes Unterprogramm", "GOSUB gibtEsNicht\nEND\n", 1, "Unknown subroutine: gibtEsNicht"
+        )
+
+        # --------------------------------------------------- Argumentanzahl
+        expect_error(
+            work,
+            "zu wenige Argumente bei einem Befehl",
+            'x = LEFT$(\"a\")\nEND\n',
+            1,
+            "Wrong number of arguments for LEFT$ (expected 2, got 1)",
+        )
+        expect_error(
+            work,
+            "zu viele Argumente bei einem Befehl",
+            'x = LEFT$(\"a\", 1, 2)\nEND\n',
+            1,
+            "Wrong number of arguments for LEFT$ (expected 2, got 3)",
+        )
+        expect_error(
+            work,
+            "KEY_DOWN ohne Argument",
+            "x = KEY_DOWN()\nEND\n",
+            1,
+            "Wrong number of arguments for KEY_DOWN (expected 1, got 0)",
+        )
+        expect_error(
+            work,
+            "PRINT mit zu vielen Werten",
+            'PRINT "x", 0, 0, 0, 0\nEND\n',
+            1,
+            "Wrong number of arguments for PRINT (expected 3 to 4, got 5)",
+        )
+        expect_error(
+            work,
+            "IIF braucht drei Argumente",
+            "x = IIF(1, 2)\nEND\n",
+            1,
+            "Wrong number of arguments for IIF (expected 3, got 2)",
+        )
+        expect_error(
+            work,
+            "zu wenige Argumente bei einer eigenen Funktion",
+            """FUNCTION greet: name$, punct$ = "!"
+  RETURN name$ + punct$
+ENDFUNCTION
+
+PRINT greet(), 0, 0
+END
+""",
+            5,
+            "Wrong number of arguments for greet (expected 1 to 2, got 0)",
+        )
+        expect_error(
+            work,
+            "zu viele Argumente bei einer eigenen Funktion",
+            """FUNCTION greet: name$, punct$ = "!"
+  RETURN name$ + punct$
+ENDFUNCTION
+
+PRINT greet("a", "b", "c"), 0, 0
+END
+""",
+            5,
+            "Wrong number of arguments for greet (expected 1 to 2, got 3)",
+        )
+        expect_error(
+            work,
+            "zu viele Argumente bei einer Methode",
+            """TYPE KISTE
+  w AS FLOAT
+  METHOD area:
+    RETURN w
+  ENDMETHOD
+ENDTYPE
+
+LOCAL k AS KISTE
+PRINT k.area(1), 0, 0
+END
+""",
+            9,
+            "Wrong number of arguments for area (expected 0, got 1)",
+        )
+        expect_clean(
+            work,
+            "optionale Parameter und Methoden",
+            """FUNCTION greet: name$, punct$ = "!"
+  RETURN name$ + punct$
+ENDFUNCTION
+
+TYPE KISTE
+  w AS FLOAT
+  METHOD area:
+    RETURN w
+  ENDMETHOD
+ENDTYPE
+
+LOCAL k AS KISTE
+PRINT greet("Hi") + greet("Hi", "!") + k.area(), 0, 0
+END
+""",
         )
 
         # ------------------------------------------------- Include-Zyklen
@@ -161,7 +260,10 @@ summe = 0
 GOSUB zaehle
 GOTO weiter
 weiter:
-PRINT gesamt, summe, p.x, punkte[0].y, 0, 0
+PRINT gesamt, 0, 0
+PRINT summe, 0, 20
+PRINT p.x, 0, 40
+PRINT punkte[0].y, 0, 60
 END
 
 SUB zaehle:
@@ -200,7 +302,9 @@ r.links.name$ = "ok"
 
 DIM feld[2] AS PUNKT
 feld[0].y = 2
-PRINT p.x, r.links.x, feld[0].y, 0, 0
+PRINT p.x, 0, 0
+PRINT r.links.x, 0, 20
+PRINT feld[0].y, 0, 40
 END
 """
         expect_clean(work, "TYPE-Felder: bekannte Namen", types_source)
@@ -210,21 +314,21 @@ END
             "unbekanntes Feld mit Vorschlag",
             types_source.replace('p.name$ = "ok"', 'p.nam$ = "tippfehler"'),
             14,
-            "Unknown field: NAM (PUNKT) - did you mean NAME?",
+            "Unknown field: nam (PUNKT) - did you mean name?",
         )
         expect_error(
             work,
             "unbekanntes Feld in verschachteltem TYPE",
             types_source.replace('r.links.name$ = "ok"', 'r.links.nam$ = "x"'),
             17,
-            "Unknown field: NAM (PUNKT)",
+            "Unknown field: nam (PUNKT)",
         )
         expect_error(
             work,
             "unbekanntes Feld in einem TYPE-Array",
             types_source.replace("feld[0].y = 2", "feld[0].yy = 2"),
             20,
-            "Unknown field: YY (PUNKT)",
+            "Unknown field: yy (PUNKT)",
         )
         expect_clean(
             work,
@@ -304,21 +408,21 @@ END
             "unbekannte Methode mit Vorschlag",
             method_source.replace("k.skalieren(3)", "k.skaliern(3)"),
             22,
-            "Unknown method: SKALIERN (KISTE) - did you mean SKALIEREN?",
+            "Unknown method: skaliern (KISTE) - did you mean skalieren?",
         )
         expect_error(
             work,
             "SELF ausserhalb einer METHOD",
             "TYPE T\n  x AS FLOAT\nENDTYPE\nLOCAL t AS T\nPRINT self.x, 0, 0\nEND\n",
             5,
-            "Unknown name: SELF",
+            "Unknown name: self",
         )
         expect_error(
             work,
             "unbekanntes Feld ueber SELF",
             method_source.replace("RETURN w * h", "RETURN self.nam"),
             6,
-            "Unknown field: NAM (KISTE)",
+            "Unknown field: nam (KISTE)",
         )
 
         # ------------------------------------------------------------- ENUM
@@ -437,7 +541,7 @@ END
         # -------------------------------------------------------------- stdin
         code, stderr, path = run_check(work, "nurEinTippfehler\n", name="live.gbx", stdin=True)
         check(
-            code == 2 and f"{path}:1: Error: Unknown command: NUREINTIPPFEHLER" in stderr,
+            code == 2 and f"{path}:1: Error: Unknown command: nurEinTippfehler" in stderr,
             "stdin nennt die echte Datei",
             stderr.strip() or f"Rueckgabe {code}",
         )

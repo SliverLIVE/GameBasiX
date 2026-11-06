@@ -194,9 +194,9 @@ kbd {
   transition: background .15s;
 }
 .split-left::after, .split-right::after { top: 0; bottom: 0; left: 2px; width: 1px; }
-.split-bottom::after, .split-tree::after { left: 0; right: 0; top: 2px; height: 1px; }
+.split-bottom::after, .split-tree::after, .split-ref::after { left: 0; right: 0; top: 2px; height: 1px; }
 .split-left, .split-right { cursor: col-resize; }
-.split-bottom, .split-tree { cursor: row-resize; flex: none; height: var(--splitter); }
+.split-bottom, .split-tree, .split-ref { cursor: row-resize; flex: none; height: var(--splitter); }
 .splitter:hover::after, .splitter.dragging::after, .splitter:focus-visible::after { background: var(--accent); }
 body.resizing { user-select: none !important; }
 body.resizing-col, body.resizing-col * { cursor: col-resize !important; }
@@ -806,6 +806,9 @@ pre.output .l-stderr { color: var(--red); }
   padding: 4px 6px; color: var(--muted); font-size: 11px; outline: none;
 }
 .ref-list { flex: 1; overflow: auto; border-top: 1px solid var(--border-soft); }
+/* Nach dem Ziehen am Teiler behaelt die Liste ihre Hoehe, die Beschreibung
+   nimmt den Rest. */
+.ref-list.sized { flex: 0 1 var(--ref-list); min-height: 60px; }
 .ref-item {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 12px;
@@ -824,6 +827,7 @@ pre.output .l-stderr { color: var(--red); }
 .ref-item .kind.overview { background: var(--muted); }
 .ref-item .kind.type { background: var(--amber); }
 .ref-detail { flex: 1.15; overflow: auto; border-top: 1px solid var(--border); padding: 12px 14px 24px; user-select: text; }
+.split-ref + .ref-detail { border-top: 0; }
 .ref-detail h2 { font-family: var(--mono); font-size: 17px; margin: 0 0 5px; color: var(--accent-text); }
 .ref-detail .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .badge {
@@ -1159,6 +1163,8 @@ pre.output .l-stderr { color: var(--red); }
   .workspace > .sidebar { grid-column: 1; }
   .workspace > .main-area { grid-column: 2; }
   .splitter { display: none; }
+  /* Ohne Teiler trennt die Linie Liste und Beschreibung. */
+  .ref-detail { border-top: 1px solid var(--border); }
   .reference { display: none; }
   .workspace:not(.ref-collapsed) .reference {
     display: flex;
@@ -1263,6 +1269,49 @@ pre.output .l-stderr { color: var(--red); }
 ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border: 3px solid var(--bg-elev); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
 .monaco-editor .margin { background: var(--editor-bg) !important; }
+
+/* Kompakter Monaco-Farbwähler: weniger Fläche, gleiche Bedienung. */
+.monaco-editor .monaco-hover:has(.colorpicker-widget) {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 50vw !important;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .35);
+}
+.monaco-editor .monaco-hover:has(.colorpicker-widget) .monaco-hover-content {
+  padding: 0 !important;
+}
+.monaco-editor .monaco-hover:has(.colorpicker-widget) .hover-row {
+  display: none !important;
+}
+.monaco-editor .monaco-hover .hover-row,
+.monaco-editor .monaco-hover .hover-row-contents,
+.monaco-editor .monaco-hover .hover-contents,
+.monaco-editor .monaco-hover .monaco-hover-content {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+.monaco-editor .colorpicker-widget {
+  width: 280px !important;
+  height: 156px !important;
+  max-width: 100% !important;
+}
+.monaco-editor .standalone-colorpicker-body {
+  max-width: 100% !important;
+  max-height: 190px !important;
+}
+.monaco-editor .colorpicker-header { height: 22px; }
+.monaco-editor .colorpicker-header .picked-color { width: auto; min-width: 0; }
+.monaco-editor .colorpicker-header .original-color { width: 48px; }
+.monaco-editor .colorpicker-body { padding: 6px; }
+.monaco-editor .colorpicker-body .saturation-wrap,
+.monaco-editor .colorpicker-body .saturation-box,
+.monaco-editor .colorpicker-body .strip .overlay { height: 106px; }
+.monaco-editor .colorpicker-body .saturation-wrap { min-width: 152px; }
+.monaco-editor .colorpicker-body .strip { width: 18px; height: 106px; }
+.monaco-editor .colorpicker-body .standalone-strip { width: 18px; height: 86px; }
+.monaco-editor .colorpicker-body .standalone-strip .standalone-overlay { height: 86px; }
 
 /* ------------------------------------------------------------- Vorschau */
 .editor-wrap.previewing #editor { display: none; }
@@ -1404,6 +1453,7 @@ pre.output .l-stderr { color: var(--red); }
 .sig-param { color: var(--muted2); }
 .sig-param.optional { opacity: .68; font-style: italic; }
 .sig-param.active { color: var(--blue); font-weight: 600; }
+.sig-arity { color: var(--muted); font-size: 11px; }
 .signature-bar.error .sig-param.active { color: var(--red); }
 .sig-error {
   margin-left: 4px; font-family: var(--ui); font-size: 11.5px;
@@ -1488,14 +1538,16 @@ pre.output .l-stderr { color: var(--red); }
 
 /* Fundstellenliste (Alle Referenzen) */
 .ref-head { font-size: 11px; letter-spacing: .3px; color: var(--muted2); margin-bottom: 6px; }
-.ref-list {
+/* Fundstellenliste im Dialog „Alle Referenzen“ – nicht zu verwechseln mit
+   der Befehlsliste des Referenz-Panels (.ref-list). */
+.ref-hits {
   display: flex; flex-direction: column; gap: 2px;
   max-height: 340px; overflow-y: auto; overscroll-behavior: contain;
   border: 1px solid var(--border); border-radius: 8px; background: var(--bg-deep); padding: 4px;
 }
-.ref-list::-webkit-scrollbar { width: 10px; }
-.ref-list::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 5px; }
-.ref-list::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+.ref-hits::-webkit-scrollbar { width: 10px; }
+.ref-hits::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 5px; }
+.ref-hits::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
 .ref-row {
   display: flex; align-items: baseline; gap: 10px; width: 100%;
   padding: 4px 8px; border: 0; border-radius: 6px; background: transparent;

@@ -495,7 +495,7 @@ export async function openProject(target) {
 const TEMPLATES = {
   hello: (name) => `' -------------------------------------------------------------
 ' ${name}
-' Erstellt mit GBX Studio
+' Created with GBX Studio
 ' -------------------------------------------------------------
 
 SCREEN_SET 800, 600
@@ -511,8 +511,8 @@ WHILE TRUE
     DRAW_RECT 60, 60, 680, 480, RGB(35, 42, 56)
     DRAW_RECT_BORDER 60, 60, 680, 480, RGB(90, 120, 200)
     DRAW_CIRCLE x, y, 40, RGB(240, 180, 60)
-    PRINT "Hallo GameBasiX!", x - 70, y + 70
-    PRINT "F5 startet, F7 prueft die Syntax.", 80, 500
+    PRINT "Hello GameBasiX!", x - 70, y + 70
+    PRINT "F5 runs, F7 checks the syntax.", 80, 500
     SCREEN_SHOW
     MOUSE_STATE mx, my, mb1, mb2
     IF mb1 THEN x = mx
@@ -523,13 +523,13 @@ WEND
 END
 `,
   empty: (name) => `' ${name}
-' Leeres GBX-Projekt
+' Empty GBX project
 
 SCREEN_SET 640, 480
 
 WHILE TRUE
     SCREEN_CLEAR RGB(0, 0, 0)
-    PRINT "Bereit.", 20, 20
+    PRINT "Ready.", 20, 20
     SCREEN_SHOW
     IF KEY_PRESSED(KEY_ESC) THEN BREAK
 WEND
@@ -537,24 +537,24 @@ WEND
 END
 `,
   shapes: (name) => `' ${name}
-' Formen, Farben und Text
+' Shapes, colours and text
 
 SCREEN_SET 800, 600
-CONSTANT HINTERGRUND = RGB(18, 20, 26)
+CONSTANT BACKGROUND = RGB(18, 20, 26)
 
 GLOBAL t#
 
 WHILE TRUE
-    SCREEN_CLEAR HINTERGRUND
+    SCREEN_CLEAR BACKGROUND
     t = t + 0.02
     FOR i = 0 TO 11
-        winkel# = i * 30 + t * 40
-        x# = 400 + COS(winkel#) * 180
-        y# = 300 + SIN(winkel#) * 180
+        angle# = i * 30 + t * 40
+        x# = 400 + COS(angle#) * 180
+        y# = 300 + SIN(angle#) * 180
         DRAW_CIRCLE_FILLED x#, y#, 26, RGB(60 + i * 15, 120, 220 - i * 10)
     NEXT
     DRAW_LINE 0, 300, 800, 300, RGB(70, 80, 100)
-    PRINT "GameBasiX - Formen", 24, 24
+    PRINT "GameBasiX - Shapes", 24, 24
     SCREEN_SHOW
     IF KEY_PRESSED(KEY_ESC) THEN BREAK
 WEND
@@ -562,8 +562,8 @@ WEND
 END
 `,
   sprites: (name) => `' ${name}
-' Sprites laden und bewegen
-' Bilder in den Ordner assets/ legen (PNG, JPG oder BMP).
+' Load and move sprites
+' Put images in the assets/ folder (PNG, JPG or BMP).
 
 SCREEN_SET 800, 600
 
@@ -582,7 +582,7 @@ WHILE TRUE
     IF x# < 32 OR x# > 768 THEN vx# = -vx#
     IF y# < 32 OR y# > 568 THEN vy# = -vy#
     SPRITE_DRAW_ROTATED_SCALED 0, x#, y#, x# * 0.25, 100
-    PRINT "Maus bewegt den Sprite, ESC beendet.", 20, 20
+    PRINT "The mouse moves the sprite, ESC quits.", 20, 20
     SCREEN_SHOW
     MOUSE_STATE mx, my, mb1, mb2
     IF mb1 THEN x# = mx

@@ -68,6 +68,7 @@ private:
     StmtP parseSwap();
     StmtP parseAssignmentOrCall();
     void parseFunction(bool isSub);
+    void parseTask();
     void parseParamList(std::vector<Param>& params);
     void parseMethod(const std::string& typeName);
     void parseType();

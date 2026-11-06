@@ -27,7 +27,8 @@
   "layout": {
     "sidebar": 248,
     "reference": 352,
-    "bottom": 291
+    "bottom": 291,
+    "refList": 0
   },
   "dock": {
     "zones": {

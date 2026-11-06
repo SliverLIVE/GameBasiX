@@ -51,9 +51,9 @@ std::vector<uint32_t> utf8Codepoints(const std::string& s) {
     return out;
 }
 
-inline uint8_t redOf(uint32_t c) { return static_cast<uint8_t>((c >> 16) & 0xFF); }
-inline uint8_t greenOf(uint32_t c) { return static_cast<uint8_t>((c >> 8) & 0xFF); }
-inline uint8_t blueOf(uint32_t c) { return static_cast<uint8_t>(c & 0xFF); }
+inline uint8_t redOf(Color c) { return static_cast<uint8_t>((c >> 16) & 0xFF); }
+inline uint8_t greenOf(Color c) { return static_cast<uint8_t>((c >> 8) & 0xFF); }
+inline uint8_t blueOf(Color c) { return static_cast<uint8_t>(c & 0xFF); }
 
 std::string lowerExt(const std::string& path) {
     size_t dot = path.find_last_of('.');
@@ -357,6 +357,122 @@ void Gfx::getViewport(int& x, int& y, int& w, int& h) const {
     }
 }
 
+bool Gfx::beginCamera(float x, float y, float zoom, double angle, std::string& err) {
+    if (cameraActive_) {
+        err = "CAMERA_BEGIN: a camera is already active";
+        return false;
+    }
+    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(zoom) || !std::isfinite(angle)) {
+        err = "CAMERA_BEGIN: values must be finite";
+        return false;
+    }
+    if (zoom <= 0.0f) {
+        err = "CAMERA_BEGIN: zoom must be greater than 0";
+        return false;
+    }
+    cameraX_ = x;
+    cameraY_ = y;
+    cameraZoom_ = zoom;
+    cameraAngle_ = angle;
+    cameraActive_ = true;
+    return true;
+}
+
+void Gfx::endCamera() {
+    cameraActive_ = false;
+    cameraX_ = cameraY_ = 0.0f;
+    cameraZoom_ = 1.0f;
+    cameraAngle_ = 0.0;
+}
+
+void Gfx::cameraViewCenter(float& cx, float& cy) const {
+    if (targetScreen_ >= 0) {
+        auto it = screens_.find(targetScreen_);
+        if (it != screens_.end()) {
+            float tw = 0.0f, th = 0.0f;
+            SDL_GetTextureSize(it->second, &tw, &th);
+            cx = tw / 2.0f;
+            cy = th / 2.0f;
+            return;
+        }
+    }
+    if (haveViewport_) {
+        cx = static_cast<float>(viewport_.x) + static_cast<float>(viewport_.w) / 2.0f;
+        cy = static_cast<float>(viewport_.y) + static_cast<float>(viewport_.h) / 2.0f;
+        // SET_VIEWPORT rechnet bei aktivem SCREEN_SCALE in Fensterkoordinaten;
+        // gezeichnet wird aber in der logischen Aufloesung.
+        if (prescaleW_ > 0 && prescaleH_ > 0 && width_ > 0 && height_ > 0) {
+            cx *= static_cast<float>(prescaleW_) / static_cast<float>(width_);
+            cy *= static_cast<float>(prescaleH_) / static_cast<float>(height_);
+        }
+        return;
+    }
+    if (prescaleW_ > 0 && prescaleH_ > 0) {
+        cx = static_cast<float>(prescaleW_) / 2.0f;
+        cy = static_cast<float>(prescaleH_) / 2.0f;
+    } else {
+        cx = static_cast<float>(width_) / 2.0f;
+        cy = static_cast<float>(height_) / 2.0f;
+    }
+}
+
+void Gfx::cameraWorldToScreen(float wx, float wy, float& sx, float& sy) const {
+    if (!cameraActive_) {
+        sx = wx;
+        sy = wy;
+        return;
+    }
+    float cx = 0.0f, cy = 0.0f;
+    cameraViewCenter(cx, cy);
+    const float dx = (wx - cameraX_) * cameraZoom_;
+    const float dy = (wy - cameraY_) * cameraZoom_;
+    const double rad = -cameraAngle_ * 3.14159265358979323846 / 180.0;
+    const double c = std::cos(rad);
+    const double s = std::sin(rad);
+    sx = cx + static_cast<float>(dx * c - dy * s);
+    sy = cy + static_cast<float>(dx * s + dy * c);
+}
+
+void Gfx::cameraScreenToWorld(float sx, float sy, float& wx, float& wy) const {
+    if (!cameraActive_) {
+        wx = sx;
+        wy = sy;
+        return;
+    }
+    float cx = 0.0f, cy = 0.0f;
+    cameraViewCenter(cx, cy);
+    const float dx = sx - cx;
+    const float dy = sy - cy;
+    const double rad = -cameraAngle_ * 3.14159265358979323846 / 180.0;
+    const double c = std::cos(rad);
+    const double s = std::sin(rad);
+    wx = cameraX_ + static_cast<float>(dx * c + dy * s) / cameraZoom_;
+    wy = cameraY_ + static_cast<float>(-dx * s + dy * c) / cameraZoom_;
+}
+
+void Gfx::drawTextureRect(SDL_Texture* tex, const SDL_FRect& src, float x, float y,
+                          float w, float h, double angle) {
+    if (!tex || !renderer_ || headless) return;
+    if (!cameraActive_) {
+        SDL_FRect dst{x, y, w, h};
+        if (angle == 0.0) {
+            SDL_RenderTexture(renderer_, tex, &src, &dst);
+        } else {
+            SDL_FPoint center{w / 2.0f, h / 2.0f};
+            SDL_RenderTextureRotated(renderer_, tex, &src, &dst, -angle, &center, SDL_FLIP_NONE);
+        }
+        return;
+    }
+    float cx = 0.0f, cy = 0.0f;
+    cameraWorldToScreen(x + w / 2.0f, y + h / 2.0f, cx, cy);
+    const float sw = w * cameraZoom_;
+    const float sh = h * cameraZoom_;
+    SDL_FRect dst{cx - sw / 2.0f, cy - sh / 2.0f, sw, sh};
+    SDL_FPoint center{sw / 2.0f, sh / 2.0f};
+    SDL_RenderTextureRotated(renderer_, tex, &src, &dst, -(angle + cameraAngle_), &center,
+                             SDL_FLIP_NONE);
+}
+
 int Gfx::nextSpriteId() const {
     for (int id = 0; id < 4096; ++id)
         if (sprites_.find(id) == sprites_.end()) return id;
@@ -401,33 +517,43 @@ void Gfx::setLimitFps(double fps, bool vsync) {
     if (renderer_) SDL_SetRenderVSync(renderer_, vsync ? 1 : 0);
 }
 
-void Gfx::setClearColor(uint32_t color) {
-    if (static_cast<int32_t>(color) == -1) {
+void Gfx::setClearColor(Color color) {
+    if (color == static_cast<Color>(-1)) {
         clearEnabled_ = false;
         return;
     }
     clearEnabled_ = true;
-    clearColor_ = color & 0xFFFFFF;
+    clearColor_ = colorRgb(color);
 }
 
-void Gfx::applyBlend(uint8_t& alpha) const {
+void Gfx::applyBlend(uint8_t& alpha, Color color) const {
     if (!renderer_) return;
+    double a = colorAlpha(color) / 255.0;
     if (alphaMode_ > 0.0) {
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_ADD);
-        alpha = 255;
     } else if (alphaMode_ < 0.0) {
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
-        double a = 1.0 + alphaMode_;
+        a *= 1.0 + alphaMode_;
         if (a < 0) a = 0;
-        alpha = static_cast<uint8_t>(std::lround(a * 255));
     } else {
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
-        alpha = 255;
     }
+    if (a > 1.0) a = 1.0;
+    alpha = static_cast<uint8_t>(std::lround(a * 255));
 }
 
-void Gfx::clearScreen(uint32_t color) {
-    clearColor_ = color & 0xFFFFFF;
+uint8_t Gfx::textureAlpha(Color color) const {
+    double a = colorAlpha(color) / 255.0;
+    if (alphaMode_ < 0.0) {
+        a *= 1.0 + alphaMode_;
+        if (a < 0) a = 0;
+    }
+    if (a > 1.0) a = 1.0;
+    return static_cast<uint8_t>(std::lround(a * 255));
+}
+
+void Gfx::clearScreen(Color color) {
+    clearColor_ = colorRgb(color);
     clearEnabled_ = true;
     if (headless || !renderer_) return;
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
@@ -466,20 +592,45 @@ void Gfx::beginFrameImpl() {
 
 // ------------------------------------------------------------------- Zeichnen
 
-void Gfx::drawLine(float x1, float y1, float x2, float y2, uint32_t color) {
+void Gfx::drawLine(float x1, float y1, float x2, float y2, Color color) {
     if (headless || !renderer_) return;
+    if (cameraActive_) {
+        float ax = 0.0f, ay = 0.0f, bx = 0.0f, by = 0.0f;
+        cameraWorldToScreen(x1, y1, ax, ay);
+        cameraWorldToScreen(x2, y2, bx, by);
+        x1 = ax; y1 = ay; x2 = bx; y2 = by;
+    }
     uint8_t a = 255;
-    applyBlend(a);
+    applyBlend(a, color);
     SDL_SetRenderDrawColor(renderer_, redOf(color), greenOf(color), blueOf(color), a);
     SDL_RenderLine(renderer_, x1, y1, x2, y2);
 }
 
-void Gfx::drawRect(float x, float y, float w, float h, uint32_t color) {
+void Gfx::drawRect(float x, float y, float w, float h, Color color) {
     if (headless || !renderer_) return;
     if (w < 0) { x += w; w = -w; }
     if (h < 0) { y += h; h = -h; }
+    if (cameraActive_) {
+        const SDL_FPoint corners[4] = {
+            {x, y}, {x + w, y}, {x + w, y + h}, {x, y + h}
+        };
+        SDL_Vertex verts[4];
+        uint8_t a = 255;
+        applyBlend(a, color);
+        for (int i = 0; i < 4; ++i) {
+            float sx = 0.0f, sy = 0.0f;
+            cameraWorldToScreen(corners[i].x, corners[i].y, sx, sy);
+            verts[i].position = SDL_FPoint{sx, sy};
+            verts[i].tex_coord = SDL_FPoint{0.0f, 0.0f};
+            verts[i].color = SDL_FColor{redOf(color) / 255.0f, greenOf(color) / 255.0f,
+                                        blueOf(color) / 255.0f, a / 255.0f};
+        }
+        const int indices[6] = {0, 1, 2, 0, 2, 3};
+        SDL_RenderGeometry(renderer_, nullptr, verts, 4, indices, 6);
+        return;
+    }
     uint8_t a = 255;
-    applyBlend(a);
+    applyBlend(a, color);
     SDL_SetRenderDrawColor(renderer_, redOf(color), greenOf(color), blueOf(color), a);
     SDL_FRect r{x, y, w, h};
     SDL_RenderFillRect(renderer_, &r);
@@ -520,11 +671,18 @@ void Gfx::blitPixels(const void* rgba, int w, int h, int stride) {
     SDL_RenderTexture(renderer_, videoTex_, nullptr, &dst);
 }
 
-void Gfx::drawCircle(float cx, float cy, float r, uint32_t color, bool filled) {
+void Gfx::drawCircle(float cx, float cy, float r, Color color, bool filled) {
     if (headless || !renderer_) return;
     if (r <= 0) return;
+    if (cameraActive_) {
+        float sx = 0.0f, sy = 0.0f;
+        cameraWorldToScreen(cx, cy, sx, sy);
+        cx = sx;
+        cy = sy;
+        r *= cameraZoom_;
+    }
     uint8_t a = 255;
-    applyBlend(a);
+    applyBlend(a, color);
     SDL_SetRenderDrawColor(renderer_, redOf(color), greenOf(color), blueOf(color), a);
     if (filled) {
         for (int dy = static_cast<int>(-r); dy <= static_cast<int>(r); ++dy) {
@@ -545,10 +703,16 @@ void Gfx::drawCircle(float cx, float cy, float r, uint32_t color, bool filled) {
     }
 }
 
-void Gfx::setPixel(int x, int y, uint32_t color) {
+void Gfx::setPixel(int x, int y, Color color) {
     if (headless || !renderer_) return;
+    if (cameraActive_) {
+        float sx = 0.0f, sy = 0.0f;
+        cameraWorldToScreen(static_cast<float>(x), static_cast<float>(y), sx, sy);
+        x = static_cast<int>(std::lround(sx));
+        y = static_cast<int>(std::lround(sy));
+    }
     uint8_t a = 255;
-    applyBlend(a);
+    applyBlend(a, color);
     SDL_SetRenderDrawColor(renderer_, redOf(color), greenOf(color), blueOf(color), a);
     SDL_RenderPoint(renderer_, static_cast<float>(x), static_cast<float>(y));
 }
@@ -579,7 +743,7 @@ void Gfx::startPoly(int spriteId, int mode) {
     polyVerts_.clear();
 }
 
-void Gfx::polyVector(float x, float y, float u, float v, uint32_t color) {
+void Gfx::polyVector(float x, float y, float u, float v, Color color) {
     if (!polyActive_) return;
     PolyVertex pv;
     pv.x = x;
@@ -600,10 +764,14 @@ void Gfx::endPoly() {
     double mul = alphaMode_ < 0 ? 1.0 + alphaMode_ : 1.0;
     for (const auto& p : polyVerts_) {
         SDL_Vertex v;
-        v.position = SDL_FPoint{p.x, p.y};
+        float sx = p.x, sy = p.y;
+        if (cameraActive_) cameraWorldToScreen(p.x, p.y, sx, sy);
+        v.position = SDL_FPoint{sx, sy};
         v.tex_coord = SDL_FPoint{p.u, p.v};
+        const float alpha = static_cast<float>(colorAlpha(p.color) / 255.0) *
+                            static_cast<float>(mul);
         v.color = SDL_FColor{redOf(p.color) / 255.0f, greenOf(p.color) / 255.0f,
-                             blueOf(p.color) / 255.0f, static_cast<float>(mul)};
+                             blueOf(p.color) / 255.0f, alpha};
         verts.push_back(v);
     }
 
@@ -896,8 +1064,7 @@ void Gfx::drawSprite(int id, float x, float y) {
     if (!s || !s->tex || headless || !renderer_) return;
     prepareTexture(s->tex);
     SDL_FRect src{0, 0, static_cast<float>(s->w), static_cast<float>(s->h)};
-    SDL_FRect dst{x, y, static_cast<float>(s->w), static_cast<float>(s->h)};
-    SDL_RenderTexture(renderer_, s->tex, &src, &dst);
+    drawTextureRect(s->tex, src, x, y, static_cast<float>(s->w), static_cast<float>(s->h), 0.0);
 }
 
 void Gfx::drawSpriteZoom(int id, float x, float y, float sx, float sy) {
@@ -909,8 +1076,7 @@ void Gfx::drawSpriteZoom(int id, float x, float y, float sx, float sy) {
     float w = s->w * fx;
     float h = s->h * fy;
     SDL_FRect src{0, 0, static_cast<float>(s->w), static_cast<float>(s->h)};
-    SDL_FRect dst{x + (s->w - w) / 2.0f, y + (s->h - h) / 2.0f, w, h};
-    SDL_RenderTexture(renderer_, s->tex, &src, &dst);
+    drawTextureRect(s->tex, src, x + (s->w - w) / 2.0f, y + (s->h - h) / 2.0f, w, h, 0.0);
 }
 
 void Gfx::drawSpriteRotozoom(int id, float x, float y, double angle, float scale) {
@@ -919,10 +1085,7 @@ void Gfx::drawSpriteRotozoom(int id, float x, float y, double angle, float scale
     prepareTexture(s->tex);
     float f = scale / 100.0f;
     SDL_FRect src{0, 0, static_cast<float>(s->w), static_cast<float>(s->h)};
-    SDL_FRect dst{x, y, s->w * f, s->h * f};
-    SDL_FPoint center{dst.w / 2.0f, dst.h / 2.0f};
-    SDL_RenderTextureRotated(renderer_, s->tex, &src, &dst, static_cast<double>(-angle), &center,
-                             SDL_FLIP_NONE);
+    drawTextureRect(s->tex, src, x, y, s->w * f, s->h * f, angle);
 }
 
 void Gfx::drawAnim(int id, int frame, float x, float y) {
@@ -932,8 +1095,7 @@ void Gfx::drawAnim(int id, int frame, float x, float y) {
     SDL_FRect src;
     int fw = 0, fh = 0;
     frameRect(*s, frame, src, fw, fh);
-    SDL_FRect dst{x, y, static_cast<float>(fw), static_cast<float>(fh)};
-    SDL_RenderTexture(renderer_, s->tex, &src, &dst);
+    drawTextureRect(s->tex, src, x, y, static_cast<float>(fw), static_cast<float>(fh), 0.0);
 }
 
 void Gfx::drawAnimRotozoom(int id, int frame, float x, float y, double angle, float scale) {
@@ -944,10 +1106,7 @@ void Gfx::drawAnimRotozoom(int id, int frame, float x, float y, double angle, fl
     int fw = 0, fh = 0;
     frameRect(*s, frame, src, fw, fh);
     float f = scale / 100.0f;
-    SDL_FRect dst{x, y, fw * f, fh * f};
-    SDL_FPoint center{dst.w / 2.0f, dst.h / 2.0f};
-    SDL_RenderTextureRotated(renderer_, s->tex, &src, &dst, static_cast<double>(-angle), &center,
-                             SDL_FLIP_NONE);
+    drawTextureRect(s->tex, src, x, y, fw * f, fh * f, angle);
 }
 
 void Gfx::drawAnimStretch(int id, int frame, float x, float y, float w, float h) {
@@ -957,8 +1116,7 @@ void Gfx::drawAnimStretch(int id, int frame, float x, float y, float w, float h)
     SDL_FRect src;
     int fw = 0, fh = 0;
     frameRect(*s, frame, src, fw, fh);
-    SDL_FRect dst{x, y, w, h};
-    SDL_RenderTexture(renderer_, s->tex, &src, &dst);
+    drawTextureRect(s->tex, src, x, y, w, h, 0.0);
 }
 
 bool Gfx::spriteCollision(int id1, float x1, float y1, int id2, float x2, float y2) const {
@@ -1405,18 +1563,12 @@ void Gfx::textSize(const std::string& text, int& w, int& h) const {
     h = f->cellH * f->scale * lines;
 }
 
-void Gfx::drawGlyphs(const std::string& text, float x, float y, uint32_t color) {
+void Gfx::drawGlyphs(const std::string& text, float x, float y, Color color) {
     const FontSlot* f = activeFont();
     if (!f || !f->atlas || headless || !renderer_) return;
     SDL_SetTextureBlendMode(f->atlas, alphaMode_ > 0 ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
     SDL_SetTextureColorMod(f->atlas, redOf(color), greenOf(color), blueOf(color));
-    int a = 255;
-    if (alphaMode_ < 0) {
-        double m = 1.0 + alphaMode_;
-        if (m < 0) m = 0;
-        a = static_cast<int>(std::lround(m * 255));
-    }
-    SDL_SetTextureAlphaMod(f->atlas, static_cast<Uint8>(a));
+    SDL_SetTextureAlphaMod(f->atlas, textureAlpha(color));
 
     float cw = static_cast<float>(f->cellW * f->scale);
     float ch = static_cast<float>(f->cellH * f->scale);
@@ -1437,7 +1589,7 @@ void Gfx::drawGlyphs(const std::string& text, float x, float y, uint32_t color) 
                       static_cast<float>((idx / f->atlasCols) * f->cellH),
                       static_cast<float>(f->cellW), static_cast<float>(f->cellH)};
         SDL_FRect dst{px, y, cw, ch};
-        SDL_RenderTexture(renderer_, f->atlas, &src, &dst);
+        drawTextureRect(f->atlas, src, dst.x, dst.y, dst.w, dst.h, 0.0);
         px += cw;
     }
 }
@@ -1482,7 +1634,7 @@ const GlyphInfo* Gfx::glyphFor(int fontId, const FontSlot& f, uint32_t cp) {
 #endif
 }
 
-void Gfx::drawText(const std::string& text, float x, float y, uint32_t color) {
+void Gfx::drawText(const std::string& text, float x, float y, Color color) {
     if (headless || !renderer_) return;
     const FontSlot* f = activeFont();
     if (!f) return;
@@ -1510,11 +1662,13 @@ void Gfx::drawText(const std::string& text, float x, float y, uint32_t color) {
         if (g && g->tex && g->w > 0 && g->h > 0) {
             prepareTexture(g->tex);
             SDL_SetTextureColorMod(g->tex, redOf(color), greenOf(color), blueOf(color));
+            SDL_SetTextureAlphaMod(g->tex, textureAlpha(color));
             SDL_FRect dst{pen + static_cast<float>(g->bearingX) * f->scale,
                           baseline - static_cast<float>(g->bearingY) * f->scale,
                           static_cast<float>(g->w) * f->scale,
                           static_cast<float>(g->h) * f->scale};
-            SDL_RenderTexture(renderer_, g->tex, nullptr, &dst);
+            SDL_FRect src{0, 0, static_cast<float>(g->w), static_cast<float>(g->h)};
+            drawTextureRect(g->tex, src, dst.x, dst.y, dst.w, dst.h, 0.0);
         }
         if (g) pen += static_cast<float>(g->advance) * f->scale;
         prev = cp;
@@ -1522,7 +1676,7 @@ void Gfx::drawText(const std::string& text, float x, float y, uint32_t color) {
 #endif
 }
 
-void Gfx::drawTextCentered(const std::string& text, float cx, float y, uint32_t color) {
+void Gfx::drawTextCentered(const std::string& text, float cx, float y, Color color) {
     int w = 0, h = 0;
     textSize(text, w, h);
     drawText(text, cx - w / 2.0f, y, color);
@@ -1537,6 +1691,9 @@ void Gfx::present() {
         SDL_RenderPresent(renderer_);
         beginFrameImpl();
     }
+    // Eine vergessene CAMERA_END darf nicht in das naechste Bild laufen;
+    // HUD-Aufrufe nach SCREEN_SHOW bleiben dadurch normale Bildschirmzeichen.
+    endCamera();
     if (onFrame) onFrame();
     Uint64 now = SDL_GetTicks();
     lastFrameDuration_ = now - frameStart_;

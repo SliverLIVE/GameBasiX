@@ -17,6 +17,10 @@ struct Token {
     int line = 0;
     // Bei Tok::Inline: 0 = INLINE, 1 = INLINE DEFINE, 2 = INLINE RUN
     int mode = 0;
+    // Schreibweise des Bezeichners im Quelltext. `text` bleibt die Grossform
+    // fuer Schluesselwoerter und Befehle; eigene Namen (Variablen, FUNCTIONs,
+    // TYPEs) werden ueber `raw` exakt verglichen.
+    std::string raw;
 };
 
 // Ein INLINE … ENDINLINE-Block: C++-Quelltext, der unveraendert an den

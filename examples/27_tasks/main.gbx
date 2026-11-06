@@ -1,0 +1,163 @@
+' ============================================================
+' Tasks, jobs and asynchronous files
+' Run: gbx examples/27_tasks/tasks.gbxproj
+'
+'   TASK ... AWAIT FRAME     cooperates with the main loop
+'   SPAWN(@sumTo, 200000)    pure function on a worker thread
+'   FILE_READ_ASYNC(...)     the same job handle for file I/O
+'   JOB_DONE / JOB_VALUE     poll once per frame, never block
+'
+' The main loop draws all the time; the worker copies the globals,
+' computes on its own and hands the result back through the job.
+' ============================================================
+
+SCREEN_SET 900, 600, 0
+WINDOW_TITLE "GameBasiX - tasks, jobs and async files"
+LIMIT_FPS 60
+
+GLOBAL Pulse = 0
+GLOBAL Story$ = "starting the tasks"
+GLOBAL Sum = 0
+GLOBAL JobState = 0
+GLOBAL SourceLines = 0
+GLOBAL SourceState = 0
+
+' A pure function: it only reads its argument and returns a number.
+FUNCTION sumTo: n
+  total = 0
+  FOR i = 1 TO n
+    total = total + i
+  NEXT
+  RETURN total
+ENDFUNCTION
+
+' Task 1: one step per frame. It may draw and use any command.
+TASK pulse:
+  WHILE TRUE
+    Pulse = Pulse + 3
+    IF Pulse >= 360 THEN Pulse = Pulse - 360
+    AWAIT FRAME
+  WEND
+ENDTASK
+
+' Task 2: start a worker, wait for it without blocking the frame,
+' then read this source file through the same job system.
+TASK story:
+  Story$ = "SPAWN: summing 1..200000 on a worker"
+  job = SPAWN(@sumTo, 200000)
+  WHILE JOB_DONE(job) = 0
+    AWAIT FRAME
+  WEND
+  Sum = JOB_VALUE(job)
+  JOB_FREE(job)
+  JobState = 1
+  Story$ = "worker done: " + STR$(Sum) + " (main globals untouched)"
+  AWAIT 0.8
+
+  Story$ = "FILE_READ_ASYNC: reading main.gbx"
+  readJob = FILE_READ_ASYNC("main.gbx")
+  WHILE JOB_DONE(readJob) = 0
+    AWAIT FRAME
+  WEND
+  text$ = JOB_VALUE(readJob)
+  JOB_FREE(readJob)
+  count = 1
+  FOR i = 0 TO LEN(text$) - 1
+    IF MID$(text$, i, 1) = CHR$(10) THEN count = count + 1
+  NEXT
+  SourceLines = count
+  SourceState = 1
+  Story$ = "file worker done: " + STR$(count) + " lines"
+  AWAIT 0.8
+  Story$ = "tasks keep drawing while the workers run"
+ENDTASK
+
+TASK_START("pulse")
+TASK_START("story")
+
+WHILE TRUE
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  SCREEN_CLEAR RGB(8, 11, 20)
+
+  TEXT_COLOR RGB(235, 241, 250)
+  PRINT "TASKS / JOBS / ASYNC FILES", 44, 26
+  TEXT_COLOR RGB(145, 174, 210)
+  PRINT "three ways to keep a frame short - all without shared state", 44, 56
+
+  TEXT_COLOR RGB(255, 224, 130)
+  PRINT Story$, 44, 96
+
+  TEXT_COLOR RGB(190, 204, 222)
+  PRINT "TASK_COUNT() = " + STR$(TASK_COUNT()), 44, 132
+
+  ' --- the task: a circle moved by the pulse it advances every frame ---
+  DRAW_RECT 44, 180, 250, 330, RGB(17, 24, 38)
+  DRAW_RECT_BORDER 44, 180, 250, 330, RGB(42, 60, 86)
+  TEXT_COLOR RGB(120, 200, 160)
+  PRINT "TASK pulse", 64, 200
+  TEXT_COLOR RGB(160, 176, 198)
+  PRINT "AWAIT FRAME", 64, 226
+
+  px = 169 + SIN(Pulse) * 72
+  py = 320 + COS(Pulse) * 72
+  DRAW_CIRCLE_FILLED(px, py, 26, RGB(90, 210, 160))
+  DRAW_CIRCLE(px, py, 40, RGB(50, 90, 80))
+  DRAW_LINE 169, 320, px, py, RGB(60, 110, 100)
+
+  TEXT_COLOR RGB(130, 146, 166)
+  PRINT "pulse = " + STR$(INTEGER(Pulse)) + " deg", 64, 470
+
+  ' --- the job: a pure function on a worker thread ---
+  DRAW_RECT 325, 180, 250, 330, RGB(17, 24, 38)
+  DRAW_RECT_BORDER 325, 180, 250, 330, RGB(42, 60, 86)
+  TEXT_COLOR RGB(120, 180, 220)
+  PRINT "SPAWN sumTo", 345, 200
+  TEXT_COLOR RGB(160, 176, 198)
+  PRINT "worker thread", 345, 226
+
+  barWidth = 210
+  filled = barWidth * JobState
+  DRAW_RECT 345, 300, barWidth, 22, RGB(30, 42, 60)
+  IF filled > 0 THEN DRAW_RECT 345, 300, filled, 22, RGB(70, 150, 220)
+  DRAW_RECT_BORDER 345, 300, barWidth, 22, RGB(80, 120, 160)
+
+  IF JobState THEN
+    TEXT_COLOR RGB(220, 236, 250)
+    PRINT "1 + 2 + ... + 200000", 345, 344
+    PRINT "= " + STR$(Sum), 345, 372
+    TEXT_COLOR RGB(120, 200, 160)
+    PRINT "JOB_VALUE, no lock", 345, 408
+  ELSE
+    TEXT_COLOR RGB(130, 146, 166)
+    PRINT "waiting for JOB_DONE(job)", 345, 344
+  ENDIF
+
+  ' --- the async file: same handle, same polling ---
+  DRAW_RECT 606, 180, 250, 330, RGB(17, 24, 38)
+  DRAW_RECT_BORDER 606, 180, 250, 330, RGB(42, 60, 86)
+  TEXT_COLOR RGB(220, 180, 120)
+  PRINT "FILE_READ_ASYNC", 626, 200
+  TEXT_COLOR RGB(160, 176, 198)
+  PRINT "main.gbx", 626, 226
+
+  IF SourceState THEN
+    TEXT_COLOR RGB(220, 236, 250)
+    PRINT "read on a worker:", 626, 300
+    PRINT STR$(SourceLines) + " lines", 626, 328
+    TEXT_COLOR RGB(120, 200, 160)
+    PRINT "JOB_VALUE is the text", 626, 372
+    TEXT_COLOR RGB(130, 146, 166)
+    PRINT "JOB_FREE when done", 626, 400
+  ELSE
+    TEXT_COLOR RGB(130, 146, 166)
+    PRINT "waiting for the read", 626, 300
+    PRINT "the window keeps drawing", 626, 328
+  ENDIF
+
+  TEXT_COLOR RGB(110, 126, 148)
+  PRINT "AWAIT waits inside a TASK; SPAWN and FILE_*_ASYNC return a job for JOB_DONE", 44, 548
+  PRINT "ESC ends the program and joins the workers", 44, 572
+
+  SCREEN_SHOW
+WEND

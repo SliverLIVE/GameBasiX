@@ -143,7 +143,7 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
 
         // Zeilenende
         if (c == '\n') {
-            out.push_back(Token{Tok::Newline, "", 0, 0.0, line});
+            out.push_back(Token{Tok::Newline, "", 0, 0.0, line, 0, ""});
             ++p;
             ++line;
             lineStart = p;
@@ -152,7 +152,7 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
         if (c == '\r') {
             ++p;
             if (p < n && src[p] == '\n') ++p;
-            out.push_back(Token{Tok::Newline, "", 0, 0.0, line});
+            out.push_back(Token{Tok::Newline, "", 0, 0.0, line, 0, ""});
             ++line;
             lineStart = p;
             continue;
@@ -268,7 +268,8 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
             size_t start = p;
             while (p < n && isIdentChar(static_cast<unsigned char>(src[p]))) ++p;
             if (p < n && (src[p] == '$' || src[p] == '%' || src[p] == '#')) ++p;
-            t.text = toUpperAscii(src.substr(start, p - start));
+            t.raw = src.substr(start, p - start);
+            t.text = toUpperAscii(t.raw);
             if (t.text == "INLINE" && onlySpaceBefore(lineStart, start, src)) {
                 Token block;
                 int endLine = 0;
@@ -276,7 +277,7 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
                 if (next > 0) {
                     out.push_back(std::move(block));
                     // Zeilenende hinter ENDINLINE: die Anweisung ist zu Ende.
-                    out.push_back(Token{Tok::Newline, "", 0, 0.0, endLine});
+                    out.push_back(Token{Tok::Newline, "", 0, 0.0, endLine, 0, ""});
                     line = endLine + 1;
                     p = next;
                     lineStart = p;
@@ -316,6 +317,6 @@ std::vector<Token> lexFile(const std::string& path, const std::string& src) {
         fail(std::string("Unexpected character '") + static_cast<char>(c) + "'", line);
     }
 
-    out.push_back(Token{Tok::Eof, "", 0, 0.0, line});
+    out.push_back(Token{Tok::Eof, "", 0, 0.0, line, 0, ""});
     return out;
 }

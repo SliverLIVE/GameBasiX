@@ -2,8 +2,8 @@
  "meta": {
   "app": "GameBasiX",
   "version": 1,
-  "generatedAt": "2026-11-02T19:58:17.034Z",
-  "commands": 315,
+  "generatedAt": "2026-11-06T21:58:48.731Z",
+  "commands": 378,
   "note": "Aus der Befehlsliste der README erzeugt; die Beschreibungen sind eigene Texte auf Deutsch und Englisch. Spracheigenschaften stehen im Eintrag „Sprachdetails“. "
  },
  "categories": [
@@ -19,6 +19,7 @@
   "Arrays und Dictionaries",
   "Netzwerk",
   "Steam",
+  "Tasks und Jobs",
   "Laufzeit und Debug",
   "Sprache",
   "Arrays",
@@ -53,6 +54,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "ABS(m)",
    "syntaxEn": [
     "ABS(m)"
@@ -85,6 +88,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "ACOS(a)",
    "syntaxEn": [
     "ACOS(a)"
@@ -117,6 +122,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "ALLOW_ESCAPE on",
    "syntaxEn": [
     "ALLOW_ESCAPE on"
@@ -222,6 +229,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 8,
+   "maxArgs": 8,
    "signatureEn": "ANIM_COLLIDE(...)",
    "syntaxEn": [
     "ANIM_COLLIDE(...)"
@@ -275,6 +284,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "ANIM_DRAW id,frame,x,y",
    "syntaxEn": [
     "ANIM_DRAW id,frame,x,y"
@@ -342,6 +353,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 6,
+   "maxArgs": 6,
    "signatureEn": "ANIM_DRAW_ROTATED_SCALED id,frame,x,y,angle,zoom%",
    "syntaxEn": [
     "ANIM_DRAW_ROTATED_SCALED id,frame,x,y,angle,zoom%"
@@ -409,6 +422,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 6,
+   "maxArgs": 6,
    "signatureEn": "ANIM_DRAW_STRETCHED id,frame,x,y,w,h",
    "syntaxEn": [
     "ANIM_DRAW_STRETCHED id,frame,x,y,w,h"
@@ -462,6 +477,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "ANIM_LOAD \"sheet.png\",id,tilew,tileh",
    "syntaxEn": [
     "ANIM_LOAD \"sheet.png\",id,tilew,tileh"
@@ -508,6 +525,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "ANIM_SET_TILES id,w,h",
    "syntaxEn": [
     "ANIM_SET_TILES id,w,h"
@@ -547,6 +566,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "ARRAY_BOUNDS(a[], dimension)",
    "syntaxEn": [
     "ARRAY_BOUNDS(a[], dimension)"
@@ -593,6 +614,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 3,
    "signatureEn": "ARRAY_FIND(array, value[, start])",
    "syntaxEn": [
     "ARRAY_FIND(array, value[, start])"
@@ -639,6 +662,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 3,
    "signatureEn": "ARRAY_SORT array[, direction[, field$]]",
    "syntaxEn": [
     "ARRAY_SORT array[, direction[, field$]]"
@@ -702,6 +727,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "ASC(text[,index])",
    "syntaxEn": [
     "ASC(text[,index])"
@@ -734,6 +761,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "ASIN(a)",
    "syntaxEn": [
     "ASIN(a)"
@@ -773,6 +802,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "ASSERT condition[,text]",
    "syntaxEn": [
     "ASSERT condition[,text]"
@@ -797,6 +828,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "ASSET_RELOAD()",
    "syntaxEn": [
     "ASSET_RELOAD()"
@@ -836,9 +869,35 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "ATAN(dy,dx)",
    "syntaxEn": [
     "ATAN(dy,dx)"
+   ]
+  },
+  {
+   "name": "AWAIT",
+   "displayName": "AWAIT",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "AWAIT FRAME | seconds",
+   "syntax": [
+    "AWAIT FRAME | seconds"
+   ],
+   "description": {
+    "de": "Wartet in einem TASK auf den nächsten Frame (AWAIT FRAME) oder auf Sekunden (AWAIT 0.5).",
+    "en": "Waits inside a TASK for the next frame (AWAIT FRAME) or for seconds (AWAIT 0.5)."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "AWAIT FRAME | seconds",
+   "syntaxEn": [
+    "AWAIT FRAME | seconds"
    ]
   },
   {
@@ -868,6 +927,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "BACKGROUND_LOAD \"image.png\"",
    "syntaxEn": [
     "BACKGROUND_LOAD \"image.png\""
@@ -907,6 +968,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "BAND(num1, num2)",
    "syntaxEn": [
     "BAND(num1, num2)"
@@ -939,6 +1002,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "BNOT(num1)",
    "syntaxEn": [
     "BNOT(num1)"
@@ -978,6 +1043,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "BOR(num1, num2)",
    "syntaxEn": [
     "BOR(num1, num2)"
@@ -1041,6 +1108,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "BXOR(num1, num2)",
    "syntaxEn": [
     "BXOR(num1, num2)"
@@ -1068,6 +1137,197 @@
    "signatureEn": "BYREF",
    "syntaxEn": [
     "BYREF"
+   ]
+  },
+  {
+   "name": "CAMERA_BEGIN",
+   "displayName": "CAMERA_BEGIN",
+   "kind": "command",
+   "category": "Fenster und Bildschirm",
+   "signature": "CAMERA_BEGIN x,y[,zoom[,angle]]",
+   "syntax": [
+    "CAMERA_BEGIN x,y[,zoom[,angle]]"
+   ],
+   "description": {
+    "de": "Schaltet auf eine 2D-Kamera um: x/y ist der Weltpunkt in der Mitte des aktuellen Viewports, zoom 1 zeichnet 1:1 und angle dreht die Welt in Grad gegen den Uhrzeigersinn. Alle Zeichenbefehle bis CAMERA_END rechnen in Weltkoordinaten.",
+    "en": "Switches to a 2D camera: x/y is the world point at the centre of the current viewport, zoom 1 draws 1:1, and angle rotates the world in degrees counter-clockwise. Every drawing command until CAMERA_END uses world coordinates."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "x",
+     "label": "x",
+     "labelEn": "x",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "y",
+     "label": "y",
+     "labelEn": "y",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "zoom",
+     "label": "zoom",
+     "labelEn": "zoom",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "angle",
+     "label": "angle",
+     "labelEn": "angle",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 2,
+   "maxArgs": 4,
+   "signatureEn": "CAMERA_BEGIN x,y[,zoom[,angle]]",
+   "syntaxEn": [
+    "CAMERA_BEGIN x,y[,zoom[,angle]]"
+   ]
+  },
+  {
+   "name": "CAMERA_END",
+   "displayName": "CAMERA_END",
+   "kind": "command",
+   "category": "Fenster und Bildschirm",
+   "signature": "CAMERA_END",
+   "syntax": [
+    "CAMERA_END"
+   ],
+   "description": {
+    "de": "Beendet die 2D-Kamera und schaltet wieder auf Bildschirmkoordinaten um. HUD und Dialoge danach normal zeichnen.",
+    "en": "Ends the 2D camera and returns to screen coordinates. Draw the HUD and dialogs normally afterwards."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "CAMERA_END",
+   "syntaxEn": [
+    "CAMERA_END"
+   ]
+  },
+  {
+   "name": "CAMERA_SCREEN_TO_WORLD",
+   "displayName": "CAMERA_SCREEN_TO_WORLD",
+   "kind": "command",
+   "category": "Fenster und Bildschirm",
+   "signature": "CAMERA_SCREEN_TO_WORLD x,y,wx,wy",
+   "syntax": [
+    "CAMERA_SCREEN_TO_WORLD x,y,wx,wy"
+   ],
+   "description": {
+    "de": "Rechnet Bildschirmkoordinaten mit der aktuellen Kamera in Weltkoordinaten um und schreibt sie in wx und wy.",
+    "en": "Converts screen coordinates with the active camera into world coordinates and stores them in wx and wy."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "x",
+     "label": "x",
+     "labelEn": "x",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "y",
+     "label": "y",
+     "labelEn": "y",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "wx",
+     "label": "wx",
+     "labelEn": "wx",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "wy",
+     "label": "wy",
+     "labelEn": "wy",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
+   "signatureEn": "CAMERA_SCREEN_TO_WORLD x,y,wx,wy",
+   "syntaxEn": [
+    "CAMERA_SCREEN_TO_WORLD x,y,wx,wy"
+   ]
+  },
+  {
+   "name": "CAMERA_WORLD_TO_SCREEN",
+   "displayName": "CAMERA_WORLD_TO_SCREEN",
+   "kind": "command",
+   "category": "Fenster und Bildschirm",
+   "signature": "CAMERA_WORLD_TO_SCREEN x,y,sx,sy",
+   "syntax": [
+    "CAMERA_WORLD_TO_SCREEN x,y,sx,sy"
+   ],
+   "description": {
+    "de": "Rechnet Weltkoordinaten mit der aktuellen Kamera in Bildschirmkoordinaten um und schreibt sie in sx und sy.",
+    "en": "Converts world coordinates with the active camera into screen coordinates and stores them in sx and sy."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "x",
+     "label": "x",
+     "labelEn": "x",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "y",
+     "label": "y",
+     "labelEn": "y",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "sx",
+     "label": "sx",
+     "labelEn": "sx",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "sy",
+     "label": "sy",
+     "labelEn": "sy",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
+   "signatureEn": "CAMERA_WORLD_TO_SCREEN x,y,sx,sy",
+   "syntaxEn": [
+    "CAMERA_WORLD_TO_SCREEN x,y,sx,sy"
    ]
   },
   {
@@ -1145,6 +1405,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "CEIL value",
    "syntaxEn": [
     "CEIL value"
@@ -1177,6 +1439,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "CHR$(num)",
    "syntaxEn": [
     "CHR$(num)"
@@ -1201,6 +1465,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "COMMAND_LINE$()",
    "syntaxEn": [
     "COMMAND_LINE$()"
@@ -1305,6 +1571,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "COS(angle)",
    "syntaxEn": [
     "COS(angle)"
@@ -1337,6 +1605,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "DEBUG text",
    "syntaxEn": [
     "DEBUG text"
@@ -1409,6 +1679,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "DELTA_TIME()",
    "syntaxEn": [
     "DELTA_TIME()"
@@ -1448,6 +1720,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "DESKTOP_SIZE w,h",
    "syntaxEn": [
     "DESKTOP_SIZE w,h"
@@ -1480,6 +1754,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "DICT_CLEAR d",
    "syntaxEn": [
     "DICT_CLEAR d"
@@ -1512,6 +1788,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "DICT_COUNT(d)",
    "syntaxEn": [
     "DICT_COUNT(d)"
@@ -1551,6 +1829,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "DICT_DELETE d,key$",
    "syntaxEn": [
     "DICT_DELETE d,key$"
@@ -1597,6 +1877,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 3,
    "signatureEn": "DICT_GET(d,key$[,default])",
    "syntaxEn": [
     "DICT_GET(d,key$[,default])"
@@ -1636,6 +1918,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "DICT_HAS(d,key$)",
    "syntaxEn": [
     "DICT_HAS(d,key$)"
@@ -1675,6 +1959,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "DICT_KEY$(d,i)",
    "syntaxEn": [
     "DICT_KEY$(d,i)"
@@ -1707,6 +1993,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "DICT_KEYS(d)",
    "syntaxEn": [
     "DICT_KEYS(d)"
@@ -1731,6 +2019,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "DICT_NEW()",
    "syntaxEn": [
     "DICT_NEW()"
@@ -1777,6 +2067,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "DICT_SET d,key$,value",
    "syntaxEn": [
     "DICT_SET d,key$,value"
@@ -1816,6 +2108,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "DICT_VALUE(d,i)",
    "syntaxEn": [
     "DICT_VALUE(d,i)"
@@ -1848,6 +2142,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "DICT_VALUES(d)",
    "syntaxEn": [
     "DICT_VALUES(d)"
@@ -1918,6 +2214,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": -1,
    "signatureEn": "DIMDATA a[], value, ...",
    "syntaxEn": [
     "DIMDATA a[], value, ..."
@@ -1998,6 +2296,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "DIR_MAKE path",
    "syntaxEn": [
     "DIR_MAKE path"
@@ -2051,6 +2351,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "DRAW_CIRCLE x,y,r[,color]",
    "syntaxEn": [
     "DRAW_CIRCLE x,y,r[,color]"
@@ -2104,6 +2406,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "DRAW_CIRCLE_FILLED x,y,r[,color]",
    "syntaxEn": [
     "DRAW_CIRCLE_FILLED x,y,r[,color]"
@@ -2164,6 +2468,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 5,
+   "maxArgs": 5,
    "signatureEn": "DRAW_LINE x1,y1,x2,y2,color",
    "syntaxEn": [
     "DRAW_LINE x1,y1,x2,y2,color"
@@ -2224,6 +2530,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 5,
+   "maxArgs": 5,
    "signatureEn": "DRAW_RECT x,y,w,h,color",
    "syntaxEn": [
     "DRAW_RECT x,y,w,h,color"
@@ -2284,6 +2592,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 5,
+   "maxArgs": 5,
    "signatureEn": "DRAW_RECT_BORDER x,y,w,h,color",
    "syntaxEn": [
     "DRAW_RECT_BORDER x,y,w,h,color"
@@ -2308,6 +2618,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "ELAPSED_TIME()",
    "syntaxEn": [
     "ELAPSED_TIME()"
@@ -2578,6 +2890,30 @@
    ]
   },
   {
+   "name": "ENDTASK",
+   "displayName": "ENDTASK",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "ENDTASK",
+   "syntax": [
+    "ENDTASK"
+   ],
+   "description": {
+    "de": "Beendet einen TASK-Block.",
+    "en": "Ends a TASK block."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "ENDTASK",
+   "syntaxEn": [
+    "ENDTASK"
+   ]
+  },
+  {
    "name": "ENDTRY",
    "displayName": "ENDTRY",
    "kind": "keyword",
@@ -2700,6 +3036,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "ENV$(name)",
    "syntaxEn": [
     "ENV$(name)"
@@ -2804,6 +3142,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "FILE_CLOSE channel",
    "syntaxEn": [
     "FILE_CLOSE channel"
@@ -2843,6 +3183,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_COPY source, target",
    "syntaxEn": [
     "FILE_COPY source, target"
@@ -2875,6 +3217,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "FILE_DELETE path",
    "syntaxEn": [
     "FILE_DELETE path"
@@ -2907,6 +3251,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "FILE_EOF(channel)",
    "syntaxEn": [
     "FILE_EOF(channel)"
@@ -2939,6 +3285,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "FILE_EXISTS(path)",
    "syntaxEn": [
     "FILE_EXISTS(path)"
@@ -2985,6 +3333,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "FILE_OPEN(channel, file, mode)",
    "syntaxEn": [
     "FILE_OPEN(channel, file, mode)"
@@ -3017,9 +3367,45 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "FILE_POSITION(channel)",
    "syntaxEn": [
     "FILE_POSITION(channel)"
+   ]
+  },
+  {
+   "name": "FILE_READ_ASYNC",
+   "displayName": "FILE_READ_ASYNC",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "FILE_READ_ASYNC(path)",
+   "syntax": [
+    "FILE_READ_ASYNC(path)"
+   ],
+   "description": {
+    "de": "Liest eine Datei auf einem Worker-Thread und liefert eine Job-Id; JOB_VALUE liefert den Text.",
+    "en": "Reads a file on a worker thread and returns a job id; JOB_VALUE returns the text."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "path",
+     "label": "path",
+     "labelEn": "path",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "FILE_READ_ASYNC(path)",
+   "syntaxEn": [
+    "FILE_READ_ASYNC(path)"
    ]
   },
   {
@@ -3056,6 +3442,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_BYTE channel, var%",
    "syntaxEn": [
     "FILE_READ_BYTE channel, var%"
@@ -3095,6 +3483,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_DOUBLE channel, var#",
    "syntaxEn": [
     "FILE_READ_DOUBLE channel, var#"
@@ -3134,6 +3524,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_FLOAT channel, var#",
    "syntaxEn": [
     "FILE_READ_FLOAT channel, var#"
@@ -3173,6 +3565,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_LINE channel, text$",
    "syntaxEn": [
     "FILE_READ_LINE channel, text$"
@@ -3212,6 +3606,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_LONG channel, var%",
    "syntaxEn": [
     "FILE_READ_LONG channel, var%"
@@ -3258,6 +3654,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "FILE_READ_STR channel, text$, count",
    "syntaxEn": [
     "FILE_READ_STR channel, text$, count"
@@ -3297,6 +3695,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_UBYTE channel, var%",
    "syntaxEn": [
     "FILE_READ_UBYTE channel, var%"
@@ -3336,6 +3736,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_ULONG channel, var%",
    "syntaxEn": [
     "FILE_READ_ULONG channel, var%"
@@ -3375,6 +3777,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_UWORD channel, var%",
    "syntaxEn": [
     "FILE_READ_UWORD channel, var%"
@@ -3414,6 +3818,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_READ_WORD channel, var%",
    "syntaxEn": [
     "FILE_READ_WORD channel, var%"
@@ -3453,6 +3859,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_RENAME source, target",
    "syntaxEn": [
     "FILE_RENAME source, target"
@@ -3499,6 +3907,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "FILE_SEEK channel, offset, origin",
    "syntaxEn": [
     "FILE_SEEK channel, offset, origin"
@@ -3531,9 +3941,52 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "FILE_SIZE(path)",
    "syntaxEn": [
     "FILE_SIZE(path)"
+   ]
+  },
+  {
+   "name": "FILE_WRITE_ASYNC",
+   "displayName": "FILE_WRITE_ASYNC",
+   "kind": "command",
+   "category": "Tasks und Jobs",
+   "signature": "FILE_WRITE_ASYNC path, text",
+   "syntax": [
+    "FILE_WRITE_ASYNC path, text"
+   ],
+   "description": {
+    "de": "Schreibt Text auf einem Worker-Thread und liefert eine Job-Id; JOB_VALUE liefert die Anzahl der Bytes.",
+    "en": "Writes text on a worker thread and returns a job id; JOB_VALUE returns the number of bytes."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "path",
+     "label": "path",
+     "labelEn": "path",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
+   "signatureEn": "FILE_WRITE_ASYNC path, text",
+   "syntaxEn": [
+    "FILE_WRITE_ASYNC path, text"
    ]
   },
   {
@@ -3570,6 +4023,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_BYTE channel, value",
    "syntaxEn": [
     "FILE_WRITE_BYTE channel, value"
@@ -3609,6 +4064,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_DOUBLE channel, value#",
    "syntaxEn": [
     "FILE_WRITE_DOUBLE channel, value#"
@@ -3648,6 +4105,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_FLOAT channel, value#",
    "syntaxEn": [
     "FILE_WRITE_FLOAT channel, value#"
@@ -3687,6 +4146,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_LINE channel, text$",
    "syntaxEn": [
     "FILE_WRITE_LINE channel, text$"
@@ -3726,6 +4187,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_LONG channel, value",
    "syntaxEn": [
     "FILE_WRITE_LONG channel, value"
@@ -3765,6 +4228,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_STR channel, text$",
    "syntaxEn": [
     "FILE_WRITE_STR channel, text$"
@@ -3804,6 +4269,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_UBYTE channel, value",
    "syntaxEn": [
     "FILE_WRITE_UBYTE channel, value"
@@ -3843,6 +4310,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_ULONG channel, value",
    "syntaxEn": [
     "FILE_WRITE_ULONG channel, value"
@@ -3882,6 +4351,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_UWORD channel, value",
    "syntaxEn": [
     "FILE_WRITE_UWORD channel, value"
@@ -3921,6 +4392,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FILE_WRITE_WORD channel, value",
    "syntaxEn": [
     "FILE_WRITE_WORD channel, value"
@@ -3977,6 +4450,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "FLOOR value",
    "syntaxEn": [
     "FLOOR value"
@@ -4016,6 +4491,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FMOD(a,b)",
    "syntaxEn": [
     "FMOD(a,b)"
@@ -4040,6 +4517,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "FONT_CURRENT()",
    "syntaxEn": [
     "FONT_CURRENT()"
@@ -4086,6 +4565,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 3,
    "signatureEn": "FONT_LOAD \"file\",id[,size]",
    "syntaxEn": [
     "FONT_LOAD \"file\",id[,size]"
@@ -4110,6 +4591,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "FONT_NEW()",
    "syntaxEn": [
     "FONT_NEW()"
@@ -4156,6 +4639,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 3,
    "signatureEn": "FONT_SET id[,scale[,color]]",
    "syntaxEn": [
     "FONT_SET id[,scale[,color]]"
@@ -4195,6 +4680,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "FONT_SIZE w,h",
    "syntaxEn": [
     "FONT_SIZE w,h"
@@ -4289,6 +4776,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": -1,
    "signatureEn": "FORMAT$(places,decimals,number)",
    "syntaxEn": [
     "FORMAT$(places,decimals,number)"
@@ -4417,6 +4906,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "HEX$(n)",
    "syntaxEn": [
     "HEX$(n)"
@@ -4449,6 +4940,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "HOT_RELOAD value",
    "syntaxEn": [
     "HOT_RELOAD value"
@@ -4473,6 +4966,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "HOT_RELOAD_ON()",
    "syntaxEn": [
     "HOT_RELOAD_ON()"
@@ -4543,6 +5038,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "IIF(condition, a, b)",
    "syntaxEn": [
     "IIF(condition, a, b)"
@@ -4663,6 +5160,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "INKEY$()",
    "syntaxEn": [
     "INKEY$()"
@@ -4733,6 +5232,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 3,
    "signatureEn": "INPUT var,x,y",
    "syntaxEn": [
     "INPUT var,x,y"
@@ -4779,6 +5280,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 3,
    "signatureEn": "INSTR(text,search[,start])",
    "syntaxEn": [
     "INSTR(text,search[,start])"
@@ -4825,6 +5328,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 3,
    "signatureEn": "INSTR_REVERSE(haystack, needle, start1)",
    "syntaxEn": [
     "INSTR_REVERSE(haystack, needle, start1)"
@@ -4857,6 +5362,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "INTEGER(b)",
    "syntaxEn": [
     "INTEGER(b)"
@@ -4889,6 +5396,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "INTEGER64 value",
    "syntaxEn": [
     "INTEGER64 value"
@@ -4952,9 +5461,147 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "ISA(value, \"TYPE\")",
    "syntaxEn": [
     "ISA(value, \"TYPE\")"
+   ]
+  },
+  {
+   "name": "JOB_DONE",
+   "displayName": "JOB_DONE",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "JOB_DONE(job)",
+   "syntax": [
+    "JOB_DONE(job)"
+   ],
+   "description": {
+    "de": "Liefert 1, wenn der Job fertig ist – auch wenn er mit einem Fehler endete.",
+    "en": "Returns 1 when the job has finished, also when it ended with an error."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "job",
+     "label": "job",
+     "labelEn": "job",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "JOB_DONE(job)",
+   "syntaxEn": [
+    "JOB_DONE(job)"
+   ]
+  },
+  {
+   "name": "JOB_ERROR$",
+   "displayName": "JOB_ERROR$",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "JOB_ERROR$(job)",
+   "syntax": [
+    "JOB_ERROR$(job)"
+   ],
+   "description": {
+    "de": "Liefert die Fehlermeldung des Jobs oder einen leeren String.",
+    "en": "Returns the error message of the job, or an empty string."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "job",
+     "label": "job",
+     "labelEn": "job",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "JOB_ERROR$(job)",
+   "syntaxEn": [
+    "JOB_ERROR$(job)"
+   ]
+  },
+  {
+   "name": "JOB_FREE",
+   "displayName": "JOB_FREE",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "JOB_FREE(job)",
+   "syntax": [
+    "JOB_FREE(job)"
+   ],
+   "description": {
+    "de": "Gibt den Job frei und wartet auf seinen Thread. Liefert 1, wenn die Id gültig war.",
+    "en": "Releases the job and joins its thread. Returns 1 when the id was valid."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "job",
+     "label": "job",
+     "labelEn": "job",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "JOB_FREE(job)",
+   "syntaxEn": [
+    "JOB_FREE(job)"
+   ]
+  },
+  {
+   "name": "JOB_VALUE",
+   "displayName": "JOB_VALUE",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "JOB_VALUE(job)",
+   "syntax": [
+    "JOB_VALUE(job)"
+   ],
+   "description": {
+    "de": "Liefert das Ergebnis des Jobs. Bei einem Fehler bricht der Befehl mit der Meldung des Workers ab.",
+    "en": "Returns the result of the job. On an error the command stops with the worker message."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "job",
+     "label": "job",
+     "labelEn": "job",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "JOB_VALUE(job)",
+   "syntaxEn": [
+    "JOB_VALUE(job)"
    ]
   },
   {
@@ -5005,6 +5652,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 4,
    "signatureEn": "JOIN$(array$[], separator[, start[, count]])",
    "syntaxEn": [
     "JOIN$(array$[], separator[, start[, count]])"
@@ -5068,6 +5717,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "JOY_AXIS(pad,axis)",
    "syntaxEn": [
     "JOY_AXIS(pad,axis)"
@@ -5299,6 +5950,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "JOY_BUTTON(pad,button)",
    "syntaxEn": [
     "JOY_BUTTON(pad,button)"
@@ -5323,6 +5976,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "JOY_COUNT()",
    "syntaxEn": [
     "JOY_COUNT()"
@@ -5482,6 +6137,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "JOY_PRESSED(pad,button)",
    "syntaxEn": [
     "JOY_PRESSED(pad,button)"
@@ -6090,6 +6747,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "KEY_DOWN(scancode)",
    "syntaxEn": [
     "KEY_DOWN(scancode)"
@@ -7058,6 +7717,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "KEY_PRESSED(scancode)",
    "syntaxEn": [
     "KEY_PRESSED(scancode)"
@@ -7418,6 +8079,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "KEY_WAIT",
    "syntaxEn": [
     "KEY_WAIT"
@@ -7522,6 +8185,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "LCASE$(text)",
    "syntaxEn": [
     "LCASE$(text)"
@@ -7561,6 +8226,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "LEFT$(text, count)",
    "syntaxEn": [
     "LEFT$(text, count)"
@@ -7600,6 +8267,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "LEN(text[,pixels])",
    "syntaxEn": [
     "LEN(text[,pixels])"
@@ -7663,6 +8332,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "LIMIT_FPS fps[,vsync]",
    "syntaxEn": [
     "LIMIT_FPS fps[,vsync]"
@@ -7719,6 +8390,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "LOGN(n)",
    "syntaxEn": [
     "LOGN(n)"
@@ -7758,6 +8431,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "LTRIM$(text, chars)",
    "syntaxEn": [
     "LTRIM$(text, chars)"
@@ -7797,6 +8472,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "MAX a, b",
    "syntaxEn": [
     "MAX a, b"
@@ -7867,6 +8544,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 3,
    "signatureEn": "MID$(text,start[,length])",
    "syntaxEn": [
     "MID$(text,start[,length])"
@@ -7906,6 +8585,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "MIN a, b",
    "syntaxEn": [
     "MIN a, b"
@@ -7945,6 +8626,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "MOD(a,b)",
    "syntaxEn": [
     "MOD(a,b)"
@@ -7977,6 +8660,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "MOUSE_AXIS(axis)",
    "syntaxEn": [
     "MOUSE_AXIS(axis)"
@@ -8001,6 +8686,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "MOUSE_COUNT()",
    "syntaxEn": [
     "MOUSE_COUNT()"
@@ -8040,6 +8727,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "MOUSE_MOVE x,y",
    "syntaxEn": [
     "MOUSE_MOVE x,y"
@@ -8072,6 +8761,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "MOUSE_PRESSED(button)",
    "syntaxEn": [
     "MOUSE_PRESSED(button)"
@@ -8125,6 +8816,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "MOUSE_STATE mx,my,left,right",
    "syntaxEn": [
     "MOUSE_STATE mx,my,left,right"
@@ -8149,6 +8842,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "MOUSE_WAIT",
    "syntaxEn": [
     "MOUSE_WAIT"
@@ -8181,6 +8876,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "MUSIC_PAUSE on",
    "syntaxEn": [
     "MUSIC_PAUSE on"
@@ -8220,6 +8917,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "MUSIC_PLAY \"music.mp3\",loop",
    "syntaxEn": [
     "MUSIC_PLAY \"music.mp3\",loop"
@@ -8244,6 +8943,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "MUSIC_PLAYING()",
    "syntaxEn": [
     "MUSIC_PLAYING()"
@@ -8268,6 +8969,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "MUSIC_STOP",
    "syntaxEn": [
     "MUSIC_STOP"
@@ -8300,6 +9003,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "MUSIC_VOLUME v",
    "syntaxEn": [
     "MUSIC_VOLUME v"
@@ -8332,6 +9037,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NET_ACCEPT(listener)",
    "syntaxEn": [
     "NET_ACCEPT(listener)"
@@ -8364,6 +9071,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NET_CLOSE(handle)",
    "syntaxEn": [
     "NET_CLOSE(handle)"
@@ -8410,6 +9119,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 3,
    "signatureEn": "NET_CONNECT(host, port, timeout)",
    "syntaxEn": [
     "NET_CONNECT(host, port, timeout)"
@@ -8442,6 +9153,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NET_CONNECTED(handle)",
    "syntaxEn": [
     "NET_CONNECTED(handle)"
@@ -8466,6 +9179,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "NET_ERROR$()",
    "syntaxEn": [
     "NET_ERROR$()"
@@ -8490,6 +9205,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "NET_IP$()",
    "syntaxEn": [
     "NET_IP$()"
@@ -8522,6 +9239,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NET_LISTEN(port)",
    "syntaxEn": [
     "NET_LISTEN(port)"
@@ -8554,6 +9273,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NET_PEER$(handle)",
    "syntaxEn": [
     "NET_PEER$(handle)"
@@ -8586,6 +9307,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NET_PENDING(handle)",
    "syntaxEn": [
     "NET_PENDING(handle)"
@@ -8618,6 +9341,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NET_PORT(handle)",
    "syntaxEn": [
     "NET_PORT(handle)"
@@ -8650,6 +9375,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NET_RECV$(handle)",
    "syntaxEn": [
     "NET_RECV$(handle)"
@@ -8689,6 +9416,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "NET_SEND(handle, text)",
    "syntaxEn": [
     "NET_SEND(handle, text)"
@@ -8769,6 +9498,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "NUMBER(str)",
    "syntaxEn": [
     "NUMBER(str)"
@@ -8856,6 +9587,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "PIXEL_GET(x,y)",
    "syntaxEn": [
     "PIXEL_GET(x,y)"
@@ -8902,6 +9635,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "PIXEL_SET x,y,color",
    "syntaxEn": [
     "PIXEL_SET x,y,color"
@@ -8934,6 +9669,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "PLATFORM_INFO$(\"os\")",
    "syntaxEn": [
     "PLATFORM_INFO$(\"os\")"
@@ -8973,6 +9710,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 2,
    "signatureEn": "POLY_BEGIN sprite,mode",
    "syntaxEn": [
     "POLY_BEGIN sprite,mode"
@@ -8997,6 +9736,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "POLY_END",
    "syntaxEn": [
     "POLY_END"
@@ -9057,6 +9798,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 5,
    "signatureEn": "POLY_POINT x,y,u,v,color",
    "syntaxEn": [
     "POLY_POINT x,y,u,v,color"
@@ -9081,6 +9824,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "POLY_STRIP",
    "syntaxEn": [
     "POLY_STRIP"
@@ -9120,6 +9865,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "POW(a,b)",
    "syntaxEn": [
     "POW(a,b)"
@@ -9173,6 +9920,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 4,
    "signatureEn": "PRINT \"text\",x,y[,kerning]",
    "syntaxEn": [
     "PRINT \"text\",x,y[,kerning]"
@@ -9294,6 +10043,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 8,
+   "maxArgs": 8,
    "signatureEn": "RECT_COLLIDE(x1,y1,w1,h1,x2,y2,w2,h2)",
    "syntaxEn": [
     "RECT_COLLIDE(x1,y1,w1,h1,x2,y2,w2,h2)"
@@ -9388,6 +10139,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "REPLACE$(where, find, repl)",
    "syntaxEn": [
     "REPLACE$(where, find, repl)"
@@ -9422,15 +10175,15 @@
    "displayName": "RGB",
    "kind": "function",
    "category": "Zeichnen",
-   "signature": "RGB(r,g,b)",
+   "signature": "RGB(r,g,b[,a])",
    "syntax": [
-    "RGB(r,g,b)"
+    "RGB(r,g,b[,a])"
    ],
    "description": {
-    "de": "Baut aus Rot-, Grün- und Blauanteil (je 0 bis 255) eine Farbe für die Zeichenbefehle.",
-    "en": "Builds a colour for the drawing commands from red, green and blue parts (0 to 255 each)."
+    "de": "Baut aus Rot-, Grün- und Blauanteil (je 0 bis 255) und optionalem Alpha (0 durchsichtig bis 255 deckend) eine Farbe für die Zeichenbefehle.",
+    "en": "Builds a colour for the drawing commands from red, green and blue (0 to 255 each) plus optional alpha (0 transparent to 255 opaque)."
    },
-   "sample": "farbe = RGB(255, 128, 0)",
+   "sample": "farbe = RGB(255, 128, 0, 160)",
    "returnType": "Wert",
    "returnCode": "f",
    "params": [
@@ -9454,13 +10207,22 @@
      "labelEn": "b",
      "type": "Wert",
      "optional": false
+    },
+    {
+     "name": "a",
+     "label": "a",
+     "labelEn": "a",
+     "type": "Wert",
+     "optional": true
     }
    ],
    "page": "",
    "optional": false,
-   "signatureEn": "RGB(r,g,b)",
+   "minArgs": 3,
+   "maxArgs": 4,
+   "signatureEn": "RGB(r,g,b[,a])",
    "syntaxEn": [
-    "RGB(r,g,b)"
+    "RGB(r,g,b[,a])"
    ]
   },
   {
@@ -9497,6 +10259,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "RIGHT$(text, count)",
    "syntaxEn": [
     "RIGHT$(text, count)"
@@ -9529,6 +10293,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "RND(max)",
    "syntaxEn": [
     "RND(max)"
@@ -9561,6 +10327,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "RND_SEED n",
    "syntaxEn": [
     "RND_SEED n"
@@ -9600,6 +10368,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "RTRIM$(text, chars)",
    "syntaxEn": [
     "RTRIM$(text, chars)"
@@ -9624,6 +10394,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SCREEN_BLACK",
    "syntaxEn": [
     "SCREEN_BLACK"
@@ -9656,6 +10428,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "SCREEN_CLEAR [color]",
    "syntaxEn": [
     "SCREEN_CLEAR [color]"
@@ -9709,6 +10483,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "SCREEN_CREATE screen,sprite,w,h",
    "syntaxEn": [
     "SCREEN_CREATE screen,sprite,w,h"
@@ -9748,6 +10524,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "SCREEN_FADE \"image.png\"[,ms]",
    "syntaxEn": [
     "SCREEN_FADE \"image.png\"[,ms]"
@@ -9772,6 +10550,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SCREEN_FULLSCREEN()",
    "syntaxEn": [
     "SCREEN_FULLSCREEN()"
@@ -9796,6 +10576,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SCREEN_HEIGHT()",
    "syntaxEn": [
     "SCREEN_HEIGHT()"
@@ -9820,6 +10602,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SCREEN_NEW()",
    "syntaxEn": [
     "SCREEN_NEW()"
@@ -9852,6 +10636,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SCREEN_SAVE_BMP \"file.bmp\"",
    "syntaxEn": [
     "SCREEN_SAVE_BMP \"file.bmp\""
@@ -9891,6 +10677,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 2,
    "signatureEn": "SCREEN_SCALE w,h",
    "syntaxEn": [
     "SCREEN_SCALE w,h"
@@ -9937,6 +10725,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 3,
    "signatureEn": "SCREEN_SET w,h,fullscreen",
    "syntaxEn": [
     "SCREEN_SET w,h,fullscreen"
@@ -9961,6 +10751,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SCREEN_SHOW",
    "syntaxEn": [
     "SCREEN_SHOW"
@@ -10000,6 +10792,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "SCREEN_SIZE w,h",
    "syntaxEn": [
     "SCREEN_SIZE w,h"
@@ -10024,6 +10818,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SCREEN_TO_BACKGROUND",
    "syntaxEn": [
     "SCREEN_TO_BACKGROUND"
@@ -10056,6 +10852,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SCREEN_USE id",
    "syntaxEn": [
     "SCREEN_USE id"
@@ -10080,6 +10878,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SCREEN_WIDTH()",
    "syntaxEn": [
     "SCREEN_WIDTH()"
@@ -10160,6 +10960,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "SET_ALPHA_MODE a",
    "syntaxEn": [
     "SET_ALPHA_MODE a"
@@ -10192,6 +10994,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "SET_ALPHA_TEST value",
    "syntaxEn": [
     "SET_ALPHA_TEST value"
@@ -10224,6 +11028,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SET_COLOR_KEY color",
    "syntaxEn": [
     "SET_COLOR_KEY color"
@@ -10263,6 +11069,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "SET_ENV name, value",
    "syntaxEn": [
     "SET_ENV name, value"
@@ -10295,6 +11103,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "SET_SMOOTHING on",
    "syntaxEn": [
     "SET_SMOOTHING on"
@@ -10327,6 +11137,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "SET_SYSTEM_POINTER on",
    "syntaxEn": [
     "SET_SYSTEM_POINTER on"
@@ -10380,6 +11192,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "SET_VIEWPORT x,y,w,h",
    "syntaxEn": [
     "SET_VIEWPORT x,y,w,h"
@@ -10412,6 +11226,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SGN n",
    "syntaxEn": [
     "SGN n"
@@ -10451,6 +11267,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "SHL(num, shift)",
    "syntaxEn": [
     "SHL(num, shift)"
@@ -10490,6 +11308,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "SHR(num, shift)",
    "syntaxEn": [
     "SHR(num, shift)"
@@ -10522,6 +11342,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SIN(angle)",
    "syntaxEn": [
     "SIN(angle)"
@@ -10554,6 +11376,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SLEEP ms",
    "syntaxEn": [
     "SLEEP ms"
@@ -10600,6 +11424,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 3,
    "signatureEn": "SOUND_LOAD \"sound.wav\",id[,buffer]",
    "syntaxEn": [
     "SOUND_LOAD \"sound.wav\",id[,buffer]"
@@ -10624,6 +11450,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SOUND_NEW()",
    "syntaxEn": [
     "SOUND_NEW()"
@@ -10670,6 +11498,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 3,
    "signatureEn": "SOUND_PLAY(id,pan,volume)",
    "syntaxEn": [
     "SOUND_PLAY(id,pan,volume)"
@@ -10702,6 +11532,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SOUND_PLAYING(channel)",
    "syntaxEn": [
     "SOUND_PLAYING(channel)"
@@ -10734,6 +11566,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SOUND_STOP channel",
    "syntaxEn": [
     "SOUND_STOP channel"
@@ -10758,6 +11592,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SOUND_STOP_ALL",
    "syntaxEn": [
     "SOUND_STOP_ALL"
@@ -10782,6 +11618,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SOURCE_FILE$()",
    "syntaxEn": [
     "SOURCE_FILE$()"
@@ -10806,9 +11644,262 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SOURCE_LINE()",
    "syntaxEn": [
     "SOURCE_LINE()"
+   ]
+  },
+  {
+   "name": "SPAWN",
+   "displayName": "SPAWN",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "SPAWN(@function, args…)",
+   "syntax": [
+    "SPAWN(@function, args…)"
+   ],
+   "description": {
+    "de": "Startet eine reine Funktion auf einem Worker-Thread. Die Globals werden kopiert, der Worker kann den Hauptzustand also nicht ändern. Liefert eine Job-Id für JOB_DONE, JOB_VALUE und JOB_FREE.",
+    "en": "Starts a pure function on a worker thread. The globals are copied, so the worker cannot change the main state. Returns a job id for JOB_DONE, JOB_VALUE and JOB_FREE."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "function",
+     "label": "function",
+     "labelEn": "function",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "args",
+     "label": "args",
+     "labelEn": "args",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg3",
+     "label": "arg3",
+     "labelEn": "arg3",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg4",
+     "label": "arg4",
+     "labelEn": "arg4",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg5",
+     "label": "arg5",
+     "labelEn": "arg5",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg6",
+     "label": "arg6",
+     "labelEn": "arg6",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg7",
+     "label": "arg7",
+     "labelEn": "arg7",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg8",
+     "label": "arg8",
+     "labelEn": "arg8",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg9",
+     "label": "arg9",
+     "labelEn": "arg9",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg10",
+     "label": "arg10",
+     "labelEn": "arg10",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg11",
+     "label": "arg11",
+     "labelEn": "arg11",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg12",
+     "label": "arg12",
+     "labelEn": "arg12",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg13",
+     "label": "arg13",
+     "labelEn": "arg13",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg14",
+     "label": "arg14",
+     "labelEn": "arg14",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg15",
+     "label": "arg15",
+     "labelEn": "arg15",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg16",
+     "label": "arg16",
+     "labelEn": "arg16",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg17",
+     "label": "arg17",
+     "labelEn": "arg17",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg18",
+     "label": "arg18",
+     "labelEn": "arg18",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg19",
+     "label": "arg19",
+     "labelEn": "arg19",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg20",
+     "label": "arg20",
+     "labelEn": "arg20",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg21",
+     "label": "arg21",
+     "labelEn": "arg21",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg22",
+     "label": "arg22",
+     "labelEn": "arg22",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg23",
+     "label": "arg23",
+     "labelEn": "arg23",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg24",
+     "label": "arg24",
+     "labelEn": "arg24",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg25",
+     "label": "arg25",
+     "labelEn": "arg25",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg26",
+     "label": "arg26",
+     "labelEn": "arg26",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg27",
+     "label": "arg27",
+     "labelEn": "arg27",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg28",
+     "label": "arg28",
+     "labelEn": "arg28",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg29",
+     "label": "arg29",
+     "labelEn": "arg29",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg30",
+     "label": "arg30",
+     "labelEn": "arg30",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg31",
+     "label": "arg31",
+     "labelEn": "arg31",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "arg32",
+     "label": "arg32",
+     "labelEn": "arg32",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 32,
+   "signatureEn": "SPAWN(@function, args…)",
+   "syntaxEn": [
+    "SPAWN(@function, args…)"
    ]
   },
   {
@@ -10859,6 +11950,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 4,
    "signatureEn": "SPLIT_STRING(text, array$[], separator[, empty])",
    "syntaxEn": [
     "SPLIT_STRING(text, array$[], separator[, empty])"
@@ -10966,6 +12059,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 6,
+   "maxArgs": 6,
    "signatureEn": "SPRITE_COLLIDE(id1,x1,y1,id2,x2,y2)",
    "syntaxEn": [
     "SPRITE_COLLIDE(id1,x1,y1,id2,x2,y2)"
@@ -11012,6 +12107,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "SPRITE_DRAW id,x,y",
    "syntaxEn": [
     "SPRITE_DRAW id,x,y"
@@ -11065,6 +12162,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "SPRITE_DRAW_ROTATED id,x,y,angle",
    "syntaxEn": [
     "SPRITE_DRAW_ROTATED id,x,y,angle"
@@ -11125,6 +12224,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 5,
+   "maxArgs": 5,
    "signatureEn": "SPRITE_DRAW_ROTATED_SCALED id,x,y,angle,zoom%",
    "syntaxEn": [
     "SPRITE_DRAW_ROTATED_SCALED id,x,y,angle,zoom%"
@@ -11185,6 +12286,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 5,
+   "maxArgs": 5,
    "signatureEn": "SPRITE_DRAW_SCALED id,x,y,fx%,fy%",
    "syntaxEn": [
     "SPRITE_DRAW_SCALED id,x,y,fx%,fy%"
@@ -11245,6 +12348,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 5,
+   "maxArgs": 5,
    "signatureEn": "SPRITE_DRAW_STRETCHED id,x,y,w,h",
    "syntaxEn": [
     "SPRITE_DRAW_STRETCHED id,x,y,w,h"
@@ -11305,6 +12410,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 5,
+   "maxArgs": 5,
    "signatureEn": "SPRITE_GRAB id,x,y,w,h",
    "syntaxEn": [
     "SPRITE_GRAB id,x,y,w,h"
@@ -11344,6 +12451,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "SPRITE_LOAD \"image.png\", id",
    "syntaxEn": [
     "SPRITE_LOAD \"image.png\", id"
@@ -11368,6 +12477,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "SPRITE_NEW()",
    "syntaxEn": [
     "SPRITE_NEW()"
@@ -11407,6 +12518,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
    "signatureEn": "SPRITE_SAVE \"file.png\",id",
    "syntaxEn": [
     "SPRITE_SAVE \"file.png\",id"
@@ -11453,6 +12566,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 3,
    "signatureEn": "SPRITE_SIZE id,w,h",
    "syntaxEn": [
     "SPRITE_SIZE id,w,h"
@@ -11485,6 +12600,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "SQR(number)",
    "syntaxEn": [
     "SQR(number)"
@@ -11541,6 +12658,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "STDERR text",
    "syntaxEn": [
     "STDERR text"
@@ -11565,6 +12684,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STDIN$()",
    "syntaxEn": [
     "STDIN$()"
@@ -11597,9 +12718,139 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "STDOUT text",
    "syntaxEn": [
     "STDOUT text"
+   ]
+  },
+  {
+   "name": "STEAM_ACHIEVED",
+   "displayName": "STEAM_ACHIEVED",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_ACHIEVED(name$)",
+   "syntax": [
+    "STEAM_ACHIEVED(name$)"
+   ],
+   "description": {
+    "de": "1, wenn der Erfolg schon freigeschaltet ist.",
+    "en": "1 when the achievement is already unlocked."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "name",
+     "label": "name",
+     "labelEn": "name",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_ACHIEVED(name$)",
+   "syntaxEn": [
+    "STEAM_ACHIEVED(name$)"
+   ]
+  },
+  {
+   "name": "STEAM_ACHIEVEMENT",
+   "displayName": "STEAM_ACHIEVEMENT",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_ACHIEVEMENT name$",
+   "syntax": [
+    "STEAM_ACHIEVEMENT name$"
+   ],
+   "description": {
+    "de": "Schaltet einen Erfolg frei und schickt ihn an Steam (SetAchievement und StoreStats). 0, wenn Steam den Namen nicht kennt.",
+    "en": "Unlocks an achievement and sends it to Steam (SetAchievement and StoreStats). 0 when Steam does not know the name."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "name",
+     "label": "name",
+     "labelEn": "name",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_ACHIEVEMENT name$",
+   "syntaxEn": [
+    "STEAM_ACHIEVEMENT name$"
+   ]
+  },
+  {
+   "name": "STEAM_ACHIEVEMENT_NAME$",
+   "displayName": "STEAM_ACHIEVEMENT_NAME$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_ACHIEVEMENT_NAME$(index)",
+   "syntax": [
+    "STEAM_ACHIEVEMENT_NAME$(index)"
+   ],
+   "description": {
+    "de": "API-Name des Erfolgs an dieser Stelle der Liste.",
+    "en": "API name of the achievement at this index."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "index",
+     "label": "index",
+     "labelEn": "index",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_ACHIEVEMENT_NAME$(index)",
+   "syntaxEn": [
+    "STEAM_ACHIEVEMENT_NAME$(index)"
+   ]
+  },
+  {
+   "name": "STEAM_ACHIEVEMENTS",
+   "displayName": "STEAM_ACHIEVEMENTS",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_ACHIEVEMENTS()",
+   "syntax": [
+    "STEAM_ACHIEVEMENTS()"
+   ],
+   "description": {
+    "de": "Anzahl der Erfolge, die die App in Steamworks definiert.",
+    "en": "Number of achievements the app defines in Steamworks."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_ACHIEVEMENTS()",
+   "syntaxEn": [
+    "STEAM_ACHIEVEMENTS()"
    ]
   },
   {
@@ -11621,9 +12872,619 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_APP_ID()",
    "syntaxEn": [
     "STEAM_APP_ID()"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD",
+   "displayName": "STEAM_BOARD",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_BOARD name$[, ascending]",
+   "syntax": [
+    "STEAM_BOARD name$[, ascending]"
+   ],
+   "description": {
+    "de": "Oeffnet eine Rangliste und legt sie an, wenn sie fehlt. ascending=1 sortiert aufsteigend, sonst absteigend.",
+    "en": "Opens a leaderboard and creates it when missing. ascending=1 sorts upwards, otherwise downwards."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "name",
+     "label": "name",
+     "labelEn": "name",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "ascending",
+     "label": "ascending",
+     "labelEn": "ascending",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_BOARD name$[, ascending]",
+   "syntaxEn": [
+    "STEAM_BOARD name$[, ascending]"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD_COUNT",
+   "displayName": "STEAM_BOARD_COUNT",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_BOARD_COUNT()",
+   "syntax": [
+    "STEAM_BOARD_COUNT()"
+   ],
+   "description": {
+    "de": "Anzahl der zuletzt geholten Eintraege.",
+    "en": "Number of entries fetched last."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_BOARD_COUNT()",
+   "syntaxEn": [
+    "STEAM_BOARD_COUNT()"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD_ID$",
+   "displayName": "STEAM_BOARD_ID$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_BOARD_ID$(index)",
+   "syntax": [
+    "STEAM_BOARD_ID$(index)"
+   ],
+   "description": {
+    "de": "SteamID des Spielers hinter einem Eintrag.",
+    "en": "SteamID of the player behind an entry."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "index",
+     "label": "index",
+     "labelEn": "index",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_BOARD_ID$(index)",
+   "syntaxEn": [
+    "STEAM_BOARD_ID$(index)"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD_NAME$",
+   "displayName": "STEAM_BOARD_NAME$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_BOARD_NAME$(index)",
+   "syntax": [
+    "STEAM_BOARD_NAME$(index)"
+   ],
+   "description": {
+    "de": "Name des Spielers hinter einem Eintrag.",
+    "en": "Name of the player behind an entry."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "index",
+     "label": "index",
+     "labelEn": "index",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_BOARD_NAME$(index)",
+   "syntaxEn": [
+    "STEAM_BOARD_NAME$(index)"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD_PLACE",
+   "displayName": "STEAM_BOARD_PLACE",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_BOARD_PLACE(index)",
+   "syntax": [
+    "STEAM_BOARD_PLACE(index)"
+   ],
+   "description": {
+    "de": "Platz eines Eintrags in der Rangliste.",
+    "en": "Place of an entry in the leaderboard."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "index",
+     "label": "index",
+     "labelEn": "index",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_BOARD_PLACE(index)",
+   "syntaxEn": [
+    "STEAM_BOARD_PLACE(index)"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD_POINTS",
+   "displayName": "STEAM_BOARD_POINTS",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_BOARD_POINTS(index)",
+   "syntax": [
+    "STEAM_BOARD_POINTS(index)"
+   ],
+   "description": {
+    "de": "Punktestand eines Eintrags.",
+    "en": "Score of an entry."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "index",
+     "label": "index",
+     "labelEn": "index",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_BOARD_POINTS(index)",
+   "syntaxEn": [
+    "STEAM_BOARD_POINTS(index)"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD_RANK",
+   "displayName": "STEAM_BOARD_RANK",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_BOARD_RANK()",
+   "syntax": [
+    "STEAM_BOARD_RANK()"
+   ],
+   "description": {
+    "de": "Der eigene Platz nach dem letzten Hochladen, 0 wenn unbekannt.",
+    "en": "Your own place after the last upload, 0 when unknown."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_BOARD_RANK()",
+   "syntaxEn": [
+    "STEAM_BOARD_RANK()"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD_SCORE",
+   "displayName": "STEAM_BOARD_SCORE",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_BOARD_SCORE points[, keepbest]",
+   "syntax": [
+    "STEAM_BOARD_SCORE points[, keepbest]"
+   ],
+   "description": {
+    "de": "Laedt einen Punktestand hoch; keepbest=1 (Vorgabe) behaelt den besten Wert.",
+    "en": "Uploads a score; keepbest=1 (the default) keeps the best value."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "points",
+     "label": "points",
+     "labelEn": "points",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "keepbest",
+     "label": "keepbest",
+     "labelEn": "keepbest",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_BOARD_SCORE points[, keepbest]",
+   "syntaxEn": [
+    "STEAM_BOARD_SCORE points[, keepbest]"
+   ]
+  },
+  {
+   "name": "STEAM_BOARD_TOP",
+   "displayName": "STEAM_BOARD_TOP",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_BOARD_TOP([count[, kind]])",
+   "syntax": [
+    "STEAM_BOARD_TOP([count[, kind]])"
+   ],
+   "description": {
+    "de": "Holt Eintraege der Rangliste: kind 0 global, 1 Freunde, 2 um den Spieler herum. Liefert die Anzahl.",
+    "en": "Fetches leaderboard entries: kind 0 global, 1 friends, 2 around the player. Returns the count."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "count",
+     "label": "count",
+     "labelEn": "count",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "kind",
+     "label": "kind",
+     "labelEn": "kind",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_BOARD_TOP([count[, kind]])",
+   "syntaxEn": [
+    "STEAM_BOARD_TOP([count[, kind]])"
+   ]
+  },
+  {
+   "name": "STEAM_CLOUD_DELETE",
+   "displayName": "STEAM_CLOUD_DELETE",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_CLOUD_DELETE file$",
+   "syntax": [
+    "STEAM_CLOUD_DELETE file$"
+   ],
+   "description": {
+    "de": "Loescht eine Cloud-Datei.",
+    "en": "Deletes a cloud file."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "file",
+     "label": "file",
+     "labelEn": "file",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_CLOUD_DELETE file$",
+   "syntaxEn": [
+    "STEAM_CLOUD_DELETE file$"
+   ]
+  },
+  {
+   "name": "STEAM_CLOUD_EXISTS",
+   "displayName": "STEAM_CLOUD_EXISTS",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_CLOUD_EXISTS(file$)",
+   "syntax": [
+    "STEAM_CLOUD_EXISTS(file$)"
+   ],
+   "description": {
+    "de": "1, wenn die Datei in der Cloud liegt.",
+    "en": "1 when the file is in the cloud."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "file",
+     "label": "file",
+     "labelEn": "file",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_CLOUD_EXISTS(file$)",
+   "syntaxEn": [
+    "STEAM_CLOUD_EXISTS(file$)"
+   ]
+  },
+  {
+   "name": "STEAM_CLOUD_FILES",
+   "displayName": "STEAM_CLOUD_FILES",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_CLOUD_FILES()",
+   "syntax": [
+    "STEAM_CLOUD_FILES()"
+   ],
+   "description": {
+    "de": "Anzahl der Dateien im Cloud-Speicher.",
+    "en": "Number of files in cloud storage."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_CLOUD_FILES()",
+   "syntaxEn": [
+    "STEAM_CLOUD_FILES()"
+   ]
+  },
+  {
+   "name": "STEAM_CLOUD_NAME$",
+   "displayName": "STEAM_CLOUD_NAME$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_CLOUD_NAME$(index)",
+   "syntax": [
+    "STEAM_CLOUD_NAME$(index)"
+   ],
+   "description": {
+    "de": "Dateiname an dieser Stelle der Cloud-Liste.",
+    "en": "File name at this index of the cloud list."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "index",
+     "label": "index",
+     "labelEn": "index",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_CLOUD_NAME$(index)",
+   "syntaxEn": [
+    "STEAM_CLOUD_NAME$(index)"
+   ]
+  },
+  {
+   "name": "STEAM_CLOUD_READ$",
+   "displayName": "STEAM_CLOUD_READ$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_CLOUD_READ$(file$)",
+   "syntax": [
+    "STEAM_CLOUD_READ$(file$)"
+   ],
+   "description": {
+    "de": "Liest eine Cloud-Datei zurueck (hoechstens 1 MiB).",
+    "en": "Reads a cloud file back (at most 1 MiB)."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "file",
+     "label": "file",
+     "labelEn": "file",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_CLOUD_READ$(file$)",
+   "syntaxEn": [
+    "STEAM_CLOUD_READ$(file$)"
+   ]
+  },
+  {
+   "name": "STEAM_CLOUD_SIZE",
+   "displayName": "STEAM_CLOUD_SIZE",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_CLOUD_SIZE(file$)",
+   "syntax": [
+    "STEAM_CLOUD_SIZE(file$)"
+   ],
+   "description": {
+    "de": "Groesse einer Cloud-Datei in Bytes.",
+    "en": "Size of a cloud file in bytes."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "file",
+     "label": "file",
+     "labelEn": "file",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_CLOUD_SIZE(file$)",
+   "syntaxEn": [
+    "STEAM_CLOUD_SIZE(file$)"
+   ]
+  },
+  {
+   "name": "STEAM_CLOUD_WRITE",
+   "displayName": "STEAM_CLOUD_WRITE",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_CLOUD_WRITE file$, text$",
+   "syntax": [
+    "STEAM_CLOUD_WRITE file$, text$"
+   ],
+   "description": {
+    "de": "Schreibt eine Textdatei in Steams Cloud-Speicher.",
+    "en": "Writes a text file into Steam's cloud storage."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "file",
+     "label": "file",
+     "labelEn": "file",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "text",
+     "label": "text",
+     "labelEn": "text",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_CLOUD_WRITE file$, text$",
+   "syntaxEn": [
+    "STEAM_CLOUD_WRITE file$, text$"
+   ]
+  },
+  {
+   "name": "STEAM_DLC",
+   "displayName": "STEAM_DLC",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_DLC(appid)",
+   "syntax": [
+    "STEAM_DLC(appid)"
+   ],
+   "description": {
+    "de": "1, wenn die DLC mit dieser App-ID installiert ist.",
+    "en": "1 when the DLC with this app id is installed."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "appid",
+     "label": "appid",
+     "labelEn": "appid",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_DLC(appid)",
+   "syntaxEn": [
+    "STEAM_DLC(appid)"
+   ]
+  },
+  {
+   "name": "STEAM_DLC_COUNT",
+   "displayName": "STEAM_DLC_COUNT",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_DLC_COUNT()",
+   "syntax": [
+    "STEAM_DLC_COUNT()"
+   ],
+   "description": {
+    "de": "Anzahl der DLCs, die die App in Steamworks kennt.",
+    "en": "Number of DLCs the app knows in Steamworks."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_DLC_COUNT()",
+   "syntaxEn": [
+    "STEAM_DLC_COUNT()"
    ]
   },
   {
@@ -11645,6 +13506,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_ERROR$()",
    "syntaxEn": [
     "STEAM_ERROR$()"
@@ -11677,6 +13540,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "STEAM_FRIEND_ID$(i)",
    "syntaxEn": [
     "STEAM_FRIEND_ID$(i)"
@@ -11709,6 +13574,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "STEAM_FRIEND_NAME$(i)",
    "syntaxEn": [
     "STEAM_FRIEND_NAME$(i)"
@@ -11741,6 +13608,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "STEAM_FRIEND_STATE(i)",
    "syntaxEn": [
     "STEAM_FRIEND_STATE(i)"
@@ -11765,6 +13634,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_FRIENDS()",
    "syntaxEn": [
     "STEAM_FRIENDS()"
@@ -11789,6 +13660,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_ID$()",
    "syntaxEn": [
     "STEAM_ID$()"
@@ -11821,9 +13694,359 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "STEAM_INIT(appid)",
    "syntaxEn": [
     "STEAM_INIT(appid)"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_CREATE",
+   "displayName": "STEAM_LOBBY_CREATE",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_CREATE [slots[, kind]]",
+   "syntax": [
+    "STEAM_LOBBY_CREATE [slots[, kind]]"
+   ],
+   "description": {
+    "de": "Oeffnet eine Lobby; slots ist die Spielerzahl, kind 0 privat, 1 nur Freunde, 2 oeffentlich, 3 unsichtbar.",
+    "en": "Opens a lobby; slots is the player count, kind 0 private, 1 friends only, 2 public, 3 invisible."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "slots",
+     "label": "slots",
+     "labelEn": "slots",
+     "type": "Wert",
+     "optional": true
+    },
+    {
+     "name": "kind",
+     "label": "kind",
+     "labelEn": "kind",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_LOBBY_CREATE [slots[, kind]]",
+   "syntaxEn": [
+    "STEAM_LOBBY_CREATE [slots[, kind]]"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_GET$",
+   "displayName": "STEAM_LOBBY_GET$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_GET$(key$)",
+   "syntax": [
+    "STEAM_LOBBY_GET$(key$)"
+   ],
+   "description": {
+    "de": "Liest ein Datenfeld der Lobby.",
+    "en": "Reads a piece of lobby data."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_LOBBY_GET$(key$)",
+   "syntaxEn": [
+    "STEAM_LOBBY_GET$(key$)"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_ID$",
+   "displayName": "STEAM_LOBBY_ID$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_ID$()",
+   "syntax": [
+    "STEAM_LOBBY_ID$()"
+   ],
+   "description": {
+    "de": "ID der aktuellen Lobby; leer ohne Lobby.",
+    "en": "Id of the current lobby; empty without one."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_LOBBY_ID$()",
+   "syntaxEn": [
+    "STEAM_LOBBY_ID$()"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_JOIN",
+   "displayName": "STEAM_LOBBY_JOIN",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_JOIN id$",
+   "syntax": [
+    "STEAM_LOBBY_JOIN id$"
+   ],
+   "description": {
+    "de": "Tritt einer Lobby per ID bei.",
+    "en": "Joins a lobby by its id."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "id",
+     "label": "id",
+     "labelEn": "id",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_LOBBY_JOIN id$",
+   "syntaxEn": [
+    "STEAM_LOBBY_JOIN id$"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_JOINED",
+   "displayName": "STEAM_LOBBY_JOINED",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_JOINED()",
+   "syntax": [
+    "STEAM_LOBBY_JOINED()"
+   ],
+   "description": {
+    "de": "1, wenn man in einer Lobby ist.",
+    "en": "1 when you are in a lobby."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_LOBBY_JOINED()",
+   "syntaxEn": [
+    "STEAM_LOBBY_JOINED()"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_LEAVE",
+   "displayName": "STEAM_LOBBY_LEAVE",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_LEAVE",
+   "syntax": [
+    "STEAM_LOBBY_LEAVE"
+   ],
+   "description": {
+    "de": "Verlaesst die aktuelle Lobby.",
+    "en": "Leaves the current lobby."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_LOBBY_LEAVE",
+   "syntaxEn": [
+    "STEAM_LOBBY_LEAVE"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_MEMBER_ID$",
+   "displayName": "STEAM_LOBBY_MEMBER_ID$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_MEMBER_ID$(index)",
+   "syntax": [
+    "STEAM_LOBBY_MEMBER_ID$(index)"
+   ],
+   "description": {
+    "de": "SteamID eines Lobby-Mitglieds.",
+    "en": "SteamID of a lobby member."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "index",
+     "label": "index",
+     "labelEn": "index",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_LOBBY_MEMBER_ID$(index)",
+   "syntaxEn": [
+    "STEAM_LOBBY_MEMBER_ID$(index)"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_MEMBER_NAME$",
+   "displayName": "STEAM_LOBBY_MEMBER_NAME$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_MEMBER_NAME$(index)",
+   "syntax": [
+    "STEAM_LOBBY_MEMBER_NAME$(index)"
+   ],
+   "description": {
+    "de": "Name eines Lobby-Mitglieds.",
+    "en": "Name of a lobby member."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "index",
+     "label": "index",
+     "labelEn": "index",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_LOBBY_MEMBER_NAME$(index)",
+   "syntaxEn": [
+    "STEAM_LOBBY_MEMBER_NAME$(index)"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_MEMBERS",
+   "displayName": "STEAM_LOBBY_MEMBERS",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_MEMBERS()",
+   "syntax": [
+    "STEAM_LOBBY_MEMBERS()"
+   ],
+   "description": {
+    "de": "Anzahl der Spieler in der Lobby.",
+    "en": "Number of players in the lobby."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_LOBBY_MEMBERS()",
+   "syntaxEn": [
+    "STEAM_LOBBY_MEMBERS()"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_OWNER$",
+   "displayName": "STEAM_LOBBY_OWNER$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_OWNER$()",
+   "syntax": [
+    "STEAM_LOBBY_OWNER$()"
+   ],
+   "description": {
+    "de": "SteamID des Lobby-Besitzers.",
+    "en": "SteamID of the lobby owner."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_LOBBY_OWNER$()",
+   "syntaxEn": [
+    "STEAM_LOBBY_OWNER$()"
+   ]
+  },
+  {
+   "name": "STEAM_LOBBY_SET",
+   "displayName": "STEAM_LOBBY_SET",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_LOBBY_SET key$, value$",
+   "syntax": [
+    "STEAM_LOBBY_SET key$, value$"
+   ],
+   "description": {
+    "de": "Setzt ein Datenfeld der Lobby; nur der Besitzer darf das.",
+    "en": "Sets a piece of lobby data; only the owner may do that."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_LOBBY_SET key$, value$",
+   "syntaxEn": [
+    "STEAM_LOBBY_SET key$, value$"
    ]
   },
   {
@@ -11845,9 +14068,71 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_NAME$()",
    "syntaxEn": [
     "STEAM_NAME$()"
+   ]
+  },
+  {
+   "name": "STEAM_OVERLAY",
+   "displayName": "STEAM_OVERLAY",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_OVERLAY [page$]",
+   "syntax": [
+    "STEAM_OVERLAY [page$]"
+   ],
+   "description": {
+    "de": "Oeffnet das Steam-Overlay auf einer Seite wie friends, achievements oder settings.",
+    "en": "Opens the Steam overlay on a page such as friends, achievements or settings."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "page",
+     "label": "page",
+     "labelEn": "page",
+     "type": "Wert",
+     "optional": true
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_OVERLAY [page$]",
+   "syntaxEn": [
+    "STEAM_OVERLAY [page$]"
+   ]
+  },
+  {
+   "name": "STEAM_OVERLAY_ON",
+   "displayName": "STEAM_OVERLAY_ON",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_OVERLAY_ON()",
+   "syntax": [
+    "STEAM_OVERLAY_ON()"
+   ],
+   "description": {
+    "de": "1, wenn das Overlay verfuegbar ist.",
+    "en": "1 when the overlay is available."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_OVERLAY_ON()",
+   "syntaxEn": [
+    "STEAM_OVERLAY_ON()"
    ]
   },
   {
@@ -11877,6 +14162,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "STEAM_P2P_ACCEPT(id)",
    "syntaxEn": [
     "STEAM_P2P_ACCEPT(id)"
@@ -11909,6 +14196,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "STEAM_P2P_AVAILABLE([channel])",
    "syntaxEn": [
     "STEAM_P2P_AVAILABLE([channel])"
@@ -11941,6 +14230,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "STEAM_P2P_CLOSE(id)",
    "syntaxEn": [
     "STEAM_P2P_CLOSE(id)"
@@ -11965,6 +14256,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_P2P_FROM$()",
    "syntaxEn": [
     "STEAM_P2P_FROM$()"
@@ -11997,6 +14290,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 1,
    "signatureEn": "STEAM_P2P_RECV$([channel])",
    "syntaxEn": [
     "STEAM_P2P_RECV$([channel])"
@@ -12050,6 +14345,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 2,
+   "maxArgs": 4,
    "signatureEn": "STEAM_P2P_SEND(id, text, channel, reliable)",
    "syntaxEn": [
     "STEAM_P2P_SEND(id, text, channel, reliable)"
@@ -12082,9 +14379,120 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "STEAM_P2P_STATE(id)",
    "syntaxEn": [
     "STEAM_P2P_STATE(id)"
+   ]
+  },
+  {
+   "name": "STEAM_PRESENCE",
+   "displayName": "STEAM_PRESENCE",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_PRESENCE key$, value$",
+   "syntax": [
+    "STEAM_PRESENCE key$, value$"
+   ],
+   "description": {
+    "de": "Setzt die Rich-Presence-Zeile, die Freunde neben dem Namen sehen.",
+    "en": "Sets the rich presence line friends see next to your name."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_PRESENCE key$, value$",
+   "syntaxEn": [
+    "STEAM_PRESENCE key$, value$"
+   ]
+  },
+  {
+   "name": "STEAM_PRESENCE_CLEAR",
+   "displayName": "STEAM_PRESENCE_CLEAR",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_PRESENCE_CLEAR key$",
+   "syntax": [
+    "STEAM_PRESENCE_CLEAR key$"
+   ],
+   "description": {
+    "de": "Loescht einen Rich-Presence-Eintrag.",
+    "en": "Removes a rich presence entry."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_PRESENCE_CLEAR key$",
+   "syntaxEn": [
+    "STEAM_PRESENCE_CLEAR key$"
+   ]
+  },
+  {
+   "name": "STEAM_PRESENCE$",
+   "displayName": "STEAM_PRESENCE$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_PRESENCE$(key$)",
+   "syntax": [
+    "STEAM_PRESENCE$(key$)"
+   ],
+   "description": {
+    "de": "Liest die eigene Rich Presence zu einem Schluessel.",
+    "en": "Reads your own rich presence for a key."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "key",
+     "label": "key",
+     "labelEn": "key",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_PRESENCE$(key$)",
+   "syntaxEn": [
+    "STEAM_PRESENCE$(key$)"
    ]
   },
   {
@@ -12106,6 +14514,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_READY()",
    "syntaxEn": [
     "STEAM_READY()"
@@ -12130,6 +14540,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_RUN()",
    "syntaxEn": [
     "STEAM_RUN()"
@@ -12154,9 +14566,239 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "STEAM_SHUTDOWN",
    "syntaxEn": [
     "STEAM_SHUTDOWN"
+   ]
+  },
+  {
+   "name": "STEAM_STAT",
+   "displayName": "STEAM_STAT",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_STAT(name$)",
+   "syntax": [
+    "STEAM_STAT(name$)"
+   ],
+   "description": {
+    "de": "Liest eine ganzzahlige Statistik; 0, wenn Steam sie nicht kennt.",
+    "en": "Reads an integer statistic; 0 when Steam does not know it."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "name",
+     "label": "name",
+     "labelEn": "name",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_STAT(name$)",
+   "syntaxEn": [
+    "STEAM_STAT(name$)"
+   ]
+  },
+  {
+   "name": "STEAM_STAT_F",
+   "displayName": "STEAM_STAT_F",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_STAT_F(name$)",
+   "syntax": [
+    "STEAM_STAT_F(name$)"
+   ],
+   "description": {
+    "de": "Liest eine Kommazahl-Statistik (FLOAT).",
+    "en": "Reads a float statistic."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "name",
+     "label": "name",
+     "labelEn": "name",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "STEAM_STAT_F(name$)",
+   "syntaxEn": [
+    "STEAM_STAT_F(name$)"
+   ]
+  },
+  {
+   "name": "STEAM_STAT_SET",
+   "displayName": "STEAM_STAT_SET",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_STAT_SET name$, value",
+   "syntax": [
+    "STEAM_STAT_SET name$, value"
+   ],
+   "description": {
+    "de": "Setzt eine ganzzahlige Statistik; STEAM_STORE schickt sie an Steam.",
+    "en": "Sets an integer statistic; STEAM_STORE sends it to Steam."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "name",
+     "label": "name",
+     "labelEn": "name",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_STAT_SET name$, value",
+   "syntaxEn": [
+    "STEAM_STAT_SET name$, value"
+   ]
+  },
+  {
+   "name": "STEAM_STAT_SETF",
+   "displayName": "STEAM_STAT_SETF",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_STAT_SETF name$, value",
+   "syntax": [
+    "STEAM_STAT_SETF name$, value"
+   ],
+   "description": {
+    "de": "Setzt eine Kommazahl-Statistik.",
+    "en": "Sets a float statistic."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [
+    {
+     "name": "name",
+     "label": "name",
+     "labelEn": "name",
+     "type": "Wert",
+     "optional": false
+    },
+    {
+     "name": "value",
+     "label": "value",
+     "labelEn": "value",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 2,
+   "maxArgs": 2,
+   "signatureEn": "STEAM_STAT_SETF name$, value",
+   "syntaxEn": [
+    "STEAM_STAT_SETF name$, value"
+   ]
+  },
+  {
+   "name": "STEAM_STORE",
+   "displayName": "STEAM_STORE",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_STORE",
+   "syntax": [
+    "STEAM_STORE"
+   ],
+   "description": {
+    "de": "Schickt geaenderte Statistiken an Steam (StoreStats).",
+    "en": "Sends changed statistics to Steam (StoreStats)."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_STORE",
+   "syntaxEn": [
+    "STEAM_STORE"
+   ]
+  },
+  {
+   "name": "STEAM_TICKET_CANCEL",
+   "displayName": "STEAM_TICKET_CANCEL",
+   "kind": "command",
+   "category": "Steam",
+   "signature": "STEAM_TICKET_CANCEL",
+   "syntax": [
+    "STEAM_TICKET_CANCEL"
+   ],
+   "description": {
+    "de": "Gibt das Session-Ticket wieder frei.",
+    "en": "Releases the session ticket again."
+   },
+   "sample": "",
+   "returnType": "Befehl",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_TICKET_CANCEL",
+   "syntaxEn": [
+    "STEAM_TICKET_CANCEL"
+   ]
+  },
+  {
+   "name": "STEAM_TICKET$",
+   "displayName": "STEAM_TICKET$",
+   "kind": "function",
+   "category": "Steam",
+   "signature": "STEAM_TICKET$()",
+   "syntax": [
+    "STEAM_TICKET$()"
+   ],
+   "description": {
+    "de": "Das Auth-Session-Ticket als Hex-Text fuer einen eigenen Login-Server.",
+    "en": "The auth session ticket as hex text for your own login server."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "STEAM_TICKET$()",
+   "syntaxEn": [
+    "STEAM_TICKET$()"
    ]
   },
   {
@@ -12210,6 +14852,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "STR$ value",
    "syntaxEn": [
     "STR$ value"
@@ -12314,9 +14958,163 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "TAN(angle)",
    "syntaxEn": [
     "TAN(angle)"
+   ]
+  },
+  {
+   "name": "TASK",
+   "displayName": "TASK",
+   "kind": "keyword",
+   "category": "Sprache",
+   "signature": "TASK name",
+   "syntax": [
+    "TASK name"
+   ],
+   "description": {
+    "de": "Beginnt einen kooperativen Task: TASK name: … ENDTASK. AWAIT gibt die Kontrolle an den Hauptloop zurück.",
+    "en": "Begins a cooperative task: TASK name: … ENDTASK. AWAIT gives control back to the main loop."
+   },
+   "sample": "",
+   "returnType": "Schlüsselwort",
+   "returnCode": "v",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "signatureEn": "TASK name",
+   "syntaxEn": [
+    "TASK name"
+   ]
+  },
+  {
+   "name": "TASK_COUNT",
+   "displayName": "TASK_COUNT",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "TASK_COUNT()",
+   "syntax": [
+    "TASK_COUNT()"
+   ],
+   "description": {
+    "de": "Liefert die Anzahl der laufenden Tasks.",
+    "en": "Returns the number of running tasks."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [],
+   "page": "",
+   "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
+   "signatureEn": "TASK_COUNT()",
+   "syntaxEn": [
+    "TASK_COUNT()"
+   ]
+  },
+  {
+   "name": "TASK_RUNNING",
+   "displayName": "TASK_RUNNING",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "TASK_RUNNING(id)",
+   "syntax": [
+    "TASK_RUNNING(id)"
+   ],
+   "description": {
+    "de": "Liefert 1, solange der Task mit dieser Id läuft.",
+    "en": "Returns 1 while the task with this id is running."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "id",
+     "label": "id",
+     "labelEn": "id",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "TASK_RUNNING(id)",
+   "syntaxEn": [
+    "TASK_RUNNING(id)"
+   ]
+  },
+  {
+   "name": "TASK_START",
+   "displayName": "TASK_START",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "TASK_START(\"name\")",
+   "syntax": [
+    "TASK_START(\"name\")"
+   ],
+   "description": {
+    "de": "Startet einen TASK über seinen Namen und liefert die Id. Der Task läuft ab dem nächsten Frame.",
+    "en": "Starts a TASK by name and returns its id. The task runs from the next frame on."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "datei",
+     "label": "datei",
+     "labelEn": "file",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "TASK_START(\"name\")",
+   "syntaxEn": [
+    "TASK_START(\"name\")"
+   ]
+  },
+  {
+   "name": "TASK_STOP",
+   "displayName": "TASK_STOP",
+   "kind": "function",
+   "category": "Tasks und Jobs",
+   "signature": "TASK_STOP(id)",
+   "syntax": [
+    "TASK_STOP(id)"
+   ],
+   "description": {
+    "de": "Stoppt einen laufenden Task. Liefert 1, wenn es die Id gab.",
+    "en": "Stops a running task. Returns 1 when the id existed."
+   },
+   "sample": "",
+   "returnType": "Wert",
+   "returnCode": "f",
+   "params": [
+    {
+     "name": "id",
+     "label": "id",
+     "labelEn": "id",
+     "type": "Wert",
+     "optional": false
+    }
+   ],
+   "page": "",
+   "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
+   "signatureEn": "TASK_STOP(id)",
+   "syntaxEn": [
+    "TASK_STOP(id)"
    ]
   },
   {
@@ -12346,6 +15144,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "TEXT_COLOR color",
    "syntaxEn": [
     "TEXT_COLOR color"
@@ -12399,6 +15199,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 3,
+   "maxArgs": 4,
    "signatureEn": "TEXT_DRAW \"text\",x,y[,color]",
    "syntaxEn": [
     "TEXT_DRAW \"text\",x,y[,color]"
@@ -12431,6 +15233,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "TEXT_HEIGHT(text)",
    "syntaxEn": [
     "TEXT_HEIGHT(text)"
@@ -12463,6 +15267,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "TEXT_WIDTH(text)",
    "syntaxEn": [
     "TEXT_WIDTH(text)"
@@ -12574,6 +15380,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 2,
    "signatureEn": "TRIM$(text, chars)",
    "syntaxEn": [
     "TRIM$(text, chars)"
@@ -12678,6 +15486,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "UCASE$(text)",
    "syntaxEn": [
     "UCASE$(text)"
@@ -12710,6 +15520,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "UDP_CLOSE(handle)",
    "syntaxEn": [
     "UDP_CLOSE(handle)"
@@ -12742,6 +15554,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "UDP_FROM$(handle)",
    "syntaxEn": [
     "UDP_FROM$(handle)"
@@ -12774,6 +15588,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "UDP_OPEN(port)",
    "syntaxEn": [
     "UDP_OPEN(port)"
@@ -12806,6 +15622,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "UDP_PORT(handle)",
    "syntaxEn": [
     "UDP_PORT(handle)"
@@ -12838,6 +15656,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "UDP_RECV$(handle)",
    "syntaxEn": [
     "UDP_RECV$(handle)"
@@ -12891,6 +15711,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "UDP_SEND(handle, host, port, text)",
    "syntaxEn": [
     "UDP_SEND(handle, host, port, text)"
@@ -12947,6 +15769,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "VAL text",
    "syntaxEn": [
     "VAL text"
@@ -13000,6 +15824,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 4,
+   "maxArgs": 4,
    "signatureEn": "VIEWPORT x,y,w,h",
    "syntaxEn": [
     "VIEWPORT x,y,w,h"
@@ -13024,6 +15850,8 @@
    "params": [],
    "page": "",
    "optional": false,
+   "minArgs": 0,
+   "maxArgs": 0,
    "signatureEn": "WAIT_INPUT",
    "syntaxEn": [
     "WAIT_INPUT"
@@ -13128,6 +15956,8 @@
    ],
    "page": "",
    "optional": false,
+   "minArgs": 1,
+   "maxArgs": 1,
    "signatureEn": "WINDOW_TITLE \"text\"",
    "syntaxEn": [
     "WINDOW_TITLE \"text\""

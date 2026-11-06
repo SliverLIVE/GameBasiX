@@ -23,6 +23,15 @@
 #include "runtime.h"
 
 namespace {
+std::string upperWord(const std::string& text) {
+    std::string out = text;
+    for (char& c : out)
+        if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
+    return out;
+}
+}  // namespace
+
+namespace {
 
 /** Bezeichner ohne Typ-Suffix ($ % #), so wie der Parser Variablen speichert. */
 std::string withoutSuffix(const std::string& name) {
@@ -71,7 +80,8 @@ std::string closestName(const std::vector<std::string>& names, const std::string
  */
 const std::unordered_set<std::string>& outputCommands() {
     static const std::unordered_set<std::string> names = {
-        "SCREEN_SIZE", "DESKTOP_SIZE", "VIEWPORT", "SPRITE_SIZE",
+        "SCREEN_SIZE", "DESKTOP_SIZE", "VIEWPORT", "CAMERA_SCREEN_TO_WORLD",
+        "CAMERA_WORLD_TO_SCREEN", "SPRITE_SIZE",
         "FONT_SIZE",    "INPUT",         "MOUSE_STATE",  "DIMDATA",
         "SPLIT_STRING",       "FILE_READ_BYTE",      "FILE_READ_UBYTE",   "FILE_READ_WORD",
         "FILE_READ_UWORD",      "FILE_READ_LONG",      "FILE_READ_ULONG",   "FILE_READ_DOUBLE",
@@ -161,7 +171,7 @@ private:
     std::string typeOf(const Expr* e) const {
         if (!e) return "";
         if (e->kind == EK::Var) {
-            if (e->text == "SELF" && !currentOwner_.empty()) return currentOwner_;
+            if (upperWord(e->text) == "SELF" && !currentOwner_.empty()) return currentOwner_;
             auto it = varType_.find(e->text);
             return it == varType_.end() ? "" : it->second;
         }
@@ -193,8 +203,8 @@ private:
 
     bool knownCallable(const std::string& name) const {
         const std::string base = withoutSuffix(name);
-        if (name == "IIF" || base == "IIF") return true;
-        if (funcs_.count(name) || funcs_.count(base)) return true;
+        if (upperWord(name) == "IIF") return true;
+        if (funcs_.count(name) || funcs_.count(base) || funcs_.count(upperWord(name))) return true;
         // Ein Name, der als Variable vorkommt, kann eine FUNCTION halten
         // (`aktion = @doppelt`) und wird ueber den Namen aufgerufen.
         if (defined_.count(name) || defined_.count(base)) return true;
@@ -203,7 +213,87 @@ private:
             auto type = prog_.types.find(currentOwner_);
             if (type != prog_.types.end() && type->second && type->second->hasMethod(base)) return true;
         }
-        return builtins().count(name) > 0 || builtins().count(base) > 0;
+        return builtins().count(upperWord(name)) > 0 || builtins().count(upperWord(base)) > 0;
+    }
+
+    /** Kleinst- und Groesstzahl der Argumente einer eigenen Funktion. */
+    static std::pair<int, int> arityOf(const FuncDef& def) {
+        int minimum = 0;
+        for (size_t i = 0; i < def.params.size(); ++i) {
+            if (!def.params[i].def) minimum = static_cast<int>(i) + 1;
+        }
+        return {minimum, static_cast<int>(def.params.size())};
+    }
+
+    static std::string expectedCount(int minimum, int maximum) {
+        if (maximum < 0) return "at least " + std::to_string(minimum);
+        if (minimum == maximum) return std::to_string(minimum);
+        return std::to_string(minimum) + " to " + std::to_string(maximum);
+    }
+
+    void checkArity(const std::string& name, size_t count, const SrcPos& pos,
+                    int minimum, int maximum) {
+        const int actual = static_cast<int>(count);
+        if (actual >= minimum && (maximum < 0 || actual <= maximum)) return;
+        issue(pos, "Wrong number of arguments for " + name + " (expected " +
+                      expectedCount(minimum, maximum) + ", got " + std::to_string(actual) + ")");
+    }
+
+    /** Eigene FUNCTION/SUB, aber keine METHOD (die hat einen TYPE.PREFIX). */
+    const FuncDef* userFunction(const std::string& name) const {
+        auto it = prog_.funcs.find(name);
+        if (it != prog_.funcs.end() && !it->second.isMethod()) return &it->second;
+        const std::string base = withoutSuffix(name);
+        if (base != name) {
+            it = prog_.funcs.find(base);
+            if (it != prog_.funcs.end() && !it->second.isMethod()) return &it->second;
+        }
+        return nullptr;
+    }
+
+    /** METHOD in der TYPE-Kette, inklusive geerbter METHODen. */
+    const FuncDef* methodDef(const TypeDef* type, const std::string& name) const {
+        auto lookup = [&](const std::string& methodName) -> const FuncDef* {
+            for (const TypeDef* t = type; t; t = t->base) {
+                auto it = prog_.funcs.find(t->name + "." + methodName);
+                if (it != prog_.funcs.end() && it->second.isMethod()) return &it->second;
+            }
+            return nullptr;
+        };
+        if (const FuncDef* hit = lookup(name)) return hit;
+        const std::string base = withoutSuffix(name);
+        return base == name ? nullptr : lookup(base);
+    }
+
+    /** Prueft einen Aufruf, sofern die Argumentzahl statisch bekannt ist. */
+    void checkCallArity(const std::string& name, size_t count, const SrcPos& pos) {
+        const std::string upper = upperWord(name);
+        // IIF ist kein normaler Befehl: es wertet genau drei Argumente aus.
+        if (upper == "IIF") {
+            checkArity(name, count, pos, 3, 3);
+            return;
+        }
+        if (const FuncDef* fn = userFunction(name)) {
+            const auto range = arityOf(*fn);
+            checkArity(name, count, pos, range.first, range.second);
+            return;
+        }
+        // In einer METHOD sind die eigenen Methoden ohne Objekt aufrufbar.
+        if (!currentOwner_.empty()) {
+            auto type = prog_.types.find(currentOwner_);
+            if (type != prog_.types.end() && type->second) {
+                if (const FuncDef* method = methodDef(type->second.get(), name)) {
+                    const auto range = arityOf(*method);
+                    checkArity(name, count, pos, range.first, range.second);
+                    return;
+                }
+            }
+        }
+        auto bit = builtins().find(upper);
+        if (bit == builtins().end()) bit = builtins().find(upperWord(withoutSuffix(name)));
+        if (bit != builtins().end()) {
+            checkArity(name, count, pos, bit->second.minArgs, bit->second.maxArgs);
+        }
     }
 
     void issue(const SrcPos& pos, const std::string& message) {
@@ -227,7 +317,7 @@ private:
         collectExpr(e->a.get());
         collectExpr(e->b.get());
         for (const auto& arg : e->args) collectExpr(arg.get());
-        if (e->kind == EK::Call && outputCommands().count(withoutSuffix(e->text))) {
+        if (e->kind == EK::Call && outputCommands().count(upperWord(withoutSuffix(e->text)))) {
             for (const auto& arg : e->args) {
                 if (arg && arg->kind == EK::Var) defined_.insert(arg->text);
             }
@@ -268,7 +358,7 @@ private:
                 labels_.insert(s.name);
                 break;
             case SK::Call:
-                if (outputCommands().count(withoutSuffix(s.name))) {
+                if (outputCommands().count(upperWord(withoutSuffix(s.name)))) {
                     for (const auto& arg : s.exprs) {
                         if (arg && arg->kind == EK::Var) defined_.insert(arg->text);
                     }
@@ -304,7 +394,11 @@ private:
     void checkStmt(const Stmt& s) {
         switch (s.kind) {
             case SK::Call:
-                if (!knownCallable(s.name)) issue(s.pos, "Unknown command: " + withoutSuffix(s.name));
+                if (!knownCallable(s.name)) {
+                    issue(s.pos, "Unknown command: " + withoutSuffix(s.name));
+                } else {
+                    checkCallArity(s.name, s.exprs.size(), s.pos);
+                }
                 break;
             case SK::Goto:
                 if (!labels_.count(s.name)) issue(s.pos, "Unknown label: " + s.name);
@@ -344,7 +438,11 @@ private:
         if (base.empty()) return;
         auto type = prog_.types.find(base);
         if (type == prog_.types.end() || !type->second) return;
-        if (type->second->hasMethod(e->text)) return;
+        if (const FuncDef* method = methodDef(type->second.get(), e->text)) {
+            const auto range = arityOf(*method);
+            checkArity(e->text, e->args.size(), e->pos, range.first, range.second);
+            return;
+        }
         const std::string hint = closestName(type->second->methods, e->text);
         issue(e->pos, "Unknown method: " + e->text + " (" + base + ")" +
                           (hint.empty() ? "" : " - did you mean " + hint + "?"));
@@ -369,7 +467,9 @@ private:
     void checkExpr(const Expr* e) {
         if (!e) return;
         if (e->kind == EK::Var) {
-            if (!defined_.count(e->text) && !constants_.count(e->text)) {
+            if (!(upperWord(e->text) == "SELF" && !currentOwner_.empty()) &&
+                !defined_.count(e->text) && !constants_.count(e->text) &&
+                !constants_.count(upperWord(e->text))) {
                 // Ein ENUM-Wert heisst immer PHASE.STOP - der kurze Name allein
                 // ist genau der Fehler, den dieser Hinweis erklaert.
                 const auto value = prog_.enumValues.find(e->text);
@@ -380,7 +480,11 @@ private:
                 issue(e->pos, "Unknown name: " + e->text + hint);
             }
         } else if (e->kind == EK::Call) {
-            if (!knownCallable(e->text)) issue(e->pos, "Unknown function: " + withoutSuffix(e->text));
+            if (!knownCallable(e->text)) {
+                issue(e->pos, "Unknown function: " + withoutSuffix(e->text));
+            } else {
+                checkCallArity(e->text, e->args.size(), e->pos);
+            }
         } else if (e->kind == EK::FuncRef) {
             if (!funcs_.count(e->text) && !funcs_.count(withoutSuffix(e->text)))
                 issue(e->pos, "Unknown function: " + withoutSuffix(e->text));

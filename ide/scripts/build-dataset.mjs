@@ -40,6 +40,7 @@ const CATEGORY_KEYS = {
   'Arrays and dictionaries': 'Arrays und Dictionaries',
   Network: 'Netzwerk',
   Steam: 'Steam',
+  'Tasks and jobs': 'Tasks und Jobs',
   'Runtime and debug': 'Laufzeit und Debug'
 };
 
@@ -78,6 +79,9 @@ const KEYWORDS = new Set([
   'EXIT',
   'FUNCTION',
   'ENDFUNCTION',
+  'TASK',
+  'ENDTASK',
+  'AWAIT',
   'SUB',
   'ENDSUB',
   'TYPE',
@@ -138,7 +142,10 @@ const KEYWORD_SIGNATURES = {
   EXTENDS: 'EXTENDS base',
   IMPLEMENTS: 'IMPLEMENTS first[, second]',
   ENDWHILE: 'ENDWHILE',
-  WHEN: 'WHEN condition'
+  WHEN: 'WHEN condition',
+  TASK: 'TASK name',
+  ENDTASK: 'ENDTASK',
+  AWAIT: 'AWAIT FRAME | seconds'
 };
 
 const NOTES = {
@@ -238,7 +245,7 @@ const SAMPLES = {
   JOY_AXIS: 'IF ABS(JOY_AXIS(0, JOY_AXIS_LX)) > 0.2 THEN x = x + 4 * SGN(JOY_AXIS(0, JOY_AXIS_LX))',
   JOY_BUTTON: 'IF JOY_BUTTON(0, JOY_RIGHT) THEN x = x + 4',
   JOY_PRESSED: 'IF JOY_PRESSED(0, JOY_A) THEN sprung()',
-  RGB: 'farbe = RGB(255, 128, 0)',
+  RGB: 'farbe = RGB(255, 128, 0, 160)',
   DELTA_TIME: 'start = DELTA_TIME()\n...\nsekunden = (DELTA_TIME() - start) / 1000.0',
   SLEEP: 'SLEEP 250',
   SPLIT_STRING: 'SPLIT_STRING "a;b;c", teile$[], ";"',
@@ -666,6 +673,9 @@ function alignWithInterpreter(list, reference) {
     }
     const fixed = ARITY_FIX[key];
     const max = fixed || (Number.isFinite(info.max) ? info.max : Math.max(info.min, entry.params.length));
+    // -1 means variadic, the same value builtins.cpp uses. The IDE shows
+    // this as "at least N arguments" instead of guessing from params.length.
+    const maxArgs = fixed || (Number.isFinite(info.max) ? info.max : -1);
     const own = (PARAM_LABELS[key] || []).slice(0, max);
     const readme = entry.params.map((param) => param.label || param.name).filter(Boolean);
     const names = syntaxLabels(byName.get(key));
@@ -697,6 +707,8 @@ function alignWithInterpreter(list, reference) {
     kept.push({
       ...entry,
       params,
+      minArgs: info.min,
+      maxArgs,
       signature,
       signatureEn: signatureInEnglish(signature),
       syntax: [signature],

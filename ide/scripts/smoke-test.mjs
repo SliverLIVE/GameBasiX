@@ -22,6 +22,8 @@ const {
   parseWebfonts,
   publicFamilies
 } = await import('../src/server/googlefonts.mjs');
+const { analyzeSource, ambiguousBuiltinCalls } = await import('../src/renderer/gbx-lang.js');
+const { checkLine, commandArity, arityText } = await import('../src/renderer/line-check.js');
 const server = await startServer({ port: 0 });
 
 async function request(pathname, body, method = 'GET') {
@@ -149,7 +151,7 @@ try {
     const builtins = new Set([...source.matchAll(/add\("([^"]+)"/g)].map((match) => match[1].toUpperCase()));
     const entries = new Map(dataset.commands.map((entry) => [entry.name.toUpperCase(), entry]));
 
-    assert.equal(builtins.size, 243, 'Interpreter-Befehle');
+    assert.equal(builtins.size, 303, 'Interpreter-Befehle');
     for (const name of builtins) assert.ok(entries.has(name), `${name} fehlt im Datensatz`);
     // Steuerwörter, die früher in der Vervollständigung fehlten.
     for (const keyword of ['INCLUDE', 'IF', 'ENDIF', 'SWAP', 'INC', 'DEC', 'TRY', 'CATCH', 'FINALLY', 'ENDTRY', 'THROW', 'STATIC']) {
@@ -178,13 +180,79 @@ try {
     assert.equal(entries.get('JOY_AXIS_LX')?.kind, 'constant', 'JOY_AXIS_LX fehlt');
     assert.equal(entries.get('JOY_AXIS')?.kind, 'function', 'JOY_AXIS fehlt');
     assert.equal(entries.get('TEXT_WIDTH')?.kind, 'function', 'TEXT_WIDTH fehlt');
+    // KEY_DOWN ist gleichzeitig Funktion und Taste. Weitere solcher
+    // Doppelbelegungen darf es nicht geben, sonst müsste der Highlighter
+    // sie ebenfalls anhand der Klammer unterscheiden.
+    assert.deepEqual(ambiguousBuiltinCalls(dataset.commands), ['KEY_DOWN']);
+    assert.deepEqual(
+      dataset.commands
+        .filter((entry) => entry.name.toUpperCase() === 'KEY_DOWN')
+        .map((entry) => entry.kind)
+        .sort(),
+      ['constant', 'function']
+    );
     // Argumentzahl folgt dem Interpreter (INPUT var[,x[,y]]).
     const input = entries.get('INPUT');
     assert.equal(input.params.length, 3);
     assert.deepEqual(input.params.map((param) => param.optional), [false, true, true]);
+    assert.deepEqual([input.minArgs, input.maxArgs], [1, 3]);
+    assert.equal(arityText(input), '1–3 arguments');
+    // Die IDE zeigt dieselben Grenzen wie der Linter – auch variadisch.
+    const left = entries.get('LEFT$');
+    assert.deepEqual([left.minArgs, left.maxArgs], [2, 2]);
+    assert.deepEqual(commandArity(left), { min: 2, max: 2 });
+    assert.equal(arityText(left), '2 arguments');
+    assert.equal(arityText(entries.get('PRINT')), '3–4 arguments');
+    const format = entries.get('FORMAT$');
+    assert.deepEqual([format.minArgs, format.maxArgs], [1, -1]);
+    assert.equal(commandArity(format).max, Infinity);
+    assert.equal(arityText(format), 'at least 1 argument');
+    assert.equal(arityText({ kind: 'FUNCTION', params: [{ name: 'name$' }, { name: 'punct$', optional: true }] }), '1–2 arguments');
     // Funktionen werden mit Klammern aufgerufen, Befehle ohne.
     assert.equal(entries.get('ABS').kind, 'function');
     assert.equal(entries.get('PRINT').kind, 'command');
+    const tooFew = checkLine('PRINT "x"', { byName: entries, caretColumn: 10 });
+    assert.equal(tooFew.code, 'too-few-arguments');
+    assert.equal(tooFew.arityLabel, '3–4 arguments');
+    // TASK_START/TASK_STOP liefern Werte und werden deshalb mit Klammern aufgerufen.
+    assert.equal(entries.get('TASK_START').kind, 'function');
+    assert.equal(entries.get('TASK_STOP').kind, 'function');
+    // 2D-Kamera: zwei Pflichtargumente, Zoom und Winkel sind optional.
+    assert.deepEqual([entries.get('CAMERA_BEGIN')?.minArgs, entries.get('CAMERA_BEGIN')?.maxArgs], [2, 4]);
+    assert.equal(entries.get('CAMERA_END')?.maxArgs, 0);
+    assert.equal(entries.get('CAMERA_SCREEN_TO_WORLD')?.minArgs, 4);
+    assert.equal(entries.get('CAMERA_WORLD_TO_SCREEN')?.minArgs, 4);
+    const taskStart = checkLine('TASK_START("story")', { byName: entries, caretColumn: 15 });
+    assert.notEqual(taskStart.status, 'error', taskStart.message);
+  });
+
+  await check('Outline erkennt TASK-Blöcke', () => {
+    const analysis = analyzeSource([
+      'TASK ticker:',
+      '  AWAIT FRAME',
+      'ENDTASK',
+      'FUNCTION helper:',
+      '  RETURN 1',
+      'ENDFUNCTION'
+    ].join('\n'));
+    assert.deepEqual(analysis.tasks.map((task) => [task.name, task.line, task.endLine]), [['ticker', 1, 3]]);
+    assert.equal(analysis.functions[0]?.name, 'helper');
+  });
+
+  await check('Taskrumpf-Variablen erscheinen im Hover', () => {
+    const analysis = analyzeSource([
+      'TASK story:',
+      '  job = SPAWN(@sumTo, 200000)',
+      '  text$ = JOB_VALUE(job)',
+      'ENDTASK'
+    ].join('\n'));
+    const job = analysis.variables.find((variable) => variable.name === 'job');
+    const text = analysis.variables.find((variable) => variable.name === 'text$');
+    assert.equal(job?.scope, 'TASK');
+    assert.equal(job?.type, 'NUMERIC');
+    assert.equal(job?.line, 2);
+    assert.equal(text?.scope, 'TASK');
+    assert.equal(text?.type, 'STRING');
   });
 
   await check('Google-Fonts-Liste der Webfonts-API', () => {
@@ -475,7 +543,7 @@ try {
     assert.equal(liveUnknown.diagnostics.length, 1);
     assert.equal(liveUnknown.diagnostics[0].line, 1);
     // Die Meldung kommt von gbx und folgt dessen Sprache (Standard: Englisch).
-    assert.match(liveUnknown.diagnostics[0].message, /^(Unbekannter Befehl|Unknown command): BLA$/);
+    assert.match(liveUnknown.diagnostics[0].message, /^(Unbekannter Befehl|Unknown command): bla$/);
     assert.equal(liveUnknown.diagnostics[0].column, 1);
     assert.equal(liveUnknown.diagnostics[0].tokenLength, 3);
   });
@@ -592,13 +660,13 @@ try {
     const stop = await waitFor((event) => event.type === 'debug' && event.event.t === 'stop' && event.event.reason === 'breakpoint');
     assert.ok(stop, 'kein Haltepunkt erreicht');
     assert.equal(stop.event.line, 5);
-    assert.equal(stop.event.scope.func, 'ADD');
+    assert.equal(stop.event.scope.func, 'add');
     const locals = Object.fromEntries(stop.event.scope.locals.map((variable) => [variable.name, variable.value]));
-    assert.equal(locals.TOTAL, '3');
+    assert.equal(locals.total, '3');
   });
 
   await check('Wert-Tooltip liest Variablen im Haltepunkt', async () => {
-    await debugCommand('eval', { id: 11, expression: 'TOTAL' });
+    await debugCommand('eval', { id: 11, expression: 'total' });
     const reply = await waitFor(
       (event) => event.type === 'debug' && event.event.t === 'eval' && String(event.event.id) === '11'
     );
@@ -606,7 +674,7 @@ try {
     assert.equal(reply.event.ok, true, reply.event.error);
     assert.equal(reply.event.detail, '3');
     assert.equal(reply.event.type, 'INTEGER');
-    assert.equal(reply.event.expr, 'TOTAL');
+    assert.equal(reply.event.expr, 'total');
 
     await debugCommand('eval', { id: 12, expression: 'GIBTESNICHT' });
     const unknown = await waitFor(

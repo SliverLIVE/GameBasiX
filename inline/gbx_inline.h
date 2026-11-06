@@ -638,6 +638,7 @@ Result call(const char* name, const Args&... args) {
 
 /** RGB is not used as a function name because of the Windows macro. */
 inline Result rgb(double r, double g, double b) { return call("RGB", r, g, b); }
+inline Result rgb(double r, double g, double b, double a) { return call("RGB", r, g, b, a); }
 
 /* Every built-in command without a $ in its name is available here as a
  * C++ function. Commands with $ (CHR$, LEFT$, STR$ …) are called through

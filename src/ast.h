@@ -63,6 +63,7 @@ enum class SK {
     Throw,
     MethodCall,  // Aufruf einer Methode als Anweisung: e1 ist EK::MethodCall
     InlineStep,  // INLINE-Block mitten im Code: wird hier ausgefuehrt
+    Await,       // AWAIT FRAME / AWAIT Sekunden in einem TASK
     Nop
 };
 
@@ -149,8 +150,16 @@ struct InlineBlock {
     std::string scopeType;  // TYPE bei METHOD, sonst leer
 };
 
+// Ein TASK-Block: eigener Ausfuehrungsfaden, kooperativ ueber AWAIT.
+struct TaskDef {
+    std::string name;
+    SrcPos pos;
+    std::vector<StmtP> body;
+};
+
 struct Program {
     std::vector<StmtP> main;
+    std::unordered_map<std::string, TaskDef> tasks;
     std::vector<InlineBlock> inlines;
     std::unordered_map<std::string, FuncDef> funcs;
     std::unordered_map<std::string, std::shared_ptr<TypeDef>> types;

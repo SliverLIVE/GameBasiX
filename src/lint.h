@@ -12,6 +12,7 @@ struct LintIssue {
 };
 
 // Meldet Namen, die das Programm nirgends definiert: unbekannte Befehle,
-// Funktionen und Variablen. Laeuft nach dem Parsen, damit die IDE schon beim
-// Tippen Tippfehler sieht; zur Laufzeit bleibt GBX nachsichtig.
+// Funktionen und Variablen. Prueft ausserdem die Argumentzahl bekannter
+// Befehle, Funktionen und Methoden. Laeuft nach dem Parsen, damit die IDE
+// schon beim Tippen Fehler sieht; zur Laufzeit bleibt GBX nachsichtig.
 std::vector<LintIssue> lintProgram(const Program& prog);

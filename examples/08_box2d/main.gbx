@@ -60,10 +60,10 @@ TYPE BOX
       corner( hw,  hh, x3, y3);
       corner(-hw,  hh, x4, y4);
 
-      if (usetexture.value() > 0.5) {
+      if (UseTexture.value() > 0.5) {
           /* Normalized texture coordinates: 0,0 is the top left of the
            * sprite, 1,1 the bottom right. The vertex color tints it. */
-          POLY_BEGIN(crate);
+          POLY_BEGIN(Crate);
           POLY_POINT(x1, y1, 0.0, 0.0, color);
           POLY_POINT(x2, y2, 1.0, 0.0, color);
           POLY_POINT(x3, y3, 1.0, 1.0, color);

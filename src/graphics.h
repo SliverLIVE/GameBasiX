@@ -15,6 +15,21 @@
 #include <unordered_map>
 #include <vector>
 
+// 24-bit colours keep their value. A fourth RGB() argument marks the colour
+// with bit 32 and stores alpha in bits 24..31, so RGB(r,g,b) stays compatible.
+using Color = uint64_t;
+constexpr Color kColorAlphaFlag = 1ull << 32;
+
+inline uint8_t colorAlpha(Color color) {
+    return (color & kColorAlphaFlag) ? static_cast<uint8_t>((color >> 24) & 0xFF) : 255;
+}
+
+inline uint32_t colorRgb(Color color) { return static_cast<uint32_t>(color & 0xFFFFFF); }
+
+inline Color makeColor(uint32_t rgb, uint8_t alpha) {
+    return kColorAlphaFlag | (static_cast<Color>(alpha) << 24) | (rgb & 0xFFFFFF);
+}
+
 struct Sprite {
     SDL_Texture* tex = nullptr;
     int w = 0, h = 0;
@@ -49,7 +64,7 @@ struct FontSlot {
 struct PolyVertex {
     float x = 0, y = 0;
     float u = 0, v = 0;
-    uint32_t color = 0xFFFFFF;
+    Color color = 0xFFFFFF;
 };
 
 class Gfx {
@@ -76,11 +91,20 @@ public:
     void setPrescaler(int w, int h);
     void setViewport(int x, int y, int w, int h);
     void getViewport(int& x, int& y, int& w, int& h) const;
+    // 2D-Kamera: Weltkoordinaten werden beim Zeichnen nach Bildschirmkoordinaten
+    // umgerechnet. x/y ist der Weltpunkt in der Mitte des aktuellen Viewports;
+    // zoom 1 zeichnet ein Weltpixel pro Bildschirmpixel. angle in Grad, positiv
+    // gegen den Uhrzeigersinn (wie SPRITE_DRAW_ROTATED).
+    bool beginCamera(float x, float y, float zoom, double angle, std::string& err);
+    void endCamera();
+    bool cameraActive() const { return cameraActive_; }
+    void cameraScreenToWorld(float sx, float sy, float& wx, float& wy) const;
+    void cameraWorldToScreen(float wx, float wy, float& sx, float& sy) const;
     int nextSpriteId() const;
     int nextFontId() const;
     int nextScreenId() const;
-    void clearScreen(uint32_t color);
-    void setClearColor(uint32_t color);
+    void clearScreen(Color color);
+    void setClearColor(Color color);
     void blackScreen();
     void present();
     void setLimitFps(double fps, bool vsync);
@@ -88,20 +112,20 @@ public:
 
     // Zeichnen
     void setAlphaMode(double alpha) { alphaMode_ = alpha; }
-    void drawLine(float x1, float y1, float x2, float y2, uint32_t color);
-    void drawRect(float x, float y, float w, float h, uint32_t color);
+    void drawLine(float x1, float y1, float x2, float y2, Color color);
+    void drawRect(float x, float y, float w, float h, Color color);
     /* Kopiert ein RGBA8-Bild (Zeilen von oben nach unten, stride in Bytes) in
        den aktuellen Zeichenbereich - etwa das Ergebnis eines
        Vulkan-Offscreen-Frames. Das Bild wird auf den Viewport bzw. den
        aktiven Screen skaliert; 2D-Zeichnen geht danach normal darauf weiter. */
     void blitPixels(const void* rgba, int w, int h, int stride);
-    void drawCircle(float cx, float cy, float r, uint32_t color, bool filled);
-    void setPixel(int x, int y, uint32_t color);
+    void drawCircle(float cx, float cy, float r, Color color, bool filled);
+    void setPixel(int x, int y, Color color);
     uint32_t getPixel(int x, int y);
 
     // Polygone
     void startPoly(int spriteId, int mode);
-    void polyVector(float x, float y, float u, float v, uint32_t color);
+    void polyVector(float x, float y, float u, float v, Color color);
     void endPoly();
 
     // Sprites
@@ -137,8 +161,8 @@ public:
     void useScreen(int screenId);
 
     // Transparenz / Alpha-Test
-    void setTransparency(uint32_t color) {
-        transparencyKey_ = color & 0xFFFFFF;
+    void setTransparency(Color color) {
+        transparencyKey_ = colorRgb(color);
         transparencySet_ = true;
     }
     void setAlphaTesting(double v) { alphaTesting_ = v; }
@@ -157,9 +181,9 @@ public:
     void setFontScale(int scale);
     int currentFont() const { return currentFont_; }
     void fontCharSize(int& w, int& h) const;
-    void drawText(const std::string& text, float x, float y, uint32_t color);
+    void drawText(const std::string& text, float x, float y, Color color);
     void textSize(const std::string& text, int& w, int& h) const;
-    void drawTextCentered(const std::string& text, float cx, float y, uint32_t color);
+    void drawTextCentered(const std::string& text, float cx, float y, Color color);
 
     // Eingabe
     void pump();
@@ -217,6 +241,12 @@ private:
     SDL_Rect viewport_{};
     bool haveViewport_ = false;
 
+    bool cameraActive_ = false;
+    float cameraX_ = 0;
+    float cameraY_ = 0;
+    float cameraZoom_ = 1;
+    double cameraAngle_ = 0;
+
     int targetScreen_ = -1;
     std::unordered_map<int, SDL_Texture*> screens_;
 
@@ -268,7 +298,11 @@ private:
     Uint64 lastFrameDuration_ = 16;
 
     void applyViewport();
-    void applyBlend(uint8_t& alpha) const;
+    void cameraViewCenter(float& cx, float& cy) const;
+    void drawTextureRect(SDL_Texture* tex, const SDL_FRect& src, float x, float y,
+                         float w, float h, double angle);
+    void applyBlend(uint8_t& alpha, Color color) const;
+    uint8_t textureAlpha(Color color) const;
     void beginFrameImpl();
     void pumpEventsImpl();
     SDL_Texture* textureFromPixels(const uint8_t* rgba, int w, int h);
@@ -276,7 +310,7 @@ private:
     SDL_Texture* makeTexture(const std::vector<uint8_t>& rgba, int w, int h);
     bool loadImagePixels(const std::string& file, std::vector<uint8_t>& out, int& w, int& h,
                          std::string& err);
-    void drawGlyphs(const std::string& text, float x, float y, uint32_t color);
+    void drawGlyphs(const std::string& text, float x, float y, Color color);
     const GlyphInfo* glyphFor(int fontId, const FontSlot& f, uint32_t cp);
     const Sprite* findSprite(int id) const;
 };

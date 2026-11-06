@@ -341,8 +341,10 @@ npm run build:dataset
 
 ## Colour swatches at RGB()
 
-When `RGB(r, g, b)` is called with three numbers – `0x…` included – the editor
-shows a small swatch in exactly that colour in front of the call. Showing or
+When `RGB(r, g, b[, a])` is called with numbers – `0x…` included – the editor
+shows a small swatch in exactly that colour in front of the call. The optional
+alpha value is shown in the swatch and can be changed in the picker; it uses
+the same 0–255 range as the drawing commands. Showing or
 clicking it opens Monaco's colour picker; the chosen colour goes straight into
 the source and `Ctrl+Z` takes it back. Comments and string literals get no
 swatch, and neither does `RGB(x, y, z)` with variables – their colour is only

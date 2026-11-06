@@ -122,12 +122,12 @@ def test_session():
             return
         check(stop.get("reason") == "breakpoint", "Grund ist der Haltepunkt", stop.get("reason"))
         check(stop.get("line") == 7, "Zeile des Haltepunkts", stop.get("line"))
-        check((stop.get("scope") or {}).get("func") == "ADD", "Funktion heisst ADD",
+        check((stop.get("scope") or {}).get("func") == "add", "Funktion heisst add",
               (stop.get("scope") or {}).get("func"))
-        check(variables(stop.get("scope"), "locals").get("TOTAL") == "3",
-              "lokale Variable TOTAL", str(variables(stop.get("scope"), "locals")))
-        check(variables(stop.get("scope"), "globals").get("X") == "1",
-              "globale Variable X", str(variables(stop.get("scope"), "globals")))
+        check(variables(stop.get("scope"), "locals").get("total") == "3",
+              "lokale Variable total", str(variables(stop.get("scope"), "locals")))
+        check(variables(stop.get("scope"), "globals").get("x") == "1",
+              "globale Variable x", str(variables(stop.get("scope"), "globals")))
 
         # Einzelschritt ueber RETURN hinaus: naechste Anweisung im Hauptprogramm.
         session.send("next")
@@ -154,7 +154,7 @@ def test_condition():
     try:
         session.event()
         # Bedingter Haltepunkt in der FOR-Schleife (Zeile 12).
-        session.send(f"bp\t{SAMPLE}\t12\tI >= 2")
+        session.send(f"bp\t{SAMPLE}\t12\ti >= 2")
         session.send("run")
 
         stop = wait_stop(session)
@@ -162,16 +162,16 @@ def test_condition():
             session.send("run")
             stop = wait_stop(session)
         check(bool(stop and stop.get("line") == 12), "Bedingter Haltepunkt greift", str(stop and stop.get("line")))
-        check(bool(stop) and stop.get("condition") == "I >= 2", "Bedingung wird gemeldet",
+        check(bool(stop) and stop.get("condition") == "i >= 2", "Bedingung wird gemeldet",
               str(stop and stop.get("condition")))
-        check(variables(stop.get("scope"), "globals").get("I") == "2",
-              "erster Treffer erst bei I=2", str(variables(stop.get("scope"), "globals").get("I")))
+        check(variables(stop.get("scope"), "globals").get("i") == "2",
+              "erster Treffer erst bei i=2", str(variables(stop.get("scope"), "globals").get("i")))
 
         session.send("continue")
         second = wait_stop(session)
         check(bool(second and second.get("line") == 12), "zweiter Treffer", str(second and second.get("line")))
-        check(bool(second) and variables(second.get("scope"), "globals").get("I") == "3",
-              "zweiter Treffer bei I=3", str(variables(second.get("scope"), "globals").get("I")))
+        check(bool(second) and variables(second.get("scope"), "globals").get("i") == "3",
+              "zweiter Treffer bei i=3", str(variables(second.get("scope"), "globals").get("i")))
 
         session.send("continue")
         exit_event = session.event()
@@ -185,7 +185,7 @@ def test_broken_condition():
     session = Session(SAMPLE)
     try:
         session.event()
-        session.send(f"bp\t{SAMPLE}\t12\tI >>> 2")
+        session.send(f"bp\t{SAMPLE}\t12\ti >>> 2")
         session.send("run")
         stop = wait_stop(session)
         if stop and stop.get("reason") == "start":
@@ -237,9 +237,9 @@ def test_inspect():
         check(bool(record and record.get("ok")), "TYPE wird ausgewertet", str(record))
         check(bool(record) and record.get("type") == "PUNKT", "Typ des TYPE", str(record and record.get("type")))
         detail = (record or {}).get("detail", "")
-        check("PX = 12.5" in detail and "PY = 7" in detail,
+        check("px = 12.5" in detail and "py = 7" in detail,
               "Felder des TYPE stehen im Tooltip", detail)
-        check('NAME = "punkt"' in detail, "Stringfeld mit Anfuehrungszeichen", detail)
+        check('name = "punkt"' in detail, "Stringfeld mit Anfuehrungszeichen", detail)
 
         array = evaluate(2, "zahlen")
         check(bool(array) and array.get("type") == "ARRAY[3]", "Array mit Laenge",
@@ -250,7 +250,7 @@ def test_inspect():
         records = evaluate(3, "leute")
         detail = (records or {}).get("detail", "")
         check("[1] · TYPE PUNKT" in detail, "TYPE-Array wird aufgeklappt", detail)
-        check("PX = 99" in detail, "Feld des zweiten Elements", detail)
+        check("px = 99" in detail, "Feld des zweiten Elements", detail)
 
         field_expr = evaluate(4, "spieler.px")
         check(bool(field_expr) and field_expr.get("detail") == "12.5", "Feld ueber Punkt gelesen",
@@ -265,10 +265,10 @@ def test_inspect():
         # Feld-Arrays im Tooltip: faecher[2] AS PUNKT und notizen[] (leer).
         field_arrays = evaluate(8, "regal")
         detail = (field_arrays or {}).get("detail", "")
-        check("FAECHER · ARRAY[2]" in detail, "Feld-Array steht im Tooltip", detail)
-        check("[1] · TYPE PUNKT" in detail and "PX = 42" in detail,
+        check("faecher · ARRAY[2]" in detail, "Feld-Array steht im Tooltip", detail)
+        check("[1] · TYPE PUNKT" in detail and "px = 42" in detail,
               "Elemente des Feld-Arrays werden aufgeklappt", detail)
-        check("NOTIZEN · ARRAY[0]" in detail, "leeres Feld-Array im Tooltip", detail)
+        check("notizen · ARRAY[0]" in detail, "leeres Feld-Array im Tooltip", detail)
         one = evaluate(9, "regal.faecher[1].px")
         check(bool(one) and one.get("detail") == "42", "Feld-Array-Element ausgewertet", str(one))
 
@@ -300,7 +300,7 @@ def test_inspect():
             if event.get("t") == "scope":
                 scope = event.get("scope")
                 break
-        check("QUATSCH" not in variables(scope, "globals") and "QUATSCH" not in variables(scope, "locals"),
+        check("quatsch" not in variables(scope, "globals") and "quatsch" not in variables(scope, "locals"),
               "unbekannter Name bleibt ohne Nebenwirkung", str(scope))
         session.send("quit")
     finally:
@@ -328,7 +328,7 @@ def test_inspect_method():
         if stop and stop.get("reason") == "start":
             session.send("run")
             stop = wait_stop(session)
-        check(bool(stop and (stop.get("scope") or {}).get("func") == "BOX.AREA"),
+        check(bool(stop and (stop.get("scope") or {}).get("func") == "BOX.area"),
               "Haltepunkt in der METHOD", str(stop and (stop.get("scope") or {}).get("func")))
         if not stop:
             return
@@ -348,7 +348,7 @@ def test_inspect_method():
         check(bool(field) and field.get("detail") == "4", "Feld der METHOD als Variable", str(field))
         own = evaluate(2, "self")
         check(bool(own) and own.get("type") == "BOX", "self ist das eigene Objekt", str(own))
-        check("H = 2" in (own or {}).get("detail", ""), "Felder des eigenen Objekts",
+        check("h = 2" in (own or {}).get("detail", ""), "Felder des eigenen Objekts",
               str((own or {}).get("detail")))
         session.send("quit")
     finally:

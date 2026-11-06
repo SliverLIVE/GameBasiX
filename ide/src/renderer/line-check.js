@@ -176,6 +176,41 @@ function tooManyMessage(name, max, found) {
     : t('{name} erlaubt höchstens {count} Argumente, {found} angegeben.', { name, count: max, found });
 }
 
+/**
+ * Unter- und Obergrenze eines Aufrufs. Die Werte kommen aus dem Datensatz
+ * (minArgs/maxArgs aus builtins.cpp); ältere Einträge fallen auf die
+ * Parameterliste zurück. max = Infinity bedeutet variadisch (maxArgs = -1).
+ */
+export function commandArity(command) {
+  const kind = String(command?.kind || '').toLowerCase();
+  const callable = ['command', 'optional', 'function', 'sub', 'method', 'inline'].includes(kind);
+  if (!callable && command?.minArgs === undefined && command?.maxArgs === undefined) return null;
+  const params = Array.isArray(command?.params) ? command.params : [];
+  const minArg = Number(command?.minArgs);
+  const maxArg = Number(command?.maxArgs);
+  if (Number.isFinite(minArg) && Number.isFinite(maxArg)) {
+    return { min: Math.max(0, minArg), max: maxArg < 0 ? Infinity : Math.max(0, maxArg) };
+  }
+  // Wie --check: Der letzte Parameter ohne Default bestimmt das Minimum.
+  const lastRequired = params.reduce((last, param, index) => (param.optional ? last : index), -1);
+  return {
+    min: lastRequired + 1,
+    max: params.length
+  };
+}
+
+/** Kurze Anzeige der erwarteten Argumentzahl, z. B. `1–2 Argumente`. */
+export function arityText(command) {
+  const arity = commandArity(command);
+  if (!arity) return '';
+  const { min, max } = arity;
+  if (max === Infinity) {
+    return min === 1 ? t('mindestens 1 Argument') : t('mindestens {count} Argumente', { count: min });
+  }
+  if (min === max) return min === 1 ? t('1 Argument') : t('{count} Argumente', { count: min });
+  return t('{min}–{max} Argumente', { min, max });
+}
+
 const NONE = { status: 'none' };
 
 /* Manche Befehle nennen in prototypen.txt nur den Typ ihrer Argumente
@@ -374,13 +409,17 @@ export function checkLine(text, { byName, caretColumn = 0 } = {}) {
   const args = splitArguments(code.slice(argsStart, argsEnd), argsStart);
   const filled = args.filter((arg) => !arg.empty);
   const found = filled.length;
-  const required = params.filter((param) => !param.optional).length;
-  const max = params.length;
+  const arity = commandArity(command) || {
+    min: params.filter((param) => !param.optional).length,
+    max: params.length
+  };
+  const required = arity.min;
+  const max = arity.max;
   const emptyArg = args.some((arg) => arg.empty);
 
   const activeIndex = Math.max(
     0,
-    Math.min(commasBefore(code, argsStart, caretIndex), Math.max(0, max - 1))
+    Math.min(commasBefore(code, argsStart, caretIndex), Math.max(0, params.length - 1))
   );
 
   const labels = commandParamLabels(command);
@@ -400,6 +439,8 @@ export function checkLine(text, { byName, caretColumn = 0 } = {}) {
     activeIndex,
     required,
     max,
+    arity,
+    arityLabel: arityText(command),
     found,
     message: '',
     range: {

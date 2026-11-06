@@ -42,6 +42,71 @@ ASSERT STEAM_P2P_ACCEPT(partner$) = 1, "STEAM_P2P_ACCEPT"
 ASSERT STEAM_P2P_CLOSE(partner$) = 1, "STEAM_P2P_CLOSE"
 ASSERT STEAM_RUN() = 1, "STEAM_RUN pumpt die Callbacks"
 
+' ------------------------------------------------ Erfolge und Statistiken
+ASSERT STEAM_ACHIEVEMENTS() = 2, "STEAM_ACHIEVEMENTS"
+ASSERT STEAM_ACHIEVEMENT_NAME$(0) = "FIRST_WIN", "STEAM_ACHIEVEMENT_NAME$"
+ASSERT STEAM_ACHIEVED("FIRST_WIN") = 0, "vorher nicht freigeschaltet"
+ASSERT STEAM_ACHIEVEMENT("FIRST_WIN") = 1, "STEAM_ACHIEVEMENT schaltet frei"
+ASSERT STEAM_ACHIEVED("FIRST_WIN") = 1, "jetzt freigeschaltet"
+ASSERT STEAM_ACHIEVEMENT("GIBTESNICHT") = 0, "unbekannter Erfolg bleibt 0"
+ASSERT STEAM_STORE() = 1, "STEAM_STORE"
+
+ASSERT STEAM_STAT("kills") = 0, "STEAM_STAT vor dem Setzen"
+ASSERT STEAM_STAT_SET("kills", 7) = 1, "STEAM_STAT_SET"
+ASSERT STEAM_STAT("kills") = 7, "STEAM_STAT liest den Wert"
+ASSERT STEAM_STAT_SET("gibtsnicht", 1) = 0, "unbekannte Statistik bleibt 0"
+ASSERT STEAM_STAT_SETF("playtime", 12.5) = 1, "STEAM_STAT_SETF"
+ASSERT STEAM_STAT_F("playtime") = 12.5, "STEAM_STAT_F"
+
+' ------------------------------------------------------------ Ranglisten
+ASSERT STEAM_BOARD("highscore") = 1, "STEAM_BOARD oeffnet die Rangliste"
+ASSERT STEAM_BOARD_SCORE(4200) = 1, "STEAM_BOARD_SCORE"
+ASSERT STEAM_BOARD_RANK() = 1, "STEAM_BOARD_RANK"
+ASSERT STEAM_BOARD_TOP(5) = 2, "STEAM_BOARD_TOP liefert zwei Eintraege"
+ASSERT STEAM_BOARD_COUNT() = 2, "STEAM_BOARD_COUNT"
+ASSERT STEAM_BOARD_NAME$(0) = "Mock Player", "STEAM_BOARD_NAME$"
+ASSERT STEAM_BOARD_POINTS(0) = 4200, "STEAM_BOARD_POINTS"
+ASSERT STEAM_BOARD_PLACE(1) = 2, "STEAM_BOARD_PLACE"
+ASSERT STEAM_BOARD_ID$(1) = "76561190000000002", "STEAM_BOARD_ID$"
+
+' -------------------------------------------------------- Cloud-Speicher
+ASSERT STEAM_CLOUD_WRITE("save.txt", "level 3") = 1, "STEAM_CLOUD_WRITE"
+ASSERT STEAM_CLOUD_EXISTS("save.txt") = 1, "STEAM_CLOUD_EXISTS"
+ASSERT STEAM_CLOUD_READ$("save.txt") = "level 3", "STEAM_CLOUD_READ$"
+ASSERT STEAM_CLOUD_SIZE("save.txt") = 7, "STEAM_CLOUD_SIZE"
+ASSERT STEAM_CLOUD_FILES() = 1, "STEAM_CLOUD_FILES"
+ASSERT STEAM_CLOUD_NAME$(0) = "save.txt", "STEAM_CLOUD_NAME$"
+ASSERT STEAM_CLOUD_DELETE("save.txt") = 1, "STEAM_CLOUD_DELETE"
+ASSERT STEAM_CLOUD_EXISTS("save.txt") = 0, "nach dem Loeschen weg"
+
+' ---------------------------------------------------------------- Lobby
+ASSERT STEAM_LOBBY_CREATE(8, 2) = 1, "STEAM_LOBBY_CREATE"
+ASSERT STEAM_LOBBY_JOINED() = 1, "nach dem Anlegen ist man in der Lobby"
+ASSERT STEAM_LOBBY_ID$() = "90000000000000009", "STEAM_LOBBY_ID$"
+ASSERT STEAM_LOBBY_OWNER$() = "76561190000000001", "STEAM_LOBBY_OWNER$"
+ASSERT STEAM_LOBBY_MEMBERS() = 2, "STEAM_LOBBY_MEMBERS"
+ASSERT STEAM_LOBBY_MEMBER_ID$(1) = "76561190000000002", "STEAM_LOBBY_MEMBER_ID$"
+ASSERT STEAM_LOBBY_MEMBER_NAME$(1) = "Mock Friend", "STEAM_LOBBY_MEMBER_NAME$"
+ASSERT STEAM_LOBBY_SET("level", "arena") = 1, "STEAM_LOBBY_SET"
+ASSERT STEAM_LOBBY_GET$("level") = "arena", "STEAM_LOBBY_GET$"
+STEAM_LOBBY_LEAVE
+ASSERT STEAM_LOBBY_JOINED() = 0, "nach dem Verlassen nicht mehr in der Lobby"
+ASSERT STEAM_LOBBY_JOIN("76561190000000009") = 1, "STEAM_LOBBY_JOIN"
+ASSERT STEAM_LOBBY_MEMBERS() = 2, "die beigetretene Lobby hat Mitglieder"
+
+' ---------------------------- Presence, Overlay, Ticket und DLC
+ASSERT STEAM_PRESENCE("status", "level 3") = 1, "STEAM_PRESENCE"
+ASSERT STEAM_PRESENCE$("status") = "level 3", "STEAM_PRESENCE$"
+ASSERT STEAM_PRESENCE_CLEAR("status") = 1, "STEAM_PRESENCE_CLEAR"
+ASSERT STEAM_PRESENCE$("status") = "", "nach dem Loeschen leer"
+ASSERT STEAM_OVERLAY("friends") = 1, "STEAM_OVERLAY"
+ASSERT STEAM_OVERLAY_ON() = 1, "STEAM_OVERLAY_ON"
+ASSERT STEAM_TICKET$() = "deadbeef", "STEAM_TICKET$"
+STEAM_TICKET_CANCEL
+ASSERT STEAM_DLC_COUNT() = 1, "STEAM_DLC_COUNT"
+ASSERT STEAM_DLC(481) = 1, "STEAM_DLC fuer eine installierte DLC"
+ASSERT STEAM_DLC(999) = 0, "STEAM_DLC fuer eine fremde App"
+
 ' ---------------------------------------------------------- beenden
 STEAM_SHUTDOWN
 ASSERT STEAM_READY() = 0, "STEAM_SHUTDOWN beendet Steam"

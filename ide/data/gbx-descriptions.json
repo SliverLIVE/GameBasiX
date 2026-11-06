@@ -207,6 +207,22 @@
     "de": "Legt einen zusätzlichen Bildschirm an, dessen Inhalt in einem Sprite landet; SCREEN_USE schaltet dorthin um.",
     "en": "Creates an extra screen whose content ends up in a sprite; SCREEN_USE switches to it."
   },
+  "CAMERA_BEGIN": {
+    "de": "Schaltet auf eine 2D-Kamera um: x/y ist der Weltpunkt in der Mitte des aktuellen Viewports, zoom 1 zeichnet 1:1 und angle dreht die Welt in Grad gegen den Uhrzeigersinn. Alle Zeichenbefehle bis CAMERA_END rechnen in Weltkoordinaten.",
+    "en": "Switches to a 2D camera: x/y is the world point at the centre of the current viewport, zoom 1 draws 1:1, and angle rotates the world in degrees counter-clockwise. Every drawing command until CAMERA_END uses world coordinates."
+  },
+  "CAMERA_END": {
+    "de": "Beendet die 2D-Kamera und schaltet wieder auf Bildschirmkoordinaten um. HUD und Dialoge danach normal zeichnen.",
+    "en": "Ends the 2D camera and returns to screen coordinates. Draw the HUD and dialogs normally afterwards."
+  },
+  "CAMERA_SCREEN_TO_WORLD": {
+    "de": "Rechnet Bildschirmkoordinaten mit der aktuellen Kamera in Weltkoordinaten um und schreibt sie in wx und wy.",
+    "en": "Converts screen coordinates with the active camera into world coordinates and stores them in wx and wy."
+  },
+  "CAMERA_WORLD_TO_SCREEN": {
+    "de": "Rechnet Weltkoordinaten mit der aktuellen Kamera in Bildschirmkoordinaten um und schreibt sie in sx und sy.",
+    "en": "Converts world coordinates with the active camera into screen coordinates and stores them in sx and sy."
+  },
   "DEBUG": {
     "de": "Schreibt Text ohne Zeilenumbruch auf die Fehlerausgabe; die IDE zeigt ihn in der Konsole.",
     "en": "Writes text without a line break to the error output; the IDE shows it in the console."
@@ -848,8 +864,8 @@
     "en": "Joins the elements of an array with a separator into one text – the counterpart of SPLIT_STRING. Start and count are optional; a negative start counts from the end."
   },
   "RGB": {
-    "de": "Baut aus Rot-, Grün- und Blauanteil (je 0 bis 255) eine Farbe für die Zeichenbefehle.",
-    "en": "Builds a colour for the drawing commands from red, green and blue parts (0 to 255 each)."
+    "de": "Baut aus Rot-, Grün- und Blauanteil (je 0 bis 255) und optionalem Alpha (0 durchsichtig bis 255 deckend) eine Farbe für die Zeichenbefehle.",
+    "en": "Builds a colour for the drawing commands from red, green and blue (0 to 255 each) plus optional alpha (0 transparent to 255 opaque)."
   },
   "RIGHT$": {
     "de": "Liefert die letzten Zeichen eines Textes.",
@@ -998,6 +1014,186 @@
   "STEAM_APP_ID": {
     "de": "Die App-ID, mit der Steam laeuft.",
     "en": "The app id Steam is running with."
+  },
+  "STEAM_ACHIEVEMENT": {
+    "de": "Schaltet einen Erfolg frei und schickt ihn an Steam (SetAchievement und StoreStats). 0, wenn Steam den Namen nicht kennt.",
+    "en": "Unlocks an achievement and sends it to Steam (SetAchievement and StoreStats). 0 when Steam does not know the name."
+  },
+  "STEAM_ACHIEVED": {
+    "de": "1, wenn der Erfolg schon freigeschaltet ist.",
+    "en": "1 when the achievement is already unlocked."
+  },
+  "STEAM_ACHIEVEMENTS": {
+    "de": "Anzahl der Erfolge, die die App in Steamworks definiert.",
+    "en": "Number of achievements the app defines in Steamworks."
+  },
+  "STEAM_ACHIEVEMENT_NAME$": {
+    "de": "API-Name des Erfolgs an dieser Stelle der Liste.",
+    "en": "API name of the achievement at this index."
+  },
+  "STEAM_STAT": {
+    "de": "Liest eine ganzzahlige Statistik; 0, wenn Steam sie nicht kennt.",
+    "en": "Reads an integer statistic; 0 when Steam does not know it."
+  },
+  "STEAM_STAT_F": {
+    "de": "Liest eine Kommazahl-Statistik (FLOAT).",
+    "en": "Reads a float statistic."
+  },
+  "STEAM_STAT_SET": {
+    "de": "Setzt eine ganzzahlige Statistik; STEAM_STORE schickt sie an Steam.",
+    "en": "Sets an integer statistic; STEAM_STORE sends it to Steam."
+  },
+  "STEAM_STAT_SETF": {
+    "de": "Setzt eine Kommazahl-Statistik.",
+    "en": "Sets a float statistic."
+  },
+  "STEAM_STORE": {
+    "de": "Schickt geaenderte Statistiken an Steam (StoreStats).",
+    "en": "Sends changed statistics to Steam (StoreStats)."
+  },
+  "STEAM_BOARD": {
+    "de": "Oeffnet eine Rangliste und legt sie an, wenn sie fehlt. ascending=1 sortiert aufsteigend, sonst absteigend.",
+    "en": "Opens a leaderboard and creates it when missing. ascending=1 sorts upwards, otherwise downwards."
+  },
+  "STEAM_BOARD_SCORE": {
+    "de": "Laedt einen Punktestand hoch; keepbest=1 (Vorgabe) behaelt den besten Wert.",
+    "en": "Uploads a score; keepbest=1 (the default) keeps the best value."
+  },
+  "STEAM_BOARD_RANK": {
+    "de": "Der eigene Platz nach dem letzten Hochladen, 0 wenn unbekannt.",
+    "en": "Your own place after the last upload, 0 when unknown."
+  },
+  "STEAM_BOARD_TOP": {
+    "de": "Holt Eintraege der Rangliste: kind 0 global, 1 Freunde, 2 um den Spieler herum. Liefert die Anzahl.",
+    "en": "Fetches leaderboard entries: kind 0 global, 1 friends, 2 around the player. Returns the count."
+  },
+  "STEAM_BOARD_COUNT": {
+    "de": "Anzahl der zuletzt geholten Eintraege.",
+    "en": "Number of entries fetched last."
+  },
+  "STEAM_BOARD_NAME$": {
+    "de": "Name des Spielers hinter einem Eintrag.",
+    "en": "Name of the player behind an entry."
+  },
+  "STEAM_BOARD_ID$": {
+    "de": "SteamID des Spielers hinter einem Eintrag.",
+    "en": "SteamID of the player behind an entry."
+  },
+  "STEAM_BOARD_POINTS": {
+    "de": "Punktestand eines Eintrags.",
+    "en": "Score of an entry."
+  },
+  "STEAM_BOARD_PLACE": {
+    "de": "Platz eines Eintrags in der Rangliste.",
+    "en": "Place of an entry in the leaderboard."
+  },
+  "STEAM_CLOUD_WRITE": {
+    "de": "Schreibt eine Textdatei in Steams Cloud-Speicher.",
+    "en": "Writes a text file into Steam's cloud storage."
+  },
+  "STEAM_CLOUD_READ$": {
+    "de": "Liest eine Cloud-Datei zurueck (hoechstens 1 MiB).",
+    "en": "Reads a cloud file back (at most 1 MiB)."
+  },
+  "STEAM_CLOUD_EXISTS": {
+    "de": "1, wenn die Datei in der Cloud liegt.",
+    "en": "1 when the file is in the cloud."
+  },
+  "STEAM_CLOUD_DELETE": {
+    "de": "Loescht eine Cloud-Datei.",
+    "en": "Deletes a cloud file."
+  },
+  "STEAM_CLOUD_FILES": {
+    "de": "Anzahl der Dateien im Cloud-Speicher.",
+    "en": "Number of files in cloud storage."
+  },
+  "STEAM_CLOUD_NAME$": {
+    "de": "Dateiname an dieser Stelle der Cloud-Liste.",
+    "en": "File name at this index of the cloud list."
+  },
+  "STEAM_CLOUD_SIZE": {
+    "de": "Groesse einer Cloud-Datei in Bytes.",
+    "en": "Size of a cloud file in bytes."
+  },
+  "STEAM_LOBBY_CREATE": {
+    "de": "Oeffnet eine Lobby; slots ist die Spielerzahl, kind 0 privat, 1 nur Freunde, 2 oeffentlich, 3 unsichtbar.",
+    "en": "Opens a lobby; slots is the player count, kind 0 private, 1 friends only, 2 public, 3 invisible."
+  },
+  "STEAM_LOBBY_JOIN": {
+    "de": "Tritt einer Lobby per ID bei.",
+    "en": "Joins a lobby by its id."
+  },
+  "STEAM_LOBBY_JOINED": {
+    "de": "1, wenn man in einer Lobby ist.",
+    "en": "1 when you are in a lobby."
+  },
+  "STEAM_LOBBY_ID$": {
+    "de": "ID der aktuellen Lobby; leer ohne Lobby.",
+    "en": "Id of the current lobby; empty without one."
+  },
+  "STEAM_LOBBY_LEAVE": {
+    "de": "Verlaesst die aktuelle Lobby.",
+    "en": "Leaves the current lobby."
+  },
+  "STEAM_LOBBY_OWNER$": {
+    "de": "SteamID des Lobby-Besitzers.",
+    "en": "SteamID of the lobby owner."
+  },
+  "STEAM_LOBBY_MEMBERS": {
+    "de": "Anzahl der Spieler in der Lobby.",
+    "en": "Number of players in the lobby."
+  },
+  "STEAM_LOBBY_MEMBER_ID$": {
+    "de": "SteamID eines Lobby-Mitglieds.",
+    "en": "SteamID of a lobby member."
+  },
+  "STEAM_LOBBY_MEMBER_NAME$": {
+    "de": "Name eines Lobby-Mitglieds.",
+    "en": "Name of a lobby member."
+  },
+  "STEAM_LOBBY_SET": {
+    "de": "Setzt ein Datenfeld der Lobby; nur der Besitzer darf das.",
+    "en": "Sets a piece of lobby data; only the owner may do that."
+  },
+  "STEAM_LOBBY_GET$": {
+    "de": "Liest ein Datenfeld der Lobby.",
+    "en": "Reads a piece of lobby data."
+  },
+  "STEAM_PRESENCE": {
+    "de": "Setzt die Rich-Presence-Zeile, die Freunde neben dem Namen sehen.",
+    "en": "Sets the rich presence line friends see next to your name."
+  },
+  "STEAM_PRESENCE$": {
+    "de": "Liest die eigene Rich Presence zu einem Schluessel.",
+    "en": "Reads your own rich presence for a key."
+  },
+  "STEAM_PRESENCE_CLEAR": {
+    "de": "Loescht einen Rich-Presence-Eintrag.",
+    "en": "Removes a rich presence entry."
+  },
+  "STEAM_OVERLAY": {
+    "de": "Oeffnet das Steam-Overlay auf einer Seite wie friends, achievements oder settings.",
+    "en": "Opens the Steam overlay on a page such as friends, achievements or settings."
+  },
+  "STEAM_OVERLAY_ON": {
+    "de": "1, wenn das Overlay verfuegbar ist.",
+    "en": "1 when the overlay is available."
+  },
+  "STEAM_TICKET$": {
+    "de": "Das Auth-Session-Ticket als Hex-Text fuer einen eigenen Login-Server.",
+    "en": "The auth session ticket as hex text for your own login server."
+  },
+  "STEAM_TICKET_CANCEL": {
+    "de": "Gibt das Session-Ticket wieder frei.",
+    "en": "Releases the session ticket again."
+  },
+  "STEAM_DLC_COUNT": {
+    "de": "Anzahl der DLCs, die die App in Steamworks kennt.",
+    "en": "Number of DLCs the app knows in Steamworks."
+  },
+  "STEAM_DLC": {
+    "de": "1, wenn die DLC mit dieser App-ID installiert ist.",
+    "en": "1 when the DLC with this app id is installed."
   },
   "STEAM_ERROR$": {
     "de": "Der letzte Steam-Fehler, etwa wenn steam_api fehlt oder Steam nicht laeuft.",
@@ -1258,5 +1454,61 @@
   "JOY_PRESSED": {
     "de": "Liefert 1 in genau dem Frame, in dem die Gamepad-Taste heruntergedrückt wurde – wie KEY_PRESSED für die Tastatur.",
     "en": "Returns 1 in exactly the frame the gamepad button went down – like KEY_PRESSED for the keyboard."
+  },
+  "TASK_START": {
+    "de": "Startet einen TASK über seinen Namen und liefert die Id. Der Task läuft ab dem nächsten Frame.",
+    "en": "Starts a TASK by name and returns its id. The task runs from the next frame on."
+  },
+  "TASK_STOP": {
+    "de": "Stoppt einen laufenden Task. Liefert 1, wenn es die Id gab.",
+    "en": "Stops a running task. Returns 1 when the id existed."
+  },
+  "TASK_RUNNING": {
+    "de": "Liefert 1, solange der Task mit dieser Id läuft.",
+    "en": "Returns 1 while the task with this id is running."
+  },
+  "TASK_COUNT": {
+    "de": "Liefert die Anzahl der laufenden Tasks.",
+    "en": "Returns the number of running tasks."
+  },
+  "SPAWN": {
+    "de": "Startet eine reine Funktion auf einem Worker-Thread. Die Globals werden kopiert, der Worker kann den Hauptzustand also nicht ändern. Liefert eine Job-Id für JOB_DONE, JOB_VALUE und JOB_FREE.",
+    "en": "Starts a pure function on a worker thread. The globals are copied, so the worker cannot change the main state. Returns a job id for JOB_DONE, JOB_VALUE and JOB_FREE."
+  },
+  "JOB_DONE": {
+    "de": "Liefert 1, wenn der Job fertig ist – auch wenn er mit einem Fehler endete.",
+    "en": "Returns 1 when the job has finished, also when it ended with an error."
+  },
+  "JOB_VALUE": {
+    "de": "Liefert das Ergebnis des Jobs. Bei einem Fehler bricht der Befehl mit der Meldung des Workers ab.",
+    "en": "Returns the result of the job. On an error the command stops with the worker message."
+  },
+  "JOB_ERROR$": {
+    "de": "Liefert die Fehlermeldung des Jobs oder einen leeren String.",
+    "en": "Returns the error message of the job, or an empty string."
+  },
+  "JOB_FREE": {
+    "de": "Gibt den Job frei und wartet auf seinen Thread. Liefert 1, wenn die Id gültig war.",
+    "en": "Releases the job and joins its thread. Returns 1 when the id was valid."
+  },
+  "FILE_READ_ASYNC": {
+    "de": "Liest eine Datei auf einem Worker-Thread und liefert eine Job-Id; JOB_VALUE liefert den Text.",
+    "en": "Reads a file on a worker thread and returns a job id; JOB_VALUE returns the text."
+  },
+  "FILE_WRITE_ASYNC": {
+    "de": "Schreibt Text auf einem Worker-Thread und liefert eine Job-Id; JOB_VALUE liefert die Anzahl der Bytes.",
+    "en": "Writes text on a worker thread and returns a job id; JOB_VALUE returns the number of bytes."
+  },
+  "TASK": {
+    "de": "Beginnt einen kooperativen Task: TASK name: … ENDTASK. AWAIT gibt die Kontrolle an den Hauptloop zurück.",
+    "en": "Begins a cooperative task: TASK name: … ENDTASK. AWAIT gives control back to the main loop."
+  },
+  "ENDTASK": {
+    "de": "Beendet einen TASK-Block.",
+    "en": "Ends a TASK block."
+  },
+  "AWAIT": {
+    "de": "Wartet in einem TASK auf den nächsten Frame (AWAIT FRAME) oder auf Sekunden (AWAIT 0.5).",
+    "en": "Waits inside a TASK for the next frame (AWAIT FRAME) or for seconds (AWAIT 0.5)."
   }
 }

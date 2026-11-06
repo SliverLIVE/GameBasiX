@@ -968,6 +968,127 @@ ASSERT ISA(neuKreis, "NEU_KREIS") AND ISA(neuKreis, "NEU_FIGUR"), "ISA kennt die
 ASSERT ISA(neuKreis, "NEU_ZEICHENBAR"), "ISA kennt das INTERFACE"
 ASSERT ISA(neuKreis, "NEU_ETWAS_ANDERES") = 0, "ISA ohne Treffer"
 
+' ---------------------------------------------------------- Tasks und Jobs
+GLOBAL TaskFrames = 0
+GLOBAL JobCounter = 5
+
+TASK schedulerTicker:
+  FOR i = 1 TO 3
+    TaskFrames = TaskFrames + 1
+    AWAIT FRAME
+  NEXT
+ENDTASK
+
+FUNCTION schedulerSum: n
+  total = 0
+  FOR i = 1 TO n
+    total = total + i
+  NEXT
+  RETURN total
+ENDFUNCTION
+
+FUNCTION schedulerBump:
+  JobCounter = JobCounter + 1
+  RETURN JobCounter
+ENDFUNCTION
+
+taskId = TASK_START("schedulerTicker")
+ASSERT taskId > 0, "TASK_START returns an id"
+ASSERT TASK_COUNT() = 1, "one task is running"
+FOR i = 1 TO 8
+  SCREEN_SHOW
+NEXT
+ASSERT TaskFrames = 3, "AWAIT FRAME resumes once per frame"
+ASSERT TASK_RUNNING(taskId) = 0, "a finished task is not running"
+ASSERT TASK_COUNT() = 0, "a finished task is removed"
+
+job = SPAWN(@schedulerSum, 1000)
+ASSERT job > 0, "SPAWN returns a job id"
+FOR i = 1 TO 5000000
+  IF JOB_DONE(job) THEN BREAK
+NEXT
+ASSERT JOB_DONE(job) = 1, "the job finishes"
+ASSERT JOB_VALUE(job) = 500500, "JOB_VALUE returns the function result"
+ASSERT JOB_ERROR$(job) = "", "the job has no error"
+ASSERT JOB_FREE(job) = 1, "JOB_FREE releases the job"
+
+bump = SPAWN(@schedulerBump)
+FOR i = 1 TO 5000000
+  IF JOB_DONE(bump) THEN BREAK
+NEXT
+ASSERT JOB_VALUE(bump) = 6, "the worker computes on its snapshot"
+ASSERT JobCounter = 5, "the worker does not change main globals"
+JOB_FREE(bump)
+
+readJob = FILE_READ_ASYNC("tests/language_tests.gbx")
+FOR i = 1 TO 5000000
+  IF JOB_DONE(readJob) THEN BREAK
+NEXT
+ASSERT JOB_DONE(readJob) = 1, "the async read finishes"
+ASSERT INSTR(JOB_VALUE(readJob), "GameBasiX") >= 0, "JOB_VALUE returns the file text"
+JOB_FREE(readJob)
+
+GLOBAL TaskJobResult = 0
+GLOBAL TaskJob = 0
+GLOBAL TaskArray[2]
+TaskArray[0] = 1
+
+TASK taskSpawner:
+  TaskJob = SPAWN(@schedulerSum, 100)
+  WHILE JOB_DONE(TaskJob) = 0
+    AWAIT FRAME
+  WEND
+  TaskJobResult = JOB_VALUE(TaskJob)
+  JOB_FREE(TaskJob)
+ENDTASK
+
+FUNCTION touchSnapshot:
+  TaskArray[0] = 99
+  RETURN TaskArray[0]
+ENDFUNCTION
+
+TASK_START("taskSpawner")
+FOR i = 1 TO 20
+  SCREEN_SHOW
+NEXT
+' Headless frames are instant; give the worker a moment to finish.
+FOR i = 1 TO 50000000
+  IF JOB_DONE(TaskJob) THEN BREAK
+NEXT
+FOR i = 1 TO 5
+  SCREEN_SHOW
+NEXT
+ASSERT TaskJobResult = 5050, "a TASK can spawn and await a job"
+
+arrayJob = SPAWN(@touchSnapshot)
+FOR i = 1 TO 5000000
+  IF JOB_DONE(arrayJob) THEN BREAK
+NEXT
+ASSERT JOB_VALUE(arrayJob) = 99, "the worker sees its own array"
+ASSERT TaskArray[0] = 1, "the array snapshot is deep"
+JOB_FREE(arrayJob)
+
+FUNCTION byRefWorker: BYREF value
+  value = value + 1
+ENDFUNCTION
+
+writeJob = FILE_WRITE_ASYNC("async_test.tmp", "async text")
+FOR i = 1 TO 5000000
+  IF JOB_DONE(writeJob) THEN BREAK
+NEXT
+ASSERT JOB_DONE(writeJob) = 1, "the async write finishes"
+ASSERT JOB_VALUE(writeJob) = 10, "JOB_VALUE returns the byte count"
+ASSERT FILE_EXISTS("async_test.tmp") = 1, "the async write created the file"
+JOB_FREE(writeJob)
+FILE_DELETE "async_test.tmp"
+
+TRY
+  badJob = SPAWN(@byRefWorker, 1)
+  ASSERT FALSE, "SPAWN must reject BYREF"
+CATCH e$
+  ASSERT INSTR(e$, "BYREF") >= 0, "SPAWN names the BYREF parameter"
+ENDTRY
+
 ' Konsole
 STDOUT "Sprachtests durchgelaufen." + CHR$(10)
 

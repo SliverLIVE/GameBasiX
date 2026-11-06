@@ -1,0 +1,74 @@
+{
+  "name": "camera",
+  "appName": "2D Camera",
+  "title": "GameBasiX - 2D camera",
+  "entry": "main.gbx",
+  "width": 960,
+  "height": 640,
+  "fullscreen": false,
+  "resizable": true,
+  "icon": "",
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeSources": [],
+  "nativeFlags": "",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx"
+  ],
+  "createdAt": "2026-11-06T21:35:10.419Z",
+  "layout": {
+    "sidebar": 356,
+    "reference": 352,
+    "bottom": 337,
+    "refList": 90
+  },
+  "dock": {
+    "zones": {
+      "left": [
+        "reference",
+        "outline"
+      ],
+      "right": [
+        "files"
+      ],
+      "bottom": [
+        "problems",
+        "output",
+        "console",
+        "debug"
+      ]
+    },
+    "collapsed": {
+      "files": false,
+      "outline": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "heights": {
+      "files": 280,
+      "outline": 642,
+      "reference": 340,
+      "problems": 220,
+      "output": 220,
+      "console": 220,
+      "debug": 260
+    },
+    "open": {
+      "left": true,
+      "right": true,
+      "bottom": true
+    },
+    "active": "output"
+  }
+}

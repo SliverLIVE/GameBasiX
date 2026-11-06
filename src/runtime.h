@@ -19,6 +19,7 @@
 #include "value.h"
 
 struct Debugger;
+class Interpreter;
 
 struct Slot {
     Value v;
@@ -38,6 +39,8 @@ struct Runtime {
     std::string netFrom;   // Absender des letzten UDP-Pakets (UDP_FROM$)
     Program* prog = nullptr;
     Debugger* dbg = nullptr;  // gesetzt bei --debug
+    Interpreter* interp = nullptr;  // fuer TASK_START und SPAWN
+    bool worker = false;            // true: reine Rechenfunktion auf einem Job-Thread
 
     bool headless = false;
     bool testsMode = false;
@@ -58,7 +61,7 @@ struct Runtime {
     std::string saveDir;  // Ziel fuer SCREEN_SAVE_BMP/SPRITE_SAVE (bei Paketen neben der EXE)
     std::string currentFile;
     int currentLine = 0;
-    uint32_t textColor = 0xFFFFFF;
+    Color textColor = 0xFFFFFF;
 
     std::string resolveAsset(const std::string& rel) const;
     void warnOnce(const std::string& msg);

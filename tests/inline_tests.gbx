@@ -252,7 +252,7 @@ FUNCTION mitKonstante:
   LOCAL wert
   wert = 0
   INLINE
-    wert = faktor * 2;
+    wert = FAKTOR * 2;
   ENDINLINE
   RETURN wert
 ENDFUNCTION
@@ -366,12 +366,12 @@ DIM neuPunkte[2] AS TESTPUNKT
 neuPunkte[0].x = 1
 FUNCTION punkteWachsen:
   INLINE
-    neupunkte.push();
-    neupunkte.push(tp);
-    neupunkte.push();
-    neupunkte[4].x = 9;
-    neupunkte.remove(0);
-    neupunkte.resize(6);
+    neuPunkte.push();
+    neuPunkte.push(tp);
+    neuPunkte.push();
+    neuPunkte[4].x = 9;
+    neuPunkte.remove(0);
+    neuPunkte.resize(6);
   ENDINLINE
 ENDFUNCTION
 punkteWachsen()
@@ -380,7 +380,7 @@ ASSERT neuPunkte[0].x = 0 AND neuPunkte[2].x = 2 AND neuPunkte[3].x = 9 AND neuP
 
 FUNCTION punkteLeeren:
   INLINE
-    neupunkte.clear();
+    neuPunkte.clear();
   ENDINLINE
 ENDFUNCTION
 punkteLeeren()
@@ -396,7 +396,7 @@ FUNCTION rasterWachsen:
     raster.resize(4, 5);
     raster[3][4] = 7;
     raster[1][2] = raster[1][2] + 1;
-    dimensionen = raster.rank();
+    Dimensionen = raster.rank();
   ENDINLINE
 ENDFUNCTION
 rasterWachsen()
@@ -415,7 +415,7 @@ bauPuffer()
 GLOBAL pufferWert
 FUNCTION liesPuffer:
   INLINE
-    pufferwert = puffer[1] + 1;
+    pufferWert = puffer[1] + 1;
   ENDINLINE
 ENDFUNCTION
 liesPuffer()
@@ -438,11 +438,11 @@ RufText$ = ""
 
 FUNCTION rufeBefehle:
   INLINE
-    mx = 0; my = 0; mlinks = 0; mrechts = 0;
-    MOUSE_STATE(mx, my, mlinks, mrechts);
-    ruflaenge = LEN("Hallo");
-    ruffarbe = call("RGB", 1, 2, 3);
-    ruftext_str = call("LEFT$", "Hallo Welt", 5).text();
+    Mx = 0; My = 0; Mlinks = 0; Mrechts = 0;
+    MOUSE_STATE(Mx, My, Mlinks, Mrechts);
+    RufLaenge = LEN("Hallo");
+    RufFarbe = call("RGB", 1, 2, 3);
+    RufText_str = call("LEFT$", "Hallo Welt", 5).text();
   ENDINLINE
 ENDFUNCTION
 rufeBefehle()
@@ -536,7 +536,7 @@ CATCH fehler$
 FINALLY
 
 ' ENUM-Werte heissen PHASE.STOP. Im C++-Schritt werden daraus einfache
-' Namen mit Unterstrich: phase_stop.
+' Namen mit Unterstrich: PHASE_STOP.
 ENUM PHASE
   STOP
   GO = 5
@@ -545,7 +545,7 @@ ENDENUM
 FUNCTION enumImSchritt:
   LOCAL summe%
   INLINE
-    summe = phase_stop + phase_go;
+    summe = PHASE_STOP + PHASE_GO;
   ENDINLINE
   RETURN summe
 ENDFUNCTION
@@ -567,9 +567,9 @@ GLOBAL iafKorb AS IAF_KORB
 
 SUB iafTouch:
   INLINE
-    iafkorb.zahlen[1] = 4.0;
-    iafkorb.items[0].field("N") = 9.0;
-    iafkorb.offen.push(1.0);
+    iafKorb.zahlen[1] = 4.0;
+    iafKorb.items[0].field("N") = 9.0;
+    iafKorb.offen.push(1.0);
   ENDINLINE
 ENDSUB
 
@@ -581,7 +581,7 @@ ASSERT LEN(iafkorb.offen) = 1, "INLINE pusht in ein Feld-Array"
 SUB iafLesen:
   groesse = 0
   INLINE
-    groesse = iafkorb.items.size();
+    groesse = iafKorb.items.size();
   ENDINLINE
   RETURN groesse
 ENDSUB

@@ -92,6 +92,18 @@
   "SCREEN_CREATE": [
     "SCREEN_CREATE id_screen%, id_sprite%, w%, h%"
   ],
+  "CAMERA_BEGIN": [
+    "CAMERA_BEGIN x#, y#[, zoom#[, angle#]]"
+  ],
+  "CAMERA_END": [
+    "CAMERA_END"
+  ],
+  "CAMERA_SCREEN_TO_WORLD": [
+    "CAMERA_SCREEN_TO_WORLD sx#, sy#, wx#, wy#"
+  ],
+  "CAMERA_WORLD_TO_SCREEN": [
+    "CAMERA_WORLD_TO_SCREEN wx#, wy#, sx#, sy#"
+  ],
   "DEBUG": [
     "DEBUG text#$"
   ],
@@ -445,8 +457,8 @@
     "text$ = JOIN$(feld$[], trenner$, start%, anzahl%)"
   ],
   "RGB": [
-    "color%=RGB(red%, green%, blue%)",
-    "farbe%=RGB(rot%, gruen%, blau%)"
+    "color%=RGB(red%, green%, blue%[, alpha%])",
+    "farbe%=RGB(rot%, gruen%, blau%[, alpha%])"
   ],
   "RIGHT$": [
     "a$ = RIGHT$(text$, count%)"

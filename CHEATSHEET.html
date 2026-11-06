@@ -129,9 +129,9 @@
 <header class="head wrap">
   <h1>GameBasiX <span>cheat sheet</span></h1>
   <p class="sub">Commands, functions, keywords and constants, grouped by category</p>
-  <p class="meta">411 entries &middot; generated from ide/data/gbx-dataset.json</p>
+  <p class="meta">474 entries &middot; generated from ide/data/gbx-dataset.json</p>
   <nav class="toc" aria-label="Jump to">
-    <a href="#fenster-und-bildschirm">Window and screen <span style="opacity:.55">18</span></a>
+    <a href="#fenster-und-bildschirm">Window and screen <span style="opacity:.55">22</span></a>
     <a href="#zeichnen">Drawing <span style="opacity:.55">12</span></a>
     <a href="#bildpuffer-und-text">Screen buffer and text <span style="opacity:.55">17</span></a>
     <a href="#sprites">Sprites <span style="opacity:.55">18</span></a>
@@ -143,16 +143,21 @@
     <a href="#arrays">Arrays <span style="opacity:.55">4</span></a>
     <a href="#arrays-und-dictionaries">Arrays and dictionaries <span style="opacity:.55">14</span></a>
     <a href="#netzwerk">Network <span style="opacity:.55">18</span></a>
-    <a href="#steam">Steam <span style="opacity:.55">19</span></a>
+    <a href="#steam">Steam <span style="opacity:.55">64</span></a>
     <a href="#laufzeit-und-debug">Runtime and debug <span style="opacity:.55">18</span></a>
-    <a href="#sprache">Language <span style="opacity:.55">71</span></a>
+    <a href="#sprache">Language <span style="opacity:.55">74</span></a>
     <a href="#konstanten">Constants <span style="opacity:.55">96</span></a>
+    <a href="#tasks-und-jobs">Tasks und Jobs <span style="opacity:.55">11</span></a>
   </nav>
 </header>
 <main class="wrap">
 <section id="fenster-und-bildschirm">
-  <h2>Window and screen<span class="count">18</span></h2>
+  <h2>Window and screen<span class="count">22</span></h2>
   <div class="rows">
+    <div class="row" data-kind="command"><div><code>CAMERA_BEGIN x,y[,zoom[,angle]]</code><span class="kind">command</span></div><p class="desc">Switches to a 2D camera: x/y is the world point at the centre of the current viewport, zoom 1 draws 1:1, and angle rotates the…</p></div>
+    <div class="row" data-kind="command"><div><code>CAMERA_END</code><span class="kind">command</span></div><p class="desc">Ends the 2D camera and returns to screen coordinates. Draw the HUD and dialogs normally afterwards.</p></div>
+    <div class="row" data-kind="command"><div><code>CAMERA_SCREEN_TO_WORLD x,y,wx,wy</code><span class="kind">command</span></div><p class="desc">Converts screen coordinates with the active camera into world coordinates and stores them in wx and wy.</p></div>
+    <div class="row" data-kind="command"><div><code>CAMERA_WORLD_TO_SCREEN x,y,sx,sy</code><span class="kind">command</span></div><p class="desc">Converts world coordinates with the active camera into screen coordinates and stores them in sx and sy.</p></div>
     <div class="row" data-kind="command"><div><code>DESKTOP_SIZE w,h</code><span class="kind">command</span></div><p class="desc">Writes the monitor width and height in pixels into the two variables.</p></div>
     <div class="row" data-kind="command"><div><code>LIMIT_FPS fps[,vsync]</code><span class="kind">command</span></div><p class="desc">Throttles the main loop to the given frame rate. The second argument also turns VSYNC on or off; 0 removes the limit.</p></div>
     <div class="row" data-kind="command"><div><code>SCREEN_BLACK</code><span class="kind">command</span></div><p class="desc">Paints the screen black and drops a loaded background image; the remembered background colour stays.</p></div>
@@ -187,7 +192,7 @@
     <div class="row" data-kind="command"><div><code>POLY_END</code><span class="kind">command</span></div><p class="desc">Closes and draws the polygon started with POLY_BEGIN.</p></div>
     <div class="row" data-kind="command"><div><code>POLY_POINT x,y,u,v,color</code><span class="kind">command</span></div><p class="desc">Adds one corner of a polygon: screen position, texture coordinate and colour.</p></div>
     <div class="row" data-kind="command"><div><code>POLY_STRIP</code><span class="kind">command</span></div><p class="desc">Starts a new strip inside the current polygon: the following corners no longer join the previous ones.</p></div>
-    <div class="row" data-kind="function"><div><code>RGB(r,g,b)</code><span class="kind">function</span></div><p class="desc">Builds a colour for the drawing commands from red, green and blue parts (0 to 255 each).</p></div>
+    <div class="row" data-kind="function"><div><code>RGB(r,g,b[,a])</code><span class="kind">function</span></div><p class="desc">Builds a colour for the drawing commands from red, green and blue (0 to 255 each) plus optional alpha (0 transparent to 255…</p></div>
   </div>
 </section>
 <section id="bildpuffer-und-text">
@@ -418,9 +423,31 @@
   </div>
 </section>
 <section id="steam">
-  <h2>Steam<span class="count">19</span></h2>
+  <h2>Steam<span class="count">64</span></h2>
   <div class="rows">
+    <div class="row" data-kind="function"><div><code>STEAM_ACHIEVED(name$)</code><span class="kind">function</span></div><p class="desc">1 when the achievement is already unlocked.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_ACHIEVEMENT name$</code><span class="kind">command</span></div><p class="desc">Unlocks an achievement and sends it to Steam (SetAchievement and StoreStats). 0 when Steam does not know the name.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_ACHIEVEMENTS()</code><span class="kind">function</span></div><p class="desc">Number of achievements the app defines in Steamworks.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_ACHIEVEMENT_NAME$(index)</code><span class="kind">function</span></div><p class="desc">API name of the achievement at this index.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_APP_ID()</code><span class="kind">function</span></div><p class="desc">The app id Steam is running with.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_BOARD name$[, ascending]</code><span class="kind">command</span></div><p class="desc">Opens a leaderboard and creates it when missing. ascending=1 sorts upwards, otherwise downwards.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_BOARD_COUNT()</code><span class="kind">function</span></div><p class="desc">Number of entries fetched last.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_BOARD_ID$(index)</code><span class="kind">function</span></div><p class="desc">SteamID of the player behind an entry.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_BOARD_NAME$(index)</code><span class="kind">function</span></div><p class="desc">Name of the player behind an entry.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_BOARD_PLACE(index)</code><span class="kind">function</span></div><p class="desc">Place of an entry in the leaderboard.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_BOARD_POINTS(index)</code><span class="kind">function</span></div><p class="desc">Score of an entry.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_BOARD_RANK()</code><span class="kind">function</span></div><p class="desc">Your own place after the last upload, 0 when unknown.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_BOARD_SCORE points[, keepbest]</code><span class="kind">command</span></div><p class="desc">Uploads a score; keepbest=1 (the default) keeps the best value.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_BOARD_TOP([count[, kind]])</code><span class="kind">function</span></div><p class="desc">Fetches leaderboard entries: kind 0 global, 1 friends, 2 around the player. Returns the count.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_CLOUD_DELETE file$</code><span class="kind">command</span></div><p class="desc">Deletes a cloud file.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_CLOUD_EXISTS(file$)</code><span class="kind">function</span></div><p class="desc">1 when the file is in the cloud.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_CLOUD_FILES()</code><span class="kind">function</span></div><p class="desc">Number of files in cloud storage.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_CLOUD_NAME$(index)</code><span class="kind">function</span></div><p class="desc">File name at this index of the cloud list.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_CLOUD_READ$(file$)</code><span class="kind">function</span></div><p class="desc">Reads a cloud file back (at most 1 MiB).</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_CLOUD_SIZE(file$)</code><span class="kind">function</span></div><p class="desc">Size of a cloud file in bytes.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_CLOUD_WRITE file$, text$</code><span class="kind">command</span></div><p class="desc">Writes a text file into Steam&#x27;s cloud storage.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_DLC(appid)</code><span class="kind">function</span></div><p class="desc">1 when the DLC with this app id is installed.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_DLC_COUNT()</code><span class="kind">function</span></div><p class="desc">Number of DLCs the app knows in Steamworks.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_ERROR$()</code><span class="kind">function</span></div><p class="desc">The last Steam error, for example when steam_api is missing or Steam is not running.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_FRIENDS()</code><span class="kind">function</span></div><p class="desc">Number of friends in the Steam friend list.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_FRIEND_ID$(i)</code><span class="kind">function</span></div><p class="desc">SteamID of the friend at this index in the list.</p></div>
@@ -428,7 +455,20 @@
     <div class="row" data-kind="function"><div><code>STEAM_FRIEND_STATE(i)</code><span class="kind">function</span></div><p class="desc">Online state of the friend (0 offline, 1 online, 2 busy, 3 away, ...).</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_ID$()</code><span class="kind">function</span></div><p class="desc">The 64-bit SteamID as text - as a number a FLOAT would lose digits.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_INIT(appid)</code><span class="kind">function</span></div><p class="desc">Loads steam_api (steam_api64.dll or libsteam_api.so) and calls SteamAPI_Init.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_LOBBY_CREATE [slots[, kind]]</code><span class="kind">command</span></div><p class="desc">Opens a lobby; slots is the player count, kind 0 private, 1 friends only, 2 public, 3 invisible.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_LOBBY_GET$(key$)</code><span class="kind">function</span></div><p class="desc">Reads a piece of lobby data.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_LOBBY_ID$()</code><span class="kind">function</span></div><p class="desc">Id of the current lobby; empty without one.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_LOBBY_JOIN id$</code><span class="kind">command</span></div><p class="desc">Joins a lobby by its id.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_LOBBY_JOINED()</code><span class="kind">function</span></div><p class="desc">1 when you are in a lobby.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_LOBBY_LEAVE</code><span class="kind">command</span></div><p class="desc">Leaves the current lobby.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_LOBBY_MEMBERS()</code><span class="kind">function</span></div><p class="desc">Number of players in the lobby.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_LOBBY_MEMBER_ID$(index)</code><span class="kind">function</span></div><p class="desc">SteamID of a lobby member.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_LOBBY_MEMBER_NAME$(index)</code><span class="kind">function</span></div><p class="desc">Name of a lobby member.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_LOBBY_OWNER$()</code><span class="kind">function</span></div><p class="desc">SteamID of the lobby owner.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_LOBBY_SET key$, value$</code><span class="kind">command</span></div><p class="desc">Sets a piece of lobby data; only the owner may do that.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_NAME$()</code><span class="kind">function</span></div><p class="desc">The Steam name of the signed-in player.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_OVERLAY [page$]</code><span class="kind">command</span></div><p class="desc">Opens the Steam overlay on a page such as friends, achievements or settings.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_OVERLAY_ON()</code><span class="kind">function</span></div><p class="desc">1 when the overlay is available.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_P2P_ACCEPT(id)</code><span class="kind">function</span></div><p class="desc">Explicitly accepts a player&#x27;s P2P session.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_P2P_AVAILABLE([channel])</code><span class="kind">function</span></div><p class="desc">How many bytes are ready to read on the channel.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_P2P_CLOSE(id)</code><span class="kind">function</span></div><p class="desc">Ends the P2P session with a player.</p></div>
@@ -436,9 +476,19 @@
     <div class="row" data-kind="function"><div><code>STEAM_P2P_RECV$([channel])</code><span class="kind">function</span></div><p class="desc">Reads the next P2P packet from the channel; empty when none is pending.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_P2P_SEND(id, text, channel, reliable)</code><span class="kind">function</span></div><p class="desc">Sends a packet to a SteamID (as text). reliable=1 (default) arrives in order, 0 is for values the next packet replaces anyway.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_P2P_STATE(id)</code><span class="kind">function</span></div><p class="desc">State of the P2P session: 0 none, 1 connecting, 2 direct, 3 through Steam&#x27;s relay.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_PRESENCE key$, value$</code><span class="kind">command</span></div><p class="desc">Sets the rich presence line friends see next to your name.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_PRESENCE$(key$)</code><span class="kind">function</span></div><p class="desc">Reads your own rich presence for a key.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_PRESENCE_CLEAR key$</code><span class="kind">command</span></div><p class="desc">Removes a rich presence entry.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_READY()</code><span class="kind">function</span></div><p class="desc">1 when STEAM_INIT succeeded.</p></div>
     <div class="row" data-kind="function"><div><code>STEAM_RUN()</code><span class="kind">function</span></div><p class="desc">Pumps Steam&#x27;s callbacks; call it once per frame. Returns 1 when Steam is ready.</p></div>
     <div class="row" data-kind="command"><div><code>STEAM_SHUTDOWN</code><span class="kind">command</span></div><p class="desc">Shuts the Steam API down (SteamAPI_Shutdown).</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_STAT(name$)</code><span class="kind">function</span></div><p class="desc">Reads an integer statistic; 0 when Steam does not know it.</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_STAT_F(name$)</code><span class="kind">function</span></div><p class="desc">Reads a float statistic.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_STAT_SET name$, value</code><span class="kind">command</span></div><p class="desc">Sets an integer statistic; STEAM_STORE sends it to Steam.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_STAT_SETF name$, value</code><span class="kind">command</span></div><p class="desc">Sets a float statistic.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_STORE</code><span class="kind">command</span></div><p class="desc">Sends changed statistics to Steam (StoreStats).</p></div>
+    <div class="row" data-kind="function"><div><code>STEAM_TICKET$()</code><span class="kind">function</span></div><p class="desc">The auth session ticket as hex text for your own login server.</p></div>
+    <div class="row" data-kind="command"><div><code>STEAM_TICKET_CANCEL</code><span class="kind">command</span></div><p class="desc">Releases the session ticket again.</p></div>
   </div>
 </section>
 <section id="laufzeit-und-debug">
@@ -465,10 +515,11 @@
   </div>
 </section>
 <section id="sprache">
-  <h2>Language<span class="count">71</span></h2>
+  <h2>Language<span class="count">74</span></h2>
   <div class="rows">
     <div class="row" data-kind="keyword"><div><code>AND</code><span class="kind">keyword</span></div><p class="desc">Logical AND in conditions. It stops evaluating as soon as the result is clear and returns 1 or 0.</p></div>
     <div class="row" data-kind="keyword"><div><code>AS</code><span class="kind">keyword</span></div><p class="desc">States the type of a variable, parameter or TYPE field: LOCAL box AS BOX.</p></div>
+    <div class="row" data-kind="keyword"><div><code>AWAIT FRAME | seconds</code><span class="kind">keyword</span></div><p class="desc">Waits inside a TASK for the next frame (AWAIT FRAME) or for seconds (AWAIT 0.5).</p></div>
     <div class="row" data-kind="keyword"><div><code>BREAK</code><span class="kind">keyword</span></div><p class="desc">Leaves the innermost loop or a SELECT right away.</p></div>
     <div class="row" data-kind="keyword"><div><code>BYREF</code><span class="kind">keyword</span></div><p class="desc">Passes a parameter by reference so the function can change the original value. Works with array elements and TYPE fields too.</p></div>
     <div class="row" data-kind="keyword"><div><code>CASE</code><span class="kind">keyword</span></div><p class="desc">One branch in SELECT with one or more values. Several CASE blocks follow each other.</p></div>
@@ -492,6 +543,7 @@
     <div class="row" data-kind="keyword"><div><code>ENDMETHOD</code><span class="kind">keyword</span></div><p class="desc">Closes a METHOD.</p></div>
     <div class="row" data-kind="keyword"><div><code>ENDSELECT</code><span class="kind">keyword</span></div><p class="desc">Ends a SELECT.</p></div>
     <div class="row" data-kind="keyword"><div><code>ENDSUB</code><span class="kind">keyword</span></div><p class="desc">Closes a SUB.</p></div>
+    <div class="row" data-kind="keyword"><div><code>ENDTASK</code><span class="kind">keyword</span></div><p class="desc">Ends a TASK block.</p></div>
     <div class="row" data-kind="keyword"><div><code>ENDTRY</code><span class="kind">keyword</span></div><p class="desc">Ends a TRY block when FINALLY is not used.</p></div>
     <div class="row" data-kind="keyword"><div><code>ENDTYPE</code><span class="kind">keyword</span></div><p class="desc">Closes a TYPE definition.</p></div>
     <div class="row" data-kind="keyword"><div><code>ENDWHILE</code><span class="kind">keyword</span></div><p class="desc">Ends a WHILE loop - the same as WEND.</p></div>
@@ -529,6 +581,7 @@
     <div class="row" data-kind="keyword"><div><code>STRICT</code><span class="kind">keyword</span></div><p class="desc">Only valid after OPTION; makes unassigned variables a runtime error - the same as the --strict switch.</p></div>
     <div class="row" data-kind="keyword"><div><code>SUB</code><span class="kind">keyword</span></div><p class="desc">Defines a parameterless procedure called with GOSUB: SUB name: … ENDSUB. The colon after the name is mandatory.</p></div>
     <div class="row" data-kind="keyword"><div><code>SWAP</code><span class="kind">keyword</span></div><p class="desc">Swaps the values of two variables, fields or array elements.</p></div>
+    <div class="row" data-kind="keyword"><div><code>TASK name</code><span class="kind">keyword</span></div><p class="desc">Begins a cooperative task: TASK name: … ENDTASK. AWAIT gives control back to the main loop.</p></div>
     <div class="row" data-kind="keyword"><div><code>THEN</code><span class="kind">keyword</span></div><p class="desc">Separates the condition of an IF from the statement that follows when it is true.</p></div>
     <div class="row" data-kind="keyword"><div><code>THROW</code><span class="kind">keyword</span></div><p class="desc">Raises an error with the given message that TRY/CATCH can catch.</p></div>
     <div class="row" data-kind="keyword"><div><code>TO</code><span class="kind">keyword</span></div><p class="desc">Separates the start and the end of a FOR loop.</p></div>
@@ -639,6 +692,22 @@
     <div class="row" data-kind="constant"><div><code>KEY_Y</code><span class="kind">constant</span></div><p class="desc">Key Y</p></div>
     <div class="row" data-kind="constant"><div><code>KEY_Z</code><span class="kind">constant</span></div><p class="desc">Key Z</p></div>
     <div class="row" data-kind="constant"><div><code>TRUE</code><span class="kind">constant</span></div><p class="desc">True, that is 1.</p></div>
+  </div>
+</section>
+<section id="tasks-und-jobs">
+  <h2>Tasks und Jobs<span class="count">11</span></h2>
+  <div class="rows">
+    <div class="row" data-kind="function"><div><code>FILE_READ_ASYNC(path)</code><span class="kind">function</span></div><p class="desc">Reads a file on a worker thread and returns a job id; JOB_VALUE returns the text.</p></div>
+    <div class="row" data-kind="command"><div><code>FILE_WRITE_ASYNC path, text</code><span class="kind">command</span></div><p class="desc">Writes text on a worker thread and returns a job id; JOB_VALUE returns the number of bytes.</p></div>
+    <div class="row" data-kind="function"><div><code>JOB_DONE(job)</code><span class="kind">function</span></div><p class="desc">Returns 1 when the job has finished, also when it ended with an error.</p></div>
+    <div class="row" data-kind="function"><div><code>JOB_ERROR$(job)</code><span class="kind">function</span></div><p class="desc">Returns the error message of the job, or an empty string.</p></div>
+    <div class="row" data-kind="function"><div><code>JOB_FREE(job)</code><span class="kind">function</span></div><p class="desc">Releases the job and joins its thread. Returns 1 when the id was valid.</p></div>
+    <div class="row" data-kind="function"><div><code>JOB_VALUE(job)</code><span class="kind">function</span></div><p class="desc">Returns the result of the job. On an error the command stops with the worker message.</p></div>
+    <div class="row" data-kind="function"><div><code>SPAWN(@function, args…)</code><span class="kind">function</span></div><p class="desc">Starts a pure function on a worker thread. The globals are copied, so the worker cannot change the main state.</p></div>
+    <div class="row" data-kind="function"><div><code>TASK_COUNT()</code><span class="kind">function</span></div><p class="desc">Returns the number of running tasks.</p></div>
+    <div class="row" data-kind="function"><div><code>TASK_RUNNING(id)</code><span class="kind">function</span></div><p class="desc">Returns 1 while the task with this id is running.</p></div>
+    <div class="row" data-kind="function"><div><code>TASK_START(&quot;name&quot;)</code><span class="kind">function</span></div><p class="desc">Starts a TASK by name and returns its id. The task runs from the next frame on.</p></div>
+    <div class="row" data-kind="function"><div><code>TASK_STOP(id)</code><span class="kind">function</span></div><p class="desc">Stops a running task. Returns 1 when the id existed.</p></div>
   </div>
 </section>
 <footer>GameBasiX - BASIC for 2D games. Names without brackets are commands, names with brackets are functions.</footer>

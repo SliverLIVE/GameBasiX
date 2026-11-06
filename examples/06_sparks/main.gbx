@@ -69,7 +69,7 @@ FUNCTION update: dt
         if (kind == 0) {
             vy += gravity * dt;
             if (life <= 0.0 || vy >= -10.0) {
-                explosions = explosions + 1;
+                Explosions = Explosions + 1;
                 gbxsparks::explode(sparks, x, y, s.hue);
                 s.life = 0.0;            // rocket is used up
                 continue;
@@ -95,7 +95,7 @@ FUNCTION update: dt
         s.life = life;
         ++alive;
     }
-    active = alive;
+    Active = alive;
   ENDINLINE
   RETURN 0
 ENDFUNCTION

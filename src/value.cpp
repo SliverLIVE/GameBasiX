@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <functional>
 #include <cstdlib>
 #include <cstring>
 
@@ -132,4 +133,52 @@ bool valueEquals(const Value& a, const Value& b) {
     // String <-> Zahl: Text vergleichen (implizite Konvertierung)
     if (a.isStr() || b.isStr()) return a.text() == b.text();
     return a.asDouble() == b.asDouble();
+}
+
+Value cloneValue(const Value& v) {
+    std::unordered_map<const void*, Value> memo;
+    std::function<Value(const Value&)> clone = [&](const Value& src) -> Value {
+        switch (src.type) {
+            case VT::Array: {
+                if (!src.arr) return Value::mkArray(nullptr);
+                auto known = memo.find(src.arr.get());
+                if (known != memo.end()) return known->second;
+                auto copy = std::make_shared<ArrayObj>();
+                copy->elemVT = src.arr->elemVT;
+                copy->isTypeArray = src.arr->isTypeArray;
+                copy->elemType = src.arr->elemType;
+                Value holder = Value::mkArray(copy);
+                memo.emplace(src.arr.get(), holder);
+                copy->items.reserve(src.arr->items.size());
+                for (const Value& item : src.arr->items) copy->items.push_back(clone(item));
+                return holder;
+            }
+            case VT::Record: {
+                if (!src.rec) return Value::mkRecord(nullptr);
+                auto known = memo.find(src.rec.get());
+                if (known != memo.end()) return known->second;
+                auto copy = std::make_shared<RecordObj>();
+                copy->def = src.rec->def;
+                Value holder = Value::mkRecord(copy);
+                memo.emplace(src.rec.get(), holder);
+                copy->fields.reserve(src.rec->fields.size());
+                for (const Value& field : src.rec->fields) copy->fields.push_back(clone(field));
+                return holder;
+            }
+            case VT::Dict: {
+                if (!src.dict) return Value::mkDict(nullptr);
+                auto known = memo.find(src.dict.get());
+                if (known != memo.end()) return known->second;
+                auto copy = std::make_shared<DictObj>();
+                Value holder = Value::mkDict(copy);
+                memo.emplace(src.dict.get(), holder);
+                copy->keys = src.dict->keys;
+                for (const auto& entry : src.dict->map) copy->map.emplace(entry.first, clone(entry.second));
+                return holder;
+            }
+            case VT::Func: return Value::mkFunc(src.s);
+            default: return src;
+        }
+    };
+    return clone(v);
 }

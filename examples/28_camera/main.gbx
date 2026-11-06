@@ -1,0 +1,175 @@
+' ============================================================
+' 2D camera - pan, zoom, rotate and screen/world conversion
+' Run: gbx examples/28_camera/camera.gbxproj
+'
+' The world is drawn between CAMERA_BEGIN and CAMERA_END.
+' The HUD after CAMERA_END stays in screen coordinates.
+'
+' WASD / arrows: move relative to the camera
+' Q / E: rotate
+' + / -: zoom
+' R: reset
+' ============================================================
+
+CONSTANT WORLD_W = 1600
+CONSTANT WORLD_H = 1000
+CONSTANT VIEW_W = 960
+CONSTANT VIEW_H = 640
+
+GLOBAL CamX = WORLD_W / 2
+GLOBAL CamY = WORLD_H / 2
+GLOBAL CamZoom = 1.0
+GLOBAL CamAngle = 0.0
+
+GLOBAL BeaconX = 300
+GLOBAL BeaconY = 260
+GLOBAL BeaconSX = 0.0
+GLOBAL BeaconSY = 0.0
+
+GLOBAL MouseX = 0.0
+GLOBAL MouseY = 0.0
+GLOBAL MouseWorldX = 0.0
+GLOBAL MouseWorldY = 0.0
+
+FUNCTION resetCamera:
+  CamX = WORLD_W / 2
+  CamY = WORLD_H / 2
+  CamZoom = 1.0
+  CamAngle = 0.0
+ENDFUNCTION
+
+SCREEN_SET VIEW_W, VIEW_H, 0
+WINDOW_TITLE "GameBasiX - 2D camera"
+LIMIT_FPS 60
+SCREEN_CLEAR RGB(7, 11, 18)
+
+WHILE TRUE
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  ' ---------------------------------------------------------- Input
+  dt = DELTA_TIME() / 1000.0
+  pan = 620 * dt / CamZoom
+
+  ' Forward is the direction the camera looks at; strafe is its right side.
+  forward = 0
+  strafe = 0
+  IF KEY_DOWN(KEY_UP) OR KEY_DOWN(KEY_W) THEN forward = forward + 1
+  IF KEY_DOWN(KEY_DOWN) OR KEY_DOWN(KEY_S) THEN forward = forward - 1
+  IF KEY_DOWN(KEY_RIGHT) OR KEY_DOWN(KEY_D) THEN strafe = strafe + 1
+  IF KEY_DOWN(KEY_LEFT) OR KEY_DOWN(KEY_A) THEN strafe = strafe - 1
+
+  ' Rotate the movement vector together with the camera.
+  CamX = CamX + (SIN(CamAngle) * forward + COS(CamAngle) * strafe) * pan
+  CamY = CamY + (-COS(CamAngle) * forward + SIN(CamAngle) * strafe) * pan
+
+  IF KEY_DOWN(KEY_Q) THEN CamAngle = CamAngle + 85 * dt
+  IF KEY_DOWN(KEY_E) THEN CamAngle = CamAngle - 85 * dt
+  IF KEY_PRESSED(KEY_R) THEN resetCamera()
+
+  IF KEY_DOWN(KEY_EQUALS) THEN CamZoom = CamZoom + 0.6 * dt
+  IF KEY_DOWN(KEY_MINUS) THEN CamZoom = CamZoom - 0.6 * dt
+
+  CamZoom = MIN(4.0, MAX(0.5, CamZoom))
+  CamX = MIN(WORLD_W, MAX(0, CamX))
+  CamY = MIN(WORLD_H, MAX(0, CamY))
+  IF CamAngle >= 360 THEN CamAngle = CamAngle - 360
+  IF CamAngle < 0 THEN CamAngle = CamAngle + 360
+
+  MOUSE_STATE MouseX, MouseY, mb1, mb2
+
+  SCREEN_CLEAR RGB(7, 11, 18)
+
+  ' ------------------------------------------------------- World
+  CAMERA_BEGIN CamX, CamY, CamZoom, CamAngle
+
+  DRAW_RECT 0, 0, WORLD_W, WORLD_H, RGB(14, 23, 37)
+
+  ' Grid and the two main axes.
+  FOR gy = 0 TO WORLD_H STEP 100
+    DRAW_LINE 0, gy, WORLD_W, gy, RGB(27, 43, 62)
+  NEXT
+  FOR gx = 0 TO WORLD_W STEP 100
+    DRAW_LINE gx, 0, gx, WORLD_H, RGB(27, 43, 62)
+  NEXT
+  DRAW_LINE WORLD_W / 2, 0, WORLD_W / 2, WORLD_H, RGB(44, 70, 98)
+  DRAW_LINE 0, WORLD_H / 2, WORLD_W, WORLD_H / 2, RGB(44, 70, 98)
+  DRAW_RECT_BORDER 0, 0, WORLD_W, WORLD_H, RGB(87, 132, 176)
+
+  ' Two roads through the middle.
+  DRAW_RECT 0, WORLD_H / 2 - 38, WORLD_W, 76, RGB(25, 39, 55)
+  DRAW_RECT WORLD_W / 2 - 36, 0, 72, WORLD_H, RGB(25, 39, 55)
+  ' A few landmarks, so panning and rotating are easy to see.
+  DRAW_CIRCLE_FILLED BeaconX, BeaconY, 22, RGB(245, 143, 66)
+  DRAW_CIRCLE BeaconX, BeaconY, 36 + 5 * SIN(ELAPSED_TIME() / 12), RGB(188, 95, 48)
+  TEXT_COLOR RGB(255, 222, 170)
+  PRINT "BEACON", BeaconX - 38, BeaconY + 50
+
+  DRAW_CIRCLE_FILLED 1240, 230, 34, RGB(255, 0, 0, 85)
+  DRAW_CIRCLE 1240, 230, 52, RGB(40, 112, 80)
+  TEXT_COLOR RGB(176, 239, 197)
+  PRINT "GARDEN", 1192, 286
+
+  DRAW_RECT 1190, 735, 180, 80, RGB(43, 92, 143)
+  DRAW_RECT_BORDER 1190, 735, 180, 80, RGB(82, 143, 196)
+  TEXT_COLOR RGB(160, 218, 255)
+  PRINT "DOCK", 1240, 764
+
+  ' The white cross marks the world point the camera is centred on.
+  DRAW_LINE CamX - 20 / CamZoom, CamY, CamX + 20 / CamZoom, CamY, RGB(120, 155, 190)
+  DRAW_LINE CamX, CamY - 20 / CamZoom, CamX, CamY + 20 / CamZoom, RGB(120, 155, 190)
+
+  ' Small moving lights around the camera centre.
+  t = ELAPSED_TIME() / 1000.0
+  FOR i = 0 TO 6
+    a = t * 24 + i * 51
+    lx = CamX + COS(a) * (170 + i * 54)
+    ly = CamY + SIN(a * 1.3) * (110 + i * 36)
+    DRAW_CIRCLE_FILLED lx, ly, 8 + i, RGB(90 + i * 18, 170 - i * 10, 240)
+  NEXT
+
+  ' Convert the mouse into the world and mark it there.
+  CAMERA_SCREEN_TO_WORLD MouseX, MouseY, MouseWorldX, MouseWorldY
+  DRAW_CIRCLE MouseWorldX, MouseWorldY, 12 / CamZoom, RGB(255, 228, 120)
+  DRAW_LINE MouseWorldX - 24 / CamZoom, MouseWorldY, MouseWorldX - 8 / CamZoom, MouseWorldY, RGB(255, 228, 120)
+  DRAW_LINE MouseWorldX + 8 / CamZoom, MouseWorldY, MouseWorldX + 24 / CamZoom, MouseWorldY, RGB(255, 228, 120)
+  DRAW_LINE MouseWorldX, MouseWorldY - 24 / CamZoom, MouseWorldX, MouseWorldY - 8 / CamZoom, RGB(255, 228, 120)
+  DRAW_LINE MouseWorldX, MouseWorldY + 8 / CamZoom, MouseWorldX, MouseWorldY + 24 / CamZoom, RGB(255, 228, 120)
+
+  ' Remember the beacon's screen position for the fixed HUD.
+  CAMERA_WORLD_TO_SCREEN BeaconX, BeaconY, BeaconSX, BeaconSY
+
+  CAMERA_END
+
+  ' --------------------------------------------------------- HUD
+  DRAW_RECT 0, 0, VIEW_W, 92, RGB(8, 13, 22)
+  DRAW_LINE 0, 92, VIEW_W, 92, RGB(39, 63, 88)
+
+  TEXT_COLOR RGB(105, 218, 255)
+  PRINT "2D CAMERA", 24, 18
+  TEXT_COLOR RGB(170, 190, 214)
+  PRINT "WASD / arrows: move relative    Q / E: rotate    + / -: zoom    R: reset", 24, 44
+  TEXT_COLOR RGB(130, 153, 180)
+  PRINT "center " + FORMAT$(7, 1, CamX) + ", " + FORMAT$(7, 1, CamY) + "    zoom " + FORMAT$(5, 2, CamZoom) + "    angle " + FORMAT$(6, 1, CamAngle) + " deg", 24, 68
+
+  DRAW_RECT 622, 104, 314, 86, RGB(9, 15, 25)
+  DRAW_RECT_BORDER 622, 104, 314, 86, RGB(39, 63, 88)
+  TEXT_COLOR RGB(105, 218, 255)
+  PRINT "SCREEN <-> WORLD", 640, 116
+  TEXT_COLOR RGB(170, 190, 214)
+  PRINT "mouse  " + FORMAT$(6, 1, MouseX) + ", " + FORMAT$(6, 1, MouseY), 640, 140
+  PRINT "world  " + FORMAT$(7, 1, MouseWorldX) + ", " + FORMAT$(7, 1, MouseWorldY), 640, 164
+
+  DRAW_RECT 0, VIEW_H - 54, VIEW_W, 54, RGB(8, 13, 22)
+  DRAW_LINE 0, VIEW_H - 54, VIEW_W, VIEW_H - 54, RGB(39, 63, 88)
+  TEXT_COLOR RGB(130, 153, 180)
+  PRINT "beacon world " + FORMAT$(6, 1, BeaconX) + ", " + FORMAT$(6, 1, BeaconY) + "  ->  screen " + FORMAT$(6, 1, BeaconSX) + ", " + FORMAT$(6, 1, BeaconSY), 24, VIEW_H - 40
+  PRINT "the world is drawn inside CAMERA_BEGIN / CAMERA_END - this bar is not", 24, VIEW_H - 20
+
+  ' Screen-space pointer crosshair, independent of the camera.
+  IF MouseX >= 0 AND MouseX < VIEW_W AND MouseY >= 0 AND MouseY < VIEW_H THEN
+    DRAW_LINE MouseX - 10, MouseY, MouseX + 10, MouseY, RGB(255, 228, 120)
+    DRAW_LINE MouseX, MouseY - 10, MouseX, MouseY + 10, RGB(255, 228, 120)
+  ENDIF
+
+  SCREEN_SHOW
+WEND

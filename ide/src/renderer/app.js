@@ -9,6 +9,8 @@ import {
   findUserMethodRanges,
   findConstantRanges,
   findEnumRanges,
+  isTypePosition,
+  inlineCommandFor,
   memberBaseName,
   EDITOR_THEME_FIELDS,
   EDITOR_THEME_PRESETS,
@@ -151,7 +153,17 @@ async function boot() {
   renderDebugScope();
   renderBreakpoints();
   updateDebugUi();
-  window.__gbxStudio = { state, getSymbols, analyzeSource, editor: () => editor, monaco };
+  // Kleine Sicht fuer Tests und die Entwicklerkonsole: was steht unter dem
+  // Cursor, und welche Stellen gehoeren zu dem Namen.
+  window.__gbxStudio = {
+    state,
+    getSymbols,
+    analyzeSource,
+    editor: () => editor,
+    monaco,
+    symbolAt: (position) => resolveSymbolAt(editor.getModel(), position || editor.getPosition()),
+    referencesOf: (name, resolved) => findReferences(name, resolved)
+  };
 }
 
 function loadMonaco() {
@@ -230,6 +242,9 @@ function createEditor() {
   editor.onMouseDown((event) => {
     const type = event.target.type;
     if (type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN && type !== monaco.editor.MouseTargetType.GUTTER_LINE_DECORATIONS) return;
+    // Der Einklapp-Pfeil sitzt im selben Rand und meldet sich als Zeilen-
+    // Dekoration. Ein Klick darauf klappt nur ein und setzt keinen Haltepunkt.
+    if (event.target.element?.closest?.('.codicon-folding-expanded, .codicon-folding-collapsed, .codicon-folding-manual-expanded, .codicon-folding-manual-collapsed')) return;
     const line = event.target.position?.lineNumber;
     if (!line) return;
     toggleBreakpointAt(editor.getModel(), line);
@@ -338,6 +353,11 @@ function renderSignatureBar(result) {
     close.className = 'sig-paren';
     close.textContent = ')';
     params.append(close);
+  }
+  const arity = $('sig-arity');
+  if (arity) {
+    arity.textContent = result.arityLabel ? `· ${result.arityLabel}` : '';
+    arity.hidden = !result.arityLabel;
   }
   const error = $('sig-error');
   error.textContent = result.status === 'error' ? result.message : '';
@@ -619,7 +639,15 @@ function codeColorDecorations(model, symbols) {
       });
     }
   };
-  add(findUserTypeRanges(text, symbols.types.map((type) => type.name).filter(Boolean)), 'gbx-user-type');
+  // Interfaces sind ebenfalls Typnamen: sie tragen dieselbe Farbe, egal ob sie
+  // in INTERFACE, in TYPE … IMPLEMENTS oder hinter EXTENDS stehen.
+  add(
+    findUserTypeRanges(
+      text,
+      [...symbols.types, ...(symbols.interfaces || [])].map((entry) => entry.name).filter(Boolean)
+    ),
+    'gbx-user-type'
+  );
   add(
     findUserFunctionRanges(text, symbols.functions.map((fn) => fn.name).filter(Boolean)),
     'gbx-user-func'
@@ -1122,10 +1150,11 @@ function readLayout() {
     return {
       sidebar: Number.isFinite(parsed.sidebar) ? parsed.sidebar : null,
       reference: Number.isFinite(parsed.reference) ? parsed.reference : null,
-      bottom: Number.isFinite(parsed.bottom) ? parsed.bottom : null
+      bottom: Number.isFinite(parsed.bottom) ? parsed.bottom : null,
+      refList: Number.isFinite(parsed.refList) ? parsed.refList : null
     };
   } catch {
-    return { sidebar: null, reference: null, bottom: null };
+    return { sidebar: null, reference: null, bottom: null, refList: null };
   }
 }
 
@@ -1134,7 +1163,11 @@ function currentLayout() {
   return {
     sidebar: Math.round($('sidebar').getBoundingClientRect().width),
     reference: Math.round($('reference').getBoundingClientRect().width),
-    bottom: Math.round($('bottom-panel').getBoundingClientRect().height)
+    bottom: Math.round($('bottom-panel').getBoundingClientRect().height),
+    // 0 heisst: Liste und Beschreibung teilen sich den Platz wie bisher.
+    refList: $('ref-list')?.classList.contains('sized')
+      ? Math.round($('ref-list').getBoundingClientRect().height)
+      : 0
   };
 }
 
@@ -1177,6 +1210,7 @@ function applyProjectLayout(project) {
         const max = Math.max(160, (document.querySelector('.main-area')?.clientHeight || 0) - 140);
         setLayoutVar('--bottom-panel', clamp(saved.bottom, 90, max));
       }
+      if (Number.isFinite(saved.refList) && saved.refList > 0) setRefListHeight(saved.refList);
     }
     // Ein Panel, das es in der gespeicherten Ablage noch nicht gab, ordnet
     // `normalizeDock` selbst ein – die Oberfläche bleibt also vollständig.
@@ -1194,11 +1228,31 @@ function setLayoutVar(name, value) {
   document.documentElement.style.setProperty(name, `${Math.round(value)}px`);
 }
 
+/**
+ * Hoehe der Befehlsliste im Referenz-Panel. Ohne Wert teilen sich Liste und
+ * Beschreibung den Platz wie bisher; nach dem Ziehen am Teiler behaelt die
+ * Liste ihre Hoehe. Innerhalb des Panels bleibt immer Platz fuer die
+ * Beschreibung.
+ */
+function setRefListHeight(value) {
+  const list = $('ref-list');
+  if (!list || !value) {
+    document.documentElement.style.removeProperty('--ref-list');
+    list?.classList.remove('sized');
+    return;
+  }
+  const panel = list.parentElement;
+  const max = panel && panel.clientHeight > 0 ? Math.max(160, panel.clientHeight - 140) : value;
+  setLayoutVar('--ref-list', clamp(value, 90, max));
+  list.classList.add('sized');
+}
+
 function initSplitters() {
   const saved = readLayout();
   if (saved.sidebar) setLayoutVar('--sidebar', clamp(saved.sidebar, 160, Math.min(560, window.innerWidth * 0.5)));
   if (saved.reference) setLayoutVar('--reference', clamp(saved.reference, 230, Math.min(720, window.innerWidth * 0.6)));
   if (saved.bottom) setLayoutVar('--bottom-panel', saved.bottom);
+  if (saved.refList) setRefListHeight(saved.refList);
 
   bindSplitter($('split-left'), {
     axis: 'x',
@@ -1210,6 +1264,12 @@ function initSplitters() {
     invert: true,
     start: () => $('reference').getBoundingClientRect().width,
     apply: (size) => setLayoutVar('--reference', clamp(size, 230, Math.min(720, window.innerWidth * 0.6)))
+  });
+  // Teiler zwischen Befehlsliste und Beschreibung im Referenz-Panel.
+  bindSplitter($('split-ref'), {
+    axis: 'y',
+    start: () => $('ref-list')?.getBoundingClientRect().height || 0,
+    apply: (size) => setRefListHeight(size)
   });
   bindSplitter($('split-bottom'), {
     axis: 'y',
@@ -1271,6 +1331,7 @@ function bindSplitter(el, { axis, invert = false, start, apply }) {
   el.addEventListener('dblclick', () => {
     if (axis === 'x' && el.id === 'split-left') setLayoutVar('--sidebar', DEFAULT_LAYOUT.sidebar);
     else if (axis === 'x') setLayoutVar('--reference', DEFAULT_LAYOUT.reference);
+    else if (el.id === 'split-ref') setRefListHeight(0);
     else setLayoutVar('--bottom-panel', DEFAULT_LAYOUT.bottom);
     editor?.layout();
     persistLayout();
@@ -2097,20 +2158,25 @@ function activeTab() {
 
 /** Wort unter dem Cursor (Buchstaben, Ziffern und die Typsuffixe $ % #). */
 function wordAtCursor(model, position) {
+  return wordAtCursorInfo(model, position).word;
+}
+
+/** Wie wordAtCursor, zusaetzlich der Anfang des Wortes (0-basiert). */
+function wordAtCursorInfo(model, position) {
   const line = model.getLineContent(position.lineNumber);
   const word = /[A-Za-z_]\w*[$%#]?/g;
   let match;
   while ((match = word.exec(line))) {
     const start = match.index;
     const end = start + match[0].length;
-    if (position.column - 1 >= start && position.column - 1 <= end) return match[0];
+    if (position.column - 1 >= start && position.column - 1 <= end) return { word: match[0], index: start };
   }
-  return '';
+  return { word: '', index: -1 };
 }
 
-/** Name ohne Typsuffix, gross geschrieben - BASIC vergleicht ohne Rucksicht. */
+/** Name ohne Typsuffix, exakt wie geschrieben: Eigennamen sind case-sensitiv. */
 function bareName(name) {
-  return String(name || '').replace(/[$%#]$/, '').toUpperCase();
+  return String(name || '').replace(/[$%#]$/, '');
 }
 
 /** Definition zu einem Namen im ganzen Projekt (Datei und Zeile). */
@@ -2119,13 +2185,21 @@ function definitionFor(name) {
   if (!wanted || !state.projectDir) return null;
   const symbols = getSymbols();
   const fn = symbols.functions.find((item) => bareName(item.name) === wanted && item.file);
-  if (fn) return { file: fn.file, line: fn.line || 1 };
+  if (fn) return { file: fn.file, line: fn.line || 1, target: 'function' };
   for (const type of symbols.types) {
     const method = (type.methods || []).find((item) => bareName(item.name) === wanted);
-    if (method && type.file) return { file: type.file, line: method.line || type.line || 1 };
+    if (method && type.file) return { file: type.file, line: method.line || type.line || 1, target: 'method' };
   }
   const type = symbols.types.find((item) => bareName(item.name) === wanted && item.file);
-  if (type) return { file: type.file, line: type.line || 1 };
+  if (type) return { file: type.file, line: type.line || 1, target: 'type' };
+  // INTERFACE: Der Name springt zur Schnittstelle, ein Methodenname zu seiner
+  // Kopfzeile im INTERFACE-Block.
+  const iface = (symbols.interfaces || []).find((item) => bareName(item.name) === wanted && item.file);
+  if (iface) return { file: iface.file, line: iface.line || 1, target: 'interface' };
+  for (const entry of symbols.interfaces || []) {
+    const method = (entry.methods || []).find((item) => bareName(item.name) === wanted);
+    if (method && entry.file) return { file: entry.file, line: method.line || entry.line || 1, target: 'method' };
+  }
   const enums = symbols.enums || [];
   // PHASE.STOP: der Wert im eigenen ENUM, nicht irgendein gleicher Name.
   if (wanted.includes('.')) {
@@ -2133,17 +2207,17 @@ function definitionFor(name) {
     const entry = enums.find((item) => bareName(item.name) === owner);
     if (entry) {
       const hit = (entry.values || []).find((item) => bareName(item.name) === value);
-      return { file: entry.file, line: (hit || entry).line || entry.line || 1 };
+      return { file: entry.file, line: (hit || entry).line || entry.line || 1, target: 'enum-value' };
     }
   }
   for (const entry of enums) {
     const value = (entry.values || []).find((item) => bareName(item.name) === wanted);
-    if (value && entry.file) return { file: entry.file, line: value.line || entry.line || 1 };
+    if (value && entry.file) return { file: entry.file, line: value.line || entry.line || 1, target: 'enum-value' };
   }
   const enumDecl = enums.find((item) => bareName(item.name) === wanted && item.file);
-  if (enumDecl) return { file: enumDecl.file, line: enumDecl.line || 1 };
+  if (enumDecl) return { file: enumDecl.file, line: enumDecl.line || 1, target: 'enum' };
   const constant = symbols.constants.find((item) => bareName(item.name) === wanted && item.file);
-  if (constant) return { file: constant.file, line: constant.line || 1 };
+  if (constant) return { file: constant.file, line: constant.line || 1, target: 'constant' };
   return null;
 }
 
@@ -2154,7 +2228,7 @@ function nameAtCursor(model, position) {
   const line = model.getLineContent(position.lineNumber);
   const end = position.column - 1 + word.length;
   const owner = /([A-Za-z_]\w*)\s*\.\s*$/.exec(line.slice(0, position.column - 1));
-  if (!owner || line.slice(position.column - 1, end).toUpperCase() !== word.toUpperCase()) return word;
+  if (!owner || line.slice(position.column - 1, end) !== word) return word;
   try {
     const symbols = getSymbols();
     if ((symbols.enums || []).some((entry) => bareName(entry.name) === bareName(owner[1]))) {
@@ -2194,24 +2268,12 @@ function registerGoToDefinition() {
     }
   });
 
-  // Eigener Eintrag im Rechtsklick-Menue: eigener Text statt der englischen
-  // Monaco-Beschriftung, und er funktioniert auch ohne den internen Opener.
-  editor.addAction({
-    id: 'gbx.goToDefinition',
-    label: t('Gehe zu Definition'),
-    contextMenuGroupId: 'navigation',
-    contextMenuOrder: 1,
-    run: (instance) => {
-      const model = instance.getModel();
-      const position = instance.getPosition();
-      if (!model || !position) return;
-      const target = resolveSymbolAt(model, position);
-      if (!target) {
-        toast(t('Keine eigene Definition unter dem Cursor.'), 'warn');
-        return;
-      }
-      openFile(target.file, { line: target.line });
-    }
+  // F12 loest die eingebaute Aktion aus (deren Standardtaste ist Ctrl+F12).
+  // Eine eigene Aktion mit F12 wuerde im Rechtsklick-Menue ein zweites
+  // "Go to Definition" erzeugen - Monaco blendet beide Eintraege ein.
+  monaco.editor.addKeybindingRule({
+    keybinding: monaco.KeyCode.F12,
+    command: 'editor.action.revealDefinition'
   });
 
   monaco.editor.registerEditorOpener({
@@ -2286,8 +2348,8 @@ function projectSourceFiles() {
 /** Suchmuster zu einem Namen; `PHASE.STOP` wird als Ganzes gesucht. */
 function referencePattern(name) {
   const parts = String(name || '').split('.').map(bareName);
-  if (parts.length < 2) return new RegExp(`\\b${escapeRegex(parts[0] || '')}\\b`, 'gi');
-  return new RegExp(`\\b${escapeRegex(parts[0])}\\s*\\.\\s*${escapeRegex(parts[1])}\\b`, 'gi');
+  if (parts.length < 2) return new RegExp(`\\b${escapeRegex(parts[0] || '')}\\b`, 'g');
+  return new RegExp(`\\b${escapeRegex(parts[0])}\\s*\\.\\s*${escapeRegex(parts[1])}\\b`, 'g');
 }
 
 /** Blockgrenzen (1-basiert, inklusive) des TYPE, in dem die Zeile liegt. */
@@ -2427,11 +2489,14 @@ function resolveSymbolAt(model, position) {
   const name = nameAtCursor(model, position);
   const wanted = bareName(name);
   if (!wanted) return null;
-  const project = definitionFor(name);
-  if (project) return { ...project, kind: 'project', scope: null };
-
   const file = projectPathOf(model.uri) || activeTab()?.path || '';
   const lines = model.getLinesContent();
+  // `AS CIRCLE` nennt den Typ, `circle.x` den Wert. Eigennamen vergleicht
+  // die Sprache exakt; die Stelle im Code entscheidet zwischen Typ und Wert.
+  const word = wordAtCursorInfo(model, position);
+  const typeUse = isTypePosition(codePartOfLine(lines[position.lineNumber - 1] || ''), word.index);
+  const project = definitionFor(name);
+  if (project && typeUse) return { ...project, kind: 'project', scope: null };
   // Lokale Namen (auch Parameter) verdecken ein gleichnamiges Feld.
   const routine = routineBlockAt(lines, position.lineNumber);
   const declared = routine.found
@@ -2478,6 +2543,11 @@ function resolveSymbolAt(model, position) {
       return { file, line: local.line, kind: 'local', scope: { file, from: routine.start, to: routine.end } };
     }
   }
+  // Erst wenn kein Wert gleichen Namens gilt, ist es das Projektsymbol.
+  if (project) return { ...project, kind: 'project', scope: null };
+  // Befehle aus GBX_INLINE_FN(...) stehen im Header bzw. in der CPP-Datei.
+  const inline = inlineCommandFor(name);
+  if (inline?.file) return { file: inline.file, line: inline.line || 1, kind: 'inline', scope: null };
   return null;
 }
 
@@ -2495,6 +2565,9 @@ function findReferences(name, resolved = null) {
   const pattern = referencePattern(name);
   const kind = resolved?.kind || 'project';
   const scope = resolved?.scope || null;
+  // Ein TYPE-Name steht nur an Typstellen; ein Wert steht nie dort. Sonst
+  // wuerde `GLOBAL circle AS Circle` beim Umbenennen beides mitnehmen.
+  const typeSymbol = resolved?.target === 'type' || resolved?.target === 'interface';
   const found = [];
   for (const file of projectSourceFiles()) {
     // Ein lokaler Name gilt nur in seiner Datei.
@@ -2515,6 +2588,11 @@ function findReferences(name, resolved = null) {
       while (match) {
         // Bei PHASE.STOP nur den Wert umbenennen, nicht den Enum-Namen.
         const column = parts.length > 1 ? match.index + match[0].length - member.length : match.index;
+        if (isTypePosition(code, column) !== typeSymbol) {
+          if (!match[0]) break;
+          match = pattern.exec(code);
+          continue;
+        }
         const inBlock = !!scope && scope.file === file && lineNumber >= scope.from && lineNumber <= scope.to;
         const dotted = /\.\s*$/.test(code.slice(0, column));
         if (kind === 'field' && !inBlock && !dotted) {
@@ -2588,9 +2666,11 @@ function askSymbolName(current) {
 /** Prueft einen neuen Namen gegen Syntax und belegte Befehle. */
 function validSymbolName(name) {
   if (!/^[A-Za-z_]\w*[$%#]?$/.test(name)) return t('Nur Buchstaben, Ziffern und _ sowie ein Suffix ($ % #) am Ende.');
-  const upper = bareName(name);
+  const upper = bareName(name).toUpperCase();
   const taken = state.commands.some(
-    (command) => (command.kind === 'keyword' || command.kind === 'constant') && bareName(command.name) === upper
+    (command) =>
+      (command.kind === 'keyword' || command.kind === 'constant') &&
+      bareName(command.name).toUpperCase() === upper
   );
   if (taken) return t('{name} ist ein Schlüsselwort oder eine Konstante.', { name: name.toUpperCase() });
   return '';
@@ -2617,6 +2697,10 @@ async function renameSymbol() {
   const resolved = resolveSymbolAt(model, position);
   if (!resolved) {
     toast(t('Nur eigene Namen lassen sich umbenennen.'), 'warn');
+    return;
+  }
+  if (resolved.kind === 'inline') {
+    toast(t('{name} gehört zu einem INLINE-Block und wird dort umbenannt.', { name }), 'warn');
     return;
   }
   const answer = await askSymbolName(name);
@@ -2692,7 +2776,7 @@ function showReferences() {
   head.className = 'ref-head';
   head.textContent = refs.length === 1 ? t('{n} Fundstelle', { n: 1 }) : t('{n} Fundstellen in {files} Datei(en)', { n: refs.length, files });
   const list = document.createElement('div');
-  list.className = 'ref-list';
+  list.className = 'ref-hits';
   const modal = openModal({
     title: t('Referenzen von {name}', { name }),
     body: (body.append(head, list), body),
@@ -5392,10 +5476,17 @@ function analysisFor(model) {
 }
 
 function getSymbols() {
-  const out = { functions: [], types: [], variables: [], constants: [], enums: [] };
-  const seen = { functions: new Set(), types: new Set(), variables: new Set(), constants: new Set(), enums: new Set() };
+  const out = { functions: [], types: [], interfaces: [], variables: [], constants: [], enums: [] };
+  const seen = {
+    functions: new Set(),
+    types: new Set(),
+    interfaces: new Set(),
+    variables: new Set(),
+    constants: new Set(),
+    enums: new Set()
+  };
   const push = (bucket, item) => {
-    const key = item.name.toUpperCase();
+    const key = item.name;
     if (seen[bucket].has(key)) return;
     seen[bucket].add(key);
     out[bucket].push(item);
@@ -5405,11 +5496,11 @@ function getSymbols() {
   const tab = activeTab();
   if (tab) {
     const current = analysisFor(tab.model);
-    for (const bucket of ['functions', 'types', 'variables', 'constants', 'enums']) {
+    for (const bucket of ['functions', 'types', 'interfaces', 'variables', 'constants', 'enums']) {
       for (const item of current[bucket] || []) push(bucket, { ...item, file: tab.path });
     }
   }
-  for (const bucket of ['functions', 'types', 'constants', 'enums']) {
+  for (const bucket of ['functions', 'types', 'interfaces', 'constants', 'enums']) {
     for (const item of state.projectSymbols[bucket] || []) push(bucket, item);
   }
   for (const variable of state.projectSymbols.variables || []) {
@@ -5424,8 +5515,15 @@ async function indexProjectSymbols() {
     return;
   }
   const files = state.tree.filter((item) => item.type === 'file' && /\.gbx$/i.test(item.name)).slice(0, 80);
-  const aggregate = { functions: [], types: [], variables: [], constants: [], enums: [] };
-  const seen = { functions: new Set(), types: new Set(), variables: new Set(), constants: new Set(), enums: new Set() };
+  const aggregate = { functions: [], types: [], interfaces: [], variables: [], constants: [], enums: [] };
+  const seen = {
+    functions: new Set(),
+    types: new Set(),
+    interfaces: new Set(),
+    variables: new Set(),
+    constants: new Set(),
+    enums: new Set()
+  };
   // Die Texte bleiben fuer die Referenzsuche liegen (Pfad -> Quelltext).
   const texts = new Map();
   for (const file of files) {
@@ -5443,9 +5541,9 @@ async function indexProjectSymbols() {
         continue;
       }
     }
-    for (const bucket of ['functions', 'types', 'variables', 'constants', 'enums']) {
+    for (const bucket of ['functions', 'types', 'interfaces', 'variables', 'constants', 'enums']) {
       for (const item of data[bucket] || []) {
-        const key = item.name.toUpperCase();
+        const key = item.name;
         if (seen[bucket].has(key)) continue;
         seen[bucket].add(key);
         // Die Herkunft gehoert zum Symbol: Hover und Gehe-zu-Definition
@@ -5465,7 +5563,7 @@ async function indexProjectSymbols() {
 
 const OUTLINE_KEY = 'gbxstudio.outline.v1';
 const outlineState = { collapsed: new Set(), rows: [], timer: null, activeEl: null };
-const OUTLINE_KINDS = { globals: 'VAR', functions: 'FN', subs: 'SUB', types: 'TYP', interfaces: 'INT', enums: 'ENUM', constants: 'CON', labels: 'LBL' };
+const OUTLINE_KINDS = { globals: 'VAR', functions: 'FN', subs: 'SUB', tasks: 'TASK', types: 'TYP', interfaces: 'INT', enums: 'ENUM', constants: 'CON', labels: 'LBL' };
 
 function readOutlinePrefs() {
   try {
@@ -5491,7 +5589,7 @@ function persistOutlinePrefs() {
 function outlineGroups(model) {
   const analysis = analysisFor(model);
   const totalLines = model.getLineCount();
-  const blocks = [...analysis.functions, ...analysis.types, ...(analysis.interfaces || [])]
+  const blocks = [...analysis.functions, ...(analysis.tasks || []), ...analysis.types, ...(analysis.interfaces || [])]
     .map((entry) => entry.line)
     .sort((a, b) => a - b);
   const endOf = (line) => {
@@ -5504,6 +5602,16 @@ function outlineGroups(model) {
   };
   const signature = (fn) => (fn.params.length ? `(${fn.params.map((param) => param.name).join(', ')})` : '()');
   const functionRow = (fn) => ({ name: fn.name, detail: signature(fn), line: fn.line, endLine: endOf(fn.line) });
+  const taskRow = (task) => {
+    const endLine = task.endLine || endOf(task.line);
+    return {
+      name: task.name,
+      detail: signature(task),
+      line: task.line,
+      endLine,
+      tooltip: `TASK ${task.name} · ${t('Zeile {line}', { line: task.line })}–${endLine}`
+    };
+  };
 
   add(
     'globals',
@@ -5518,6 +5626,7 @@ function outlineGroups(model) {
   );
   add('functions', t('Functions'), analysis.functions.filter((fn) => fn.kind === 'FUNCTION').map(functionRow));
   add('subs', t('Subs'), analysis.functions.filter((fn) => fn.kind === 'SUB').map(functionRow));
+  add('tasks', t('Tasks'), (analysis.tasks || []).map(taskRow));
   add(
     'types',
     t('Types'),
@@ -5596,7 +5705,9 @@ function outlineGroups(model) {
 function outlineRow(row, groupId, { member = false } = {}) {
   const el = document.createElement('div');
   el.className = 'outline-row' + (member ? ' member' : '');
-  el.title = t('Zeile {line}', { line: row.line });
+  const label = OUTLINE_KINDS[groupId] || '';
+  const summary = [label, row.name, row.detail].filter(Boolean).join(' ');
+  el.title = row.tooltip || `${summary} · ${t('Zeile {line}', { line: row.line })}`;
   if (!member) {
     const kind = document.createElement('span');
     kind.className = 'kind';
@@ -5660,6 +5771,7 @@ function renderOutline() {
     count.className = 'count';
     count.textContent = String(group.rows.length);
     head.append(chevron, label, count);
+    head.title = `${group.label} · ${group.rows.length}`;
     head.addEventListener('click', () => {
       if (collapsed) outlineState.collapsed.delete(group.id);
       else outlineState.collapsed.add(group.id);

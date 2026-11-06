@@ -4,7 +4,7 @@
  */
 
 import { t, getLanguage } from './i18n.js';
-import { checkLine, splitStatements, commandParamLabels } from './line-check.js';
+import { checkLine, splitStatements, commandParamLabels, arityText } from './line-check.js';
 
 // Steuerwörter von GameBasiX – dieselbe Liste wie in parseStatement()
 // (src/parser.cpp) und im CheatSheet. Befehle wie MOD oder SHL sind hier
@@ -13,7 +13,7 @@ const CONTROL = new Set([
   'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF', 'FOR', 'TO', 'STEP', 'NEXT',
   'WHILE', 'WEND', 'ENDWHILE', 'REPEAT', 'UNTIL', 'FOREACH', 'IN', 'SELECT', 'CASE',
   'DEFAULT', 'ENDSELECT', 'BREAK', 'CONTINUE', 'GOTO', 'GOSUB', 'RETURN',
-  'EXIT', 'FUNCTION', 'ENDFUNCTION', 'SUB', 'ENDSUB', 'TYPE', 'ENDTYPE',
+  'EXIT', 'FUNCTION', 'ENDFUNCTION', 'TASK', 'ENDTASK', 'AWAIT', 'SUB', 'ENDSUB', 'TYPE', 'ENDTYPE',
   'METHOD', 'ENDMETHOD', 'INTERFACE', 'ENDINTERFACE', 'EXTENDS', 'IMPLEMENTS',
   'OPTION', 'STRICT',
   'GLOBAL', 'LOCAL', 'STATIC', 'CONSTANT', 'CONST', 'ENUM', 'ENDENUM',
@@ -43,6 +43,16 @@ let debugValueFor = null;
 // ({ name, min, max, file, line }). Sie werden wie eingebaute Befehle gefaerbt,
 // vorgeschlagen und im Hover erklaert.
 let inlineCommands = [];
+
+/**
+ * Eintrag zu einem Namen, den das Projekt per GBX_INLINE_FN(...) anmeldet.
+ * Die Definition steht dann im Header oder in der CPP-Datei.
+ */
+export function inlineCommandFor(name) {
+  const wanted = String(name || '').trim().toUpperCase();
+  if (!wanted) return null;
+  return inlineCommands.find((entry) => entry.name === wanted) || null;
+}
 
 export function setDebugHover(hook) {
   debugValueFor = typeof hook === 'function' ? hook : null;
@@ -335,6 +345,7 @@ export function editorThemeData(spec, mode = 'dark') {
       { token: 'comment', foreground: bare(tokens.comment), fontStyle: 'italic' },
       { token: 'keyword.control', foreground: bare(tokens.keyword), fontStyle: 'bold' },
       { token: 'keyword.command', foreground: bare(tokens.command) },
+      { token: 'constant', foreground: bare(tokens.constant) },
       { token: 'keyword.directive', foreground: bare(tokens.directive), fontStyle: 'bold' },
       { token: 'preprocessor', foreground: bare(tokens.directive) },
       { token: 'type.identifier', foreground: bare(tokens.type) },
@@ -386,6 +397,7 @@ export function applyEditorTheme(monaco, spec, mode = 'dark') {
 
 // Welcher Befehl welchen Block öffnet – und womit er geschlossen wird.
 const OPEN_BLOCKS = {
+  TASK: 'ENDTASK',
   FUNCTION: 'ENDFUNCTION',
   SUB: 'ENDSUB',
   METHOD: 'ENDMETHOD',
@@ -401,10 +413,30 @@ const OPEN_BLOCKS = {
 };
 const CLOSERS = new Set(Object.values(OPEN_BLOCKS));
 // Blöcke, bei denen ein Abschluss automatisch ergänzt werden darf.
-const AUTO_CLOSE_BLOCKS = new Set(['FUNCTION', 'SUB', 'METHOD', 'IF', 'FOR', 'FOREACH', 'WHILE', 'REPEAT', 'SELECT', 'TYPE', 'INTERFACE', 'ENUM']);
+const AUTO_CLOSE_BLOCKS = new Set(['TASK', 'FUNCTION', 'SUB', 'METHOD', 'IF', 'FOR', 'FOREACH', 'WHILE', 'REPEAT', 'SELECT', 'TYPE', 'INTERFACE', 'ENUM']);
 
 const norm = (s) => String(s || '').toUpperCase();
+// Eigene Namen (Variablen, FUNCTIONs, TYPEs) vergleicht die Sprache exakt:
+// Gross- und Kleinschreibung zaehlt. `norm` bleibt fuer Schluesselwoerter und
+// Befehle, die weiterhin ohne Rucksicht auf die Schreibweise gelten.
+const nameKey = (s) => String(s || '').trim();
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Eingebaute Namen, die gleichzeitig Funktion und Konstante sind.
+ * `KEY_DOWN` ist beides: `KEY_DOWN(scancode)` und die Taste `KEY_DOWN`.
+ * Der Highlighter entscheidet anhand der folgenden Klammer.
+ */
+export function ambiguousBuiltinCalls(commands) {
+  const functions = new Set();
+  const constants = new Set();
+  for (const command of commands || []) {
+    const name = norm(command?.name);
+    if (command?.kind === 'function') functions.add(name);
+    else if (command?.kind === 'constant') constants.add(name);
+  }
+  return [...constants].filter((name) => functions.has(name)).sort();
+}
 
 // Scopes, die eine Deklaration beschreiben (und damit eine Zuweisung gewinnen).
 const DECL_SCOPES = new Set(['GLOBAL', 'LOCAL', 'STATIC', 'PARAM', 'DIM', 'FOREACH', 'READ', 'ALIAS']);
@@ -416,6 +448,7 @@ export function analyzeSource(text) {
   // (stripCommentsAndStrings() ersetzt ihn durch Leerzeichen).
   const rawLines = src.split(/\r?\n/);
   const functions = new Map();
+  const tasks = new Map();
   const types = new Map();
   const variables = new Map();
   const constants = new Map();
@@ -427,14 +460,15 @@ export function analyzeSource(text) {
   let currentMethod = null;
   let currentEnum = null;
   let currentInterface = null;
+  let currentTask = null;
   // Letzter Wert des offenen ENUM: ohne "=" zaehlt der naechste eins weiter.
   let enumLastValue = '';
 
   const addVar = (name, type = '', scope = '', line = 0, extra = {}) => {
     const clean = String(name || '').trim();
     if (!clean || /^[0-9]/.test(clean)) return;
-    const key = norm(clean);
-    if (CONTROL.has(key) || TYPE_NAMES.has(key)) return;
+    const key = nameKey(clean);
+    if (CONTROL.has(norm(clean)) || TYPE_NAMES.has(norm(clean))) return;
     const previous = variables.get(key);
     // Eine spätere Zuweisung darf eine erkannte Deklaration nicht überschreiben –
     // sonst verlieren GLOBALS ihren Scope und ihre Deklarationszeile.
@@ -455,6 +489,40 @@ export function analyzeSource(text) {
     const lineNo = index + 1;
     if (!line) return;
 
+    // TASK … ENDTASK: eigener Block. Variablen im Rumpf werden für den Hover
+    // erfasst; Funktionen und Globals der Datei beginnen erst nach ENDTASK.
+    if (currentTask) {
+      if (/^ENDTASK\b/i.test(line)) {
+        const task = tasks.get(currentTask);
+        if (task) task.endLine = lineNo;
+        currentTask = null;
+        return;
+      }
+      // Variablen im Taskrumpf gehoeren nicht zu den Globals, sollen aber im
+      // Hover erscheinen. `job = SPAWN(...)` wird so als lokale Variable erkannt.
+      let local = /^(?:FOR|FOREACH)\s+([A-Za-z_]\w*[$%#]?)/i.exec(line);
+      if (!local) local = /^(?:DIM|LOCAL|STATIC|GLOBAL)\s+([A-Za-z_]\w*[$%#]?)/i.exec(line);
+      if (!local) {
+        local = /^([A-Za-z_]\w*[$%#]?)\s*(?:\[[^\]]*\]\s*)*(?:\+=|-=|\*=|\/=|=)\s*[^=]/i.exec(line);
+      }
+      if (local) addVar(local[1], suffixType(local[1]), 'TASK', lineNo);
+      return;
+    }
+
+    const taskHead = /^TASK\s+([A-Za-z_]\w*[$%#]?)\s*(?::\s*(.*))?$/i.exec(line);
+    if (taskHead) {
+      currentTask = nameKey(taskHead[1]);
+      tasks.set(currentTask, {
+        name: taskHead[1],
+        kind: 'TASK',
+        params: [],
+        returnType: '',
+        line: lineNo,
+        endLine: lineNo
+      });
+      return;
+    }
+
     // ENUM … ENDENUM: jeder Wert heisst ENUM.WERT - wie eine Konstante,
     // aber mit dem ENUM davor, damit zwei ENUMs denselben Namen haben dürfen.
     if (currentEnum) {
@@ -468,11 +536,11 @@ export function analyzeSource(text) {
         // Wie im Parser: ohne "=" zaehlt der Wert eins weiter, der erste ist 0.
         const value = explicit || (enumLastValue ? `${enumLastValue}+1` : '0');
         enumLastValue = value;
-        const owner = enums.get(norm(currentEnum));
+        const owner = enums.get(nameKey(currentEnum));
         if (owner) {
           owner.values.push({ name: member[1], type: 'INTEGER', line: lineNo, value });
         }
-        constants.set(norm(`${currentEnum}.${member[1]}`), {
+        constants.set(nameKey(`${currentEnum}.${member[1]}`), {
           name: `${currentEnum}.${member[1]}`,
           value,
           type: 'INTEGER',
@@ -575,7 +643,7 @@ export function analyzeSource(text) {
     if (m) {
       currentEnum = m[1];
       enumLastValue = '';
-      enums.set(norm(m[1]), { name: m[1], values: [], line: lineNo });
+      enums.set(nameKey(m[1]), { name: m[1], values: [], line: lineNo });
       return;
     }
     if (/^ENUM\b/i.test(line)) {
@@ -587,7 +655,7 @@ export function analyzeSource(text) {
 
     m = /^INTERFACE\s+([A-Za-z_]\w*)/i.exec(line);
     if (m) {
-      currentInterface = norm(m[1]);
+      currentInterface = nameKey(m[1]);
       interfaces.set(currentInterface, { name: m[1], methods: [], line: lineNo, endLine: lineNo });
       return;
     }
@@ -598,7 +666,7 @@ export function analyzeSource(text) {
     if (m) {
       const base = /(?:^|\s)EXTENDS\s+([A-Za-z_]\w*)/i.exec(m[2] || '');
       const impl = /(?:^|\s)IMPLEMENTS\s+(.+)$/i.exec(m[2] || '');
-      currentType = norm(m[1]);
+      currentType = nameKey(m[1]);
       types.set(currentType, {
         name: m[1],
         base: base ? base[1] : '',
@@ -615,7 +683,7 @@ export function analyzeSource(text) {
       const kind = norm(m[1]);
       const name = m[2];
       const params = parseParams(m[3] || '');
-      functions.set(norm(name), {
+      functions.set(nameKey(name), {
         name,
         kind,
         params,
@@ -649,7 +717,7 @@ export function analyzeSource(text) {
       const raw = rawLines[index] || '';
       const eq = raw.indexOf('=');
       const value = eq >= 0 ? stripLineComment(raw.slice(eq + 1)).trim() : m[3].trim();
-      constants.set(norm(m[1]), {
+      constants.set(nameKey(m[1]), {
         name: m[1],
         type: m[2] ? m[2].toUpperCase() : suffixType(m[1]),
         value,
@@ -708,6 +776,7 @@ export function analyzeSource(text) {
 
   const result = {
     functions: [...functions.values()],
+    tasks: [...tasks.values()],
     types: [...types.values()],
     interfaces: [...interfaces.values()],
     variables: [...variables.values()],
@@ -736,21 +805,21 @@ function foreachElementType(symbols, variable) {
   if (!source) return '';
   const variables = symbols?.variables || [];
   const types = symbols?.types || [];
-  const findType = (name) => types.find((item) => norm(item.name) === norm(memberBaseName(name)));
+  const findType = (name) => types.find((item) => nameKey(item.name) === nameKey(memberBaseName(name)));
   const path = String(source)
     .replace(/\[[^\]]*\]/g, '')
     .split('.')
     .map((part) => part.trim())
     .filter(Boolean);
   if (!path.length) return '';
-  const root = variables.find((item) => norm(item.name) === norm(memberBaseName(path[0])));
+  const root = variables.find((item) => nameKey(item.name) === nameKey(memberBaseName(path[0])));
   if (!root) return '';
   if (path.length === 1) return root.array ? root.type : '';
   let type = findType(root.type);
   let member = null;
   for (const part of path.slice(1)) {
     member = (type?.members || []).find(
-      (item) => norm(memberBaseName(item.name)) === norm(memberBaseName(part))
+      (item) => nameKey(memberBaseName(item.name)) === nameKey(memberBaseName(part))
     );
     if (!member) return '';
     type = findType(member.type);
@@ -788,14 +857,26 @@ function stripCommentsAndStrings(text) {
 }
 
 /**
+ * Steht der Name an dieser Stelle als Typ? Nach AS, EXTENDS, IMPLEMENTS und
+ * NEW sowie in den Kopfzeilen TYPE/INTERFACE/ENUM - auch in Namenslisten wie
+ * `IMPLEMENTS DRAWABLE, NAMED`. `GLOBAL bag AS BAG` enthaelt damit zwei
+ * Namen: `bag` als Wert und `BAG` als Typ.
+ */
+export function isTypePosition(code, index) {
+  if (index < 0) return false;
+  const before = String(code || '').slice(0, index);
+  return /\b(?:AS|EXTENDS|IMPLEMENTS|NEW|TYPE|INTERFACE|ENUM)\b[\s,A-Za-z_0-9$%#]*$/i.test(before);
+}
+
+/**
  * Sucht Vorkommen eigener TYPE-Namen (außerhalb von Kommentaren und
  * Zeichenketten) und liefert 1-basierte Bereiche für den Editor.
  */
 export function findUserTypeRanges(text, names) {
   const wanted = new Set();
   for (const name of names || []) {
-    const clean = String(name || '').trim().toUpperCase();
-    if (/^[A-Z_][A-Z0-9_]*$/.test(clean)) wanted.add(clean);
+    const clean = String(name || '').trim();
+    if (/^[A-Za-z_]\w*$/.test(clean)) wanted.add(clean);
   }
   if (!wanted.size) return [];
   const codeLines = stripCommentsAndStrings(String(text || '')).split(/\r?\n/);
@@ -805,7 +886,10 @@ export function findUserTypeRanges(text, names) {
     const word = /[A-Za-z_]\w*/g;
     let match;
     while ((match = word.exec(line))) {
-      if (!wanted.has(match[0].toUpperCase())) continue;
+      if (!wanted.has(match[0])) continue;
+      // Nur echte Typstellen faerben: eine GLOBAL-Variable gleichen Namens
+      // ist kein Typ; Gross- und Kleinschreibung unterscheiden beide.
+      if (!isTypePosition(line, match.index)) continue;
       ranges.push({ line: index + 1, startColumn: match.index + 1, endColumn: match.index + match[0].length + 1 });
     }
   });
@@ -821,7 +905,7 @@ export function findUserFunctionRanges(text, names) {
   const wanted = new Set();
   for (const name of names || []) {
     const clean = String(name || '').trim();
-    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean.toUpperCase());
+    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean);
   }
   if (!wanted.size) return [];
   const ranges = [];
@@ -830,8 +914,10 @@ export function findUserFunctionRanges(text, names) {
     const word = /[A-Za-z_]\w*[%$#]?/g;
     let match;
     while ((match = word.exec(line))) {
-      if (!wanted.has(match[0].toUpperCase())) continue;
+      if (!wanted.has(match[0])) continue;
       if (match.index > 0 && line[match.index - 1] === '.') continue;
+      // Ein Typname an einer Typstelle ist kein Funktionsname.
+      if (isTypePosition(line, match.index)) continue;
       ranges.push({ line: index + 1, startColumn: match.index + 1, endColumn: match.index + match[0].length + 1 });
     }
   });
@@ -847,7 +933,7 @@ export function findUserMethodRanges(text, names) {
   const wanted = new Set();
   for (const name of names || []) {
     const clean = String(name || '').trim();
-    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean.toUpperCase());
+    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean);
   }
   if (!wanted.size) return [];
   const ranges = [];
@@ -859,7 +945,7 @@ export function findUserMethodRanges(text, names) {
     let match;
     while ((match = call.exec(line))) {
       const method = match[1];
-      if (!wanted.has(method.toUpperCase())) continue;
+      if (!wanted.has(method)) continue;
       // Spalte des Methodennamens: hinter dem Namen stehen nur Leerzeichen
       // und die Klammer.
       const start = match.index + match[0].length - 1 - match[2].length - method.length;
@@ -877,7 +963,7 @@ export function findConstantRanges(text, names) {
   const wanted = new Set();
   for (const name of names || []) {
     const clean = String(name || '').trim();
-    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean.toUpperCase());
+    if (/^[A-Za-z_]\w*[%$#]?$/.test(clean)) wanted.add(clean);
   }
   if (!wanted.size) return [];
   const ranges = [];
@@ -886,8 +972,10 @@ export function findConstantRanges(text, names) {
     const word = /[A-Za-z_]\w*[%$#]?/g;
     let match;
     while ((match = word.exec(line))) {
-      if (!wanted.has(match[0].toUpperCase())) continue;
+      if (!wanted.has(match[0])) continue;
       if (match.index > 0 && line[match.index - 1] === '.') continue;
+      // Ein Typname an einer Typstelle ist keine Konstante.
+      if (isTypePosition(line, match.index)) continue;
       ranges.push({ line: index + 1, startColumn: match.index + 1, endColumn: match.index + match[0].length + 1 });
     }
   });
@@ -902,12 +990,12 @@ export function findConstantRanges(text, names) {
 export function findEnumRanges(text, enums) {
   const wanted = new Map();
   for (const entry of enums || []) {
-    const name = String(entry?.name || '').trim().toUpperCase();
-    if (!/^[A-Z_]\w*$/.test(name)) continue;
+    const name = String(entry?.name || '').trim();
+    if (!/^[A-Za-z_]\w*$/.test(name)) continue;
     const values = new Set(
       (entry.values || [])
-        .map((item) => String(item?.name || '').trim().toUpperCase())
-        .filter((item) => /^[A-Z_]\w*[%$#]?$/.test(item))
+        .map((item) => String(item?.name || '').trim())
+        .filter((item) => /^[A-Za-z_]\w*[%$#]?$/.test(item))
     );
     wanted.set(name, values);
   }
@@ -927,11 +1015,11 @@ export function findEnumRanges(text, enums) {
     if (!line) return;
     // Der ENUM-Name ist nur an der Deklaration und vor einem Punkt ein ENUM.
     // Ein blosses PHASE gibt es in der Sprache nicht - und die Schreibweise
-    // allein reicht nicht, weil `phase%` genauso gross geschrieben wird.
+    // allein reicht nicht, weil Eigennamen exakt verglichen werden.
     const enumHead = /^\s*ENUM\s+([A-Za-z_]\w*)/i.exec(line);
     const declare = declared.get(index + 1);
     if (declare) {
-      const head = new RegExp(`^\\s*(${escapeRe(declare)})\\b`, 'i').exec(line);
+      const head = new RegExp(`^\\s*(${escapeRe(declare)})\\b`).exec(line);
       if (head) {
         const start = head.index + head[0].length - head[1].length;
         ranges.push({
@@ -945,10 +1033,10 @@ export function findEnumRanges(text, enums) {
     const word = /[A-Za-z_]\w*/g;
     let match;
     while ((match = word.exec(line))) {
-      const key = match[0].toUpperCase();
+      const key = match[0];
       const values = wanted.get(key);
       if (!values) continue;
-      const isDeclaration = Boolean(enumHead) && enumHead[1].toUpperCase() === key;
+      const isDeclaration = Boolean(enumHead) && enumHead[1] === key;
       const rest = line.slice(match.index + match[0].length);
       // Nur `ENUM PHASE` oder `PHASE.WERT` - kein Bezeichner, der zufaellig so heisst.
       if (!isDeclaration && !/^\s*\./.test(rest)) continue;
@@ -959,7 +1047,7 @@ export function findEnumRanges(text, enums) {
         startColumn: match.index + 1,
         endColumn: match.index + match[0].length + 1
       });
-      if (!member || !values.has(member[1].toUpperCase())) continue;
+      if (!member || !values.has(member[1])) continue;
       const start = match.index + match[0].length + member[0].length - member[1].length;
       ranges.push({
         kind: 'constant',
@@ -972,12 +1060,12 @@ export function findEnumRanges(text, enums) {
   return ranges;
 }
 
-const RGB_LITERAL = /\bRGB\s*\(\s*(0x[0-9a-f]+|-?\d+)\s*,\s*(0x[0-9a-f]+|-?\d+)\s*,\s*(0x[0-9a-f]+|-?\d+)\s*\)/gi;
+const RGB_LITERAL = /\bRGB\s*\(\s*(0x[0-9a-f]+|-?\d+)\s*,\s*(0x[0-9a-f]+|-?\d+)\s*,\s*(0x[0-9a-f]+|-?\d+)\s*(?:,\s*(0x[0-9a-f]+|-?\d+)\s*)?\)/gi;
 
 /**
- * Sucht `RGB(r, g, b)` mit Zahlenwerten (auch 0x…) außerhalb von Kommentaren
- * und Zeichenketten. Liefert 1-basierte Spalten und die geklemmten Kanäle;
- * nur so lässt sich am Aufruf ein Farbfeld anzeigen.
+ * Sucht `RGB(r, g, b[, a])` mit Zahlenwerten (auch 0x…) außerhalb von
+ * Kommentaren und Zeichenketten. Liefert 1-basierte Spalten und die geklemmten
+ * Kanäle; nur so lässt sich am Aufruf ein Farbfeld anzeigen.
  */
 export function findRgbColors(text) {
   const hits = [];
@@ -985,7 +1073,7 @@ export function findRgbColors(text) {
     RGB_LITERAL.lastIndex = 0;
     let match;
     while ((match = RGB_LITERAL.exec(line))) {
-      const channels = [match[1], match[2], match[3]].map((value) => {
+      const channels = [match[1], match[2], match[3], match[4] ?? '255'].map((value) => {
         const number = Number(value);
         return Number.isFinite(number) ? Math.max(0, Math.min(255, Math.round(number))) : 0;
       });
@@ -995,7 +1083,8 @@ export function findRgbColors(text) {
         endColumn: match.index + match[0].length + 1,
         red: channels[0],
         green: channels[1],
-        blue: channels[2]
+        blue: channels[2],
+        alpha: channels[3]
       });
     }
   });
@@ -1031,7 +1120,10 @@ function parseParams(text) {
         name: m[1] + (m[2] || ''),
         type: m[5] || suffixType(m[1] + (m[2] || '')),
         array: !!m[3],
-        byref: /\bBYREF\b/i.test(raw)
+        byref: /\bBYREF\b/i.test(raw),
+        // Ein Parameter mit Default ist optional; das entspricht der
+        // Arity-Prüfung in --check (punct$ = "!").
+        optional: /=/.test(clean)
       };
     })
     .filter(Boolean);
@@ -1148,7 +1240,7 @@ function evalNumberExpression(text) {
 export function resolveMemberChain(symbols, parts) {
   const variables = symbols?.variables || [];
   const types = symbols?.types || [];
-  const findType = (name) => types.find((item) => norm(item.name) === norm(memberBaseName(name)));
+  const findType = (name) => types.find((item) => nameKey(item.name) === nameKey(memberBaseName(name)));
   if (!parts?.length) return null;
   const variable = variables.find((item) => norm(item.name) === norm(memberBaseName(parts[0])));
   if (!variable) return null;
@@ -1161,7 +1253,7 @@ export function resolveMemberChain(symbols, parts) {
   const path = [variable.name];
   for (const part of parts.slice(1)) {
     // `items[3]` und `items[]` treffen beide das Array-Member `items[]`.
-    const member = (type.members || []).find((item) => norm(memberBaseName(item.name)) === norm(memberBaseName(part)));
+    const member = (type.members || []).find((item) => nameKey(memberBaseName(item.name)) === nameKey(memberBaseName(part)));
     if (!member) return null;
     path.push(memberBaseName(member.name));
     type = findType(member.type);
@@ -1193,12 +1285,12 @@ export function enclosingTypeAt(symbols, lineNumber) {
  */
 export function resolveSelfChain(symbols, type, parts) {
   const types = symbols?.types || [];
-  const findType = (name) => types.find((item) => norm(item.name) === norm(memberBaseName(name)));
+  const findType = (name) => types.find((item) => nameKey(item.name) === nameKey(memberBaseName(name)));
   if (!type) return null;
   let current = type;
   const path = ['self'];
   for (const part of parts) {
-    const member = (current.members || []).find((item) => norm(memberBaseName(item.name)) === norm(memberBaseName(part)));
+    const member = (current.members || []).find((item) => nameKey(memberBaseName(item.name)) === nameKey(memberBaseName(part)));
     if (!member) return null;
     path.push(memberBaseName(member.name));
     current = findType(member.type);
@@ -1489,12 +1581,28 @@ export function registerGbx(monaco, dataset, options = {}) {
   // damit `self` denselben Stand sieht wie Outline und Symbolsuche.
   const getAnalysis = options.getAnalysis || ((model) => analyzeSource(model.getValue()));
   const commands = dataset.commands || [];
-  const byName = new Map(commands.map((c) => [norm(c.name), c]));
-  // Alle eingebauten Namen bekommen die Befehl-Farbe – auch Funktionen wie
-  // KEY_PRESSED oder ABS und die KEY_*-Konstanten. Vorher waren nur kind 'command'
-  // gefärbt, dadurch blieben Funktionen grau.
+  // KEY_DOWN ist Funktion und Taste. Für Aufrufe gilt die Funktion; nackt
+  // muss der Hover die Konstante zeigen. Deshalb getrennte Listen.
+  const byName = new Map();
+  const constantsByName = new Map();
+  for (const command of commands) {
+    const key = norm(command.name);
+    if (command.kind === 'constant') constantsByName.set(key, command);
+    if (!byName.has(key) || command.kind === 'function') byName.set(key, command);
+  }
+  const ambiguousCalls = ambiguousBuiltinCalls(commands);
+  const ambiguousCallPattern = ambiguousCalls.length
+    ? new RegExp(`\\b(?:${ambiguousCalls.map(escapeRe).join('|')})(?=\\s*\\()`, 'i')
+    : null;
+  // Funktionen und Befehle bekommen die Befehl-Farbe. Eingebaute Konstanten
+  // haben eine eigene Farbe; `KEY_DOWN` wird als Aufruf vorher gesondert
+  // erkannt, sonst wäre die Taste ein Funktionsname.
   const commandNames = commands
-    .filter((c) => ['command', 'optional', 'function', 'constant'].includes(c.kind))
+    .filter((c) => ['command', 'optional', 'function'].includes(c.kind))
+    .map((c) => c.name)
+    .sort((a, b) => b.length - a.length);
+  const constantNames = commands
+    .filter((c) => c.kind === 'constant')
     .map((c) => c.name)
     .sort((a, b) => b.length - a.length);
   const keywordNames = commands.filter((c) => c.kind === 'keyword').map((c) => c.name);
@@ -1519,6 +1627,8 @@ export function registerGbx(monaco, dataset, options = {}) {
       displayName: entry.name,
       kind: 'inline',
       category: 'INLINE',
+      minArgs: entry.min,
+      maxArgs: entry.max,
       signature: inlineSignature(entry),
       syntax: [inlineSignature(entry)],
       description: {
@@ -1558,7 +1668,7 @@ export function registerGbx(monaco, dataset, options = {}) {
     }
   });
 
-  // Farbfelder an RGB(r, g, b): ein Klick auf das Kästchen öffnet Monacos
+  // Farbfelder an RGB(r, g, b[, a]): ein Klick auf das Kästchen öffnet Monacos
   // Farbwähler, der den Aufruf mit den gewählten Werten neu schreibt.
   if (!colorProviderRegistered && typeof languages.registerColorProvider === 'function') {
     colorProviderRegistered = true;
@@ -1567,12 +1677,15 @@ export function registerGbx(monaco, dataset, options = {}) {
       provideDocumentColors(model) {
         return findRgbColors(model.getValue()).map((hit) => ({
           range: new monaco.Range(hit.line, hit.startColumn, hit.line, hit.endColumn),
-          color: { red: hit.red / 255, green: hit.green / 255, blue: hit.blue / 255, alpha: 1 }
+          color: { red: hit.red / 255, green: hit.green / 255, blue: hit.blue / 255, alpha: hit.alpha / 255 }
         }));
       },
       provideColorPresentations(model, colorInfo) {
         const { red, green, blue } = colorInfo.color;
-        const text = `RGB(${to255(red)}, ${to255(green)}, ${to255(blue)})`;
+        const alpha = to255(colorInfo.color.alpha);
+        const text = alpha < 255
+          ? `RGB(${to255(red)}, ${to255(green)}, ${to255(blue)}, ${alpha})`
+          : `RGB(${to255(red)}, ${to255(green)}, ${to255(blue)})`;
         return [{ label: text, textEdit: { range: colorInfo.range, text } }];
       }
     });
@@ -1587,6 +1700,7 @@ export function registerGbx(monaco, dataset, options = {}) {
       defaultToken: '',
       keywords: [...new Set([...CONTROL, ...keywordNames])],
       types: [...TYPE_NAMES],
+      constants: [...new Set(constantNames)],
       commands: [...new Set([...commandNames, ...inlineCommands.map((entry) => entry.name)])].sort(
         (a, b) => b.length - a.length
       ),
@@ -1600,6 +1714,12 @@ export function registerGbx(monaco, dataset, options = {}) {
           // und der Doppelpunkt bekommen eine eigene Farbe (FUNCTION name: …).
           // Der Doppelpunkt ist Pflicht; Zeilen ohne ihn werden trotzdem als
           // Name gefaerbt, den Fehler meldet der Parser.
+          // Kopfzeile von INTERFACE/TYPE: der Name dahinter ist ein eigener
+          // Typname und bekommt deshalb dieselbe Farbe wie FUNCTION-Namen.
+          [
+            /^(\s*)(INTERFACE|TYPE)(\s+)([A-Za-z_]\w*)/,
+            ['white', 'keyword.control', 'white', 'type.identifier']
+          ],
           [
             /^(\s*)(FUNCTION|SUB|METHOD)(\s+)([A-Za-z_]\w*[$%#]?)(\s*:)/,
             ['white', 'keyword.control', 'white', 'function.name', 'function.name']
@@ -1615,12 +1735,16 @@ export function registerGbx(monaco, dataset, options = {}) {
           [/\b\d+(\.\d+)?([eE][+-]?\d+)?\b/, 'number'],
           [/"/, { token: 'string.quote', next: '@string' }],
           [/[A-Za-z_]\w*(?=\s*:)/, 'label'],
+          // KEY_DOWN ist beides. Nur der Aufruf mit Klammer bekommt die
+          // Funktionsfarbe; die nackte Taste fällt auf 'constant' zurück.
+          ...(ambiguousCallPattern ? [[ambiguousCallPattern, 'keyword.command']] : []),
           [
             /[A-Za-z_]\w*[$%#]?/,
             {
               cases: {
                 '@keywords': 'keyword.control',
                 '@types': 'type.identifier',
+                '@constants': 'constant',
                 '@commands': 'keyword.command',
                 '@operators': 'operator.word',
                 '@default': 'identifier'
@@ -1677,13 +1801,14 @@ export function registerGbx(monaco, dataset, options = {}) {
   function methodCompletion(method, typeName, range) {
     const snippetRule = languages.CompletionItemInsertTextRule?.InsertAsSnippet;
     const params = method.params || [];
+    const arity = arityText(method);
     const snippet = params.length
       ? `${method.name}(${params.map((param, index) => '${' + (index + 1) + ':' + param.name + '}').join(', ')})`
       : `${method.name}()`;
     return {
       label: method.name,
       kind: languages.CompletionItemKind.Method,
-      detail: `${method.kind}${params.length ? ' · ' + params.map((param) => param.name).join(', ') : ''}`,
+      detail: [method.kind, params.map((param) => param.name).join(', '), arity].filter(Boolean).join(' · '),
       documentation: t('{kind} von {type}', { kind: method.kind, type: typeName }),
       insertText: params.length && !snippetRule ? `${method.name}()` : snippet,
       insertTextRules: snippetRule,
@@ -1705,6 +1830,15 @@ export function registerGbx(monaco, dataset, options = {}) {
     const line = model.getLineContent(position.lineNumber);
     const before = line.slice(0, position.column - 1);
     return /([A-Za-z_]\w*[$%#]?)$/.exec(before)?.[1] || '';
+  }
+
+  /** Eingebaute Namen können je nach folgender Klammer Funktion oder
+      Konstante sein – `KEY_DOWN(...)` gegen `KEY_DOWN` als Taste. */
+  function builtinForUse(model, position, hit, word) {
+    const line = model.getLineContent(position.lineNumber);
+    const after = line.slice(hit.range.endColumn - 1);
+    if (/^\s*\(/.test(after)) return byName.get(norm(word));
+    return constantsByName.get(norm(word)) || byName.get(norm(word));
   }
 
   /** Das ganze Wort unter dem Cursor – nicht nur der Teil davor. Sonst
@@ -1795,7 +1929,7 @@ export function registerGbx(monaco, dataset, options = {}) {
         // "PHASE." - die Werte genau dieses ENUM. Vor dem Punkt steht der
         // ENUM-Name, nicht ein Objekt; ein TYPE-Feld gleichen Namens bleibt
         // bei der Auflösung darunter.
-        const enumOwner = parts.length === 1 ? (symbols.enums || []).find((e) => norm(e.name) === norm(parts[0])) : null;
+        const enumOwner = parts.length === 1 ? (symbols.enums || []).find((e) => nameKey(e.name) === nameKey(parts[0])) : null;
         if (enumOwner) {
           for (const value of enumOwner.values || []) {
             suggestions.push({
@@ -1877,12 +2011,13 @@ export function registerGbx(monaco, dataset, options = {}) {
       const fileHint = (file) =>
         file && !currentFile.endsWith('/' + String(file).replace(/\\/g, '/')) ? ` · ${file}` : '';
       for (const fn of symbols.functions) {
+        const arity = arityText(fn);
         suggestions.push({
           label: fn.name,
           kind: fn.kind === 'SUB' ? languages.CompletionItemKind.Method : languages.CompletionItemKind.Function,
-          detail: `${fn.kind}${
-            fn.params?.length ? ' · ' + fn.params.map((p) => p.name).join(', ') : ''
-          }${fileHint(fn.file)}`,
+          detail: `${[fn.kind, (fn.params || []).map((p) => p.name).join(', '), arity]
+            .filter(Boolean)
+            .join(' · ')}${fileHint(fn.file)}`,
           documentation: `**${fn.kind} ${fn.name}**${
             fn.params?.length
               ? `\n\n${t('Parameter: {params}', { params: fn.params.map((p) => `\`${p.name}\``).join(', ') })}`
@@ -1985,12 +2120,13 @@ export function registerGbx(monaco, dataset, options = {}) {
         const suggestionFor = (command, rank) => {
           // INCLUDE braucht einen Dateinamen; der Vorschlag setzt ihn gleich mit.
           const isInclude = command.name.toUpperCase() === 'INCLUDE';
+          const signature =
+            (getLanguage() === 'en' ? command.signatureEn : command.signature) || t(command.category || '');
+          const arity = arityText(command);
           return {
             label: command.name,
             kind: completionKind(command),
-            detail:
-              (getLanguage() === 'en' ? command.signatureEn : command.signature) ||
-              t(command.category || ''),
+            detail: arity ? `${signature} · ${arity}` : signature,
             documentation: { value: markdown.forCommand(command) },
             insertText: isInclude && snippetRule ? 'INCLUDE "${1:datei.gbx}"' : command.name,
             insertTextRules: isInclude ? snippetRule : undefined,
@@ -2061,8 +2197,8 @@ export function registerGbx(monaco, dataset, options = {}) {
       const owner = /([A-Za-z_]\w*)\s*\.\s*$/.exec(before)?.[1];
       const symbols = getSymbols();
       const enums = symbols.enums || [];
-      const enumOwner = owner ? enums.find((entry) => norm(entry.name) === norm(owner)) : null;
-      const enumValue = (enumOwner?.values || []).find((value) => norm(value.name) === norm(word));
+      const enumOwner = owner ? enums.find((entry) => nameKey(entry.name) === nameKey(owner)) : null;
+      const enumValue = (enumOwner?.values || []).find((value) => nameKey(value.name) === nameKey(word));
       if (enumValue) {
         const where = originText({ ...enumValue, file: enumOwner.file });
         return {
@@ -2079,7 +2215,7 @@ export function registerGbx(monaco, dataset, options = {}) {
           ]
         };
       }
-      const enumHit = enums.find((entry) => norm(entry.name) === norm(word));
+      const enumHit = enums.find((entry) => nameKey(entry.name) === nameKey(word));
       if (enumHit) {
         const values = (enumHit.values || [])
           .map((value) => {
@@ -2116,15 +2252,15 @@ export function registerGbx(monaco, dataset, options = {}) {
             : resolveMemberChain(symbols, parts);
         // Member werden ohne Typsuffix geschrieben (`b.pos.y`, nicht `y#`).
         const member = (parent?.members || []).find(
-          (item) => norm(memberBaseName(item.name)) === norm(memberBaseName(word))
+          (item) => nameKey(memberBaseName(item.name)) === nameKey(memberBaseName(word))
         );
         if (parent && member) {
           // Der Pfad folgt der Schreibweise im Quelltext (`b.pos.y`, nicht `y#`).
           const path = parent.path.concat(word).join('.');
           const typeName = member.type || suffixType(member.name);
           const target =
-            (getAnalysis(model).types || []).find((item) => norm(item.name) === norm(memberBaseName(typeName))) ||
-            symbols.types.find((item) => norm(item.name) === norm(memberBaseName(typeName)));
+            (getAnalysis(model).types || []).find((item) => nameKey(item.name) === nameKey(memberBaseName(typeName))) ||
+            symbols.types.find((item) => nameKey(item.name) === nameKey(memberBaseName(typeName)));
           const lines = [`**${path}** · ${target ? 'TYPE ' : ''}${typeName}`];
           const fields = (target?.members || [])
             .map((field) => `- \`${field.name}\`${field.type ? ': ' + field.type : ''}`)
@@ -2143,7 +2279,7 @@ export function registerGbx(monaco, dataset, options = {}) {
     {
       const symbols = getSymbols();
       const constant = (symbols.constants || []).find(
-        (entry) => !entry.enum && norm(entry.name) === norm(word)
+        (entry) => !entry.enum && nameKey(entry.name) === nameKey(word)
       );
       if (constant) {
         const value = constantValueText(constant.value);
@@ -2157,7 +2293,7 @@ export function registerGbx(monaco, dataset, options = {}) {
         };
       }
     }
-    const command = byName.get(norm(word));
+    const command = builtinForUse(model, position, hit, word);
     if (command) {
       return {
         range: hit.range,
@@ -2174,8 +2310,20 @@ export function registerGbx(monaco, dataset, options = {}) {
         : `**${inlineSignature(inline)}** · INLINE\n\nAngemeldet in \`${where}\`.`;
       return { range: hit.range, contents: [{ value }] };
     }
+    // Der Name eines TASK-Blocks ist weder Funktion noch Variable. Er bekommt
+    // einen eigenen Hover mit Start- und Endzeile.
+    const task = (getAnalysis(model).tasks || []).find((entry) => nameKey(entry.name) === nameKey(word));
+    if (task) {
+      const end = task.endLine || task.line;
+      return {
+        range: hit.range,
+        contents: [
+          { value: `**TASK ${task.name}**\n\n${t('Zeile {line}', { line: task.line })}–${end}` }
+        ]
+      };
+    }
     const symbols = getSymbols();
-    const fn = symbols.functions.find((f) => norm(f.name) === norm(word));
+    const fn = symbols.functions.find((f) => nameKey(f.name) === nameKey(word));
     if (fn) {
       const params = fn.params?.length ? fn.params.map((p) => `\`${p.name}\``).join(', ') : t('keine');
       return {
@@ -2186,7 +2334,7 @@ export function registerGbx(monaco, dataset, options = {}) {
       };
     }
     for (const type of symbols.types) {
-      const method = (type.methods || []).find((entry) => norm(entry.name) === norm(word));
+      const method = (type.methods || []).find((entry) => nameKey(entry.name) === nameKey(word));
       if (!method) continue;
       const params = method.params?.length ? method.params.map((p) => `\`${p.name}\``).join(', ') : t('keine');
       return {
@@ -2200,7 +2348,7 @@ export function registerGbx(monaco, dataset, options = {}) {
         ]
       };
     }
-    const variable = symbols.variables.find((v) => norm(v.name) === norm(word));
+    const variable = symbols.variables.find((v) => nameKey(v.name) === nameKey(word));
     if (variable) {
       return {
         range: hit.range,
@@ -2213,7 +2361,29 @@ export function registerGbx(monaco, dataset, options = {}) {
         ]
       };
     }
-    const type = symbols.types.find((item) => norm(item.name) === norm(word));
+    // INTERFACE: eigene Schnittstelle mit ihren Kopfzeilen zeigen, damit
+    // Name, Methode und IMPLEMENTS-Liste nicht ohne Tooltip dastehen.
+    const iface = (symbols.interfaces || []).find((item) => nameKey(item.name) === nameKey(word));
+    if (iface) {
+      const methods = (iface.methods || [])
+        .map((method) => `- ${method.kind} ${method.name}(${(method.params || []).map((param) => param.name).join(', ')})`)
+        .join('\n');
+      const implementedBy = symbols.types
+        .filter((entry) => (entry.interfaces || []).some((name) => nameKey(name) === nameKey(iface.name)))
+        .map((entry) => '- TYPE ' + entry.name)
+        .join('\n');
+      return {
+        range: hit.range,
+        contents: [
+          {
+            value: `**INTERFACE ${iface.name}**${originText(iface)}\n\n${methods || t('Keine Member')}${
+              implementedBy ? `\n\n**${t('Umgesetzt von')}**\n\n${implementedBy}` : ''
+            }`
+          }
+        ]
+      };
+    }
+    const type = symbols.types.find((item) => nameKey(item.name) === nameKey(word));
     if (type) {
       return {
         range: hit.range,
@@ -2250,8 +2420,48 @@ export function registerGbx(monaco, dataset, options = {}) {
       const head = before.slice(0, open);
       const nameMatch = /([A-Za-z_]\w*[$%#]?)\s*$/.exec(head);
       if (!nameMatch) return null;
-      const command = byName.get(norm(nameMatch[1]));
-      if (!command) return null;
+      const name = nameMatch[1];
+      const command = byName.get(norm(name));
+      const symbols = getSymbols();
+      let callable =
+        command && ['command', 'optional', 'function', 'inline'].includes(String(command.kind).toLowerCase())
+          ? command
+          : null;
+      let params = callable?.params || [];
+      if (!callable) {
+        const fn = (symbols.functions || []).find((entry) => nameKey(entry.name) === nameKey(name));
+        if (fn) {
+          callable = fn;
+          params = fn.params || [];
+        }
+      }
+      if (!callable) {
+        const receiver = head.slice(0, nameMatch.index);
+        const chain = /((?:[A-Za-z_]\w*[$%#]?\s*(?:\[[^\]]*\]\s*)?\.\s*)+)$/.exec(receiver);
+        const own = ownTypeAt(model, position);
+        let method = null;
+        if (chain) {
+          const parts = chain[1]
+            .split('.')
+            .map((part) => part.trim())
+            .filter(Boolean);
+          const resolved =
+            parts.length && norm(parts[0]) === 'SELF'
+              ? own?.type
+                ? resolveSelfChain(symbols, own.type, parts.slice(1))
+                : null
+              : resolveMemberChain(symbols, parts);
+          method = (resolved?.type?.methods || []).find((entry) => nameKey(entry.name) === nameKey(name));
+        }
+        if (!method) {
+          method = (own?.type?.methods || []).find((entry) => nameKey(entry.name) === nameKey(name));
+        }
+        if (method) {
+          callable = method;
+          params = method.params || [];
+        }
+      }
+      if (!callable) return null;
       const afterOpen = before.slice(open + 1);
       let depth = 0;
       let activeParameter = 0;
@@ -2263,25 +2473,31 @@ export function registerGbx(monaco, dataset, options = {}) {
       // Typlabels aus den Prototypen durch die Namen aus der Signatur ersetzen
       // (`MOUSE_STATE` → mx##, my##, mba##, mbb## statt vier Mal `Integer (BYREF)`).
       const english = getLanguage() === 'en';
-      const labels = commandParamLabels(command).map((label, index) => {
-        const param = command.params?.[index];
-        return english ? param?.labelEn || label : label;
+      const builtin = callable === command;
+      const rawLabels = builtin
+        ? commandParamLabels(callable)
+        : (callable.params || []).map((param) => param.name);
+      const labels = rawLabels.map((label, index) => {
+        const param = params[index];
+        return english && builtin ? param?.labelEn || label : label;
       });
       const description =
-        getLanguage() === 'en'
-          ? command.description?.en || command.description?.de || ''
-          : command.description?.de || command.description?.en || '';
+        english
+          ? callable.description?.en || callable.description?.de || ''
+          : callable.description?.de || callable.description?.en || '';
+      const arity = arityText(callable);
       const signatures = [];
       if (labels.length) {
+        const base = `${callable.name}(${labels.join(', ')})`;
         signatures.push({
-          label: `${command.name}(${labels.join(', ')})`,
+          label: arity ? `${base} · ${arity}` : base,
           documentation: { value: description },
           parameters: labels.map((label) => ({ label }))
         });
       } else {
-        const sig = (english ? command.signatureEn : command.signature) || command.name;
+        const sig = (english ? callable.signatureEn : callable.signature) || `${callable.name}()`;
         signatures.push({
-          label: sig,
+          label: arity ? `${sig} · ${arity}` : sig,
           documentation: { value: description },
           parameters: []
         });
@@ -2307,7 +2523,7 @@ export function registerGbx(monaco, dataset, options = {}) {
         });
         result.push({
           name: type.name,
-          detail: 'TYPE',
+          detail: type.interfaces?.length ? `TYPE · IMPLEMENTS ${type.interfaces.join(', ')}` : 'TYPE',
           kind: monaco.languages.SymbolKind.Struct,
           range: new monaco.Range(type.line, 1, type.line, 1),
           selectionRange: new monaco.Range(type.line, 1, type.line, 1),

@@ -69,6 +69,20 @@ SET_VIEWPORT 0, 0, 100, 80
 VIEWPORT vx, vy, vw, vh
 ASSERT vx = 0 AND vy = 0 AND vw = 100 AND vh = 80, "SET_VIEWPORT/VIEWPORT"
 SET_VIEWPORT 0, 0, 0, 0
+
+' ------------------------------------------------ 2D-Kamera
+CAMERA_BEGIN 100, 50, 2, 90
+CAMERA_SCREEN_TO_WORLD 160, 120, cwx, cwy
+ASSERT ABS(cwx - 100) < 0.001 AND ABS(cwy - 50) < 0.001, "CAMERA_SCREEN_TO_WORLD Mitte"
+CAMERA_WORLD_TO_SCREEN 101, 50, csx, csy
+ASSERT ABS(csx - 160) < 0.001 AND ABS(csy - 118) < 0.001, "CAMERA_WORLD_TO_SCREEN Zoom/Drehung"
+CAMERA_END
+CAMERA_SCREEN_TO_WORLD 10, 20, cwx, cwy
+ASSERT cwx = 10 AND cwy = 20, "CAMERA_END/Identitaet"
+CAMERA_BEGIN 0, 0
+CAMERA_END
+CAMERA_END
+
 SCREEN_SCALE 640, 480
 SCREEN_SCALE 0, 0
 SET_SMOOTHING 1
@@ -82,6 +96,7 @@ SCREEN_BLACK
 SCREEN_SHOW
 LIMIT_FPS 60, 0
 ASSERT RGB(1, 2, 3) = 66051, "RGB"
+ASSERT RGB(1, 2, 3, 255) <> RGB(1, 2, 3), "RGB mit Alpha"
 
 ' ------------------------------------------------------------- Zeichnen
 DRAW_LINE 0, 0, 10, 10, RGB(255, 0, 0)
@@ -95,6 +110,24 @@ IF headless = TRUE THEN
   ASSERT px >= 0, "PIXEL_GET"
 ELSE
   ASSERT PIXEL_GET(5, 5) = RGB(1, 2, 3), "PIXEL_SET/PIXEL_GET"
+  ' Die Kamera muss auch die gezeichneten Pixel verschieben, nicht nur die
+  ' Umrechnungsbefehle. Das geht nur mit einem echten Renderer.
+  SCREEN_CLEAR RGB(0, 0, 0)
+  CAMERA_BEGIN 160, 120, 2, 0
+  DRAW_RECT 160, 120, 10, 10, RGB(255, 0, 0)
+  CAMERA_END
+  ASSERT PIXEL_GET(160, 120) = RGB(255, 0, 0), "CAMERA_BEGIN/DRAW_RECT"
+  ASSERT PIXEL_GET(179, 139) = RGB(255, 0, 0), "CAMERA_BEGIN Zoom"
+  CAMERA_BEGIN 160, 120, 2, 90
+  DRAW_RECT 164, 119, 2, 2, RGB(0, 255, 0)
+  CAMERA_END
+  ASSERT PIXEL_GET(160, 110) = RGB(0, 255, 0), "CAMERA_BEGIN Drehung"
+  ' Optionales Alpha muss auch in den normalen Zeichenwegen ankommen.
+  SCREEN_CLEAR RGB(0, 0, 0)
+  DRAW_RECT 200, 200, 20, 20, RGB(255, 0, 0, 128)
+  pr = PIXEL_GET(210, 210)
+  rr = BAND(SHR(pr, 16), 255)
+  ASSERT rr >= 120 AND rr <= 136, "RGB Alpha"
 ENDIF
 
 POLY_BEGIN -1, 0
@@ -381,6 +414,25 @@ ASSERT LEN(STEAM_FRIEND_ID$(0)) >= 0, "STEAM_FRIEND_ID$"
 ASSERT LEN(STEAM_FRIEND_NAME$(0)) >= 0, "STEAM_FRIEND_NAME$"
 ASSERT STEAM_P2P_SEND("76561198000000000", "x") >= 0, "STEAM_P2P_SEND"
 ASSERT STEAM_P2P_AVAILABLE(0) >= 0, "STEAM_P2P_AVAILABLE"
+' Erfolge, Statistiken, Ranglisten, Cloud, Lobbys und der Rest bleiben ohne
+' Bibliothek bei 0 und duerfen nicht abstuerzen.
+ASSERT STEAM_ACHIEVEMENTS() >= 0, "STEAM_ACHIEVEMENTS"
+ASSERT STEAM_ACHIEVEMENT("FIRST_WIN") >= 0, "STEAM_ACHIEVEMENT"
+ASSERT STEAM_ACHIEVED("FIRST_WIN") >= 0, "STEAM_ACHIEVED"
+ASSERT STEAM_STAT("kills") >= 0, "STEAM_STAT"
+ASSERT STEAM_STAT_SET("kills", 1) >= 0, "STEAM_STAT_SET"
+ASSERT STEAM_STORE() >= 0, "STEAM_STORE"
+ASSERT STEAM_BOARD("test") >= 0, "STEAM_BOARD"
+ASSERT STEAM_BOARD_TOP(3) >= 0, "STEAM_BOARD_TOP"
+ASSERT STEAM_CLOUD_WRITE("t.txt", "x") >= 0, "STEAM_CLOUD_WRITE"
+ASSERT LEN(STEAM_CLOUD_READ$("t.txt")) >= 0, "STEAM_CLOUD_READ$"
+ASSERT STEAM_LOBBY_CREATE() >= 0, "STEAM_LOBBY_CREATE"
+ASSERT STEAM_LOBBY_JOINED() >= 0, "STEAM_LOBBY_JOINED"
+ASSERT LEN(STEAM_LOBBY_ID$()) >= 0, "STEAM_LOBBY_ID$"
+ASSERT STEAM_PRESENCE("status", "test") >= 0, "STEAM_PRESENCE"
+ASSERT STEAM_PRESENCE_CLEAR("status") >= 0, "STEAM_PRESENCE_CLEAR"
+ASSERT LEN(STEAM_TICKET$()) >= 0, "STEAM_TICKET$"
+ASSERT STEAM_DLC_COUNT() >= 0, "STEAM_DLC_COUNT"
 ASSERT LEN(STEAM_P2P_RECV$(0)) >= 0, "STEAM_P2P_RECV$"
 ASSERT LEN(STEAM_P2P_FROM$()) >= 0, "STEAM_P2P_FROM$"
 ASSERT STEAM_P2P_STATE("76561198000000000") >= 0, "STEAM_P2P_STATE"
@@ -427,6 +479,82 @@ ASSERT DICT_DELETE(d, "a") = 1, "DICT_DELETE"
 DICT_CLEAR d
 ASSERT DICT_COUNT(d) = 0, "DICT_CLEAR"
 ASSERT ISA(d, "dict") = 1, "ISA"
+
+' -------------------------------------------- Gross- und Kleinschreibung
+' Befehle und Schluesselwoerter bleiben tolerant, eigene Namen nicht.
+MyVar = 1
+myvar = 2
+ASSERT MyVar = 1 AND myvar = 2, "own names are case-sensitive"
+FUNCTION CaseUpper:
+  RETURN 3
+ENDFUNCTION
+FUNCTION caseUpper:
+  RETURN 4
+ENDFUNCTION
+ASSERT CaseUpper() = 3 AND caseUpper() = 4, "function names are case-sensitive"
+TYPE CaseType
+  value = 5
+ENDTYPE
+DIM ct AS CaseType
+ASSERT ct.value = 5, "TYPE and field names exact"
+ENUM CaseEnum
+  FIRST
+ENDENUM
+ASSERT CaseEnum.FIRST = 0, "ENUM names exact"
+assert true, "commands ignore case"
+
+
+' ------------------------------------------------------- Tasks und Jobs
+TASK cmdTicker:
+  WHILE TRUE
+    AWAIT FRAME
+  WEND
+ENDTASK
+
+FUNCTION cmdSum: n
+  total = 0
+  FOR i = 1 TO n
+    total = total + i
+  NEXT
+  RETURN total
+ENDFUNCTION
+
+tid = TASK_START("cmdTicker")
+ASSERT tid > 0, "TASK_START"
+ASSERT TASK_RUNNING(tid) = 1, "TASK_RUNNING"
+ASSERT TASK_COUNT() >= 1, "TASK_COUNT"
+SCREEN_SHOW
+ASSERT TASK_STOP(tid) = 1, "TASK_STOP"
+ASSERT TASK_RUNNING(tid) = 0, "TASK_STOP entfernt den Task"
+ASSERT TASK_COUNT() = 0, "TASK_COUNT nach TASK_STOP"
+
+job = SPAWN(@cmdSum, 100)
+ASSERT job > 0, "SPAWN"
+FOR i = 1 TO 50000000
+  IF JOB_DONE(job) THEN BREAK
+NEXT
+ASSERT JOB_DONE(job) = 1, "JOB_DONE"
+ASSERT JOB_VALUE(job) = 5050, "JOB_VALUE"
+ASSERT JOB_ERROR$(job) = "", "JOB_ERROR$"
+ASSERT JOB_FREE(job) = 1, "JOB_FREE"
+
+readJob = FILE_READ_ASYNC("tests/command_tests.gbx")
+FOR i = 1 TO 50000000
+  IF JOB_DONE(readJob) THEN BREAK
+NEXT
+ASSERT JOB_DONE(readJob) = 1, "FILE_READ_ASYNC"
+ASSERT INSTR(JOB_VALUE(readJob), "GameBasiX") >= 0, "FILE_READ_ASYNC Inhalt"
+JOB_FREE(readJob)
+
+writeJob = FILE_WRITE_ASYNC("cmd_async.tmp", "x")
+FOR i = 1 TO 50000000
+  IF JOB_DONE(writeJob) THEN BREAK
+NEXT
+ASSERT JOB_DONE(writeJob) = 1, "FILE_WRITE_ASYNC"
+ASSERT JOB_VALUE(writeJob) = 1, "FILE_WRITE_ASYNC Bytes"
+ASSERT FILE_EXISTS("cmd_async.tmp") = 1, "FILE_WRITE_ASYNC Datei"
+JOB_FREE(writeJob)
+FILE_DELETE "cmd_async.tmp"
 
 STDOUT "BEFEHLSTEST FERTIG" + CHR$(10)
 END

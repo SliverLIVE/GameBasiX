@@ -1,12 +1,16 @@
 // GameBasiX - Interpreter
 #pragma once
 
+#include <exception>
+#include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "ast.h"
 #include "builtins.h"
+#include "fiber.h"
 #include "runtime.h"
 
 class Interpreter {
@@ -18,6 +22,8 @@ public:
     // self ist das Objekt, wenn eine METHOD aufgerufen wird.
     Value callUserFunction(const FuncDef& def, const std::vector<ExprP>& args, const SrcPos& pos,
                            const Value* self = nullptr);
+    // Wie callUserFunction, aber mit bereits ausgewerteten Werten (Jobs).
+    Value callUserFunctionValues(const FuncDef& def, std::vector<Value> args, const SrcPos& pos);
 
     // Aktueller Bereich fuer den Debugger (Funktion, Tiefe, Aufrufliste,
     // lokale und globale Variablen) als JSON-Objekt.
@@ -30,6 +36,15 @@ public:
     // Dasselbe fuer den Wert-Tooltip im Haltepunkt: liefert den JSON-Ausschnitt
     // {"type":…,"detail":…} mit aufgeklappten Arrays und TYPEs.
     std::string debugInspect(const std::string& text, bool& ok, std::string& error);
+
+    // Kooperative Tasks: AWAIT gibt die Kontrolle an den Scheduler zurueck.
+    ~Interpreter();
+    void tickTasks();
+    int startTask(const std::string& name, const SrcPos& pos);
+    bool stopTask(int id);
+    bool taskRunning(int id) const;
+    int taskCount() const;
+    bool inTask() const { return currentTask_ != nullptr; }
 
     // Wird von FOREACH benoetigt
     struct Frame {
@@ -50,6 +65,40 @@ private:
 
     // Zugriff auf die Variablen fuer INLINE-Schritte (C++ mitten im Code).
     class InlineStepScope;
+
+    struct ExecContext {
+        Frame* frame = nullptr;
+        int depth = 0;
+        std::vector<std::string> stack;
+    };
+
+    struct Task {
+        enum class State { Ready, Waiting, Done };
+        int id = 0;
+        std::string name;
+        const TaskDef* def = nullptr;
+        gbxfiber::Handle fiber = nullptr;
+        State state = State::Ready;
+        int waitFrames = 0;
+        double wakeTime = 0.0;
+        bool cancelled = false;
+        std::exception_ptr error;
+        Frame frame;
+        ExecContext ctx;
+        Interpreter* owner = nullptr;
+    };
+
+    std::map<int, std::unique_ptr<Task>> tasks_;
+    Task* currentTask_ = nullptr;
+    int nextTaskId_ = 1;
+
+    ExecContext saveContext() const;
+    void restoreContext(const ExecContext& ctx);
+    static void taskEntry(void* raw);
+    void runTask(Task& task);
+    void awaitTask(const Stmt& s);
+    void yieldTask(int waitFrames, double wakeTime, const SrcPos& pos);
+    void cleanupTasks();
 
     // Variablen
     Slot* findSlot(const std::string& name);

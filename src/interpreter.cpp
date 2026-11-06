@@ -3,16 +3,50 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <exception>
 #include <limits>
 
 #include "debugger.h"
 #include "inline.h"
+
+namespace {
+std::string upperWord(const std::string& text) {
+    std::string out = text;
+    for (char& c : out)
+        if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
+    return out;
+}
+}  // namespace
 #include "lexer.h"
 #include "parser.h"
 
 namespace {
+
+// Zeitbasis fuer AWAIT Sekunden; nur monoton, nie Systemzeit.
+double taskSeconds() {
+    using Clock = std::chrono::steady_clock;
+    return std::chrono::duration<double>(Clock::now().time_since_epoch()).count();
+}
+
+// Ein Worker-Job darf nur rechnen. Alles, was Fenster, Eingabe, Dateien,
+// Netzwerk, Steam oder den Interpreter selbst anfasst, bleibt draussen.
+bool blockedInWorker(const std::string& upper) {
+    static const char* const prefixes[] = {
+        "SCREEN", "CAMERA", "WINDOW", "DRAW_", "POLY_", "PIXEL_", "SPRITE_", "ANIM_",
+        "SOUND_", "MUSIC_", "FONT_", "TEXT_", "KEY_", "MOUSE_", "JOY_",
+        "NET_", "UDP_", "STEAM_", "FILE_", "DIR_", "TASK_", "JOB_", "SET_",
+        "HOT_RELOAD", "ASSET_RELOAD", "WAIT_", "CLIPBOARD", "PRINT", "DEBUG",
+        "STDOUT", "STDERR", "STDIN$", "SLEEP", "SPAWN", "DELTA_TIME",
+        "ELAPSED_TIME", "LIMIT_FPS", "ALLOW_ESCAPE", "INPUT", "INKEY$"
+    };
+    for (const char* prefix : prefixes) {
+        if (upper.rfind(prefix, 0) == 0) return true;
+    }
+    return upper == "END";
+}
 
 struct ReturnSignal { Value value; };
 struct BreakSignal {};
@@ -150,9 +184,8 @@ std::string leadingName(const std::string& text) {
         if (!std::isalnum(c) && c != '_' && c != '$' && c != '%' && c != '#') break;
         ++i;
     }
-    std::string name = text.substr(start, i - start);
-    for (char& c : name) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    return name;
+    // Eigennamen sind case-sensitiv: die Schreibweise bleibt erhalten.
+    return text.substr(start, i - start);
 }
 
 // Klappt Arrays und TYPEs auf, damit im Tooltip nicht nur "[VEC]" steht.
@@ -215,6 +248,187 @@ Interpreter::Interpreter(Program& prog, Runtime& rt) : prog_(prog), rt_(rt) {
 void Interpreter::runtimeError(const std::string& msg, const SrcPos& pos) const {
     throw BasicError(msg, pos, false);
 }
+
+Interpreter::~Interpreter() {
+    for (auto& entry : tasks_) {
+        if (entry.second && entry.second->fiber) gbxfiber::destroy(entry.second->fiber);
+    }
+    tasks_.clear();
+}
+
+Interpreter::ExecContext Interpreter::saveContext() const {
+    ExecContext ctx;
+    ctx.frame = frame_;
+    ctx.depth = callDepth_;
+    ctx.stack = stack_;
+    return ctx;
+}
+
+void Interpreter::restoreContext(const ExecContext& ctx) {
+    frame_ = ctx.frame ? ctx.frame : &mainFrame_;
+    callDepth_ = ctx.depth;
+    stack_ = ctx.stack;
+}
+
+void Interpreter::taskEntry(void* raw) {
+    Task* task = static_cast<Task*>(raw);
+    if (task && task->owner) task->owner->runTask(*task);
+}
+
+void Interpreter::runTask(Task& task) {
+    currentTask_ = &task;
+    restoreContext(task.ctx);
+    try {
+        execSection(task.def->body);
+    } catch (ReturnSignal&) {
+        // RETURN beendet den Task wie ENDTASK.
+    } catch (...) {
+        task.error = std::current_exception();
+    }
+    task.state = Task::State::Done;
+    task.ctx = saveContext();
+    currentTask_ = nullptr;
+    // Nie in die Fiber zurueckkehren: der Scheduler gibt sie frei.
+    gbxfiber::switchTo(gbxfiber::mainHandle());
+    for (;;) gbxfiber::switchTo(gbxfiber::mainHandle());
+}
+
+void Interpreter::yieldTask(int waitFrames, double wakeTime, const SrcPos& pos) {
+    Task* task = currentTask_;
+    if (!task) runtimeError("AWAIT is only allowed inside a TASK", pos);
+    task->ctx = saveContext();
+    task->state = Task::State::Waiting;
+    task->waitFrames = waitFrames;
+    task->wakeTime = wakeTime;
+    currentTask_ = nullptr;
+    gbxfiber::switchTo(gbxfiber::mainHandle());
+    // Der Scheduler hat uns wieder aufgerufen: eigener Kontext gilt wieder.
+    currentTask_ = task;
+    restoreContext(task->ctx);
+}
+
+void Interpreter::awaitTask(const Stmt& s) {
+    if (!currentTask_) runtimeError("AWAIT is only allowed inside a TASK", s.pos);
+    if (s.name == "FRAME" || !s.e1) {
+        yieldTask(1, 0.0, s.pos);
+        return;
+    }
+    const double seconds = eval(*s.e1).asDouble();
+    if (!(seconds > 0.0)) {
+        yieldTask(1, 0.0, s.pos);
+        return;
+    }
+    yieldTask(0, taskSeconds() + seconds, s.pos);
+}
+
+void Interpreter::cleanupTasks() {
+    for (auto it = tasks_.begin(); it != tasks_.end();) {
+        Task& task = *it->second;
+        if (task.state == Task::State::Done || task.cancelled) {
+            if (task.fiber) gbxfiber::destroy(task.fiber);
+            it = tasks_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void Interpreter::tickTasks() {
+    if (tasks_.empty() || !gbxfiber::available()) return;
+
+    std::vector<int> ids;
+    ids.reserve(tasks_.size());
+    for (const auto& entry : tasks_) ids.push_back(entry.first);
+
+    const ExecContext scheduler = saveContext();
+    const double now = taskSeconds();
+    std::exception_ptr failure;
+
+    for (int id : ids) {
+        auto found = tasks_.find(id);
+        if (found == tasks_.end()) continue;
+        Task& task = *found->second;
+        if (task.cancelled || task.state == Task::State::Done) continue;
+
+        bool due = false;
+        if (task.state == Task::State::Ready) {
+            due = true;
+        } else if (task.waitFrames > 0) {
+            if (--task.waitFrames <= 0) due = true;
+        } else if (task.wakeTime > 0.0 && now >= task.wakeTime) {
+            due = true;
+        }
+        if (!due) continue;
+
+        currentTask_ = &task;
+        restoreContext(task.ctx);
+        gbxfiber::switchTo(task.fiber);
+        // Der Task hat AWAIT erreicht oder ist fertig.
+        restoreContext(scheduler);
+        currentTask_ = nullptr;
+        if (task.error) {
+            failure = task.error;
+            break;
+        }
+    }
+
+    cleanupTasks();
+    if (failure) std::rethrow_exception(failure);
+}
+
+int Interpreter::startTask(const std::string& name, const SrcPos& pos) {
+    auto found = prog_.tasks.find(name);
+    if (found == prog_.tasks.end()) runtimeError("Unknown TASK: " + name, pos);
+    if (!gbxfiber::available())
+        runtimeError("TASK is not available in this build (no fibers)", pos);
+
+    auto task = std::make_unique<Task>();
+    task->id = nextTaskId_++;
+    task->name = name;
+    task->def = &found->second;
+    task->owner = this;
+    task->frame.func = name;
+    task->ctx.frame = &task->frame;
+    task->ctx.stack.push_back(name);
+    task->fiber = gbxfiber::create(&Interpreter::taskEntry, task.get());
+    if (!task->fiber) runtimeError("TASK could not be created: " + name, pos);
+
+    const int id = task->id;
+    tasks_[id] = std::move(task);
+    return id;
+}
+
+bool Interpreter::stopTask(int id) {
+    auto found = tasks_.find(id);
+    if (found == tasks_.end()) return false;
+    Task& task = *found->second;
+    if (currentTask_ == &task) {
+        task.cancelled = true;
+        yieldTask(1, 0.0, task.def ? task.def->pos : SrcPos{});
+        return false;
+    }
+    task.cancelled = true;
+    task.state = Task::State::Done;
+    if (task.fiber) gbxfiber::destroy(task.fiber);
+    tasks_.erase(found);
+    return true;
+}
+
+bool Interpreter::taskRunning(int id) const {
+    auto found = tasks_.find(id);
+    if (found == tasks_.end()) return false;
+    const Task& task = *found->second;
+    return !task.cancelled && task.state != Task::State::Done;
+}
+
+int Interpreter::taskCount() const {
+    int count = 0;
+    for (const auto& entry : tasks_)
+        if (entry.second && !entry.second->cancelled && entry.second->state != Task::State::Done)
+            ++count;
+    return count;
+}
+
 
 // ---------------------------------------------------------------- Ausfuehrung
 
@@ -397,7 +611,7 @@ public:
 
     bool basicCall(const std::string& name, std::vector<Value>& args,
                    std::vector<Value*>& refs, Value& result) override {
-        auto it = builtins().find(name);
+        auto it = builtins().find(upperWord(name));
         if (it == builtins().end()) {
             fail("Unknown GBX command: " + name);
             return false;
@@ -470,6 +684,9 @@ void Interpreter::execStmt(const Stmt& s) {
             break;
         case SK::MethodCall:
             callMethod(*s.e1);
+            break;
+        case SK::Await:
+            awaitTask(s);
             break;
         case SK::InlineStep: {
             // C++ aus einem INLINE-Block: laeuft genau hier und sieht die
@@ -1109,7 +1326,7 @@ void Interpreter::assignArray(const std::string& name, std::shared_ptr<ArrayObj>
 
 Value Interpreter::readVar(const Expr& e) {
     // SELF ist in einer METHOD das eigene Objekt: self.x, self.methode().
-    if (e.text == "SELF" && frame_ && frame_->selfVal.isRecord()) return frame_->selfVal;
+    if (upperWord(e.text) == "SELF" && frame_ && frame_->selfVal.isRecord()) return frame_->selfVal;
     if (Slot* local = findLocalSlot(e.text)) return local->v;
     if (Value* field = selfField(e.text)) return *field;
     Slot* slot = findSlot(e.text);
@@ -1252,7 +1469,7 @@ void Interpreter::copyArrayData(ArrayObj& dst, const ArrayObj& src) {
 
 Value Interpreter::evalCall(const std::string& name, const std::vector<ExprP>& args,
                             const SrcPos& pos) {
-    if (name == "IIF") {
+    if (upperWord(name) == "IIF") {
         if (args.size() != 3) runtimeError("IIF expects 3 arguments", pos);
         return eval(*args[0]).truthy() ? eval(*args[1]) : eval(*args[2]);
     }
@@ -1289,17 +1506,20 @@ Value Interpreter::evalCall(const std::string& name, const std::vector<ExprP>& a
     // Funktionen aus INLINE-Bloecken stehen zwischen eigenen Funktionen und
     // den eingebauten Befehlen.
     if (gbxinline_runtime::has(name)) {
+        if (rt_.worker) runtimeError("INLINE is not allowed in SPAWN", pos);
         std::vector<Value> vals;
         vals.reserve(args.size());
         for (const auto& arg : args) vals.push_back(eval(*arg));
         return gbxinline_runtime::call(name, vals, pos);
     }
 
-    auto bit = builtins().find(name);
+    auto bit = builtins().find(upperWord(name));
     if (bit == builtins().end()) {
         runtimeError("Unknown command or function: " + name, pos);
     }
     const Builtin& b = bit->second;
+    if (rt_.worker && blockedInWorker(upperWord(name)))
+        runtimeError(name + " is not allowed in SPAWN", pos);
     if (static_cast<int>(args.size()) < b.minArgs ||
         (b.maxArgs >= 0 && static_cast<int>(args.size()) > b.maxArgs)) {
         runtimeError("Wrong number of arguments for " + name, pos);
@@ -1467,6 +1687,63 @@ Value Interpreter::callUserFunction(const FuncDef& def, const std::vector<ExprP>
     return result;
 }
 
+Value Interpreter::callUserFunctionValues(const FuncDef& def, std::vector<Value> args,
+                                            const SrcPos& pos) {
+    if (++callDepth_ > kMaxCallDepth) {
+        --callDepth_;
+        runtimeError("Too many nested function calls (recursion)", pos);
+    }
+    if (args.size() > def.params.size()) {
+        --callDepth_;
+        runtimeError("Wrong number of arguments for " + def.name, pos);
+    }
+
+    Frame newFrame;
+    newFrame.func = def.isMethod() ? def.ownerType + "." + def.name : def.name;
+    for (size_t i = 0; i < def.params.size(); ++i) {
+        const Param& p = def.params[i];
+        Value v;
+        if (i < args.size())
+            v = std::move(args[i]);
+        else if (p.def)
+            v = eval(*p.def);
+        else if (!p.typeName.empty())
+            v = makeRecord(p.typeName);
+        else if (p.hint != TypeHint::None)
+            v = defaultValueFor(hintToVT(p.hint));
+        else
+            v = Value::mkInt(0);
+
+        if (!p.typeName.empty() && !v.isRecord()) v = makeRecord(p.typeName);
+        if (p.hint != TypeHint::None && !v.isRecord() && !v.isArray())
+            v = coerceTo(v, hintToVT(p.hint));
+
+        Slot slot;
+        slot.v = std::move(v);
+        slot.hint = p.hint;
+        newFrame.locals[p.name] = std::move(slot);
+    }
+
+    Frame* saved = frame_;
+    frame_ = &newFrame;
+    stack_.push_back(def.name);
+    Value result = Value::mkInt(0);
+    try {
+        execSection(def.body);
+    } catch (ReturnSignal& r) {
+        result = std::move(r.value);
+    } catch (...) {
+        frame_ = saved;
+        stack_.pop_back();
+        --callDepth_;
+        throw;
+    }
+    frame_ = saved;
+    stack_.pop_back();
+    --callDepth_;
+    return result;
+}
+
 // Methode in der TYPE-Kette: eigene METHOD vor der geerbten.
 const FuncDef* Interpreter::findMethod(const TypeDef* def, const std::string& name) const {
     auto lookup = [&](const std::string& mname) -> const FuncDef* {
@@ -1555,7 +1832,7 @@ std::string Interpreter::debugInspect(const std::string& text, bool& ok, std::st
     // Text eine Zahl.
     const std::string head = leadingName(text);
     if (!head.empty()) {
-        bool known = head == "SELF";
+        bool known = upperWord(head) == "SELF";
         if (!known && frame_) known = frame_->locals.count(head) > 0 || frame_->aliases.count(head) > 0;
         // In einer METHOD sind die Felder des eigenen Objekts wie Variablen sichtbar.
         if (!known) known = selfField(head) != nullptr;

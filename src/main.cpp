@@ -25,6 +25,7 @@
 #include "debugger.h"
 #include "inline.h"
 #include "interpreter.h"
+#include "jobs.h"
 #include "lexer.h"
 #include "lint.h"
 #include "package.h"
@@ -427,6 +428,13 @@ int main(int argc, char** argv) {
     int result = 0;
     bool reported = false;
     Interpreter interp(prog, rt);
+    rt.interp = &interp;
+    // Tasks werden an jedem Bild weitergeschaltet - nach dem Present, damit
+    // sie gefahrlos zeichnen und schreiben duerfen.
+    rt.gfx.onFrame = [&rt, &interp]() {
+        rt.hot.tick(rt);
+        interp.tickTasks();
+    };
     if (dbg) {
         dbg->scope = [&interp] { return interp.debugScope(); };
         dbg->condition = [&interp](const std::string& text, bool& ok, std::string& error) {
@@ -454,6 +462,7 @@ int main(int argc, char** argv) {
     }
     if (dbg && !reported) dbg->reportExit(result);
 
+    jobs::shutdown();
     rt.audio.shutdown();
     rt.gfx.shutdown();
 

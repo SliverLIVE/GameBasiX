@@ -10,6 +10,13 @@ namespace fs = std::filesystem;
 
 namespace {
 
+std::string upperWord(const std::string& text) {
+    std::string out = text;
+    for (char& c : out)
+        if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
+    return out;
+}
+
 ExprP makeInt(SrcPos p, int64_t v) {
     auto e = std::make_unique<Expr>();
     e->kind = EK::IntLit;
@@ -153,7 +160,7 @@ std::shared_ptr<TypeDef> Parser::findOrCreateType(const std::string& name) {
 std::string Parser::parseTypeNameIfPresent() {
     if (!acceptIdent("AS")) return "";
     if (cur().kind != Tok::Ident) error("Type name expected after AS");
-    std::string name = stripSuffix(cur().text);
+    std::string name = stripSuffix(cur().raw);
     advance();
     return name;
 }
@@ -336,7 +343,7 @@ ExprP Parser::parsePostfix() {
             SrcPos p{path_, cur().line};
             advance();
             if (cur().kind != Tok::Ident) error("Field name expected after '.'");
-            std::string field = stripSuffix(cur().text);
+            std::string field = stripSuffix(cur().raw);
             advance();
             auto node = std::make_unique<Expr>();
             node->pos = p;
@@ -368,7 +375,7 @@ ExprP Parser::parsePrimary() {
         auto e = std::make_unique<Expr>();
         e->kind = EK::FuncRef;
         e->pos = p;
-        e->text = stripSuffix(cur().text);
+        e->text = stripSuffix(cur().raw);
         advance();
         return e;
     }
@@ -400,15 +407,15 @@ ExprP Parser::parsePrimary() {
         return e;
     }
     if (t.kind == Tok::Ident) {
-        std::string name = stripSuffix(t.text);
+        std::string name = stripSuffix(t.raw);
         advance();
-        if (name == "TRUE") return makeInt(p, 1);
-        if (name == "FALSE") return makeInt(p, 0);
+        if (upperWord(name) == "TRUE") return makeInt(p, 1);
+        if (upperWord(name) == "FALSE") return makeInt(p, 0);
         if (isSym("(")) {
             auto e = std::make_unique<Expr>();
             e->kind = EK::Call;
             e->pos = p;
-            e->text = t.text;  // Suffix bleibt: STR$(), MID$(), ...
+            e->text = t.raw;  // Suffix bleibt: STR$(), MID$(), ...
             e->args = parseArgList(true);
             return e;
         }
@@ -464,7 +471,7 @@ ExprP Parser::parseLValue() {
     auto e = std::make_unique<Expr>();
     e->kind = EK::Var;
     e->pos = p;
-    e->text = stripSuffix(cur().text);
+    e->text = stripSuffix(cur().raw);
     e->hint = suffixHint(cur().text);
     advance();
     for (;;) {
@@ -486,7 +493,7 @@ ExprP Parser::parseLValue() {
         if (isSym(".")) {
             advance();
             if (cur().kind != Tok::Ident) error("Field name expected after '.'");
-            std::string field = stripSuffix(cur().text);
+            std::string field = stripSuffix(cur().raw);
             advance();
             auto node = std::make_unique<Expr>();
             node->pos = p;
@@ -533,6 +540,10 @@ void Parser::parseTopLevel() {
     }
     if (isIdent("SUB")) {
         parseFunction(true);
+        return;
+    }
+    if (isIdent("TASK")) {
+        parseTask();
         return;
     }
     if (isIdent("TYPE")) {
@@ -674,12 +685,25 @@ StmtP Parser::parseStatement() {
 
     if (kw == "METHOD" || kw == "ENDMETHOD")
         error("METHOD belongs inside a TYPE (TYPE ... METHOD name ... ENDMETHOD ... ENDTYPE)");
+    if (kw == "TASK" || kw == "ENDTASK")
+        error("TASK may only appear at top level");
+    if (kw == "AWAIT") {
+        auto s = mk(SK::Await);
+        advance();
+        if (isIdent("FRAME")) {
+            s->name = "FRAME";
+            advance();
+        } else if (cur().kind != Tok::Newline && cur().kind != Tok::Eof && !isSym(":")) {
+            s->e1 = parseExpr();
+        }
+        return s;
+    }
     if (kw == "OPTION") {
         auto s = mk(SK::Nop);
         advance();
         if (cur().kind != Tok::Ident) error("STRICT expected after OPTION");
-        const std::string what = stripSuffix(cur().text);
-        if (what != "STRICT")
+        const std::string what = stripSuffix(cur().raw);
+        if (upperWord(what) != "STRICT")
             error("OPTION " + what + " is not supported (only OPTION STRICT)");
         advance();
         prog_.strictOption = true;
@@ -743,7 +767,7 @@ StmtP Parser::parseStatement() {
         auto s = mk(kw == "GOTO" ? SK::Goto : SK::Gosub);
         advance();
         if (cur().kind != Tok::Ident) error("Label or SUB name expected");
-        s->name = stripSuffix(cur().text);
+        s->name = stripSuffix(cur().raw);
         advance();
         return s;
     }
@@ -782,7 +806,7 @@ StmtP Parser::parseAssignmentOrCall() {
             auto s = std::make_unique<Stmt>();
             s->kind = SK::Label;
             s->pos = SrcPos{path_, cur().line};
-            s->name = stripSuffix(cur().text);
+            s->name = stripSuffix(cur().raw);
             advance();
             advance();
             return s;
@@ -834,7 +858,7 @@ StmtP Parser::parseAssignmentOrCall() {
     auto s = std::make_unique<Stmt>();
     s->kind = SK::Call;
     s->pos = SrcPos{path_, cur().line};
-    s->name = cur().text;
+    s->name = cur().raw;
     const std::string cmd = s->name;
     advance();
 
@@ -929,7 +953,7 @@ StmtP Parser::parseFor() {
     s->pos = SrcPos{path_, cur().line};
     advance();  // FOR
     if (cur().kind != Tok::Ident) error("Loop variable expected");
-    s->name = stripSuffix(cur().text);
+    s->name = stripSuffix(cur().raw);
     s->hint = suffixHint(cur().text);
     advance();
     expectSym("=");
@@ -1026,7 +1050,7 @@ StmtP Parser::parseDim(bool redim) {
     s->pos = SrcPos{path_, cur().line};
     advance();
     if (cur().kind != Tok::Ident) error("Array name expected");
-    s->name = stripSuffix(cur().text);
+    s->name = stripSuffix(cur().raw);
     s->hint = suffixHint(cur().text);
     advance();
     // DIM p.items[10]: ein Feld-Array darf auch direkt angesprochen werden. Die
@@ -1038,7 +1062,7 @@ StmtP Parser::parseDim(bool redim) {
         auto node = std::make_unique<Expr>();
         node->kind = EK::Field;
         node->pos = s->pos;
-        node->text = stripSuffix(cur().text);
+        node->text = stripSuffix(cur().raw);
         if (member) node->a = std::move(member);
         else {
             auto root = std::make_unique<Expr>();
@@ -1058,9 +1082,9 @@ StmtP Parser::parseDim(bool redim) {
     std::string tn = parseTypeNameIfPresent();
     if (!tn.empty()) {
         TypeHint h = TypeHint::None;
-        if (tn == "INTEGER" || tn == "INT" || tn == "LONG") h = TypeHint::Int;
-        else if (tn == "FLOAT" || tn == "DOUBLE" || tn == "NUMBER") h = TypeHint::Float;
-        else if (tn == "STRING") h = TypeHint::Str;
+        if (upperWord(tn) == "INTEGER" || upperWord(tn) == "INT" || upperWord(tn) == "LONG") h = TypeHint::Int;
+        else if (upperWord(tn) == "FLOAT" || upperWord(tn) == "DOUBLE" || upperWord(tn) == "NUMBER") h = TypeHint::Float;
+        else if (upperWord(tn) == "STRING") h = TypeHint::Str;
         if (h != TypeHint::None) s->hint = h;
         else s->typeName = tn;
     }
@@ -1082,7 +1106,7 @@ StmtP Parser::parseDecl(DeclScope scope) {
         d->kind = SK::Decl;
         d->scope = scope;
         d->pos = SrcPos{path_, cur().line};
-        d->name = stripSuffix(cur().text);
+        d->name = stripSuffix(cur().raw);
         d->hint = suffixHint(cur().text);
         advance();
         // GLOBAL/LOCAL/STATIC kennen auch die Array-Form: die Klammern tun
@@ -1104,9 +1128,9 @@ StmtP Parser::parseDecl(DeclScope scope) {
         }
         std::string tn = parseTypeNameIfPresent();
         if (!tn.empty()) {
-            if (tn == "INTEGER" || tn == "INT" || tn == "LONG") d->hint = TypeHint::Int;
-            else if (tn == "FLOAT" || tn == "DOUBLE" || tn == "NUMBER") d->hint = TypeHint::Float;
-            else if (tn == "STRING") d->hint = TypeHint::Str;
+            if (upperWord(tn) == "INTEGER" || upperWord(tn) == "INT" || upperWord(tn) == "LONG") d->hint = TypeHint::Int;
+            else if (upperWord(tn) == "FLOAT" || upperWord(tn) == "DOUBLE" || upperWord(tn) == "NUMBER") d->hint = TypeHint::Float;
+            else if (upperWord(tn) == "STRING") d->hint = TypeHint::Str;
             else d->typeName = tn;
         }
         if (isSym("=")) {
@@ -1136,14 +1160,14 @@ StmtP Parser::parseConstant() {
     s->pos = SrcPos{path_, cur().line};
     advance();
     if (cur().kind != Tok::Ident) error("Constant name expected");
-    s->name = stripSuffix(cur().text);
+    s->name = stripSuffix(cur().raw);
     s->hint = suffixHint(cur().text);
     advance();
     std::string tn = parseTypeNameIfPresent();
     if (!tn.empty()) {
-        if (tn == "INTEGER" || tn == "INT") s->hint = TypeHint::Int;
-        else if (tn == "FLOAT" || tn == "DOUBLE" || tn == "NUMBER") s->hint = TypeHint::Float;
-        else if (tn == "STRING") s->hint = TypeHint::Str;
+        if (upperWord(tn) == "INTEGER" || upperWord(tn) == "INT") s->hint = TypeHint::Int;
+        else if (upperWord(tn) == "FLOAT" || upperWord(tn) == "DOUBLE" || upperWord(tn) == "NUMBER") s->hint = TypeHint::Float;
+        else if (upperWord(tn) == "STRING") s->hint = TypeHint::Str;
     }
     expectSym("=");
     s->e1 = parseExpr();
@@ -1158,7 +1182,7 @@ StmtP Parser::parseEnum() {
     s->pos = SrcPos{path_, cur().line};
     advance();  // ENUM
     if (cur().kind != Tok::Ident) error("Name for the ENUM expected");
-    s->name = stripSuffix(cur().text);
+    s->name = stripSuffix(cur().raw);
     advance();
     expectLineEnd();
 
@@ -1180,7 +1204,7 @@ StmtP Parser::parseEnum() {
         auto member = std::make_unique<Stmt>();
         member->kind = SK::ConstDecl;
         member->pos = SrcPos{path_, cur().line};
-        const std::string bare = stripSuffix(cur().text);
+        const std::string bare = stripSuffix(cur().raw);
         member->name = s->name + "." + bare;
         member->hint = TypeHint::Int;
         if (std::find(values.begin(), values.end(), bare) == values.end()) {
@@ -1239,7 +1263,7 @@ StmtP Parser::parsePush(bool del) {
     auto var = std::make_unique<Expr>();
     var->kind = EK::Var;
     var->pos = s->pos;
-    var->text = stripSuffix(cur().text);
+    var->text = stripSuffix(cur().raw);
     advance();
     // DIMPUSH p.items[], x: ein Feld-Array waechst genauso.
     while (isSym(".")) {
@@ -1248,7 +1272,7 @@ StmtP Parser::parsePush(bool del) {
         auto node = std::make_unique<Expr>();
         node->kind = EK::Field;
         node->pos = s->pos;
-        node->text = stripSuffix(cur().text);
+        node->text = stripSuffix(cur().raw);
         node->a = std::move(var);
         var = std::move(node);
         advance();
@@ -1266,7 +1290,7 @@ StmtP Parser::parseForeach() {
     s->pos = SrcPos{path_, cur().line};
     advance();
     if (cur().kind != Tok::Ident) error("Loop variable expected");
-    s->name = stripSuffix(cur().text);
+    s->name = stripSuffix(cur().raw);
     s->hint = suffixHint(cur().text);
     advance();
     if (!acceptIdent("IN")) error("IN expected");
@@ -1291,7 +1315,7 @@ StmtP Parser::parseTry() {
         CatchClause clause;
         advance();
         if (cur().kind != Tok::Ident) error("Error variable expected after CATCH");
-        clause.name = stripSuffix(cur().text);
+        clause.name = stripSuffix(cur().raw);
         advance();
         if (acceptIdent("WHEN")) clause.guard = parseExpr();
         expectLineEnd();
@@ -1335,14 +1359,14 @@ void Parser::parseParamList(std::vector<Param>& params) {
         Param p;
         p.byref = acceptIdent("BYREF");
         if (cur().kind != Tok::Ident) error("Parameter name expected");
-        p.name = stripSuffix(cur().text);
+        p.name = stripSuffix(cur().raw);
         p.hint = suffixHint(cur().text);
         advance();
         std::string tn = parseTypeNameIfPresent();
         if (!tn.empty()) {
-            if (tn == "INTEGER" || tn == "INT") p.hint = TypeHint::Int;
-            else if (tn == "FLOAT" || tn == "DOUBLE" || tn == "NUMBER") p.hint = TypeHint::Float;
-            else if (tn == "STRING") p.hint = TypeHint::Str;
+            if (upperWord(tn) == "INTEGER" || upperWord(tn) == "INT") p.hint = TypeHint::Int;
+            else if (upperWord(tn) == "FLOAT" || upperWord(tn) == "DOUBLE" || upperWord(tn) == "NUMBER") p.hint = TypeHint::Float;
+            else if (upperWord(tn) == "STRING") p.hint = TypeHint::Str;
             else p.typeName = tn;
         }
         if (acceptSym("=")) p.def = parseExpr();
@@ -1363,7 +1387,7 @@ void Parser::parseMethod(const std::string& typeName) {
     def.pos = SrcPos{path_, cur().line};
     advance();  // METHOD
     if (cur().kind != Tok::Ident) error("Method name expected");
-    const std::string methodName = stripSuffix(cur().text);
+    const std::string methodName = stripSuffix(cur().raw);
     def.name = methodName;
     advance();
     if (!acceptSym(":"))
@@ -1390,13 +1414,35 @@ void Parser::parseMethod(const std::string& typeName) {
     if (type != prog_.types.end() && type->second) type->second->methods.push_back(methodName);
 }
 
+void Parser::parseTask() {
+    const SrcPos p{path_, cur().line};
+    advance();  // TASK
+    if (cur().kind != Tok::Ident) error("Task name expected");
+    const std::string name = stripSuffix(cur().raw);
+    advance();
+    if (isSym(":")) advance();
+    if (cur().kind != Tok::Newline && cur().kind != Tok::Eof)
+        error("Line end expected after TASK name");
+    expectLineEnd();
+
+    TaskDef def;
+    def.name = name;
+    def.pos = p;
+    def.body = parseBlock({"ENDTASK"});
+    if (!acceptIdent("ENDTASK")) error("ENDTASK expected");
+
+    if (prog_.tasks.count(name))
+        throw BasicError("TASK already defined: " + name, p, true);
+    prog_.tasks[name] = std::move(def);
+}
+
 void Parser::parseFunction(bool isSub) {
     FuncDef def;
     def.isSub = isSub;
     def.pos = SrcPos{path_, cur().line};
     advance();  // FUNCTION / SUB
     if (cur().kind != Tok::Ident) error("Function name expected");
-    def.name = stripSuffix(cur().text);
+    def.name = stripSuffix(cur().raw);
     advance();
     // Kopfzeile immer mit Doppelpunkt: FUNCTION name: ... / SUB name: ...
     if (isSub) {
@@ -1429,7 +1475,7 @@ void Parser::parseType() {
     SrcPos p{path_, cur().line};
     advance();  // TYPE
     if (cur().kind != Tok::Ident) error("Type name expected");
-    std::string name = stripSuffix(cur().text);
+    std::string name = stripSuffix(cur().raw);
     advance();
     auto def = findOrCreateType(name);
     parseTypeTail(def);
@@ -1456,7 +1502,7 @@ void Parser::parseType() {
                   " with METHOD and end the block with ENDMETHOD");
         }
         if (cur().kind != Tok::Ident) error("Field name expected");
-        std::string fname = stripSuffix(cur().text);
+        std::string fname = stripSuffix(cur().raw);
         TypeHint hint = suffixHint(cur().text);
         advance();
         FieldDef fd;
@@ -1484,9 +1530,9 @@ void Parser::parseType() {
         fd.rank = rank;
         std::string tn = parseTypeNameIfPresent();
         if (!tn.empty()) {
-            if (tn == "INTEGER" || tn == "INT" || tn == "LONG") { hint = TypeHint::Int; tn.clear(); }
-            else if (tn == "FLOAT" || tn == "DOUBLE" || tn == "NUMBER") { hint = TypeHint::Float; tn.clear(); }
-            else if (tn == "STRING") { hint = TypeHint::Str; tn.clear(); }
+            if (upperWord(tn) == "INTEGER" || upperWord(tn) == "INT" || upperWord(tn) == "LONG") { hint = TypeHint::Int; tn.clear(); }
+            else if (upperWord(tn) == "FLOAT" || upperWord(tn) == "DOUBLE" || upperWord(tn) == "NUMBER") { hint = TypeHint::Float; tn.clear(); }
+            else if (upperWord(tn) == "STRING") { hint = TypeHint::Str; tn.clear(); }
         }
         if (!tn.empty()) {
             fd.type = VT::Record;
@@ -1610,13 +1656,13 @@ bool canStartStatement(const std::string& kw) {
 void Parser::parseTypeTail(const std::shared_ptr<TypeDef>& def) {
     if (acceptIdent("EXTENDS")) {
         if (cur().kind != Tok::Ident) error("Base TYPE expected after EXTENDS");
-        def->baseName = stripSuffix(cur().text);
+        def->baseName = stripSuffix(cur().raw);
         advance();
     }
     if (acceptIdent("IMPLEMENTS")) {
         for (;;) {
             if (cur().kind != Tok::Ident) error("INTERFACE name expected after IMPLEMENTS");
-            def->interfaces.push_back(stripSuffix(cur().text));
+            def->interfaces.push_back(stripSuffix(cur().raw));
             advance();
             if (!acceptSym(",")) break;
         }
@@ -1626,7 +1672,7 @@ void Parser::parseTypeTail(const std::shared_ptr<TypeDef>& def) {
 void Parser::parseInterface() {
     advance();  // INTERFACE
     if (cur().kind != Tok::Ident) error("INTERFACE name expected");
-    const std::string name = stripSuffix(cur().text);
+    const std::string name = stripSuffix(cur().raw);
     advance();
     expectLineEnd();
     std::vector<std::string> methods;
@@ -1640,7 +1686,7 @@ void Parser::parseInterface() {
         if (isIdent("SUB") || isIdent("FUNCTION") || isIdent("METHOD")) {
             advance();
             if (cur().kind != Tok::Ident) error("Method name expected");
-            methods.push_back(stripSuffix(cur().text));
+            methods.push_back(stripSuffix(cur().raw));
             advance();
             // Wie bei FUNCTION/SUB: der Doppelpunkt gehoert zur Kopfzeile.
             acceptSym(":");

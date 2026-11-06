@@ -577,8 +577,8 @@ enum class BindKind { Number, Text, Array, Record, RecordArray };
 struct Binding {
     BindKind kind = BindKind::Number;
     std::string type;   // TYPE-Name bei Record/RecordArray
-    std::string basic;  // Name im Interpreter (GROSS, ohne Typ-Suffix)
-    std::string cpp;    // C++-Name (klein, Text mit _str)
+    std::string basic;  // Name im Interpreter (wie im Quelltext, ohne Typ-Suffix)
+    std::string cpp;    // C++-Name (Schreibweise des Quelltexts, Text mit _str)
     bool readOnly = false;
 };
 
@@ -736,12 +736,6 @@ void walkFunctionLocals(const std::vector<StmtP>& body, BindMap& out) {
     }
 }
 
-std::string lowerAscii(std::string text) {
-    for (char& c : text)
-        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
-    return text;
-}
-
 bool isCppKeyword(const std::string& name) {
     static const std::set<std::string> words = {
         "alignas", "alignof", "and", "asm", "auto", "bool", "break", "case", "catch",
@@ -809,7 +803,7 @@ std::vector<Binding> bindingsFor(const Program& prog, const InlineBlock& block) 
     std::set<std::string> used;
     for (auto& entry : visible) {
         Binding binding = entry.second;
-        std::string cpp = lowerAscii(binding.basic);
+        std::string cpp = binding.basic;
         // ENUM-Werte heissen "PHASE.STOP"; der Punkt ist in C++ nicht erlaubt.
         std::replace(cpp.begin(), cpp.end(), '.', '_');
         if (binding.kind == BindKind::Text) cpp += "_str";
@@ -832,7 +826,7 @@ std::vector<Binding> bindingsFor(const Program& prog, const InlineBlock& block) 
 const char* exportAttribute() { return "GBX_INLINE_EXPORT"; }
 
 std::string fieldMember(const FieldDef& field) {
-    std::string name = lowerAscii(field.name);
+    std::string name = field.name;
     if (field.type == VT::Str) name += "_str";
     return safeName(name, "field");
 }

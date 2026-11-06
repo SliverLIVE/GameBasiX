@@ -139,3 +139,7 @@ std::string formatInt(int64_t v);
 Value defaultValueFor(VT t);
 Value coerceTo(const Value& v, VT target);
 bool valueEquals(const Value& a, const Value& b);
+
+// Tiefe Kopie fuer Jobs: TYPEs, Arrays und Dictionaries werden geloest,
+// gemeinsame Objekte bleiben auch in der Kopie gemeinsam.
+Value cloneValue(const Value& v);
