@@ -1,57 +1,184 @@
 # GameBasiX
 
+![Release](https://img.shields.io/github/v/release/SliverLIVE/GameBasiX?label=release&color=2E8555)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![Language](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)
 ![Graphics](https://img.shields.io/badge/SDL3-renderer-2E8555)
 ![Editor](https://img.shields.io/badge/editor-Electron-47848F?logo=electron&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-language%20%2B%20inline%20%2B%20ui-brightgreen)
+![Tests](https://img.shields.io/badge/tests-17%2F17-brightgreen)
 
-A BASIC interpreter for 2D games, built on **SDL3** – with direct C++ `INLINE`
-blocks, sprites, sound, file access, TCP/UDP and Steam networking, and a
-complete IDE. 3D and platform extras are deliberately out of scope; the 2D
-core is complete.
+**GameBasiX is a native 2D game engine for Windows with its own BASIC interpreter.**
+Write the game in readable BASIC, drop into C++ exactly where speed or a native
+library matters, and keep both languages in the same source file. GBX Studio
+puts the editor, live checks, debugger and both export targets around it.
 
-![GBX Studio](docs/screenshots/ide.png)
+<p align="center">
+  <img src="docs/screenshots/ide.png" alt="GBX Studio 1.2.33 with the 2D camera example, file tree, outline, command reference and live status" width="100%">
+</p>
 
-<sub>**GBX Studio** – live name checking, outline, a searchable command reference,
-ENUM values with their numbers and a value tooltip right next to the code.</sub>
+<p align="center"><sub><b>GBX Studio 1.2.33</b> — the camera example, project files and outline on the left, the C++/BASIC editor in the middle, and the searchable command reference on the right.</sub></p>
 
-## Highlights
+## BASIC for the game. C++ where it matters.
 
-* Language: BASIC with `$`/`%`/`#` suffixes, `FUNCTION`/`SUB`, `TYPE` with
-  `METHOD`s, `ENUM`, arrays with any number of dimensions (`map[x, y]`),
-  `SELECT CASE`, `TRY`/`THROW`, and `+=` for short assignments
-* Runtime: a C++17 interpreter (lexer → parser → AST), no compiler step in between
-* Graphics: SDL3 renderer, PNG/JPG/BMP sprites, rotation/zoom, polygons,
-  render targets, software alpha modes
-* Text: built-in 8×8 bitmap font, bitmap fonts on a 16×8 grid and
-  **TrueType through FreeType** (optional)
-* Sound: a small software mixer for **WAV and MP3** sounds and music (MP3
-  through the bundled minimp3 decoder)
-* Inline C++: `INLINE` definitions and steps with direct access to BASIC
-  variables, compiled once and cached
-* Network: non-blocking TCP and UDP sockets (`NET*`/`UDP*`) plus Steam P2P
-  packets and the friend list through the Steamworks flat API, loaded at
-  runtime
-* Tooling: **GBX Studio** with live checks, a debugger, single-file EXE and
-  HTML5 export - and hot reload: a changed image, font or sound is picked up
-  by the running game
+`INLINE` is not a separate project, a build script or a foreign-function wrapper.
+It is a block in the middle of the BASIC program:
 
-Ready to try it? `cmake -S . -B build -G Ninja && cmake --build build`, then
-`build/gbx.exe examples/09_ui/ui.gbxproj`.
+```basic
+INLINE
+#include "curve.h"                 // definitions: compiled once at startup
+ENDINLINE
 
-## Screenshots
+FUNCTION glow: u
+  value = 0
+  INLINE
+    value = (1.0 - u) * (1.0 - u); // sees the BASIC parameter u and local value
+  ENDINLINE
+  RETURN value
+ENDFUNCTION
+
+WHILE TRUE
+  INLINE
+    Frames = Frames + 1;            // a step: runs here on every frame
+  ENDINLINE
+  SCREEN_SHOW
+WEND
+```
+
+At top level an `INLINE` block contains **definitions**: headers and functions
+registered with `GBX_INLINE_FN("NAME", …)` become ordinary GBX commands. Inside
+a `FUNCTION`, `SUB`, `METHOD`, `IF` or loop it is a **step** that runs at that
+point and sees the BASIC variables of that scope. Steps can call GBX commands
+directly (`PRINT`, `DRAW_LINE`, `DELTA_TIME`, …), resize BASIC arrays
+(`list.push(42)`, `insert`, `remove`, `resize`), or hand a finished image to the
+screen with `blitScreen`. Constants are read-only; user-defined BASIC functions
+stay in BASIC.
+
+Definitions are cached by a hash of the generated C++ and loaded as a DLL on
+startup. Projects can also link ready-built `.a` archives through `[native]`.
+When a game is exported, the compiled INLINE code is embedded in the EXE or in
+the HTML5 player, so the player needs neither a compiler nor a separate DLL.
+See [INLINE: C++ inside the BASIC program](#inline-c-inside-the-basic-program)
+for the complete rules.
+
+## What the engine can do
+
+| Area | Built in |
+| --- | --- |
+| **Language and runtime** | C++17 AST interpreter; suffixes (`$`, `%`, `#`), `FUNCTION`/`SUB`, `TYPE` with methods and defaults, interfaces and inheritance, `ENUM`, multi-dimensional arrays, `SELECT`, `TRY`/`CATCH`/`FINALLY`, `OPTION STRICT`, `BYREF`, static locals, includes and name checking. |
+| **2D rendering** | SDL3 renderer; PNG/JPG/BMP sprites and animation sheets, rotation, scaling, stretching, collision helpers, polygons, render targets, viewports, screen scaling, alpha modes, RGBA colours and a pan/zoom/rotate 2D camera. |
+| **Text and fonts** | Built-in 8×8 bitmap font, bitmap fonts on a 16×8 grid, TrueType through FreeType, text measurement, coloured text and `INPUT` fields. |
+| **Audio** | Software mixer for WAV and MP3 sounds and music; pan, volume, loops and playback state. MP3 decoding uses the bundled minimp3. |
+| **Input** | Keyboard scancodes with `KEY_*` names, mouse position/buttons/wheel, single-frame presses and connected gamepads with named buttons and axes. |
+| **Data** | Buffered text and binary file I/O, directories, string/math helpers, arrays with sort/find, string-keyed dictionaries, `TYPE` arrays and arrays inside `TYPE`s. |
+| **Networking** | Non-blocking TCP and UDP; listen/accept/connect, text packets, peer address, pending bytes and error text. |
+| **Steam** | Friends and P2P packets, achievements, integer/float stats, leaderboards, cloud files, lobbies with member data, rich presence, overlay, auth session tickets and DLC checks. Loaded at runtime; the Steam DLL is not redistributed. |
+| **Tasks and async work** | `TASK`/`AWAIT FRAME`/`AWAIT seconds` cooperative fibers, `SPAWN(@function, …)` worker jobs, `FILE_READ_ASYNC`/`FILE_WRITE_ASYNC`, and `JOB_DONE`/`JOB_VALUE` polling without blocking the frame. |
+| **Native C++** | `INLINE` definitions and steps, direct access to BASIC variables and arrays, direct GBX calls, `[native]` archives/object files, generated C++ export and HTML5/Wasm support through Emscripten. |
+| **Tools and shipping** | GBX Studio, live name/arity checking, debugger, hot reload for assets, one-file Windows EXE export and self-contained HTML5 export. |
+| **Scope** | Deliberately 2D. There is no 3D renderer, scene graph or platform-specific editor layer; the 2D core is the product. |
+
+The built-in command set covers **300+ commands**; the IDE ships **478 searchable
+reference entries** including commands, keywords, operators, types and `KEY_*`
+constants. The complete list is in the [command reference](#command-reference),
+in [CHEATSHEET.png](CHEATSHEET.png), or in the IDE's reference panel.
+
+## GBX Studio: what makes it different
+
+GBX Studio is not a generic text editor with a syntax file bolted on. It knows
+the project, the interpreter and the C++ blocks:
+
+- **Two languages, one editor.** Monaco highlights GBX and switches to its C++
+  tokenizer between `INLINE` and `ENDINLINE`; `.h` and `.cpp` files open as C++.
+  User TYPEs, functions, constants, ENUM values and names registered with
+  `GBX_INLINE_FN` get their own colours, completion and hover information.
+- **Checks while you type.** Half a second after the last keystroke the unsaved
+  buffer goes through `gbx --check --stdin`: syntax, unknown names, argument
+  counts and TYPE fields become markers in the gutter and entries under
+  **Problems**. No temporary files, no save required.
+- **The reference is part of the workspace.** All 478 entries have signatures
+  and descriptions in English and German, plus sample code where the command
+  has one. Search, filter by category, read the detail pane, then **Insert** or
+  **Copy** the signature without leaving the code.
+- **Navigation that understands the language.** `F12` goes to a definition,
+  `Shift+F12` lists every use and `F2` renames a symbol across the project.
+  Scope matters: a field is searched in its TYPE and behind `obj.field`, a
+  local only in its routine; comments, strings and INLINE blocks are skipped.
+- **A debugger attached to the interpreter.** Breakpoints (also conditional),
+  pause while running, step in/over/out, locals, globals, call stack and
+  current values in a hover tooltip. The paused file opens automatically, even
+  when the breakpoint is in an included file.
+- **Run, check, build.** `F5` runs, `F7` checks, `F6` debugs and `Ctrl+E` builds
+  the selected target: a Windows EXE (assets next to it) or a self-contained
+  HTML5 folder.
+  Saving an image, font or sound hot-reloads it into the running game.
+- **A workspace that stays put.** Files, outline, reference, problems, output,
+  console and debugger dock where you want them; widths and arrangement are
+  stored per project. Dark and light themes, media previews, project templates
+  and Google Fonts download are built in.
+
+### INLINE, up close
+
+<p align="center">
+  <img src="docs/screenshots/ide-inline.png" alt="GBX Studio showing BASIC and INLINE C++ in the same file with the INLINE reference entry" width="100%">
+</p>
+
+<p align="center"><sub><b>BASIC and C++ in one file</b> — the C++ block is highlighted as C++, the reference explains both kinds of INLINE block, and the project outline still sees the BASIC function and globals.</sub></p>
+
+## See it running
 
 | | |
 |:--:|:--:|
-| <img src="docs/screenshots/ui.png" width="430" alt="UI demo with windows and widgets"> | <img src="docs/screenshots/box2d.png" width="430" alt="Box2D-Lite physics demo"> |
-| **UI toolkit** – windows, widgets and themes in pure BASIC (`examples/09_ui`) | **Physics** – Box2D-Lite through `INLINE` (`examples/08_box2d`) |
+| <img src="docs/screenshots/ui.png" width="430" alt="UI toolkit demo with windows and widgets"> | <img src="docs/screenshots/box2d.png" width="430" alt="Box2D-Lite physics demo"> |
+| **UI toolkit** — windows, widgets and themes in pure BASIC (`examples/09_ui`) | **Physics** — Box2D-Lite through `INLINE` (`examples/08_box2d`) |
 | <img src="docs/screenshots/platformer.png" width="430" alt="Platformer with coins, pipes and enemies"> | <img src="docs/screenshots/breakout.png" width="430" alt="Breakout game"> |
-| **Pip and the Golden Coins** – a platformer with tiles, enemies and sound (`examples/13_platformer`) | **Breakout** – a complete game in `examples/02_breakout` |
-| <img src="docs/screenshots/sparks.png" width="430" alt="Sparks demo"> | <img src="docs/screenshots/net.png" width="430" alt="LAN chat with a shared dot"> |
-| **900 sparks** – C++ steps moving a `TYPE` array (`examples/06_sparks`) | **LAN link** – TCP chat, UDP cursor (`examples/11_net`) |
-| <img src="docs/screenshots/steam.png" width="430" alt="Steam P2P chat"> | <img src="docs/screenshots/ide.png" width="430" alt="GBX Studio"> |
-| **Steam link** – friends and P2P packets (`examples/12_steam`) | **GBX Studio** – editor, debugger, checks and export (`ide/`) |
+| **Pip and the Golden Coins** — tiles, enemies and sound (`examples/13_platformer`) | **Breakout** — a complete game (`examples/02_breakout`) |
+| <img src="docs/screenshots/sparks.png" width="430" alt="Sparks demo"> | <img src="docs/screenshots/steam.png" width="430" alt="Steam P2P chat"> |
+| **900 sparks** — C++ steps moving a `TYPE` array (`examples/06_sparks`) | **Steam link** — friends and P2P packets (`examples/12_steam`) |
+
+The two newest examples are [`examples/27_tasks`](examples/27_tasks) (tasks,
+worker jobs and async files) and [`examples/28_camera`](examples/28_camera)
+(pan, zoom, rotation and screen/world conversion).
+
+## Quick start
+
+**Use the portable build.** Download the latest
+[Windows x64 release](https://github.com/SliverLIVE/GameBasiX/releases/latest),
+unzip it and double-click **`GBXStudio.exe`**. Nothing has to be installed: the
+package contains Electron, the interpreter, the bundled GCC for INLINE and the
+HTML5 player. `GBXStudio_web.exe` opens the same editor in a browser instead.
+
+**Build from source** (Windows, MSYS2 UCRT64, CMake and Ninja):
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+build/gbx.exe examples/28_camera/camera.gbxproj
+```
+
+The build creates `build/gbx.exe`, `GBXStudio.exe` and `GBXStudio_web.exe`.
+The version is read from `ide/package.json`; the detailed build options,
+static-runtime packaging, project format and export notes follow below.
+
+## Documentation
+
+- [Building](#building) — requirements, static runtime and the portable layout
+- [Running](#running) — CLI options and exit codes
+- [Project file format](#project-file-format) — `.gbxproj`, includes and native libraries
+- [The language at a glance](#the-language-at-a-glance) — types, arrays, methods and control flow
+- [Command reference](#command-reference) — every built-in command by category
+- [INLINE: C++ inside the BASIC program](#inline-c-inside-the-basic-program) — definitions, steps and limits
+- [Tasks, jobs and async files](#tasks-jobs-and-async-files) — fibers and worker jobs
+- [GBX Studio](ide/README.md) — editor, debugger, HTML5 export and IDE tests
+- [CHEATSHEET.html](CHEATSHEET.html) / [CHEATSHEET.png](CHEATSHEET.png) — the one-page command sheet
+
+## Status
+
+Version **1.2.33** is the current release. The C++ suite passes **17 of 17**
+CTest targets, including language, INLINE, UI, files, networking, rendering,
+commands, export, native libraries, Steam, lint, debugger and hot reload. The
+IDE suite passes with the rebuilt command dataset. The project is deliberately
+focused on Windows desktop and browser play; 3D and console platforms are out
+of scope.
 
 ## Building
 
