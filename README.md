@@ -13,10 +13,10 @@ library matters, and keep both languages in the same source file. GBX Studio
 puts the editor, live checks, debugger and both export targets around it.
 
 <p align="center">
-  <img src="docs/screenshots/ide.png" alt="GBX Studio with the 2D camera example, file tree, outline, command reference and live status" width="100%">
+  <img src="docs/screenshots/ide.png" alt="GBX Studio with the central UI module, file tree, outline, module dock, command reference and live status" width="100%">
 </p>
 
-<p align="center"><sub><b>GBX Studio</b> — the camera example, project files and outline on the left, the C++/BASIC editor in the middle, and the searchable command reference on the right.</sub></p>
+<p align="center"><sub><b>GBX Studio</b> — the central UI module on the left, the C++/BASIC editor in the middle, and the searchable command reference and module dock on the right. The project itself contains only <code>INCLUDE "modules/ui/UI.gbx"</code>.</sub></p>
 
 ## BASIC for the game. C++ where it matters.
 
@@ -71,16 +71,18 @@ for the complete rules.
 | **Input** | Keyboard scancodes with `KEY_*` names, mouse position/buttons/wheel, single-frame presses and connected gamepads with named buttons and axes. |
 | **Data** | Buffered text and binary file I/O, directories, string/math helpers, arrays with sort/find, string-keyed dictionaries, `TYPE` arrays and arrays inside `TYPE`s. |
 | **Networking** | Non-blocking TCP and UDP; listen/accept/connect, text packets, peer address, pending bytes and error text. |
-| **Steam** | Friends and P2P packets, achievements, integer/float stats, leaderboards, cloud files, lobbies with member data, rich presence, overlay, auth session tickets and DLC checks. Loaded at runtime; the Steam DLL is not redistributed. |
+| **Steam** | Friends and P2P packets, achievements, integer/float stats, leaderboards, cloud files, lobbies with member data, rich presence, overlay, auth session tickets and DLC checks. The commands live in `modules/steam` and load the Steam DLL at runtime; the DLL is not redistributed. |
+| **Modules** | UI, Math, JSON, Box2D, OpenGL 3D, Easing and Steam are drop-in modules. One `INCLUDE` links a module; the Module dock adds and removes it, and its commands appear in the editor, completion and reference. |
 | **Tasks and async work** | `TASK`/`AWAIT FRAME`/`AWAIT seconds` cooperative fibers, `SPAWN(@function, …)` worker jobs, `FILE_READ_ASYNC`/`FILE_WRITE_ASYNC`, and `JOB_DONE`/`JOB_VALUE` polling without blocking the frame. |
 | **Native C++** | `INLINE` definitions and steps, direct access to BASIC variables and arrays, direct GBX calls, `[native]` archives/object files, generated C++ export and HTML5/Wasm support through Emscripten. |
 | **Tools and shipping** | GBX Studio, live name/arity checking, debugger, hot reload for assets, one-file Windows EXE export and self-contained HTML5 export. |
-| **Scope** | Deliberately 2D. There is no 3D renderer, scene graph or platform-specific editor layer; the 2D core is the product. |
+| **Scope** | The runtime and editor are built around 2D. 3D is an optional module (`modules/opengl3d`), not a scene graph or platform layer; the focused 2D core remains the product. |
 
-The built-in command set covers **300+ commands**; the IDE ships **478 searchable
-reference entries** including commands, keywords, operators, types and `KEY_*`
-constants. The complete list is in the [command reference](#command-reference),
-in [CHEATSHEET.png](CHEATSHEET.png), or in the IDE's reference panel.
+The interpreter ships **239 built-in commands**; the IDE's searchable reference
+has **414 entries** covering commands, keywords, operators, types, `KEY_*`
+constants and the commands of active modules. The complete list is in the
+[command reference](#command-reference), in [CHEATSHEET.png](CHEATSHEET.png), or
+in the IDE's reference panel.
 
 ## GBX Studio: what makes it different
 
@@ -95,7 +97,7 @@ the project, the interpreter and the C++ blocks:
   buffer goes through `gbx --check --stdin`: syntax, unknown names, argument
   counts and TYPE fields become markers in the gutter and entries under
   **Problems**. No temporary files, no save required.
-- **The reference is part of the workspace.** All 478 entries have signatures
+- **The reference is part of the workspace.** All 414 entries have signatures
   and descriptions in English and German, plus sample code where the command
   has one. Search, filter by category, read the detail pane, then **Insert** or
   **Copy** the signature without leaving the code.
@@ -135,12 +137,26 @@ the project, the interpreter and the C++ blocks:
 | <img src="docs/screenshots/sparks.png" width="430" alt="Sparks demo"> | <img src="docs/screenshots/steam.png" width="430" alt="Steam P2P chat"> |
 | **900 sparks** — C++ steps moving a `TYPE` array (`examples/06_sparks`) | **Steam link** — friends and P2P packets (`examples/12_steam`) |
 
+## Central modules
+
+The `modules/` folder is the shared library. One `INCLUDE` links a module into a
+project; the IDE's Module dock adds and removes it, and module commands are
+highlighted, completed and documented like built-ins. All seven modules ship
+with help, tests and the [module cheat sheet](modules/CHEATSHEET.html).
+
+| | |
+|:--:|:--:|
+| <img src="docs/screenshots/modules.png" width="430" alt="Central UI module with windows, widgets and theme controls"> | <img src="docs/screenshots/opengl3d.png" width="430" alt="OpenGL 3D module scene with a textured cube, sphere and cylinder"> |
+| **UI module** — windows, widgets and themes in pure BASIC (`examples/29_modules`) | **OpenGL 3D** — transform stack, lighting and primitives through one module (`examples/30_opengl3d`) |
+| <img src="docs/screenshots/easing.png" width="430" alt="Easing curves with linear, smoothstep, cubic and back-out modes"> | <img src="docs/screenshots/json.png" width="430" alt="JSON document values and pretty-printed output"> |
+| **Easing** — four curve modes, desktop archive and HTML5 fallback (`examples/31_easing`) | **JSON** — build, edit, save and read a document by path (`examples/32_json`) |
+
 The newest examples are [`examples/27_tasks`](examples/27_tasks) (tasks,
 worker jobs and async files), [`examples/28_camera`](examples/28_camera)
 (pan, zoom, rotation and screen/world conversion),
 [`examples/29_modules`](examples/29_modules) (the central UI module, with no
 module files inside the project), [`examples/30_opengl3d`](examples/30_opengl3d)
-(a 3D scene through the central OpenGL module) and
+(a 3D scene through the central OpenGL module),
 [`examples/31_easing`](examples/31_easing) (animation curves from a module that
 ships a prebuilt C++ archive) and [`examples/32_json`](examples/32_json) (JSON
 config and save data with path-based reads and writes).
@@ -1406,18 +1422,6 @@ Code is a different matter: a changed `.gbx` file needs a new interpreter run.
 GBX Studio does that on its own - saving a `.gbx` or `.gbxproj` while the
 program runs restarts it, and the console says so. *Settings → General →
 "Restart the running program after saving"* turns that off.
-
-## Deliberately not included
-
-3D (`X_*`), pulling in C++ templates (`IMPORT`, `REQUIRE`), preprocessor
-(`?IF` …), sockets behind Steam's newer `ISteamNetworkingSockets` (lobbies,
-connection handles), movies,
-`MEM2SPRITE`/`SPRITE2MEM`/`MEM2FONT`/`FONT2MEM`,
-`FINDPATH`, `FILEREQUEST`, `SHELLCMD`, `ADDRESSOF`/`CALLBYNAME`,
-`ENCRYPT$`/`DECRYPT$`, `SETSHOEBOX`. `SORTARRAY` is no longer missing:
-`ARRAY_SORT` and `ARRAY_FIND` sort and search in place. The need for the
-remaining ones is either 3D-, platform- or security-related; the 2D core is
-complete.
 
 ## Examples
 
