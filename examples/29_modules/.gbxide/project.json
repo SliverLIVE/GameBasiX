@@ -1,0 +1,77 @@
+{
+  "name": "modules",
+  "appName": "Central modules",
+  "title": "GameBasiX - central UI module",
+  "entry": "main.gbx",
+  "width": 960,
+  "height": 640,
+  "fullscreen": false,
+  "resizable": true,
+  "icon": "",
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeSources": [],
+  "nativeFlags": "",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx"
+  ],
+  "createdAt": "2026-11-07T10:53:51.907Z",
+  "layout": {
+    "sidebar": 356,
+    "reference": 352,
+    "bottom": 337,
+    "refList": 60
+  },
+  "dock": {
+    "zones": {
+      "left": [
+        "files",
+        "outline"
+      ],
+      "right": [
+        "reference",
+        "modules"
+      ],
+      "bottom": [
+        "problems",
+        "output",
+        "console",
+        "debug"
+      ]
+    },
+    "collapsed": {
+      "files": false,
+      "outline": false,
+      "modules": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "heights": {
+      "files": 280,
+      "outline": 765,
+      "modules": 637,
+      "reference": 340,
+      "problems": 220,
+      "output": 220,
+      "console": 220,
+      "debug": 260
+    },
+    "open": {
+      "left": true,
+      "right": true,
+      "bottom": true
+    },
+    "active": "output"
+  }
+}

@@ -189,6 +189,13 @@ const TABLE = [
   ['Fertig: ', 'Finished: '],
   ['Eingetragen in [native] libs:', 'Added to [native] libs:'],
 
+  /* Zentrale Module */
+  ['Ungueltiger Module-Include: ', 'Invalid module include: '],
+  ['Projektordner nicht gefunden.', 'Project folder not found.'],
+  ['Modul nicht gefunden: ', 'Module not found: '],
+  ['Keine Einstiegsdatei im Projekt gefunden.', 'No entry file found in the project.'],
+  ['Der Pfad liegt ausserhalb des Projekts.', 'The path is outside the project.'],
+
 ];
 
 let current = 'en';

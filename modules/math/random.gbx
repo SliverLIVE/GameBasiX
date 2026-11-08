@@ -1,0 +1,57 @@
+' Random helpers built on the engine generator. RND(1000000) is inclusive, so
+' the quotient is a decimal in 0..1. RND_SEED makes a sequence reproducible.
+
+' Decimal number from 0 to 1.
+FUNCTION MATH_RAND:
+  RETURN RND(1000000) / 1000000.0
+ENDFUNCTION
+
+' Decimal number in the given range. The bounds may be swapped.
+FUNCTION MATH_RAND_RANGE: low, high
+  LOCAL lo = MIN(low, high)
+  LOCAL hi = MAX(low, high)
+  RETURN lo + (hi - lo) * MATH_RAND()
+ENDFUNCTION
+
+' Whole number, both limits included. Only whole bounds make sense.
+FUNCTION MATH_RAND_INT: low, high
+  LOCAL lo = INTEGER(MIN(low, high))
+  LOCAL hi = INTEGER(MAX(low, high))
+  RETURN lo + RND(hi - lo)
+ENDFUNCTION
+
+' 1 with probability p (0..1), otherwise 0.
+FUNCTION MATH_RAND_CHANCE: p
+  IF p <= 0 THEN RETURN 0
+  IF p >= 1 THEN RETURN 1
+  RETURN MATH_RAND() < p
+ENDFUNCTION
+
+' -1 or 1, never 0.
+FUNCTION MATH_RAND_SIGN:
+  IF RND(1) = 1 THEN RETURN 1
+  RETURN -1
+ENDFUNCTION
+
+' Random array index 0..count-1, or -1 when the array is empty.
+FUNCTION MATH_RAND_INDEX: count
+  LOCAL n% = INTEGER(count)
+  IF n% <= 0 THEN RETURN -1
+  RETURN RND(n% - 1)
+ENDFUNCTION
+
+' Random angle from -180 to 180.
+FUNCTION MATH_RAND_ANGLE:
+  RETURN MATH_RAND_RANGE(-180, 180)
+ENDFUNCTION
+
+' Random number from -1 to 1.
+FUNCTION MATH_RAND_UNIT:
+  RETURN MATH_RAND_RANGE(-1, 1)
+ENDFUNCTION
+
+' Random number from -amount to amount.
+FUNCTION MATH_RAND_SPREAD: amount
+  LOCAL size = ABS(amount)
+  RETURN MATH_RAND_RANGE(-size, size)
+ENDFUNCTION

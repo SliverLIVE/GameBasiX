@@ -44,7 +44,13 @@ export function setLanguage(next, { persist = true, notify = true } = {}) {
   language = next === 'de' ? 'de' : 'en';
   document.documentElement.lang = language;
   const toggle = document.getElementById('btn-lang');
-  if (toggle) toggle.textContent = language.toUpperCase();
+  if (toggle) {
+    // Nur Kürzel und Flagge tauschen – der Button enthält beides.
+    const code = toggle.querySelector('#lang-code') || toggle;
+    code.textContent = language.toUpperCase();
+    const flag = toggle.querySelector('#lang-flag');
+    if (flag) flag.className = `flag flag-${language === 'de' ? 'de' : 'gb'}`;
+  }
   if (persist) {
     try {
       localStorage.setItem(STORAGE_KEY, language);

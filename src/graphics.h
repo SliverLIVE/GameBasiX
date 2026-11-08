@@ -136,6 +136,10 @@ public:
     bool grabSprite(int id, int x, int y, int w, int h, std::string& err);
     bool saveSprite(const std::string& file, int id, std::string& err);
     bool spriteInfo(int id, int& w, int& h) const;
+    /* Pixel einer geladenen Grafik fuer eigene Renderer (INLINE): Zeiger auf
+       w*h RGBA8, Zeilen von oben nach unten. Gueltig bis zum naechsten Laden
+       oder Loeschen dieser Grafik. */
+    bool spritePixelData(int id, const void** rgba, int& w, int& h) const;
     void setSpriteAnim(int id, int frameW, int frameH);
     void drawSprite(int id, float x, float y);
     void drawSpriteZoom(int id, float x, float y, float sx, float sy);
@@ -209,6 +213,14 @@ public:
     void setAllowEscape(bool v) { allowEscape_ = v; }
     bool allowEscape() const { return allowEscape_; }
 
+    // Fenster fuer Module (INLINE host->window_handle): natives Handle
+    // (Windows HWND, macOS NSWindow*, X11 Window, Wayland wl_surface*) und
+    // Groesse in Pixeln. Ohne Fenster (headless) nullptr bzw. die virtuelle
+    // Groesse.
+    void* nativeWindowHandle() const;
+    void* glContext() const { return glContext_; }
+    void windowSize(int& width, int& height) const;
+
     // Zeit
     double timerFrame() const;  // ms seit letztem SCREEN_SHOW
     double timerAll() const;    // ms seit Programmstart
@@ -217,6 +229,7 @@ public:
 private:
     SDL_Window* window_ = nullptr;
     SDL_Renderer* renderer_ = nullptr;
+    void* glContext_ = nullptr;  // GBX legt keinen an; Module koennen einen setzen
     int width_ = 640, height_ = 640 / 2;
     bool fullscreen_ = false;
     std::string title_ = "GameBasiX";

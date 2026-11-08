@@ -13,6 +13,7 @@ import { spawn } from 'node:child_process';
 
 import { emxxCommand, emsdkEnv, emsdkRoot } from './emsdk.mjs';
 import { pathExists } from './gbx.mjs';
+import { modulesRoot } from './modules.mjs';
 
 /** Ordner mit dem fertigen Player (gbx.js), relativ zur Editor-EXE. */
 export function playerDir(appRoot) {
@@ -280,23 +281,27 @@ async function writeInlineSource({ gbx, projectDir, entry, target, onLog }) {
 /** Fassung des Player-Rezepts: hochziehen, wenn sich die em++-Optionen ändern. */
 const PLAYER_RECIPE = 'inline-player-1';
 
-/** Header eines Projekts: sie fließen in den INLINE-Player ein. */
-function projectHeaders(projectDir) {
+/** Header in den angegebenen Ordnern (nicht rekursiv). */
+function headerFilesIn(dirs) {
   const files = [];
-  for (const dir of headerDirs(projectDir)) {
-    const abs = path.join(projectDir, dir);
+  for (const dir of dirs) {
     let entries = [];
     try {
-      entries = fs.readdirSync(abs, { withFileTypes: true });
+      entries = fs.readdirSync(dir, { withFileTypes: true });
     } catch {
       continue;
     }
     for (const entry of entries) {
       if (!entry.isFile() || !/\.(h|hh|hpp|hxx)$/i.test(entry.name)) continue;
-      files.push(path.join(abs, entry.name));
+      files.push(path.join(dir, entry.name));
     }
   }
-  return files.sort();
+  return files;
+}
+
+/** Header eines Projekts: sie fließen in den INLINE-Player ein. */
+function projectHeaders(projectDir) {
+  return headerFilesIn(headerDirs(projectDir).map((dir) => path.join(projectDir, dir))).sort();
 }
 
 /** Alle Dateien des Interpreters, die in den Player wandern. */
@@ -314,7 +319,16 @@ function interpreterFiles(sourceDir) {
  * Kennung des fertigen Players: alles, was das Übersetzen beeinflusst,
  * steckt im Hash - Blöcke, Projekt-Header, Interpreter-Quellen und emsdk.
  */
-function inlinePlayerKey({ appRoot, projectDir, generated, emsdk, emsdkVersion, defines, extras = '' }) {
+function inlinePlayerKey({
+  appRoot,
+  projectDir,
+  generated,
+  emsdk,
+  emsdkVersion,
+  defines,
+  extras = '',
+  extraHeaderDirs = []
+}) {
   const info = inspectHtml5(appRoot);
   const emcc = emsdk ? emxxCommand(emsdk) : null;
   const hash = createHash('sha1');
@@ -324,7 +338,8 @@ function inlinePlayerKey({ appRoot, projectDir, generated, emsdk, emsdkVersion, 
   hash.update(extras);
   hash.update(String(emsdkVersion || ''));
   hash.update(String(emcc ? emcc.cmd : ''));
-  for (const file of [...interpreterFiles(info.sourceDir), ...projectHeaders(projectDir)]) {
+  const headers = [...projectHeaders(projectDir), ...headerFilesIn(extraHeaderDirs)];
+  for (const file of [...interpreterFiles(info.sourceDir), ...headers]) {
     hash.update(file.replace(/\\/g, '/'));
     try {
       hash.update(fs.readFileSync(file));
@@ -390,6 +405,115 @@ function packFiles(root, names) {
     }
   }
   return files;
+}
+
+/** Aktive Modul-Includes eines Projekts; Kommentare zaehlen nicht. */
+function moduleIncludes(projectDir, sources) {
+  const includes = new Set();
+  for (const file of sources) {
+    let text = '';
+    try {
+      text = fs.readFileSync(path.join(projectDir, file), 'utf8');
+    } catch {
+      continue;
+    }
+    const code = String(text)
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .filter((line) => !/^\s*(?:'|\/\/)/.test(line))
+      .join('\n');
+    for (const match of code.matchAll(/\bINCLUDE\s+"((?:modules\/)[^"]+\.gbx)"/gi)) {
+      includes.add(match[1].replace(/\\/g, '/'));
+    }
+  }
+  return [...includes];
+}
+
+/**
+ * Die zentralen Modulquellen in das virtuelle Dateisystem des Browsers legen.
+ * Der Interpreter findet sie dort unter /game/modules und loest den INCLUDE
+ * wie auf dem Desktop auf. Alle .gbx-Dateien des angesprochenen Modulordners
+ * werden mitgenommen, damit auch relative Includes innerhalb des Moduls gehen.
+ */
+function packModuleFiles(appRoot, includes) {
+  const root = modulesRoot(appRoot);
+  const files = {};
+  for (const include of includes) {
+    const rel = include.replace(/^modules\//i, '');
+    const folder = rel.split('/')[0];
+    if (!folder || folder === '..' || folder.includes('\\')) continue;
+    const dir = path.resolve(root, folder);
+    const inside = path.relative(root, dir);
+    if (!inside || inside.startsWith('..') || path.isAbsolute(inside)) continue;
+    for (const name of listAssets(dir, dir)) {
+      if (!/\.gbx$/i.test(name)) continue;
+      try {
+        files[`modules/${folder}/${name}`] = fs.readFileSync(path.join(dir, name)).toString('base64');
+      } catch {
+        /* Datei nicht lesbar */
+      }
+    }
+  }
+  return files;
+}
+
+/**
+ * Ordner der aktiven zentralen Module samt Unterordnern. Der Desktop-Compiler
+ * kennt die Ordner der eingebundenen .gbx; für den HTML5-Player müssen ihre
+ * INLINE-Header deshalb genauso als Include-Pfad vorliegen.
+ */
+function moduleHeaderDirs(appRoot, includes) {
+  const root = modulesRoot(appRoot);
+  const dirs = [];
+  for (const include of includes) {
+    const rel = include.replace(/^modules\//i, '');
+    const folder = rel.split('/')[0];
+    if (!folder || folder === '..' || folder.includes('\\')) continue;
+    const dir = path.resolve(root, folder);
+    const inside = path.relative(root, dir);
+    if (!inside || inside.startsWith('..') || path.isAbsolute(inside)) continue;
+    const walk = (base) => {
+      try {
+        if (!fs.statSync(base).isDirectory()) return;
+      } catch {
+        return;
+      }
+      dirs.push(base);
+      let entries = [];
+      try {
+        entries = fs.readdirSync(base, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (entry.isDirectory() && !entry.name.startsWith('.')) walk(path.join(base, entry.name));
+      }
+    };
+    walk(dir);
+  }
+  return dirs;
+}
+
+/** Erstes aktives Modul mit einem INLINE-Block (der Player übersetzt ihn). */
+function moduleInlineEntry(appRoot, includes) {
+  const root = modulesRoot(appRoot);
+  for (const include of includes) {
+    const rel = include.replace(/^modules\//i, '');
+    const folder = rel.split('/')[0];
+    if (!folder || folder === '..' || folder.includes('\\')) continue;
+    const dir = path.resolve(root, folder);
+    const inside = path.relative(root, dir);
+    if (!inside || inside.startsWith('..') || path.isAbsolute(inside)) continue;
+    for (const name of listAssets(dir, dir)) {
+      if (!/\.gbx$/i.test(name)) continue;
+      try {
+        if (/^\s*INLINE\b/im.test(fs.readFileSync(path.join(dir, name), 'utf8'))) return include;
+      } catch {
+        /* Datei nicht lesbar */
+      }
+    }
+  }
+  return '';
 }
 
 function htmlTemplate({ title, width, height, icon }) {
@@ -508,9 +632,13 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
   }
   // Im Browser gibt es weder Compiler noch dlopen: die INLINE-Bloecke werden
   // hier mit Emscripten übersetzt und fest zum Player dazugelinkt.
-  const withInline = sources.find((file) =>
-    /^\s*INLINE\b/im.test(fs.readFileSync(path.join(projectDir, file), 'utf8'))
-  );
+  const activeModules = moduleIncludes(projectDir, sources);
+  // Ein Modul bringt seinen INLINE-Block in einer eigenen .gbx mit; auch dann
+  // muss der Player den Block fest einbauen statt ihn zur Laufzeit zu suchen.
+  const withInline =
+    sources.find((file) =>
+      /^\s*INLINE\b/im.test(fs.readFileSync(path.join(projectDir, file), 'utf8'))
+    ) || moduleInlineEntry(appRoot, activeModules);
   const entry = sources.includes('main.gbxproj')
     ? 'main.gbxproj'
     : sources.find((file) => file.endsWith('.gbxproj')) || sources.find((file) => file.endsWith('.gbx'));
@@ -536,9 +664,11 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
       return { ok: false, error: '[native] sources fehlen' };
     }
     if (native.libs.length && !native.sources.length) {
-      onLog?.('HTML5 kann keine .a-Archive einbinden: sie enthalten Code fuer den Desktop.');
-      onLog?.('Trage die C++-Dateien der Bibliothek in [native] sources ein - sie werden fuer den Browser uebersetzt.');
-      return { ok: false, error: 'C++-Quellen der Bibliothek fehlen' };
+      // Archive bleiben Desktop-Code. Module duerfen trotzdem eine eigene
+      // Browser-Umsetzung im INLINE-Block mitbringen; fehlt sie, scheitert
+      // erst der Link mit einer klaren Meldung.
+      onLog?.(`HTML5 ignoriert Archive: ${native.libs.join(' ')}`);
+      onLog?.('Der Browser-Code muss im INLINE-Block liegen; sonst fehlen Symbole beim Linken.');
     }
     if (native.dropped.length) {
       onLog?.(`HTML5: ohne Wirkung im Browser (nur fuer Archive): ${native.dropped.join(' ')}`);
@@ -553,7 +683,11 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
         return { ok: false, error: 'INLINE-Quelltext fehlt' };
       }
       const defines = ['GBX_INLINE_STATIC'];
-      const extraIncludes = headerDirs(projectDir).map((dir) => path.join(projectDir, dir));
+      const moduleDirs = moduleHeaderDirs(appRoot, moduleIncludes(projectDir, sources));
+      const extraIncludes = [
+        ...headerDirs(projectDir).map((dir) => path.join(projectDir, dir)),
+        ...moduleDirs
+      ];
       const generated = await fsp.readFile(cpp, 'utf8');
       const key = inlinePlayerKey({
         appRoot,
@@ -562,7 +696,8 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
         emsdk,
         emsdkVersion,
         defines,
-        extras: native.key
+        extras: native.key,
+        extraHeaderDirs: moduleDirs
       });
       const cached = path.join(inlinePlayerCache(), `${key}.js`);
       if (pathExists(cached)) {
@@ -622,12 +757,13 @@ export async function exportHtml5({ appRoot, projectDir, project, target, gbx, e
     if (pathExists(wasm)) await fsp.copyFile(wasm, path.join(outDir, 'gbx.wasm'));
   }
 
+  const modules = packModuleFiles(appRoot, moduleIncludes(projectDir, sources));
   const payload = {
     title: project?.title || project?.name || name,
     width: project?.width || 640,
     height: project?.height || 480,
     entry,
-    files: packFiles(projectDir, sources),
+    files: { ...modules, ...packFiles(projectDir, sources) },
     assets: packFiles(projectDir, assets)
   };
   // Daten als eigene Datei: die index.html bleibt klein und lesbar.

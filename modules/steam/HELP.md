@@ -1,0 +1,151 @@
+# Steam
+
+The complete `STEAM_*` command set of the interpreter, moved into an
+INLINE module. The commands keep their names, so existing programs only
+need the `INCLUDE` line below.
+
+```gbx
+INCLUDE "modules/steam/STEAM.gbx"
+
+IF STEAM_INIT() = 1 THEN
+ PRINT "Hello " + STEAM_NAME$(), 10, 10
+ENDIF
+```
+
+## Setup: the Steam library
+
+The module calls the Steamworks **flat API** and loads the library at
+runtime, so nothing is linked and the program still builds without the
+Steamworks SDK.
+
+1. Download the Steamworks SDK: <https://partner.steamgames.com/downloads/list>
+  (a Steam partner account is required; the SDK ships as
+  `steamworks_sdk_*.zip`).
+2. Copy the redistributable library next to the program that loads it:
+  - Windows: `sdk/redistributable_bin/win64/steam_api64.dll`
+    (32 bit: `win32/steam_api.dll`)
+  - Linux: `sdk/redistributable_bin/linux64/libsteam_api.so`
+  - macOS: `sdk/redistributable_bin/osx/libsteam_api.dylib`
+  When you start the program with `gbx.exe`, "next to it" means next to
+  `gbx.exe`; a built EXE needs the file next to itself.
+3. Put `steam_appid.txt` containing your app id next to it as well, or pass
+  the id to `STEAM_INIT(appid)`. Steam must be running and the account must
+  own (or be testing) the app.
+
+The loader tries `GBX_STEAM_LIB` first, then the directory of the running
+EXE, then the plain library name:
+
+| Setting | Meaning |
+| --- | --- |
+| `GBX_STEAM_LIB` | Full path to a specific library (tests use this) |
+| EXE directory | `steam_api64.dll`, `steam_api.dll`, `libsteam_api.so`, `libsteam_api.dylib` |
+| plain name | whatever the OS finds in its library search path |
+
+Without the library every command keeps its neutral value and
+`STEAM_ERROR$()` explains what is missing. The HTML5 player has no Steam:
+there `STEAM_READY()` is 0 and `STEAM_INIT` returns 0.
+
+## Lifetime
+
+```gbx
+IF STEAM_INIT(appId) = 1 THEN
+ WHILE TRUE
+   STEAM_RUN                 ' pump callbacks once per frame
+   ...
+ WEND
+ENDIF
+```
+
+`STEAM_RUN` belongs in the main loop; without it achievements, lobbies and
+call results never arrive. `STEAM_SHUTDOWN` is optional - the module shuts
+Steam down when the program ends.
+
+## Identity and friends
+
+| Command | Meaning |
+| --- | --- |
+| `STEAM_INIT [appid]` | Load the library and call `SteamAPI_Init`; 1 on success |
+| `STEAM_SHUTDOWN` | Shut Steam down |
+| `STEAM_RUN` | Run callbacks, returns 1 while Steam is ready |
+| `STEAM_READY()` | 1 when initialised |
+| `STEAM_NAME$()` | Persona name |
+| `STEAM_ID$()` | Own SteamID as text |
+| `STEAM_APP_ID()` | App id Steam reports |
+| `STEAM_FRIENDS()` | Number of friends |
+| `STEAM_FRIEND_ID$(i)` | SteamID of friend `i` |
+| `STEAM_FRIEND_NAME$(i)` | Name of friend `i` |
+| `STEAM_FRIEND_STATE(i)` | Persona state of friend `i` |
+| `STEAM_ERROR$()` | Last error text |
+
+## Peer-to-peer packets
+
+| Command | Meaning |
+| --- | --- |
+| `STEAM_P2P_SEND id$, text$[, channel[, reliable]]` | Send; returns the byte count |
+| `STEAM_P2P_AVAILABLE([channel])` | Bytes waiting on the channel |
+| `STEAM_P2P_RECV$([channel])` | Read one packet |
+| `STEAM_P2P_FROM$()` | Sender of the last packet |
+| `STEAM_P2P_ACCEPT id$` | Accept a session |
+| `STEAM_P2P_CLOSE id$` | Close a session |
+| `STEAM_P2P_STATE(id$)` | 0 none, 1 connecting, 2 connected, 3 relayed |
+
+## Achievements and statistics
+
+| Command | Meaning |
+| --- | --- |
+| `STEAM_ACHIEVEMENT name$` | Unlock and store |
+| `STEAM_ACHIEVED(name$)` | 1 when unlocked |
+| `STEAM_ACHIEVEMENTS()` | Number of achievements |
+| `STEAM_ACHIEVEMENT_NAME$(i)` | Achievement name by index |
+| `STEAM_STAT(name$)` | Integer statistic |
+| `STEAM_STAT_F(name$)` | Float statistic |
+| `STEAM_STAT_SET name$, value` | Store an integer statistic |
+| `STEAM_STAT_SETF name$, value` | Store a float statistic |
+| `STEAM_STORE` | Send pending statistics to Steam |
+
+## Leaderboards
+
+| Command | Meaning |
+| --- | --- |
+| `STEAM_BOARD name$[, ascending]` | Open or create a leaderboard |
+| `STEAM_BOARD_SCORE points[, keepbest]` | Upload a score |
+| `STEAM_BOARD_RANK()` | Rank of the last upload |
+| `STEAM_BOARD_TOP([count[, kind]])` | Download entries (0 global, 1 around player, 2 friends) |
+| `STEAM_BOARD_COUNT()` · `STEAM_BOARD_NAME$(i)` · `STEAM_BOARD_ID$(i)` | Read the downloaded list |
+| `STEAM_BOARD_POINTS(i)` · `STEAM_BOARD_PLACE(i)` | Score and rank of an entry |
+
+## Steam Cloud
+
+| Command | Meaning |
+| --- | --- |
+| `STEAM_CLOUD_WRITE file$, text$` | Write a cloud file |
+| `STEAM_CLOUD_READ$(file$)` | Read it (up to 1 MiB) |
+| `STEAM_CLOUD_EXISTS(file$)` | 1 when present |
+| `STEAM_CLOUD_DELETE file$` | Delete it |
+| `STEAM_CLOUD_FILES()` · `STEAM_CLOUD_NAME$(i)` · `STEAM_CLOUD_SIZE(file$)` | List and size |
+
+## Lobbies, presence, overlay, ticket, DLC
+
+| Command | Meaning |
+| --- | --- |
+| `STEAM_LOBBY_CREATE [slots[, kind]]` | 0 private, 1 friends, 2 public, 3 invisible |
+| `STEAM_LOBBY_JOIN id$` · `STEAM_LOBBY_JOINED()` · `STEAM_LOBBY_ID$()` · `STEAM_LOBBY_LEAVE` | Membership |
+| `STEAM_LOBBY_OWNER$()` · `STEAM_LOBBY_MEMBERS()` · `STEAM_LOBBY_MEMBER_ID$(i)` · `STEAM_LOBBY_MEMBER_NAME$(i)` | Members |
+| `STEAM_LOBBY_SET key$, value$` · `STEAM_LOBBY_GET$(key$)` | Lobby data |
+| `STEAM_PRESENCE key$, value$` · `STEAM_PRESENCE$(key$)` · `STEAM_PRESENCE_CLEAR key$` | Rich presence |
+| `STEAM_OVERLAY [page$]` · `STEAM_OVERLAY_ON()` | Steam overlay |
+| `STEAM_TICKET$()` · `STEAM_TICKET_CANCEL` | Auth session ticket |
+| `STEAM_DLC_COUNT()` · `STEAM_DLC(appid)` | DLC |
+
+## Notes
+
+- The commands are registered by the module, so they appear in completion,
+ hover and Ctrl+click like built-ins.
+- SteamIDs are text in the program and numbers internally; spaces are
+ ignored, an invalid id sets `STEAM_ERROR$()` and returns 0.
+- The module compiles into the program (INLINE). A built EXE embeds it and
+ needs only the Steam library next to it; the HTML5 player ignores it.
+
+---
+
+Generated from `@help` blocks in the module's GBX sources.

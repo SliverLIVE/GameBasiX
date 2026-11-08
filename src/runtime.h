@@ -15,7 +15,6 @@
 #include "hotreload.h"
 #include "net.h"
 #include "project.h"
-#include "steam.h"
 #include "value.h"
 
 struct Debugger;
@@ -34,7 +33,6 @@ struct Runtime {
     HotReload hot;  // Assets, die im laufenden Programm nachgeladen werden
     FileSet files;
     Net net;
-    Steam steam;
     std::string netError;  // letzter Fehler von NET_ERROR$
     std::string netFrom;   // Absender des letzten UDP-Pakets (UDP_FROM$)
     Program* prog = nullptr;

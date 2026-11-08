@@ -1,7 +1,7 @@
 {
   "name": "gbx-studio",
   "productName": "GBX Studio",
-  "version": "1.2.33",
+  "version": "1.4.0",
   "description": "IDE für GameBasiX: Editor, Befehlsreferenz, Syntaxprüfung und direkter Start des Interpreters.",
   "private": true,
   "type": "module",
@@ -10,6 +10,7 @@
     "start": "electron .",
     "web": "node src/server/cli.mjs",
     "build:dataset": "node scripts/build-dataset.mjs",
+    "build:modules": "node scripts/build-modules.mjs",
     "test": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
@@ -38,6 +39,12 @@
       "!**/*.map"
     ],
     "asar": true,
+    "extraResources": [
+      {
+        "from": "../modules",
+        "to": "modules"
+      }
+    ],
     "win": {
       "target": [
         {

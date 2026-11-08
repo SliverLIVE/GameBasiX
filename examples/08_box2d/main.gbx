@@ -1,95 +1,76 @@
 ' ============================================================
-' BOX2D-LITE: embedding a third-party C++ library in GBX
+' BOX2D: physics from the module, drawn with the normal GBX commands
 ' Run: gbx examples/08_box2d/box2d.gbxproj
 '
-' The INLINE block at the top includes box2d_gbx.h. It contains
-' Box2D-Lite (Erin Catto, MIT license) plus a small wrapper.
-' There are two ways into the library:
+' The whole engine lives in modules/box2d (Box2D-Lite, MIT license). This
+' example only creates bodies and draws them - no INLINE block, no local C++.
 '
-'   1. registered commands such as PHYSICS_BOX() and PHYSICS_STEP()
-'      - usable in any FUNCTION, without INLINE.
-'   2. C++ functions such as gbxbox2d::x() directly in an INLINE
-'      step - here in the METHOD draw(), together with POLY_POINT.
-'
-' BASIC handles setup and input, C++ handles physics and drawing
-' the rotated corners. Each box is a textured polygon: one shared
-' crate texture, tinted by the per-box vertex color. T toggles it.
+'   BOX2D_BOX        creates a dynamic or static box
+'   BOX2D_JOINT      hangs the chain under the static anchor
+'   BOX2D_CORNER_X/Y gives the four rotated corners for POLY_BEGIN
+'   BOX2D_DEBUG_DRAW shows what the engine believes (D toggles it)
 ' ============================================================
 
-INLINE
-#include "box2d_gbx.h"
-ENDINLINE
+INCLUDE "modules/box2d/BOX2D.gbx"
 
-SET_SYSTEM_POINTER TRUE 
+SET_SYSTEM_POINTER TRUE
 SCREEN_SET 960, 640, 0
-WINDOW_TITLE "GameBasiX - Box2D-Lite"
+WINDOW_TITLE "GameBasiX - Box2D"
 LIMIT_FPS 60
+ALLOW_ESCAPE FALSE
 
 ' One crate texture, tinted per body by the vertex color below.
 GLOBAL Crate = 1
 GLOBAL UseTexture = 1
+GLOBAL ShowDebug = 1
 SPRITE_LOAD "assets/crate.png", Crate
 
 CONSTANT GROUND_Y = 630
+CONSTANT OUTLINE = RGB(9, 14, 22)
+
+GLOBAL ColorIndex = 0
+GLOBAL CurrentBox AS BOX
 
 TYPE BOX
   id AS INTEGER
   color AS INTEGER
 
-  ' Center and rotation come straight from the physics world. The four
-  ' corners are rotated in C++ and drawn as a filled polygon.
+  ' The four corners come from the module, already rotated. The polygon is
+  ' drawn exactly like a sprite: one texture, four points, per-box tint.
   METHOD draw:
-    INLINE
-      const int index = static_cast<int>(id);
-      const double px = gbxbox2d::x(index);
-      const double py = gbxbox2d::y(index);
-      const double a = gbxbox2d::angle(index);
-      const double hw = gbxbox2d::halfWidth(index);
-      const double hh = gbxbox2d::halfHeight(index);
-      const double c = std::cos(a);
-      const double s = std::sin(a);
+    x1 = BOX2D_CORNER_X(id, 0)
+    y1 = BOX2D_CORNER_Y(id, 0)
+    x2 = BOX2D_CORNER_X(id, 1)
+    y2 = BOX2D_CORNER_Y(id, 1)
+    x3 = BOX2D_CORNER_X(id, 2)
+    y3 = BOX2D_CORNER_Y(id, 2)
+    x4 = BOX2D_CORNER_X(id, 3)
+    y4 = BOX2D_CORNER_Y(id, 3)
 
-      auto corner = [&](double ex, double ey, double& ox, double& oy) {
-          ox = px + c * ex - s * ey;
-          oy = py + s * ex + c * ey;
-      };
+    IF UseTexture = 1
+      POLY_BEGIN(Crate)
+      POLY_POINT(x1, y1, 0, 0, color)
+      POLY_POINT(x2, y2, 1, 0, color)
+      POLY_POINT(x3, y3, 1, 1, color)
+      POLY_POINT(x4, y4, 0, 1, color)
+      POLY_END()
+    ELSE
+      POLY_BEGIN()
+      POLY_POINT(x1, y1, 0, 0, color)
+      POLY_POINT(x2, y2, 0, 0, color)
+      POLY_POINT(x3, y3, 0, 0, color)
+      POLY_POINT(x4, y4, 0, 0, color)
+      POLY_END()
+    ENDIF
 
-      double x1, y1, x2, y2, x3, y3, x4, y4;
-      corner(-hw, -hh, x1, y1);
-      corner( hw, -hh, x2, y2);
-      corner( hw,  hh, x3, y3);
-      corner(-hw,  hh, x4, y4);
-
-      if (UseTexture.value() > 0.5) {
-          /* Normalized texture coordinates: 0,0 is the top left of the
-           * sprite, 1,1 the bottom right. The vertex color tints it. */
-          POLY_BEGIN(Crate);
-          POLY_POINT(x1, y1, 0.0, 0.0, color);
-          POLY_POINT(x2, y2, 1.0, 0.0, color);
-          POLY_POINT(x3, y3, 1.0, 1.0, color);
-          POLY_POINT(x4, y4, 0.0, 1.0, color);
-          POLY_END();
-      } else {
-          POLY_BEGIN();
-          POLY_POINT(x1, y1, 0, 0, color);
-          POLY_POINT(x2, y2, 0, 0, color);
-          POLY_POINT(x3, y3, 0, 0, color);
-          POLY_POINT(x4, y4, 0, 0, color);
-          POLY_END();
-      }
-
-      DRAW_LINE(x1, y1, x2, y2, 0x0E1420);
-      DRAW_LINE(x2, y2, x3, y3, 0x0E1420);
-      DRAW_LINE(x3, y3, x4, y4, 0x0E1420);
-      DRAW_LINE(x4, y4, x1, y1, 0x0E1420);
-    ENDINLINE
+    DRAW_LINE(x1, y1, x2, y2, OUTLINE)
+    DRAW_LINE(x2, y2, x3, y3, OUTLINE)
+    DRAW_LINE(x3, y3, x4, y4, OUTLINE)
+    DRAW_LINE(x4, y4, x1, y1, OUTLINE)
   ENDMETHOD
 ENDTYPE
 
 DIM boxes[0] AS BOX
-
-GLOBAL ColorIndex = 0
-GLOBAL CurrentBox AS BOX
 
 FUNCTION RandomColor:
   ColorIndex = ColorIndex + 1
@@ -98,11 +79,10 @@ FUNCTION RandomColor:
   RETURN RGB(150, 226, 150)
 ENDFUNCTION
 
-' The normal way: BASIC creates a body, C++ stores it. PHYSICS_BOX
-' returns the ID, and the BASIC record keeps the ID and its color.
+' BASIC keeps the ID and the colour; the engine keeps everything else.
 FUNCTION NewBox: x, y, width, height, angle, isStatic, color
   LOCAL box AS BOX
-  box.id = PHYSICS_BOX(x, y, width, height, angle, isStatic, color)
+  box.id = BOX2D_BOX(x, y, width, height, angle, isStatic, 0.45)
   box.color = color
   DIMPUSH boxes[], box
   RETURN box.id
@@ -115,18 +95,45 @@ FUNCTION Tower: x, y, count, width, height
   RETURN count
 ENDFUNCTION
 
+' A chain of point-to-point joints under a static anchor. The impulse on the
+' last link starts the swing, so the joints are visible right away.
+FUNCTION Chain: x, y, links
+  anchor = BOX2D_BOX(x, y, 26, 26, 0, 1, 0.5)
+  previous = anchor
+  last = 0
+  FOR i = 0 TO links - 1
+    link = NewBox(x, y + 41 + i * 56, 22, 56, 0, 0, RGB(120, 130, 150))
+    BOX2D_JOINT(previous, link, x, y + 13 + i * 56)
+    previous = link
+    last = link
+  NEXT
+  BOX2D_IMPULSE(last, 1200, 0)
+  RETURN last
+ENDFUNCTION
+
 FUNCTION Rebuild:
-  PHYSICS_RESET()
+  BOX2D_WORLD(0, 900, 12)
   REDIM boxes[0] AS BOX
-  NewBox(480, 596, 90, 56, 0, 0, RandomColor())
+  ColorIndex = 0
+
+  ' floor: static, its top edge sits on GROUND_Y
+  BOX2D_BOX(480, GROUND_Y + 30, 1360, 60, 0, 1, 0.7)
+
   Tower(300, 590, 5, 70, 50)
   Tower(660, 590, 5, 70, 50)
   ' A static ramp in the middle: shows rotation and collision.
   NewBox(480, 500, 280, 20, -0.15, 1, RGB(120, 130, 150))
   ' A dynamic box resting on the ramp; it slides down on its own.
   NewBox(430, 470, 46, 34, -0.15, 0, RandomColor())
+
+  Chain(810, 90, 4)
   RETURN 0
 ENDFUNCTION
+
+' The overlay: shapes (1), centres (2), velocities (4), contacts (8),
+' normals (16), joints (32) and bounds (64).
+BOX2D_DEBUG_FLAGS(1 + 2 + 4 + 8 + 16 + 32 + 64)
+BOX2D_DEBUG_COLORS(RGB(94, 165, 255), RGB(100, 116, 139), RGB(255, 93, 93), RGB(240, 192, 64))
 
 Rebuild()
 
@@ -134,6 +141,7 @@ WHILE TRUE
   IF KEY_PRESSED(KEY_ESC) THEN END
   IF KEY_PRESSED(KEY_R) THEN Rebuild()
   IF KEY_PRESSED(KEY_T) THEN UseTexture = 1 - UseTexture
+  IF KEY_PRESSED(KEY_D) THEN ShowDebug = 1 - ShowDebug
 
   IF KEY_PRESSED(KEY_SPACE)
     FOR n = 0 TO 7
@@ -145,9 +153,9 @@ WHILE TRUE
     NewBox(MOUSE_AXIS(0), MOUSE_AXIS(1), 30 + RND(30), 30 + RND(30), RND(314) / 100.0, 0, RandomColor())
   ENDIF
 
-  ' Fixed step: the simulation always runs at 60 Hz, even if a frame
-  ' takes longer. The wrapper clamps dt as well.
-  PHYSICS_STEP(1.0 / 60.0)
+  ' Fixed step: the simulation always runs at 60 Hz, even if a frame takes
+  ' longer. The module clamps dt as well.
+  BOX2D_STEP(1.0 / 60.0)
 
   SCREEN_CLEAR RGB(10, 13, 20)
   DRAW_RECT 0, GROUND_Y, 960, 10, RGB(34, 43, 60)
@@ -158,12 +166,20 @@ WHILE TRUE
     CurrentBox.draw()
   NEXT
 
+  ' Everything the engine knows, on top of the sprites.
+  IF ShowDebug = 1
+    BOX2D_DEBUG_DRAW()
+  ENDIF
+
   TEXT_COLOR RGB(130, 205, 255)
-  PRINT "BOX2D-LITE", 24, 18
+  PRINT "BOX2D", 24, 18
   TEXT_COLOR RGB(140, 150, 168)
-  PRINT "C++ library embedded via INLINE - " + STR$(PHYSICS_COUNT() - 1) + " bodies", 24, 40
-  PRINT "Click: box   SPACE: row   R: reset   T: texture   ESC: quit", 24, 62
+  PRINT "bodies " + STR$(BOX2D_COUNT()) + "   joints " + STR$(BOX2D_JOINT_COUNT()) + "   contacts " + STR$(BOX2D_CONTACT_COUNT()), 24, 40
+  PRINT "Click: box   SPACE: row   R: reset   T: texture   D: debug draw   ESC: quit", 24, 62
+  IF ShowDebug = 1
+    TEXT_COLOR RGB(240, 192, 64)
+    PRINT "DEBUG DRAW: shapes, centres, velocity, contacts, normals, joints, bounds", 24, 84
+  ENDIF
 
   SCREEN_SHOW
 WEND
-

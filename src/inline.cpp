@@ -96,10 +96,34 @@ void hostBlit(GbxHost*, const void* rgba, int width, int height, int stride) {
     if (g_graphics) g_graphics->blitPixels(rgba, width, height, stride);
 }
 
+int hostSpritePixels(GbxHost*, int id, const void** rgba, int* width, int* height) {
+    if (!g_graphics || !rgba || !width || !height) return 0;
+    int w = 0, h = 0;
+    if (!g_graphics->spritePixelData(id, rgba, w, h)) return 0;
+    *width = w;
+    *height = h;
+    return 1;
+}
+
 void hostLog(GbxHost*, const char* text) {
     if (!text) return;
     std::printf("%s\n", text);
     std::fflush(stdout);
+}
+
+void* hostWindowHandle(GbxHost*) {
+    return g_graphics ? g_graphics->nativeWindowHandle() : nullptr;
+}
+
+void hostWindowSize(GbxHost*, int* width, int* height) {
+    if (!width || !height) return;
+    *width = 0;
+    *height = 0;
+    if (g_graphics) g_graphics->windowSize(*width, *height);
+}
+
+void* hostGlContext(GbxHost*) {
+    return g_graphics ? g_graphics->glContext() : nullptr;
 }
 
 GbxHost makeHost() {
@@ -110,6 +134,10 @@ GbxHost makeHost() {
     host.log = hostLog;
     host.user = nullptr;
     host.blit_screen = hostBlit;
+    host.sprite_pixels = hostSpritePixels;
+    host.window_handle = hostWindowHandle;
+    host.window_size = hostWindowSize;
+    host.gl_context = hostGlContext;
     return host;
 }
 
@@ -1039,13 +1067,68 @@ std::string generatedSource(const Program& prog) {
     return out.str();
 }
 
-/** Pfad der DLL: Hash aus Quelltext, Compiler und Include-Ordner. */
+std::string readTextFile(const fs::path& path);  // steht weiter unten
+
+/**
+ * Inhalte aller per #include "..." eingebundenen Header, rekursiv und mit
+ * demselben Suchpfad wie der Compiler (-I: Projektordner, dann die Ordner
+ * der eingebundenen .gbx, danach der Ordner des einbindenden Headers). Ohne
+ * diese Inhalte bliebe nach einer Aenderung an einem Modul-Header (steam.h,
+ * opengl3d.h, ...) die alte DLL im Cache liegen und das Programm liefe mit
+ * dem alten Code weiter.
+ */
+void collectHeaders(const std::string& code, const std::vector<fs::path>& dirs,
+                    std::set<std::string>& seen, std::string& out, int depth) {
+    size_t pos = 0;
+    while (depth > 0 && (pos = code.find("#include", pos)) != std::string::npos) {
+        size_t quote = pos + 8;
+        while (quote < code.size() && (code[quote] == ' ' || code[quote] == '\t')) ++quote;
+        if (quote >= code.size() || code[quote] != '"') {
+            pos += 8;
+            continue;
+        }
+        const size_t end = code.find('"', quote + 1);
+        if (end == std::string::npos) break;
+        const fs::path relative = code.substr(quote + 1, end - quote - 1);
+        pos = end + 1;
+        for (const auto& dir : dirs) {
+            std::error_code ec;
+            const fs::path candidate = dir / relative;
+            if (!fs::exists(candidate, ec)) continue;
+            const std::string key = fs::absolute(candidate, ec).string();
+            if (!seen.insert(key).second) break;  // schon gezaehlt
+            const std::string text = readTextFile(candidate);
+            out += key + "\n" + text + "\n";
+            std::vector<fs::path> nested = {candidate.parent_path()};
+            nested.insert(nested.end(), dirs.begin(), dirs.end());
+            collectHeaders(text, nested, seen, out, depth - 1);
+            break;
+        }
+    }
+}
+
+/** Header-Text aller Bloecke - Teil der Kennung einer INLINE-Bibliothek. */
+std::string headerText(const Program& prog) {
+    std::vector<fs::path> dirs;
+    if (!prog.baseDir.empty()) dirs.push_back(fs::path(prog.baseDir));
+    for (const auto& file : prog.includedFiles) {
+        const fs::path dir = fs::path(file).parent_path();
+        if (!dir.empty()) dirs.push_back(dir);
+    }
+    std::set<std::string> seen;
+    std::string out;
+    for (const auto& block : prog.inlines) collectHeaders(block.code, dirs, seen, out, 16);
+    return out;
+}
+
+/** Pfad der DLL: Hash aus Quelltext, eingebundenen Headern, Compiler und Include-Ordner. */
 fs::path libraryPath(const Program& prog, const std::string& compiler, const std::string& includeDir) {
     const std::string source = generatedSource(prog);
-    // "build-2": Die Windows-Bloecke werden seit dieser Fassung mit -static
-    // gelinkt. Der Zusatz macht alte DLLs im Cache ungueltig.
-    const std::string key =
-        source + "|" + compiler + "|" + includeDir + "|build-2|" + nativeKey();
+    // "build-3": Die Header der Bloecke gehoeren seit dieser Fassung zur
+    // Kennung. Der Zusatz macht alte DLLs im Cache ungueltig, die noch aus
+    // dem Text allein entstanden sind.
+    const std::string key = source + "|" + headerText(prog) + "|" + compiler + "|" +
+                            includeDir + "|build-3|" + nativeKey();
     std::error_code ec;
     fs::path dir = fs::temp_directory_path(ec) / "gbx-inline";
     fs::create_directories(dir, ec);

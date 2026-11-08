@@ -1,0 +1,63 @@
+' ---------------------------------------------------- widget store
+DIM UI_WIDGETS[0] AS UIWIDGET
+DIM UI_OPTS$[0]
+
+' ------------------------------------------------------ helpers
+' Blend two RGB colors: t = 0 keeps c1, t = 1 returns c2.
+FUNCTION uiMix: c1, c2, t
+  LOCAL r1 = FLOOR(c1 / 65536)
+  LOCAL g1 = FLOOR(FMOD(c1, 65536) / 256)
+  LOCAL b1 = FMOD(c1, 256)
+  LOCAL r2 = FLOOR(c2 / 65536)
+  LOCAL g2 = FLOOR(FMOD(c2, 65536) / 256)
+  LOCAL b2 = FMOD(c2, 256)
+  LOCAL r = FLOOR(r1 + (r2 - r1) * t + 0.5)
+  LOCAL g = FLOOR(g1 + (g2 - g1) * t + 0.5)
+  LOCAL b = FLOOR(b1 + (b2 - b1) * t + 0.5)
+  IF r < 0 THEN r = 0
+  IF g < 0 THEN g = 0
+  IF b < 0 THEN b = 0
+  IF r > 255 THEN r = 255
+  IF g > 255 THEN g = 255
+  IF b > 255 THEN b = 255
+  RETURN r * 65536 + g * 256 + b
+ENDFUNCTION
+
+FUNCTION uiNum$: v, dec
+  RETURN FORMAT$(0, dec, v)
+ENDFUNCTION
+
+' Decimal places needed for a slider step.
+FUNCTION uiDec: step
+  IF step >= 1 THEN RETURN 0
+  IF step >= 0.1 THEN RETURN 1
+  RETURN 2
+ENDFUNCTION
+
+' Cut a string so that it fits into maxw pixels.
+FUNCTION uiFit$: s$, maxw
+  LOCAL cw = 8
+  LOCAL ch = 8
+  LOCAL n = 0
+  IF maxw <= 0 THEN RETURN ""
+  IF s$ = "" THEN RETURN ""
+  FONT_SIZE cw, ch
+  IF cw < 1 THEN cw = 8
+  IF LEN(s$, 1) <= maxw THEN RETURN s$
+  n = FLOOR(maxw / cw)
+  IF n < 4 THEN RETURN ""
+  RETURN LEFT$(s$, n - 1) + "."
+ENDFUNCTION
+
+' A widget is visible when it and its window are open.
+FUNCTION uiVis: i
+  LOCAL p = 0
+  IF i < 0 THEN RETURN 0
+  IF i >= LEN(UI_WIDGETS[]) THEN RETURN 0
+  IF UI_WIDGETS[i].vis% = 0 THEN RETURN 0
+  p = UI_WIDGETS[i].win%
+  IF p >= 0 THEN
+    IF UI_WIDGETS[p].vis% = 0 THEN RETURN 0
+  ENDIF
+  RETURN 1
+ENDFUNCTION

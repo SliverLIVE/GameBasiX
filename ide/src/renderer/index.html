@@ -28,12 +28,16 @@
     </select>
     <div class="spacer"></div>
     <button class="tb-btn" id="btn-tools" title="Werkzeuge" data-i18n-title="Werkzeuge">🔧 <span data-i18n="Tools">Tools</span> ▾</button>
-    <button class="tb-btn" id="btn-toggle-ref" title="GBX-Referenz ein-/ausblenden" data-i18n-title="GBX-Referenz ein-/ausblenden">📖 <span data-i18n="Referenz">Referenz</span></button>
-    <button class="tb-btn icon lang-btn" id="btn-lang" title="Sprache wechseln" data-i18n-title="Sprache wechseln">DE</button>
+    <button class="tb-btn" id="btn-panels" title="Panels ein-/ausblenden" data-i18n-title="Panels ein-/ausblenden">▤ <span data-i18n="Panels">Panels</span> ▾</button>
+    <button class="tb-btn icon lang-btn" id="btn-lang" title="Sprache wechseln" data-i18n-title="Sprache wechseln"><span class="flag flag-de" id="lang-flag"></span><span id="lang-code">DE</span></button>
     <button class="tb-btn icon" id="btn-settings" title="Einstellungen" data-i18n-title="Einstellungen">⚙</button>
   </header>
 
   <div class="workspace" id="workspace">
+    <aside class="dock-zone sidebar2" id="sidebar2" data-zone="left2" aria-label="Linke äußere Andockzone"></aside>
+
+    <div class="splitter split-left2" id="split-left2" role="separator" aria-orientation="vertical" title="Breite ziehen" data-i18n-title="Breite ziehen"></div>
+
     <aside class="dock-zone sidebar" id="sidebar" data-zone="left" aria-label="Linke Andockzone"></aside>
 
     <div class="splitter split-left" id="split-left" role="separator" aria-orientation="vertical" title="Breite ziehen" data-i18n-title="Breite ziehen"></div>
@@ -101,6 +105,10 @@
     <div class="splitter split-right" id="split-right" role="separator" aria-orientation="vertical" title="Breite ziehen" data-i18n-title="Breite ziehen"></div>
 
     <aside class="dock-zone reference" id="reference" data-zone="right" aria-label="Rechte Andockzone"></aside>
+
+    <div class="splitter split-right2" id="split-right2" role="separator" aria-orientation="vertical" title="Breite ziehen" data-i18n-title="Breite ziehen"></div>
+
+    <aside class="dock-zone reference2" id="reference2" data-zone="right2" aria-label="Rechte äußere Andockzone"></aside>
   </div>
 
   <footer class="statusbar">
@@ -135,6 +143,23 @@
   <div class="dock-src" data-panel="outline">
     <div class="outline-body" id="outline-body">
       <div class="outline-empty" data-i18n="Keine Datei geöffnet.">Keine Datei geöffnet.</div>
+    </div>
+  </div>
+
+  <div class="dock-src" data-panel="modules">
+    <div class="modules-panel">
+      <div class="modules-search-wrap">
+        <span class="mag">⌕</span>
+        <input id="module-search" type="text" placeholder="Module suchen …" data-i18n-placeholder="Module suchen …" autocomplete="off" spellcheck="false">
+        <button class="icon-btn" id="btn-module-refresh" title="Module neu einlesen" data-i18n-title="Module neu einlesen">⟳</button>
+      </div>
+      <div class="module-list" id="module-list">
+        <div class="empty-hint" data-i18n="Module werden geladen …">Module werden geladen …</div>
+      </div>
+      <div class="splitter split-modules" id="split-modules" role="separator" aria-orientation="horizontal" title="Höhe ziehen" data-i18n-title="Höhe ziehen"></div>
+      <div class="module-detail" id="module-detail">
+        <div class="empty-hint" data-i18n="Wähle ein Modul. Die Dateien bleiben im zentralen Modules-Ordner.">Wähle ein Modul. Die Dateien bleiben im zentralen Modules-Ordner.</div>
+      </div>
     </div>
   </div>
 

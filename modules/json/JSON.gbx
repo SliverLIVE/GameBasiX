@@ -1,0 +1,144 @@
+' ============================================================
+' JSON - parse, inspect, edit and write JSON, in pure GBX
+'
+'@help
+'# JSON
+'
+'Parse JSON into dictionaries, read and write values by path, build
+'documents in code and serialize them back. Pure GBX: it runs in the
+'interpreter, in a built EXE and in the HTML5 player.
+'
+'The module is the folder `modules/json`; `JSON.gbx` is its entry file.
+'Add it with the Modules dock or write:
+'
+'```gbx
+'INCLUDE "modules/json/JSON.gbx"
+'```
+'
+'## Quick start
+'
+'```gbx
+'INCLUDE "modules/json/JSON.gbx"
+'
+'doc = JSON_PARSE("{""player"":{""name"":""Ada"",""hp"":100},""tags"":[""rpg""]}")
+'
+'PRINT JSON_GET_TEXT$(doc, "player.name", "?"), 10, 10   ' Ada
+'PRINT STR$(JSON_GET_NUM(doc, "player.hp", 0)), 10, 30  ' 100
+'PRINT JSON_GET_TEXT$(doc, "tags[0]", "?"), 10, 50      ' rpg
+'
+'JSON_SET_NUM doc, "player.hp", 90
+'JSON_APPEND_TEXT doc, "tags", "puzzle"
+'PRINT JSON_WRITE$(doc), 10, 70
+'```
+'
+'## Value model
+'
+'A parsed document uses the types GameBasiX already has:
+'
+'| JSON | GameBasiX |
+'| --- | --- |
+'| object | `DICT` with the marker key `"$"` = 10 |
+'| array | `DICT` with the marker key `"$"` = 11 and the keys `"0"`, `"1"`, ... |
+'| string | text |
+'| number | number |
+'| true / false | marked value, see `JSON_MAKE_TRUE()` / `JSON_MAKE_FALSE()` |
+'| null | marked value, see `JSON_MAKE_NULL()` |
+'
+'Because objects and arrays are dictionaries, a document can be walked with
+'`DICT_COUNT`, `DICT_KEY$` and `DICT_VALUE` as well - but skip the `"$"`
+'marker. `JSON_KIND`, `JSON_READ_*` and the path functions take care of it.
+'Object keys that start with `"$"` are escaped internally, so a real `"$"`
+'key never collides with the marker.
+'
+'| Constant | Meaning |
+'| --- | --- |
+'| `JSON_TYPE_NULL` | 0 |
+'| `JSON_TYPE_BOOL` | 1 |
+'| `JSON_TYPE_NUMBER` | 2 |
+'| `JSON_TYPE_STRING` | 3 |
+'| `JSON_TYPE_OBJECT` | 4 |
+'| `JSON_TYPE_ARRAY` | 5 |
+'
+'## Parsing and writing
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `JSON_PARSE(text$)` | Parse a value; on error a null value is returned |
+'| `JSON_VALID(text$)` | 1 when the text is valid JSON |
+'| `JSON_ERROR$()` | Last parse error, with the character position |
+'| `JSON_ERROR_POS()` | Position of the last error |
+'| `JSON_READ(path$)` | Read a UTF-8 file and parse it |
+'| `JSON_WRITE$(v)` | Compact JSON, one line |
+'| `JSON_WRITE_PRETTY$(v)` | Indented with two spaces per level |
+'| `JSON_WRITE_INDENTED$(v, indent)` | Indented with `indent` spaces |
+'| `JSON_SAVE(v, path$)` | Write pretty JSON to a file, 1 on success |
+'| `JSON_ESCAPE$(text$)` | Escape a string without the surrounding quotes |
+'
+'Parse errors never stop the program: `JSON_PARSE` returns a null value and
+'`JSON_ERROR$()` explains what went wrong. Nesting is limited to 48 levels.
+'
+'## Reading by path
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `JSON_GET(doc, path$)` | Raw value at the path, `0` when missing |
+'| `JSON_HAS(doc, path$)` | 1 when the path exists (also for null values) |
+'| `JSON_GET_TYPE(doc, path$)` | `JSON_TYPE_*`, `-1` when missing |
+'| `JSON_GET_NUM(doc, path$, fallback)` | Number, boolean as 0/1, else fallback |
+'| `JSON_GET_TEXT$(doc, path$, fallback$)` | Text, else fallback |
+'| `JSON_GET_BOOL(doc, path$, fallback)` | Boolean, numbers as 1/0, else fallback |
+'| `JSON_COUNT(doc, path$)` | Array length, object key count or text length |
+'| `JSON_KEY$(doc, path$, index)` | Object key by position (insertion order) |
+'| `JSON_AT(doc, path$, index)` | Array element or object value by position |
+'
+'A path is text: names select object keys, `[n]` selects an array element.
+'
+'```text
+'player.name          object key inside "player"
+'inventory[2].count   third element of the "inventory" array
+'[0].id               first element of an array document
+''                   the document itself
+'```
+'
+'## Building and editing
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `JSON_OBJECT()` | New empty object |
+'| `JSON_ARRAY()` | New empty array |
+'| `JSON_MAKE_NULL()`, `JSON_MAKE_TRUE()`, `JSON_MAKE_FALSE()`, `JSON_MAKE_BOOL(flag)` | Marked values |
+'| `JSON_SET(doc, path$, v)` | Store a value, creating missing containers |
+'| `JSON_SET_NULL`, `JSON_SET_BOOL`, `JSON_SET_NUM`, `JSON_SET_TEXT` | Typed variants |
+'| `JSON_APPEND(doc, path$, v)` | Append to an array, returns the index or -1 |
+'| `JSON_APPEND_NULL`, `JSON_APPEND_BOOL`, `JSON_APPEND_NUM`, `JSON_APPEND_TEXT` | Typed variants |
+'| `JSON_REMOVE(doc, path$)` | Remove a key or element; arrays close the gap |
+'| `JSON_CLEAR(doc, path$)` | Empty an object or array in place |
+'| `JSON_CLONE(v)` | Deep copy of a value |
+'
+'`JSON_SET` creates objects and arrays along the path: setting
+'`"world.rooms[3].name"` on a fresh object creates `world`, `rooms` and
+'fills indices 0 to 2 with null. Setting a value that contradicts the path
+'replaces the container, so `JSON_SET doc, "a.b", 1` after `a` was an array
+'turns `a` into an object and vice versa.
+'
+'## Inspecting a value
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `JSON_KIND(v)` | `JSON_TYPE_*` of any value |
+'| `JSON_TYPE_NAME$(v)` | `"null"`, `"boolean"`, `"number"`, `"string"`, `"object"`, `"array"` |
+'| `JSON_IS_NULL`, `JSON_IS_BOOL`, `JSON_IS_NUMBER`, `JSON_IS_STRING`, `JSON_IS_OBJECT`, `JSON_IS_ARRAY` | Type tests |
+'| `JSON_BOOL(v)` | true as 1, everything else 0 |
+'| `JSON_NUM(v)` | Number value, 0 otherwise |
+'| `JSON_TEXT$(v)` | Text value, "" otherwise |
+'
+'Native GBX arrays can be serialized as JSON arrays, and `JSON_AT` reads
+'them; parsed documents always use the dictionary representation so they can
+'mix numbers, text, objects and arrays freely.
+'
+'@endhelp
+
+INCLUDE "value.gbx"
+INCLUDE "path.gbx"
+INCLUDE "parse.gbx"
+INCLUDE "write.gbx"

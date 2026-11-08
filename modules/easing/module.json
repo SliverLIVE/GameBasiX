@@ -1,0 +1,31 @@
+{
+  "format": "gbx-module",
+  "id": "EASING",
+  "name": "Easing",
+  "version": "1.0.0",
+  "summary": "Easing curves for animations, backed by a prebuilt C++ archive.",
+  "description": "Interpolates between two values with linear, smoothstep, cubic in/out or back-out curves. The desktop build links lib/libeasing.a, which the IDE copies into the project and registers in [native] when the module is added. Removing the module deletes the copy and the entry again; HTML5 compiles the same curves directly.",
+  "folder": "easing",
+  "entry": "EASING.gbx",
+  "include": {
+    "entry": "modules/easing/EASING.gbx"
+  },
+  "files": [
+    "EASING.gbx",
+    "easing.h",
+    "easing.cpp"
+  ],
+  "native": {
+    "libs": [
+      "lib/libeasing.a"
+    ]
+  },
+  "tags": [
+    "easing",
+    "animation",
+    "interpolation",
+    "cpp",
+    "archive"
+  ],
+  "author": "GameBasiX"
+}

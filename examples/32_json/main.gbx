@@ -1,0 +1,189 @@
+' ============================================================
+' JSON - build, edit, save and read a settings document
+' Run: gbx examples/32_json/json.gbxproj
+'
+' The document is built in code, edited with the keyboard, written as
+' indented JSON into saves/settings.json and read back. The right side
+' always shows the serialized text, the left side the values behind it.
+'
+'   UP/DOWN  change player.hp
+'   M        toggle audio.music between 0.6 and 0
+'   T        append a tag to the array "tags"
+'   S        save,  L  read the file back,  R  reset
+'   ESC      quit
+' ============================================================
+
+INCLUDE "modules/json/JSON.gbx"
+
+SCREEN_SET 960, 640, 0
+WINDOW_TITLE "GameBasiX - JSON"
+LIMIT_FPS 60
+ALLOW_ESCAPE FALSE
+
+GLOBAL doc
+GLOBAL code$ = ""
+GLOBAL status$ = "Ready."
+GLOBAL statusOk = 1
+GLOBAL tagCount = 2
+GLOBAL saveFile$ = "saves/settings.json"
+
+GLOBAL colBg = RGB(13, 16, 21)
+GLOBAL colPanel = RGB(24, 29, 37)
+GLOBAL colEdge = RGB(45, 53, 65)
+GLOBAL colAccent = RGB(126, 209, 128)
+GLOBAL colInk = RGB(230, 235, 242)
+GLOBAL colMuted = RGB(140, 152, 166)
+GLOBAL colWarn = RGB(255, 176, 92)
+
+FUNCTION buildDoc:
+  d = JSON_OBJECT()
+  JSON_SET_TEXT(d, "player.name", "Ada")
+  JSON_SET_NUM(d, "player.level", 3)
+  JSON_SET_NUM(d, "player.hp", 80)
+  JSON_SET_BOOL(d, "player.alive", 1)
+  JSON_SET_TEXT(d, "world.name", "Harbour")
+  JSON_SET_NUM(d, "world.seed", 2026)
+  JSON_SET_NUM(d, "audio.music", 0.6)
+  JSON_SET_NUM(d, "audio.sfx", 0.8)
+  JSON_APPEND_TEXT(d, "tags", "rpg")
+  JSON_APPEND_TEXT(d, "tags", "puzzle")
+  JSON_APPEND_NUM(d, "inventory", 3)
+  JSON_APPEND_TEXT(d, "inventory", "rope")
+  JSON_SET_NULL(d, "lastSave")
+  RETURN d
+ENDFUNCTION
+
+FUNCTION refresh:
+  code$ = JSON_WRITE_PRETTY$(doc)
+ENDFUNCTION
+
+FUNCTION say: message$, ok
+  status$ = message$
+  statusOk = ok
+ENDFUNCTION
+
+FUNCTION drawPanel: x, y, w, h, title$
+  DRAW_RECT x, y, w, h, colPanel
+  DRAW_RECT_BORDER x, y, w, h, colEdge
+  TEXT_COLOR colAccent
+  PRINT title$, x + 18, y + 12
+ENDFUNCTION
+
+FUNCTION row: label$, value$, x, y
+  TEXT_COLOR colMuted
+  PRINT label$, x, y
+  TEXT_COLOR colInk
+  PRINT value$, x + 170, y
+ENDFUNCTION
+
+doc = buildDoc()
+refresh()
+
+WHILE TRUE
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  IF KEY_PRESSED(KEY_UP) THEN
+    hp = JSON_GET_NUM(doc, "player.hp", 0)
+    IF hp < 100 THEN
+      JSON_SET_NUM doc, "player.hp", hp + 5
+      say("player.hp = " + JSON_WRITE$(JSON_GET(doc, "player.hp")), 1)
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_DOWN) THEN
+    hp = JSON_GET_NUM(doc, "player.hp", 0)
+    IF hp > 0 THEN
+      JSON_SET_NUM doc, "player.hp", hp - 5
+      say("player.hp = " + JSON_WRITE$(JSON_GET(doc, "player.hp")), 1)
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_M) THEN
+    music = JSON_GET_NUM(doc, "audio.music", 0)
+    IF music = 0 THEN
+      JSON_SET_NUM doc, "audio.music", 0.6
+      say("music on", 1)
+    ELSE
+      JSON_SET_NUM doc, "audio.music", 0
+      say("music muted", 1)
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_T) THEN
+    tagCount = tagCount + 1
+    JSON_APPEND_TEXT doc, "tags", "tag" + STR$(tagCount)
+    say("appended tags[" + STR$(JSON_COUNT(doc, "tags") - 1) + "]", 1)
+  ENDIF
+  IF KEY_PRESSED(KEY_S) THEN
+    DIR_MAKE "saves"
+    IF JSON_SAVE(doc, saveFile$) = 1 THEN
+      say("saved " + STR$(FILE_SIZE(saveFile$)) + " bytes", 1)
+    ELSE
+      say("cannot write " + saveFile$, 0)
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_L) THEN
+    load = JSON_READ(saveFile$)
+    IF LEN(JSON_ERROR$()) > 0 THEN
+      say(JSON_ERROR$(), 0)
+    ELSE
+      doc = load
+      say("read " + saveFile$, 1)
+    ENDIF
+  ENDIF
+  IF KEY_PRESSED(KEY_R) THEN
+    doc = buildDoc()
+    say("document reset", 1)
+  ENDIF
+
+  refresh()
+
+  SCREEN_CLEAR colBg
+  TEXT_COLOR colInk
+  PRINT "JSON", 30, 18
+  TEXT_COLOR colMuted
+  PRINT "one document, built in code, written to disk and read back", 30, 40
+
+  drawPanel(30, 76, 400, 300, "VALUES BY PATH")
+  row("player.name", JSON_GET_TEXT$(doc, "player.name", "-"), 50, 112)
+  row("player.level", JSON_WRITE$(JSON_GET(doc, "player.level")), 50, 140)
+  row("player.hp", JSON_WRITE$(JSON_GET(doc, "player.hp")), 50, 168)
+  row("player.alive", JSON_WRITE$(JSON_GET(doc, "player.alive")), 50, 196)
+  row("world.seed", JSON_WRITE$(JSON_GET(doc, "world.seed")), 50, 224)
+  row("audio.music", JSON_WRITE$(JSON_GET(doc, "audio.music")), 50, 252)
+  row("tags count", STR$(JSON_COUNT(doc, "tags")), 50, 280)
+  row("tags[0]", JSON_GET_TEXT$(doc, "tags[0]", "-"), 50, 308)
+  row("inventory[0]", JSON_WRITE$(JSON_GET(doc, "inventory[0]")), 50, 336)
+
+  drawPanel(30, 392, 400, 150, "TYPES")
+  TEXT_COLOR colMuted
+  PRINT "JSON_TYPE_NAME$ of player.hp:", 50, 428
+  TEXT_COLOR colInk
+  PRINT JSON_TYPE_NAME$(JSON_GET(doc, "player.hp")), 300, 428
+  TEXT_COLOR colMuted
+  PRINT "lastSave:", 50, 456
+  TEXT_COLOR colInk
+  PRINT JSON_TYPE_NAME$(JSON_GET(doc, "lastSave")), 300, 456
+  TEXT_COLOR colMuted
+  PRINT "missing path:", 50, 484
+  TEXT_COLOR colWarn
+  PRINT STR$(JSON_GET_NUM(doc, "no.such.path", -1)), 300, 484
+
+  drawPanel(450, 76, 480, 466, "JSON_WRITE_PRETTY$")
+  DIM lines$[0]
+  lineCount = SPLIT_STRING(code$, lines$, CHR$(10))
+  TEXT_COLOR colInk
+  FOR i = 0 TO lineCount - 1
+    IF i < 24 THEN PRINT lines$[i], 470, 106 + i * 17
+  NEXT
+
+  IF statusOk = 1 THEN
+    DRAW_RECT 30, 570, 8, 8, colAccent
+    TEXT_COLOR colInk
+  ELSE
+    DRAW_RECT 30, 570, 8, 8, colWarn
+    TEXT_COLOR colWarn
+  ENDIF
+  PRINT status$, 48, 568
+  TEXT_COLOR colMuted
+  PRINT "UP/DOWN hp   M music   T tag   S save   L load   R reset   ESC quit", 30, 600
+
+  SCREEN_SHOW
+WEND

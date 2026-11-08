@@ -1,0 +1,47 @@
+' ---------------------------------------------------- Bezier
+' Quadratic Bezier between three numbers; evaluate once per axis.
+FUNCTION MATH_BEZIER2: a, b, c, t
+  LOCAL u = 1 - t
+  RETURN u * u * a + 2 * u * t * b + t * t * c
+ENDFUNCTION
+
+' Cubic Bezier between four numbers; evaluate once per axis.
+FUNCTION MATH_BEZIER3: a, b, c, d, t
+  LOCAL u = 1 - t
+  RETURN u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d
+ENDFUNCTION
+
+' Catmull-Rom spline through b and c; a and d control the ends.
+FUNCTION MATH_CATMULL_ROM: a, b, c, d, t
+  LOCAL t2 = t * t
+  LOCAL t3 = t2 * t
+  RETURN 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3)
+ENDFUNCTION
+
+' ---------------------------------------------------- springs
+' One semi-implicit Euler step of a damped spring. value and velocity are
+' updated in place; dt is in seconds, stiffness and damping are per second.
+' Returns the new value. With a caller-owned velocity this is stable across
+' frame rates and does not need a fixed time step.
+FUNCTION MATH_SPRING: BYREF value, BYREF velocity, target, stiffness = 120, damping = 14, dt = 0.0166666667
+  IF dt <= 0 THEN RETURN value
+  LOCAL k = ABS(stiffness)
+  LOCAL d = ABS(damping)
+  velocity = velocity + (target - value) * k * dt
+  velocity = velocity * MATH_EXP(-d * dt)
+  value = value + velocity * dt
+  RETURN value
+ENDFUNCTION
+
+' Spring step for an angle. The spring always takes the short way round and
+' the value stays wrapped to -180..180.
+FUNCTION MATH_SPRING_ANGLE: BYREF value, BYREF velocity, target, stiffness = 120, damping = 14, dt = 0.0166666667
+  IF dt <= 0 THEN RETURN MATH_ANGLE_WRAP(value)
+  LOCAL k = ABS(stiffness)
+  LOCAL d = ABS(damping)
+  LOCAL delta = MATH_ANGLE_DIFF(value, target)
+  velocity = velocity + delta * k * dt
+  velocity = velocity * MATH_EXP(-d * dt)
+  value = MATH_ANGLE_WRAP(value + velocity * dt)
+  RETURN value
+ENDFUNCTION

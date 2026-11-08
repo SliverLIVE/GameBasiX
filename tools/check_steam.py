@@ -2,7 +2,7 @@
 """Prueft die STEAM_*-Befehle gegen eine Mock-steam_api.
 
 Baut tools/mock_steam_api.cpp zu einer Bibliothek, auf die GBX_STEAM_LIB
-zeigt, und laesst tests/steam_tests.gbx dagegen laufen. Damit ist der
+zeigt, und laesst modules/steam/tests/steam_tests.gbx dagegen laufen. Damit ist der
 komplette Weg abgedeckt - Bibliothek laden, Flat-API binden, Identitaet,
 Freundesliste und P2P-Pakete - ohne dass Steam installiert sein muss.
 
@@ -18,7 +18,7 @@ import tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GBX = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build", "gbx.exe"))
 MOCK = os.path.join(ROOT, "tools", "mock_steam_api.cpp")
-SCRIPT = os.path.join(ROOT, "tests", "steam_tests.gbx")
+SCRIPT = os.path.join(ROOT, "modules", "steam", "tests", "steam_tests.gbx")
 
 failures = 0
 

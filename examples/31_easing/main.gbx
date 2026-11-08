@@ -1,0 +1,77 @@
+' ============================================================
+' Easing module - one archive on the desktop, the same curves in HTML5
+' Run: gbx examples/31_easing/easing.gbxproj
+'
+' The project contains the INCLUDE line plus the archive that the
+' Modules dock copied into it:
+'   lib/easing/libeasing.a        [native] libs
+'
+' Removing the module in GBX Studio deletes the INCLUDE line, the
+' [native] entry and the copied archive again.
+' ============================================================
+
+INCLUDE "modules/easing/EASING.gbx"
+
+
+SCREEN_SET 960, 640, 0
+WINDOW_TITLE "GameBasiX - easing curves"
+LIMIT_FPS 60
+ALLOW_ESCAPE FALSE
+
+STDOUT "EASING example: smooth 0..10 at t=0.5 = " + STR$(EASE_VALUE(0, 10, 0.5, 1)) + CHR$(10)
+
+' One row: label, value and a marker on a track.
+FUNCTION lane: y, label$, mode, col, t
+  x = EASE_VALUE(90, 870, t, mode)
+  v = EASE_VALUE(0, 1, t, mode)
+
+  TEXT_COLOR RGB(140, 158, 182)
+  PRINT label$, 90, y
+  TEXT_COLOR col
+  PRINT FORMAT$(6, 3, v), 800, y
+
+  DRAW_RECT 90, y + 30, 780, 6, RGB(28, 39, 55)
+  DRAW_RECT 90, y + 30, x - 90, 6, col
+  DRAW_CIRCLE_FILLED x, y + 33, 9, col
+  DRAW_CIRCLE x, y + 33, 16, col
+ENDFUNCTION
+
+WHILE TRUE
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  ' 0..1 and back, so every curve is visible without a timer reset.
+  t = (SIN(ELAPSED_TIME() / 900.0) + 1) * 0.5
+
+  SCREEN_CLEAR RGB(8, 12, 20)
+  DRAW_RECT 0, 0, 960, 112, RGB(13, 20, 32)
+  DRAW_RECT 0, 112, 960, 1, RGB(38, 54, 76)
+
+  TEXT_COLOR RGB(110, 220, 255)
+  PRINT "EASING CURVES", 90, 26
+  TEXT_COLOR RGB(150, 168, 190)
+  PRINT "One t, four modes. Desktop: libeasing.a. HTML5: the same curves compiled into the player.", 90, 56
+
+  DRAW_RECT 90, 84, 780, 3, RGB(38, 54, 76)
+  DRAW_RECT 90, 84, 780 * t, 3, RGB(240, 200, 90)
+  DRAW_CIRCLE_FILLED 90 + 780 * t, 85, 5, RGB(255, 226, 138)
+
+  lane(152, "0   linear", 0, RGB(96, 165, 250), t)
+  lane(240, "1   smoothstep", 1, RGB(52, 211, 153), t)
+  lane(328, "2   cubic in/out", 2, RGB(244, 114, 182), t)
+  lane(416, "3   back out", 3, RGB(251, 191, 36), t)
+
+  ' The ball moves with smoothstep and jumps a little in the middle.
+  bx = EASE_VALUE(120, 840, t, 1)
+  lift = SIN(t * 3.14159) * 54
+
+  DRAW_RECT 100, 566, 760, 4, RGB(30, 43, 59)
+  DRAW_CIRCLE_FILLED bx, 568, 15, RGB(9, 15, 24)
+  DRAW_CIRCLE_FILLED bx, 536 - lift, 23, RGB(56, 189, 248)
+  DRAW_CIRCLE bx, 536 - lift, 33, RGB(125, 211, 252)
+  DRAW_CIRCLE_FILLED bx - 7, 528 - lift, 6, RGB(224, 242, 254)
+
+  TEXT_COLOR RGB(118, 136, 160)
+  PRINT "Same t for every row; only the mode changes. The ball uses smoothstep.", 90, 606
+
+  SCREEN_SHOW
+WEND

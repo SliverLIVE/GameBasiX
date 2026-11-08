@@ -2,6 +2,10 @@
 ' STEAM LINK - chat with a friend through Steam's P2P packets
 ' Run: gbx examples/12_steam/steam.gbxproj
 '
+' The STEAM_* commands come from the module modules/steam.
+' Put steam_api64.dll (Steamworks SDK,
+' https://partner.steamgames.com/downloads/list) next to gbx.exe.
+'
 ' Setup: steam_api64.dll next to gbx.exe (from the Steamworks
 ' SDK, folder redistributable_bin/win64), steam_appid.txt with
 ' your app id, and Steam running. Without them the window shows
@@ -10,6 +14,8 @@
 ' Keys: 1..9 pick a friend, letters type, ENTER sends,
 '       ESC quits.
 ' ============================================================
+
+INCLUDE "modules/steam/STEAM.gbx"
 
 TYPE STEAMLINK
   ready% = 0

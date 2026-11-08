@@ -1,0 +1,185 @@
+' ---------------------------------------------------- RECT2
+' Axis-aligned rectangle with x,y as the top-left corner.
+TYPE RECT2
+  x = 0
+  y = 0
+  w = 0
+  h = 0
+
+  METHOD set: px, py, pw, ph
+    x = px
+    y = py
+    w = pw
+    h = ph
+  ENDMETHOD
+
+  METHOD right:
+    RETURN x + w
+  ENDMETHOD
+
+  METHOD bottom:
+    RETURN y + h
+  ENDMETHOD
+
+  METHOD centerX:
+    RETURN x + w * 0.5
+  ENDMETHOD
+
+  METHOD centerY:
+    RETURN y + h * 0.5
+  ENDMETHOD
+
+  METHOD area:
+    RETURN w * h
+  ENDMETHOD
+
+  ' Right and bottom edges are exclusive.
+  METHOD contains: px, py
+    LOCAL left = MIN(x, x + w)
+    LOCAL right = MAX(x, x + w)
+    LOCAL top = MIN(y, y + h)
+    LOCAL bottom = MAX(y, y + h)
+    IF px < left OR px >= right THEN RETURN 0
+    IF py < top OR py >= bottom THEN RETURN 0
+    RETURN 1
+  ENDMETHOD
+
+  ' Touching edges are not an overlap.
+  METHOD overlaps: ox, oy, ow, oh
+    RETURN MATH_RECT_OVERLAP(x, y, w, h, ox, oy, ow, oh)
+  ENDMETHOD
+
+  ' Grows on all four sides; a negative amount shrinks it.
+  METHOD inflate: amount
+    x = x - amount
+    y = y - amount
+    w = w + amount * 2
+    h = h + amount * 2
+  ENDMETHOD
+ENDTYPE
+
+' ---------------------------------------------------- point tests
+' Right and bottom edges are exclusive.
+FUNCTION MATH_POINT_IN_RECT: px, py, x, y, w, h
+  LOCAL left = MIN(x, x + w)
+  LOCAL right = MAX(x, x + w)
+  LOCAL top = MIN(y, y + h)
+  LOCAL bottom = MAX(y, y + h)
+  IF px < left OR px >= right THEN RETURN 0
+  IF py < top OR py >= bottom THEN RETURN 0
+  RETURN 1
+ENDFUNCTION
+
+FUNCTION MATH_POINT_IN_CIRCLE: px, py, cx, cy, r
+  LOCAL dx = px - cx
+  LOCAL dy = py - cy
+  LOCAL radius = ABS(r)
+  RETURN dx * dx + dy * dy <= radius * radius
+ENDFUNCTION
+
+' ---------------------------------------------------- shape tests
+' Two axis-aligned rectangles. Touching edges are not an overlap.
+FUNCTION MATH_RECT_OVERLAP: x1, y1, w1, h1, x2, y2, w2, h2
+  LOCAL l1 = MIN(x1, x1 + w1)
+  LOCAL r1 = MAX(x1, x1 + w1)
+  LOCAL t1 = MIN(y1, y1 + h1)
+  LOCAL b1 = MAX(y1, y1 + h1)
+  LOCAL l2 = MIN(x2, x2 + w2)
+  LOCAL r2 = MAX(x2, x2 + w2)
+  LOCAL t2 = MIN(y2, y2 + h2)
+  LOCAL b2 = MAX(y2, y2 + h2)
+  IF r1 <= l2 OR r2 <= l1 THEN RETURN 0
+  IF b1 <= t2 OR b2 <= t1 THEN RETURN 0
+  RETURN 1
+ENDFUNCTION
+
+' Two circles. Touching circles count as an overlap.
+FUNCTION MATH_CIRCLE_OVERLAP: x1, y1, r1, x2, y2, r2
+  LOCAL dx = x2 - x1
+  LOCAL dy = y2 - y1
+  LOCAL reach = ABS(r1) + ABS(r2)
+  RETURN dx * dx + dy * dy <= reach * reach
+ENDFUNCTION
+
+' Circle against an axis-aligned rectangle.
+FUNCTION MATH_CIRCLE_RECT_OVERLAP: cx, cy, r, x, y, w, h
+  LOCAL left = MIN(x, x + w)
+  LOCAL right = MAX(x, x + w)
+  LOCAL top = MIN(y, y + h)
+  LOCAL bottom = MAX(y, y + h)
+  LOCAL nx = MATH_CLAMP(cx, left, right)
+  LOCAL ny = MATH_CLAMP(cy, top, bottom)
+  LOCAL dx = cx - nx
+  LOCAL dy = cy - ny
+  LOCAL radius = ABS(r)
+  RETURN dx * dx + dy * dy <= radius * radius
+ENDFUNCTION
+
+' ---------------------------------------------------- penetration
+' How far the first rectangle has to move along x to leave the second.
+' 0 when they do not overlap, positive = right, negative = left.
+FUNCTION MATH_RECT_OVERLAP_X: x1, y1, w1, h1, x2, y2, w2, h2
+  LOCAL l1 = MIN(x1, x1 + w1)
+  LOCAL r1 = MAX(x1, x1 + w1)
+  LOCAL l2 = MIN(x2, x2 + w2)
+  LOCAL r2 = MAX(x2, x2 + w2)
+  LOCAL t1 = MIN(y1, y1 + h1)
+  LOCAL b1 = MAX(y1, y1 + h1)
+  LOCAL t2 = MIN(y2, y2 + h2)
+  LOCAL b2 = MAX(y2, y2 + h2)
+  IF b1 <= t2 OR b2 <= t1 THEN RETURN 0
+  LOCAL pushRight = r1 - l2
+  LOCAL pushLeft = r2 - l1
+  IF pushRight <= 0 OR pushLeft <= 0 THEN RETURN 0
+  IF pushRight < pushLeft THEN RETURN pushRight
+  RETURN -pushLeft
+ENDFUNCTION
+
+' How far the first rectangle has to move along y to leave the second.
+' 0 when they do not overlap, positive = down, negative = up.
+FUNCTION MATH_RECT_OVERLAP_Y: x1, y1, w1, h1, x2, y2, w2, h2
+  LOCAL l1 = MIN(x1, x1 + w1)
+  LOCAL r1 = MAX(x1, x1 + w1)
+  LOCAL l2 = MIN(x2, x2 + w2)
+  LOCAL r2 = MAX(x2, x2 + w2)
+  LOCAL t1 = MIN(y1, y1 + h1)
+  LOCAL b1 = MAX(y1, y1 + h1)
+  LOCAL t2 = MIN(y2, y2 + h2)
+  LOCAL b2 = MAX(y2, y2 + h2)
+  IF r1 <= l2 OR r2 <= l1 THEN RETURN 0
+  LOCAL pushDown = b1 - t2
+  LOCAL pushUp = b2 - t1
+  IF pushDown <= 0 OR pushUp <= 0 THEN RETURN 0
+  IF pushDown < pushUp THEN RETURN pushDown
+  RETURN -pushUp
+ENDFUNCTION
+
+' ---------------------------------------------------- segments
+' 1 when the point lies on the segment, including its ends.
+FUNCTION MATH_POINT_ON_SEGMENT: px, py, x1, y1, x2, y2, epsilon = MATH_EPS
+  LOCAL tolerance = ABS(epsilon)
+  LOCAL cross = (x2 - x1) * (py - y1) - (y2 - y1) * (px - x1)
+  IF ABS(cross) > tolerance THEN RETURN 0
+  IF px < MIN(x1, x2) - tolerance OR px > MAX(x1, x2) + tolerance THEN RETURN 0
+  IF py < MIN(y1, y2) - tolerance OR py > MAX(y1, y2) + tolerance THEN RETURN 0
+  RETURN 1
+ENDFUNCTION
+
+' 1 when the two segments cross or touch.
+FUNCTION MATH_SEGMENT_INTERSECT: ax, ay, bx, by, cx, cy, dx, dy
+  LOCAL d1 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx)
+  LOCAL d2 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx)
+  LOCAL d3 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+  LOCAL d4 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax)
+
+  IF ((d1 > 0 AND d2 < 0) OR (d1 < 0 AND d2 > 0)) AND ((d3 > 0 AND d4 < 0) OR (d3 < 0 AND d4 > 0)) THEN
+    RETURN 1
+  ENDIF
+
+  ' Collinear or touching cases: a shared point lies on the other segment.
+  IF MATH_NEAR(d1, 0) AND MATH_POINT_ON_SEGMENT(ax, ay, cx, cy, dx, dy) THEN RETURN 1
+  IF MATH_NEAR(d2, 0) AND MATH_POINT_ON_SEGMENT(bx, by, cx, cy, dx, dy) THEN RETURN 1
+  IF MATH_NEAR(d3, 0) AND MATH_POINT_ON_SEGMENT(cx, cy, ax, ay, bx, by) THEN RETURN 1
+  IF MATH_NEAR(d4, 0) AND MATH_POINT_ON_SEGMENT(dx, dy, ax, ay, bx, by) THEN RETURN 1
+  RETURN 0
+ENDFUNCTION

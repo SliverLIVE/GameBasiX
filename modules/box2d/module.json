@@ -1,0 +1,35 @@
+{
+  "format": "gbx-module",
+  "id": "BOX2D",
+  "name": "Box2D",
+  "version": "1.0.0",
+  "summary": "Complete 2D physics with Box2D-Lite: boxes, joints, contacts, queries and DebugDraw.",
+  "description": "Wraps Box2D-Lite (Erin Catto, MIT license) into one module. It provides a world with gravity, solver switches and iteration count, dynamic and static boxes, point-to-point joints, forces, impulses, mass and friction control, readable body state including rotated corners, a contact list with position, normal, depth and impulse, point and ray queries, and a DebugDraw overlay that draws shapes, centres, velocities, contacts, normals, joints and bounds with the normal GBX drawing commands. The first run compiles the INLINE block with g++.",
+  "folder": "box2d",
+  "entry": "BOX2D.gbx",
+  "include": {
+    "entry": "modules/box2d/BOX2D.gbx"
+  },
+  "files": [
+    "BOX2D.gbx",
+    "box2d.h",
+    "box2d/common.h",
+    "box2d/world.h",
+    "box2d/body.h",
+    "box2d/joint.h",
+    "box2d/query.h",
+    "box2d/debug.h",
+    "box2d/commands.h",
+    "box2d_lite.h"
+  ],
+  "tags": [
+    "physics",
+    "box2d",
+    "collision",
+    "joints",
+    "debug",
+    "inline",
+    "simulation"
+  ],
+  "author": "GameBasiX"
+}

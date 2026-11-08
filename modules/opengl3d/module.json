@@ -1,0 +1,29 @@
+{
+  "format": "gbx-module",
+  "id": "OPENGL3D",
+  "name": "OpenGL 3D",
+  "version": "2.1.0",
+  "summary": "A full 3D renderer for GameBasiX (OpenGL on Windows, software in HTML5).",
+  "description": "Renders 3D scenes and copies the finished frame into the normal GameBasiX screen. Windows uses a hidden OpenGL 1.1 context; the HTML5 player uses a built-in software rasterizer with the same commands. It provides perspective and orthographic projections, a push/pop transform stack, directional lighting, boxes, cubes, spheres, cylinders and cones, quads, grids, lines, triangles and points, plus depth test, back-face culling, alpha blending, line width and point size. Sprites loaded with SPRITE_LOAD, SPRITE_GRAB or ANIM_LOAD can be bound as textures for quads and cubes. The first run compiles the INLINE block with g++.",
+  "folder": "opengl3d",
+  "entry": "OPENGL3D.gbx",
+  "include": {
+    "entry": "modules/opengl3d/OPENGL3D.gbx"
+  },
+  "files": [
+    "OPENGL3D.gbx",
+    "opengl3d.h"
+  ],
+  "tags": [
+    "3d",
+    "opengl",
+    "windows",
+    "inline",
+    "renderer",
+    "transform",
+    "lighting",
+    "texture",
+    "software"
+  ],
+  "author": "GameBasiX"
+}

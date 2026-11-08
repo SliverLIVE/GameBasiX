@@ -44,6 +44,20 @@ let debugValueFor = null;
 // vorgeschlagen und im Hover erklaert.
 let inlineCommands = [];
 
+// Markdown-Hilfe und Hovertexte aus den zentralen Modulen. Der Schluessel
+// ist immer GROSS geschrieben, damit `app.window` und `UI.WINDOW` passen.
+let moduleDocs = [];
+
+export function setModuleDocs(list) {
+  moduleDocs = (Array.isArray(list) ? list : []).map((doc) => ({
+    ...doc,
+    id: String(doc.id || ''),
+    tooltips: Object.fromEntries(
+      Object.entries(doc.tooltips || {}).map(([key, value]) => [String(key).toUpperCase(), value])
+    )
+  }));
+}
+
 /**
  * Eintrag zu einem Namen, den das Projekt per GBX_INLINE_FN(...) anmeldet.
  * Die Definition steht dann im Header oder in der CPP-Datei.
@@ -1575,8 +1589,34 @@ export function attachKeywordCasing(monaco, editor, dataset) {
   });
 }
 
+/** Befehle, die eine Bilddatei laden – der Hover zeigt eine Vorschau davon. */
+const SPRITE_IMAGE_COMMANDS = new Set(['SPRITE_LOAD', 'ANIM_LOAD']);
+const IMAGE_FILE_EXTENSION = /\.(png|jpe?g|bmp|gif|webp)$/i;
+
+/**
+ * Bilddatei einer SPRITE_LOAD/ANIM_LOAD-Zeile fuer die Hover-Vorschau.
+ * `column` ist 1-basiert wie in Monaco. Der Pfad zaehlt, wenn der Zeiger auf
+ * dem Befehl oder auf dem String-Literal steht; sonst kommt '' zurueck.
+ */
+export function spriteImageAtLine(line, column) {
+  const text = String(line || '');
+  const match = /\b(SPRITE_LOAD|ANIM_LOAD)\b\s*("([^"]*)")?/i.exec(text);
+  if (!match || !SPRITE_IMAGE_COMMANDS.has(match[1].toUpperCase())) return '';
+  const index = Math.max(1, Math.min(Number(column) || 1, text.length + 1)) - 1;
+  const onCommand = index >= match.index && index < match.index + match[1].length;
+  const literalStart = match[2] ? match.index + match[0].indexOf(match[2]) : -1;
+  const onLiteral =
+    literalStart >= 0 && index >= literalStart && index <= literalStart + match[2].length;
+  if (!onCommand && !onLiteral) return '';
+  const file = String(match[3] || '').trim();
+  return IMAGE_FILE_EXTENSION.test(file) ? file : '';
+}
+
 export function registerGbx(monaco, dataset, options = {}) {
   const getSymbols = options.getSymbols || (() => ({ functions: [], types: [], variables: [], constants: [], enums: [] }));
+  // Projektordner und Asset-Ordner fuer die Bildvorschau im Hover.
+  const getProjectDir = options.getProjectDir || (() => '');
+  const getAssetDir = options.getAssetDir || (() => 'assets');
   // Die Analyse der aktiven Datei kommt aus der IDE (dort zwischengespeichert),
   // damit `self` denselben Stand sieht wie Outline und Symbolsuche.
   const getAnalysis = options.getAnalysis || ((model) => analyzeSource(model.getValue()));
@@ -2145,15 +2185,58 @@ export function registerGbx(monaco, dataset, options = {}) {
     }
   });
 
+  /** Erste vorhandene Datei der Kandidaten (HEAD auf /api/file/raw). */
+  async function firstReadableFile(dir, candidates) {
+    for (const candidate of candidates) {
+      try {
+        const url = `/api/file/raw?dir=${encodeURIComponent(dir)}&file=${encodeURIComponent(candidate)}`;
+        if ((await fetch(url, { method: 'HEAD' })).ok) return candidate;
+      } catch {
+        /* Kein Netz: dann bleibt es beim Pfad aus dem Quelltext. */
+      }
+    }
+    return '';
+  }
+
+  /** Bildvorschau fuer SPRITE_LOAD/ANIM_LOAD: das geladene Bild im Hover. */
+  async function imagePreviewHover(model, position) {
+    const dir = String(getProjectDir() || '');
+    if (!dir) return null;
+    const file = spriteImageAtLine(model.getLineContent(position.lineNumber), position.column);
+    if (!file) return null;
+    const assetDir = String(getAssetDir() || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    const candidates = [file];
+    if (assetDir && !file.toLowerCase().startsWith(`${assetDir.toLowerCase()}/`)) {
+      candidates.push(`${assetDir}/${file}`);
+    }
+    const found = await firstReadableFile(dir, candidates);
+    const shown = found || file;
+    // Absolute URL: Monaco loest relative Bildpfade im Hover gegen file:// auf.
+    const url = `${location.origin}/api/file/raw?dir=${encodeURIComponent(dir)}&file=${encodeURIComponent(shown)}`;
+    return {
+      range: wordAt(model, position)?.range,
+      contents: [
+        {
+          value: found
+            ? `![${shown}](${url})`
+            : t('Bild nicht gefunden: {file}', { file: shown })
+        }
+      ]
+    };
+  }
+
   languages.registerHoverProvider('gbx', {
     async provideHover(model, position) {
+      const preview = await imagePreviewHover(model, position);
       const base = staticHover(model, position);
       // Im Haltepunkt steht der aktuelle Wert ueber der statischen Hilfe.
       const live = debugValueFor ? await debugValueFor(model, position) : null;
-      if (!live) return base;
-      const value = { value: debugHoverContents(live) };
-      if (!base) return { range: live.range, contents: [value] };
-      return { range: base.range, contents: [value, ...base.contents] };
+      const contents = [];
+      if (preview) contents.push(...preview.contents);
+      if (live) contents.push({ value: debugHoverContents(live) });
+      if (base) contents.push(...base.contents);
+      if (!contents.length) return null;
+      return { range: base?.range || live?.range || preview.range, contents };
     }
   });
 
@@ -2170,6 +2253,8 @@ export function registerGbx(monaco, dataset, options = {}) {
     if (!hit) return null;
     const word = hit.word;
     const own = ownTypeAt(model, position);
+    const moduleTip = moduleHoverFor(model, position, hit, own);
+    if (moduleTip) return { range: hit.range, contents: [{ value: moduleTip }] };
     // `self` im Methodenrumpf: eigenes Objekt samt Feldern und Methoden.
     // Außerhalb einer Methode bleibt es beim Schlüsselwort aus der Referenz.
     if (norm(word) === 'SELF') {
@@ -2404,6 +2489,72 @@ export function registerGbx(monaco, dataset, options = {}) {
       };
     }
     return null;
+  }
+
+  /** Kurztext eines Moduls: Summary, sonst der erste Absatz ohne Ueberschrift. */
+  function moduleIntro(doc) {
+    const summary = String(doc.summary || '').trim();
+    if (summary) return summary;
+    for (const part of String(doc.help || '').split(/\n\s*\n/)) {
+      const text = part.trim();
+      if (!text || /^#{1,6}\s/.test(text) || text.startsWith('```') || text.startsWith('|')) continue;
+      return text;
+    }
+    return '';
+  }
+
+  /** Hover aus `'@tooltip`-Bloecken der Module, auch fuer `app.window`. */
+  function moduleHoverFor(model, position, hit, own) {
+    if (!moduleDocs.length || !hit) return '';
+    const word = String(hit.word || '').toUpperCase();
+    const line = model.getLineContent(position.lineNumber);
+    const before = line.slice(0, hit.range.startColumn - 1);
+    const owner = /([A-Za-z_]\w*)\s*\.\s*$/.exec(before)?.[1] || '';
+    let ownerType = '';
+    if (owner) {
+      if (nameKey(owner) === 'SELF') {
+        ownerType = own?.type?.name || '';
+      } else {
+        const vars = [...(getAnalysis(model).variables || []), ...(getSymbols().variables || [])];
+        const variable = vars.find((entry) => nameKey(memberBaseName(entry.name)) === nameKey(owner));
+        if (variable) ownerType = memberBaseName(variable.type || '');
+      }
+    }
+    for (const doc of moduleDocs) {
+      const id = String(doc.id || '').toUpperCase();
+      if (ownerType && nameKey(ownerType) === nameKey(id)) {
+        const text = doc.tooltips[`${id}.${word}`];
+        if (text) return text;
+      }
+      if (!owner && nameKey(word) === nameKey(id)) {
+        const text = doc.tooltips[id] || moduleIntro(doc);
+        if (text) return text;
+      }
+    }
+    // Nackter Befehlsname wie `EASE_VALUE` oder `GL3D_CUBE`: der Tooltip steht
+    // als `@tooltip NAME` in der Modulquelle (GBX, Header oder CPP).
+    const bare = bareModuleTooltips(word);
+    if (bare.length === 1) return bare[0].text;
+    if (bare.length > 1) {
+      const texts = [...new Set(bare.map((entry) => entry.text))];
+      if (texts.length === 1) return texts[0];
+      // Mehrere Module erklaeren denselben Namen unterschiedlich: nach Modul
+      // getrennt zeigen, statt einen Treffer zu raten.
+      return bare.map((entry) => `**${entry.id}**\n\n${entry.text}`).join('\n\n---\n\n');
+    }
+    return '';
+  }
+
+  /** `@tooltip`-Eintraege aller Module zu einem Namen, ohne Modulbezug. */
+  function bareModuleTooltips(word) {
+    const found = [];
+    const keys = [word, word.replace(/[$%#]$/, '')];
+    for (const doc of moduleDocs) {
+      const id = String(doc.id || '').toUpperCase();
+      const text = keys.map((key) => doc.tooltips[key]).find(Boolean);
+      if (text) found.push({ id: id || String(doc.name || ''), text });
+    }
+    return found;
   }
 
   languages.registerSignatureHelpProvider('gbx', {
@@ -2683,7 +2834,9 @@ export function registerGbx(monaco, dataset, options = {}) {
         min: Number(entry?.min) || 0,
         max: entry?.max === undefined ? -1 : Number(entry.max),
         file: String(entry?.file || ''),
-        line: Number(entry?.line) || 0
+        line: Number(entry?.line) || 0,
+        // Befehle aus zentralen Modulen liegen hinter modules/<ordner>/.
+        module: Boolean(entry?.module)
       }))
       .filter((entry) => /^[A-Z_][A-Z0-9_$%#]*$/.test(entry.name))
       .sort((a, b) => a.name.localeCompare(b.name));

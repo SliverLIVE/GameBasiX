@@ -151,7 +151,8 @@ try {
     const builtins = new Set([...source.matchAll(/add\("([^"]+)"/g)].map((match) => match[1].toUpperCase()));
     const entries = new Map(dataset.commands.map((entry) => [entry.name.toUpperCase(), entry]));
 
-    assert.equal(builtins.size, 303, 'Interpreter-Befehle');
+    // Steam is a module now; its commands are no longer builtins.cpp entries.
+    assert.equal(builtins.size, 239, 'Interpreter-Befehle');
     for (const name of builtins) assert.ok(entries.has(name), `${name} fehlt im Datensatz`);
     // Steuerwörter, die früher in der Vervollständigung fehlten.
     for (const keyword of ['INCLUDE', 'IF', 'ENDIF', 'SWAP', 'INC', 'DEC', 'TRY', 'CATCH', 'FINALLY', 'ENDTRY', 'THROW', 'STATIC']) {

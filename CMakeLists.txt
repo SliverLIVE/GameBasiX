@@ -86,7 +86,6 @@ add_executable(gbx
   src/builtins.cpp
   src/fileio.cpp
   src/net.cpp
-  src/steam.cpp
   src/graphics.cpp
   src/audio.cpp
   src/hotreload.cpp

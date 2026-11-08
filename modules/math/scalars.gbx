@@ -1,0 +1,147 @@
+' ---------------------------------------------------- constants
+CONST MATH_PI = 3.141592653589793
+CONST MATH_TAU = 6.283185307179586
+CONST MATH_E = 2.718281828459045
+CONST MATH_DEG2RAD = 0.0174532925199433
+CONST MATH_RAD2DEG = 57.29577951308232
+CONST MATH_EPS = 0.000001
+
+' ---------------------------------------------------- clamping
+' Keep a value inside a range. The bounds may be given in either order.
+FUNCTION MATH_CLAMP: value, low, high
+  LOCAL lo = MIN(low, high)
+  LOCAL hi = MAX(low, high)
+  IF value < lo THEN RETURN lo
+  IF value > hi THEN RETURN hi
+  RETURN value
+ENDFUNCTION
+
+FUNCTION MATH_CLAMP01: value
+  RETURN MATH_CLAMP(value, 0, 1)
+ENDFUNCTION
+
+' ---------------------------------------------------- interpolation
+' a at t = 0, b at t = 1. t outside 0..1 extrapolates.
+FUNCTION MATH_LERP: a, b, t
+  RETURN a + (b - a) * t
+ENDFUNCTION
+
+FUNCTION MATH_LERP_CLAMPED: a, b, t
+  RETURN a + (b - a) * MATH_CLAMP01(t)
+ENDFUNCTION
+
+' Where a value lies between a and b. An empty range reports 0.
+FUNCTION MATH_INV_LERP: a, b, value
+  IF a = b THEN RETURN 0
+  RETURN (value - a) / (b - a)
+ENDFUNCTION
+
+' Move a value from one range into another.
+FUNCTION MATH_REMAP: value, inLow, inHigh, outLow, outHigh
+  LOCAL t = MATH_INV_LERP(inLow, inHigh, value)
+  RETURN outLow + (outHigh - outLow) * t
+ENDFUNCTION
+
+FUNCTION MATH_REMAP_CLAMPED: value, inLow, inHigh, outLow, outHigh
+  LOCAL t = MATH_CLAMP01(MATH_INV_LERP(inLow, inHigh, value))
+  RETURN outLow + (outHigh - outLow) * t
+ENDFUNCTION
+
+' ---------------------------------------------------- curves on a scalar
+' Soft 0..1 curve with a zero slope at both ends.
+FUNCTION MATH_SMOOTHSTEP: edge0, edge1, value
+  LOCAL lo = MIN(edge0, edge1)
+  LOCAL hi = MAX(edge0, edge1)
+  IF hi = lo THEN RETURN 0
+  LOCAL t = MATH_CLAMP01((value - lo) / (hi - lo))
+  RETURN t * t * (3 - 2 * t)
+ENDFUNCTION
+
+FUNCTION MATH_SMOOTHERSTEP: edge0, edge1, value
+  LOCAL lo = MIN(edge0, edge1)
+  LOCAL hi = MAX(edge0, edge1)
+  IF hi = lo THEN RETURN 0
+  LOCAL t = MATH_CLAMP01((value - lo) / (hi - lo))
+  RETURN t * t * t * (t * (t * 6 - 15) + 10)
+ENDFUNCTION
+
+' Step at most maxDelta towards target, never overshooting it.
+FUNCTION MATH_MOVE_TOWARD: current, target, maxDelta
+  IF maxDelta <= 0 THEN RETURN current
+  LOCAL delta = target - current
+  IF ABS(delta) <= maxDelta THEN RETURN target
+  IF delta > 0 THEN RETURN current + maxDelta
+  RETURN current - maxDelta
+ENDFUNCTION
+
+' ---------------------------------------------------- ranges
+' Wrap into [low, high). A value exactly at high becomes low again.
+FUNCTION MATH_WRAP: value, low, high
+  LOCAL lo = MIN(low, high)
+  LOCAL hi = MAX(low, high)
+  LOCAL span = hi - lo
+  IF span <= 0 THEN RETURN lo
+  LOCAL t = value - lo
+  t = t - FLOOR(t / span) * span
+  RETURN lo + t
+ENDFUNCTION
+
+' Bounce between 0 and length: 0, length, 0, length ...
+FUNCTION MATH_PINGPONG: value, length
+  LOCAL span = ABS(length)
+  IF span <= 0 THEN RETURN 0
+  LOCAL t = MATH_WRAP(value, 0, span * 2)
+  IF t > span THEN t = span * 2 - t
+  RETURN t
+ENDFUNCTION
+
+' Round to the nearest multiple of step.
+FUNCTION MATH_SNAP: value, step
+  LOCAL size = ABS(step)
+  IF size <= 0 THEN RETURN value
+  RETURN FLOOR(value / size + 0.5) * size
+ENDFUNCTION
+
+' Rescale a -1..1 axis so that a small centre dead zone reads 0.
+FUNCTION MATH_DEADZONE: value, deadzone
+  LOCAL dead = ABS(deadzone)
+  LOCAL magnitude = ABS(value)
+  IF dead >= 1 THEN RETURN 0
+  IF magnitude <= dead THEN RETURN 0
+  LOCAL scaled = (magnitude - dead) / (1 - dead)
+  IF value < 0 THEN RETURN -scaled
+  RETURN scaled
+ENDFUNCTION
+
+' ---------------------------------------------------- smoothing
+' e to the power of x. The language has LOGN but no EXP.
+FUNCTION MATH_EXP: x
+  RETURN POW(MATH_E, x)
+ENDFUNCTION
+
+' Frame-rate independent exponential smoothing towards target.
+' Larger lambda follows faster; dt is in seconds.
+FUNCTION MATH_DAMP: current, target, lambda, dt
+  IF dt <= 0 THEN RETURN current
+  IF lambda <= 0 THEN RETURN current
+  RETURN target + (current - target) * MATH_EXP(-lambda * dt)
+ENDFUNCTION
+
+FUNCTION MATH_DAMP_ANGLE: current, target, lambda, dt
+  IF dt <= 0 THEN RETURN MATH_ANGLE_WRAP(current)
+  IF lambda <= 0 THEN RETURN MATH_ANGLE_WRAP(current)
+  LOCAL delta = MATH_ANGLE_DIFF(current, target)
+  RETURN MATH_ANGLE_WRAP(current + delta * (1 - MATH_EXP(-lambda * dt)))
+ENDFUNCTION
+
+' ---------------------------------------------------- checks
+FUNCTION MATH_NEAR: a, b, epsilon = MATH_EPS
+  RETURN ABS(a - b) <= ABS(epsilon)
+ENDFUNCTION
+
+' Division that reports a fallback instead of infinity when the divisor
+' is zero or very small.
+FUNCTION MATH_SAFE_DIV: a, b, fallback = 0
+  IF ABS(b) <= MATH_EPS THEN RETURN fallback
+  RETURN a / b
+ENDFUNCTION

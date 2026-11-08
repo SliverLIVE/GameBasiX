@@ -1,0 +1,376 @@
+' ============================================================
+' JSON - parser
+'
+' Recursive descent over a text. The globals are reset by JSON_PARSE, so a
+' parse never inherits state from the previous one.
+' ============================================================
+
+GLOBAL jsonSrc$ = ""
+GLOBAL jsonPos = 0
+GLOBAL jsonErr$ = ""
+GLOBAL jsonOK = 1
+GLOBAL jsonDepth = 0
+
+CONSTANT JSON_MAX_DEPTH = 48
+
+' ------------------------------------------------------------- plumbing
+
+FUNCTION jsonPeek$:
+  IF jsonPos >= LEN(jsonSrc$) THEN RETURN ""
+  RETURN MID$(jsonSrc$, jsonPos, 1)
+ENDFUNCTION
+
+FUNCTION jsonFail: message$
+  IF jsonOK = 1 THEN
+    jsonOK = 0
+    jsonErr$ = message$ + " at character " + STR$(jsonPos)
+  ENDIF
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION jsonSkipWs:
+  LOCAL done
+  LOCAL c$
+  done = 0
+  WHILE jsonPos < LEN(jsonSrc$) AND done = 0
+    c$ = MID$(jsonSrc$, jsonPos, 1)
+    IF c$ = " " OR c$ = CHR$(9) OR c$ = CHR$(10) OR c$ = CHR$(13) THEN
+      jsonPos = jsonPos + 1
+    ELSE
+      done = 1
+    ENDIF
+  WEND
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION jsonHexDigit: c$
+  LOCAL code
+  IF LEN(c$) = 0 THEN RETURN -1
+  code = ASC(c$)
+  IF code >= 48 AND code <= 57 THEN RETURN code - 48
+  IF code >= 97 AND code <= 102 THEN RETURN code - 87
+  IF code >= 65 AND code <= 70 THEN RETURN code - 55
+  RETURN -1
+ENDFUNCTION
+
+' Four hex digits after \u, returned as a code point.
+FUNCTION jsonHex4:
+  LOCAL code, i, d, x
+  LOCAL c$
+  code = 0
+  FOR i = 0 TO 3
+    c$ = jsonPeek$()
+    d = jsonHexDigit(c$)
+    IF d < 0 THEN
+      x = jsonFail("Four hex digits expected after \u")
+      RETURN 0
+    ENDIF
+    code = code * 16 + d
+    jsonPos = jsonPos + 1
+  NEXT
+  RETURN code
+ENDFUNCTION
+
+' Code point to UTF-8, so the text stays valid for prints, files and HTML5.
+FUNCTION jsonUtf8$: code
+  IF code < 128 THEN RETURN CHR$(code)
+  IF code < 2048 THEN
+    RETURN CHR$(192 + INTEGER(code / 64)) + CHR$(128 + MOD(code, 64))
+  ENDIF
+  IF code < 65536 THEN
+    RETURN CHR$(224 + INTEGER(code / 4096)) + CHR$(128 + MOD(INTEGER(code / 64), 64)) + CHR$(128 + MOD(code, 64))
+  ENDIF
+  RETURN CHR$(240 + INTEGER(code / 262144)) + CHR$(128 + MOD(INTEGER(code / 4096), 64)) + CHR$(128 + MOD(INTEGER(code / 64), 64)) + CHR$(128 + MOD(code, 64))
+ENDFUNCTION
+
+' ---------------------------------------------------------- the grammar
+
+FUNCTION jsonParseString:
+  LOCAL done, code, low, x
+  LOCAL out$, c$, e$
+  jsonPos = jsonPos + 1
+  out$ = ""
+  done = 0
+  WHILE done = 0 AND jsonOK = 1
+    IF jsonPos >= LEN(jsonSrc$) THEN
+      x = jsonFail("Unterminated string")
+      done = 1
+    ELSE
+      c$ = MID$(jsonSrc$, jsonPos, 1)
+      IF c$ = CHR$(34) THEN
+        jsonPos = jsonPos + 1
+        done = 1
+      ELSEIF c$ = CHR$(92) THEN
+        jsonPos = jsonPos + 1
+        e$ = MID$(jsonSrc$, jsonPos, 1)
+        jsonPos = jsonPos + 1
+        IF e$ = CHR$(34) THEN
+          out$ = out$ + CHR$(34)
+        ELSEIF e$ = CHR$(92) THEN
+          out$ = out$ + CHR$(92)
+        ELSEIF e$ = "/" THEN
+          out$ = out$ + "/"
+        ELSEIF e$ = "b" THEN
+          out$ = out$ + CHR$(8)
+        ELSEIF e$ = "f" THEN
+          out$ = out$ + CHR$(12)
+        ELSEIF e$ = "n" THEN
+          out$ = out$ + CHR$(10)
+        ELSEIF e$ = "r" THEN
+          out$ = out$ + CHR$(13)
+        ELSEIF e$ = "t" THEN
+          out$ = out$ + CHR$(9)
+        ELSEIF e$ = "u" THEN
+          code = jsonHex4()
+          IF code >= 55296 AND code <= 56319 THEN
+            IF MID$(jsonSrc$, jsonPos, 2) = CHR$(92) + "u" THEN
+              jsonPos = jsonPos + 2
+              low = jsonHex4()
+              IF low >= 56320 AND low <= 57343 THEN
+                code = 65536 + (code - 55296) * 1024 + (low - 56320)
+              ELSE
+                x = jsonFail("Invalid surrogate pair")
+              ENDIF
+            ELSE
+              x = jsonFail("Invalid surrogate pair")
+            ENDIF
+          ENDIF
+          IF jsonOK = 1 THEN out$ = out$ + jsonUtf8$(code)
+        ELSE
+          x = jsonFail("Unknown escape")
+        ENDIF
+      ELSE
+        out$ = out$ + c$
+        jsonPos = jsonPos + 1
+      ENDIF
+    ENDIF
+  WEND
+  RETURN out$
+ENDFUNCTION
+
+FUNCTION jsonParseNumber:
+  LOCAL negative, digits, scale, exponent, esign, edigits, x
+  LOCAL mant#, value#
+  negative = 0
+  IF jsonPeek$() = "-" THEN
+    negative = 1
+    jsonPos = jsonPos + 1
+  ENDIF
+  mant# = 0
+  digits = 0
+  WHILE jsonIsDigit(jsonPeek$())
+    mant# = mant# * 10 + ASC(jsonPeek$()) - 48
+    jsonPos = jsonPos + 1
+    digits = digits + 1
+  WEND
+  scale = 0
+  IF jsonPeek$() = "." THEN
+    jsonPos = jsonPos + 1
+    WHILE jsonIsDigit(jsonPeek$())
+      mant# = mant# * 10 + ASC(jsonPeek$()) - 48
+      scale = scale + 1
+      jsonPos = jsonPos + 1
+      digits = digits + 1
+    WEND
+  ENDIF
+  exponent = 0
+  IF jsonPeek$() = "e" OR jsonPeek$() = "E" THEN
+    jsonPos = jsonPos + 1
+    esign = 1
+    IF jsonPeek$() = "+" THEN
+      jsonPos = jsonPos + 1
+    ELSEIF jsonPeek$() = "-" THEN
+      esign = -1
+      jsonPos = jsonPos + 1
+    ENDIF
+    edigits = 0
+    WHILE jsonIsDigit(jsonPeek$())
+      exponent = exponent * 10 + ASC(jsonPeek$()) - 48
+      jsonPos = jsonPos + 1
+      edigits = edigits + 1
+    WEND
+    IF edigits = 0 THEN x = jsonFail("Exponent expected")
+    exponent = exponent * esign
+  ENDIF
+  IF digits = 0 THEN
+    x = jsonFail("Value expected")
+    RETURN 0
+  ENDIF
+  value# = mant# * POW(10, exponent - scale)
+  IF negative = 1 THEN RETURN -value#
+  RETURN value#
+ENDFUNCTION
+
+FUNCTION jsonParseWord: word$, v
+  LOCAL x
+  IF MID$(jsonSrc$, jsonPos, LEN(word$)) = word$ THEN
+    jsonPos = jsonPos + LEN(word$)
+    RETURN v
+  ENDIF
+  x = jsonFail("Expected '" + word$ + "'")
+  RETURN v
+ENDFUNCTION
+
+FUNCTION jsonParseObject:
+  LOCAL obj, done, v, x
+  LOCAL key$, c$
+  obj = JSON_OBJECT()
+  jsonPos = jsonPos + 1
+  jsonSkipWs()
+  IF jsonPeek$() = "}" THEN
+    jsonPos = jsonPos + 1
+    RETURN obj
+  ENDIF
+  done = 0
+  WHILE done = 0 AND jsonOK = 1
+    jsonSkipWs()
+    IF jsonPeek$() <> CHR$(34) THEN
+      x = jsonFail("Object key expected")
+      RETURN obj
+    ENDIF
+    key$ = jsonParseString()
+    jsonSkipWs()
+    IF jsonPeek$() <> ":" THEN
+      x = jsonFail("':' expected")
+      RETURN obj
+    ENDIF
+    jsonPos = jsonPos + 1
+    v = jsonParseValue()
+    IF jsonOK = 0 THEN RETURN obj
+    DICT_SET(obj, jsonKeyEncode$(key$), v)
+    jsonSkipWs()
+    c$ = jsonPeek$()
+    IF c$ = "," THEN
+      jsonPos = jsonPos + 1
+    ELSEIF c$ = "}" THEN
+      jsonPos = jsonPos + 1
+      done = 1
+    ELSE
+      x = jsonFail("',' or '}' expected")
+      RETURN obj
+    ENDIF
+  WEND
+  RETURN obj
+ENDFUNCTION
+
+FUNCTION jsonParseArray:
+  LOCAL arr, idx, done, v, x
+  LOCAL c$
+  arr = JSON_ARRAY()
+  jsonPos = jsonPos + 1
+  jsonSkipWs()
+  IF jsonPeek$() = "]" THEN
+    jsonPos = jsonPos + 1
+    RETURN arr
+  ENDIF
+  idx = 0
+  done = 0
+  WHILE done = 0 AND jsonOK = 1
+    v = jsonParseValue()
+    IF jsonOK = 0 THEN RETURN arr
+    DICT_SET(arr, STR$(idx), v)
+    idx = idx + 1
+    jsonSkipWs()
+    c$ = jsonPeek$()
+    IF c$ = "," THEN
+      jsonPos = jsonPos + 1
+    ELSEIF c$ = "]" THEN
+      jsonPos = jsonPos + 1
+      done = 1
+    ELSE
+      x = jsonFail("',' or ']' expected")
+      RETURN arr
+    ENDIF
+  WEND
+  RETURN arr
+ENDFUNCTION
+
+FUNCTION jsonParseValue:
+  LOCAL v, x
+  LOCAL c$
+  IF jsonDepth >= JSON_MAX_DEPTH THEN
+    x = jsonFail("Nesting deeper than " + STR$(JSON_MAX_DEPTH))
+    RETURN JSON_MAKE_NULL()
+  ENDIF
+  jsonDepth = jsonDepth + 1
+  jsonSkipWs()
+  c$ = jsonPeek$()
+  IF c$ = "{" THEN
+    v = jsonParseObject()
+  ELSEIF c$ = "[" THEN
+    v = jsonParseArray()
+  ELSEIF c$ = CHR$(34) THEN
+    v = jsonParseString()
+  ELSEIF c$ = "t" THEN
+    v = jsonParseWord("true", JSON_MAKE_TRUE())
+  ELSEIF c$ = "f" THEN
+    v = jsonParseWord("false", JSON_MAKE_FALSE())
+  ELSEIF c$ = "n" THEN
+    v = jsonParseWord("null", JSON_MAKE_NULL())
+  ELSE
+    v = jsonParseNumber()
+  ENDIF
+  jsonDepth = jsonDepth - 1
+  RETURN v
+ENDFUNCTION
+
+' --------------------------------------------------------------- public
+
+' Parses JSON text. On error the message is in JSON_ERROR$ and the result is
+' a null value, so a broken document never crashes the program.
+FUNCTION JSON_PARSE: text$
+  LOCAL v, x
+  jsonSrc$ = text$
+  jsonPos = 0
+  jsonErr$ = ""
+  jsonOK = 1
+  jsonDepth = 0
+  jsonSkipWs()
+  IF jsonOK = 0 THEN RETURN JSON_MAKE_NULL()
+  v = jsonParseValue()
+  jsonSkipWs()
+  IF jsonOK = 1 AND jsonPos < LEN(jsonSrc$) THEN
+    x = jsonFail("Unexpected text after the value")
+  ENDIF
+  IF jsonOK = 0 THEN RETURN JSON_MAKE_NULL()
+  RETURN v
+ENDFUNCTION
+
+FUNCTION JSON_VALID: text$
+  LOCAL v
+  v = JSON_PARSE(text$)
+  RETURN jsonOK
+ENDFUNCTION
+
+FUNCTION JSON_ERROR$:
+  RETURN jsonErr$
+ENDFUNCTION
+
+FUNCTION JSON_ERROR_POS:
+  RETURN jsonPos
+ENDFUNCTION
+
+' Reads a UTF-8 text file and parses it. Missing files set an error.
+FUNCTION JSON_READ: path$
+  LOCAL text$, line$
+  jsonErr$ = ""
+  jsonOK = 1
+  IF FILE_EXISTS(path$) = 0 THEN
+    jsonOK = 0
+    jsonErr$ = "File not found: " + path$
+    RETURN JSON_MAKE_NULL()
+  ENDIF
+  IF FILE_OPEN(1, path$, 1) = 0 THEN
+    jsonOK = 0
+    jsonErr$ = "Cannot read: " + path$
+    RETURN JSON_MAKE_NULL()
+  ENDIF
+  text$ = ""
+  WHILE FILE_EOF(1) = 0
+    FILE_READ_LINE 1, line$
+    IF LEN(text$) > 0 THEN text$ = text$ + CHR$(10)
+    text$ = text$ + line$
+  WEND
+  FILE_CLOSE 1
+  RETURN JSON_PARSE(text$)
+ENDFUNCTION

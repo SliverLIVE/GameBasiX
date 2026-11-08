@@ -1,0 +1,198 @@
+# Box2D
+
+A complete wrapper around **Box2D-Lite** (Erin Catto, MIT license): a 2D
+rigid body engine for boxes with gravity, friction, stacking, joints and
+contact queries. All physics lives in C++; BASIC creates bodies, reads their
+state and draws them. The module ends up in `modules/box2d`, `BOX2D.gbx` is
+its entry file and `box2d.h` the wrapper.
+
+Add the module with the Modules dock or write:
+
+```gbx
+INCLUDE "modules/box2d/BOX2D.gbx"
+```
+
+## Files
+
+The wrapper is split by topic; `box2d.h` is the umbrella header and pulls
+the parts together, so one include still provides everything:
+
+```text
+modules/box2d/
+ BOX2D.gbx            entry: help, INLINE include, BOX2D_DEBUG_DRAW
+ box2d.h              umbrella header - include this
+ box2d/common.h       world state, body and joint slots
+ box2d/world.h        BOX2D_STEP and the contact list
+ box2d/body.h         bodies: create, read, change
+ box2d/joint.h        point-to-point joints
+ box2d/query.h        point and ray queries
+ box2d/debug.h        DebugDraw
+ box2d/commands.h     the BOX2D_* registrations
+ box2d_lite.h         Box2D-Lite itself (unchanged)
+```
+
+A project whose INLINE block includes `box2d.h` gets the whole module; the
+parts are only there to keep the code readable.
+
+## Quick start
+
+```gbx
+INCLUDE "modules/box2d/BOX2D.gbx"
+
+SCREEN_SET 960, 640, 0
+BOX2D_WORLD 0, 900, 12
+
+ground = BOX2D_BOX(480, 660, 960, 60, 0, 1)      ' static floor
+crate = BOX2D_BOX(480, 80, 60, 60, 0, 0)         ' dynamic box
+
+WHILE TRUE
+ IF KEY_PRESSED(KEY_ESC) THEN END
+
+ BOX2D_STEP 1.0 / 60.0
+
+ SCREEN_CLEAR RGB(10, 13, 20)
+ DRAW_LINE BOX2D_CORNER_X(crate, 0), BOX2D_CORNER_Y(crate, 0), BOX2D_CORNER_X(crate, 1), BOX2D_CORNER_Y(crate, 1), RGB(120, 200, 255)
+ BOX2D_DEBUG_DRAW()
+ SCREEN_SHOW
+WEND
+```
+
+## World
+
+| Command | Meaning |
+| --- | --- |
+| `BOX2D_WORLD [gravityX, gravityY[, iterations]]` | New world, removes all bodies and joints; defaults 0, 900 and 12 |
+| `BOX2D_CLEAR` | Removes all bodies and joints, keeps gravity |
+| `BOX2D_GRAVITY gravityX[, gravityY]` | Changes the gravity |
+| `BOX2D_ITERATIONS count` | Solver iterations per step, default 12 |
+| `BOX2D_SOLVER [warmStart[, positionCorrection[, accumulateImpulses]]]` | Solver switches, all on by default |
+| `BOX2D_STEP [dt]` | Advances the simulation; `dt` is clamped to 1/240 … 1/30, default 1/60 |
+| `BOX2D_COUNT()` | Number of live bodies |
+
+Units are free: the wrapper never scales anything. The examples work in
+pixels with a gravity of 900 pixels per second squared.
+
+## Bodies
+
+| Command | Meaning |
+| --- | --- |
+| `BOX2D_BOX x, y, width, height, angle, isStatic[, friction[, mass]]` | Creates a box; returns its ID |
+| `BOX2D_REMOVE id` | Removes a body with its joints and contacts, 1 = ok |
+| `BOX2D_ALIVE(id)` | 1 while the ID is in use |
+| `BOX2D_X(id)` / `BOX2D_Y(id)` | Centre in world space |
+| `BOX2D_ANGLE(id)` / `BOX2D_DEGREES(id)` | Rotation in radians or degrees |
+| `BOX2D_VX(id)` / `BOX2D_VY(id)` / `BOX2D_SPEED(id)` | Velocity |
+| `BOX2D_SPIN(id)` | Angular velocity in radians per second |
+| `BOX2D_WIDTH(id)` / `BOX2D_HEIGHT(id)` | Full size |
+| `BOX2D_HALF_WIDTH(id)` / `BOX2D_HALF_HEIGHT(id)` | Half size |
+| `BOX2D_MASS(id)` / `BOX2D_FRICTION(id)` | Mass (0 for static) and friction |
+| `BOX2D_IS_STATIC(id)` | 1 for static bodies |
+| `BOX2D_CORNER_X(id, index)` / `BOX2D_CORNER_Y(id, index)` | One of the four corners, already rotated into the world |
+
+`x`/`y` is the centre, `angle` is in radians, `isStatic` 1 makes the body
+immovable. A `mass` of 0 means "from the area": a 60x60 box weighs 1. IDs
+stay valid after removals, so an array of IDs never shifts.
+
+Corner indices run clockwise from the unrotated top left: `0` top left,
+`1` top right, `2` bottom right, `3` bottom left — perfect for
+`POLY_BEGIN`/`POLY_POINT` or `DRAW_LINE`.
+
+## Changing a body
+
+| Command | Meaning |
+| --- | --- |
+| `BOX2D_PLACE id, x, y[, angle]` | Moves (and optionally turns) a body at once |
+| `BOX2D_TURN id, radians` | Sets the rotation |
+| `BOX2D_SET_VELOCITY id, vx[, vy]` | Sets the velocity |
+| `BOX2D_SET_SPIN id, radians` | Sets the angular velocity |
+| `BOX2D_SET_MASS id, mass` | Changes mass and inertia; 0 makes the body static |
+| `BOX2D_SET_FRICTION id, friction` | Changes the friction |
+| `BOX2D_FORCE id, fx[, fy]` | Force for the next step |
+| `BOX2D_TORQUE id, torque` | Torque for the next step |
+| `BOX2D_IMPULSE id, ix[, iy]` | Immediate change of velocity |
+| `BOX2D_IMPULSE_AT id, ix, iy, x, y` | Impulse at a world point, also spins the body |
+| `BOX2D_ANGULAR_IMPULSE id, value` | Immediate change of the spin |
+
+## Joints
+
+| Command | Meaning |
+| --- | --- |
+| `BOX2D_JOINT idA, idB, x, y` | Point-to-point joint, both bodies keep the anchor; returns a joint ID |
+| `BOX2D_JOINT_COUNT()` | Number of live joints |
+| `BOX2D_JOINT_REMOVE id` | Removes a joint |
+| `BOX2D_JOINT_AX(id)` / `BOX2D_JOINT_AY(id)` | World anchor on the first body |
+| `BOX2D_JOINT_BX(id)` / `BOX2D_JOINT_BY(id)` | World anchor on the second body |
+| `BOX2D_JOINT_SOFTNESS id, value` | Softness of the constraint, default 0 |
+| `BOX2D_JOINT_BIAS id, value` | Position correction factor, default 0.2 |
+| `BOX2D_JOINT_IMPULSE(id, axis)` | Accumulated impulse, `0` = x, `1` = y |
+
+```gbx
+anchor = BOX2D_BOX(160, 80, 26, 26, 0, 1)
+l1 = BOX2D_BOX(160, 121, 22, 56, 0, 0)
+l2 = BOX2D_BOX(160, 177, 22, 56, 0, 0)
+BOX2D_JOINT anchor, l1, 160, 93
+BOX2D_JOINT l1, l2, 160, 149
+```
+
+## Contacts
+
+`BOX2D_STEP` refreshes the contact list; it stays valid until the next step.
+Use a body ID to find out what touched what.
+
+| Command | Meaning |
+| --- | --- |
+| `BOX2D_CONTACT_COUNT()` | Number of contact points |
+| `BOX2D_CONTACT_BODY(i, which)` | Body ID of a contact, `0` = first, `1` = second |
+| `BOX2D_CONTACT_VALUE(i, what)` | `0`/`1` position, `2`/`3` normal, `4` depth, `5` impulse |
+| `BOX2D_TOUCHING(idA, idB)` | Number of contact points between two bodies |
+
+```gbx
+FOR i = 0 TO BOX2D_CONTACT_COUNT() - 1
+ IF BOX2D_CONTACT_BODY(i, 0) = ball THEN hit = 1
+NEXT
+```
+
+## Queries
+
+| Command | Meaning |
+| --- | --- |
+| `BOX2D_AT x, y[, includeStatic]` | Body under a point; the newest one wins, 0 = none |
+| `BOX2D_RAY x, y, dx, dy[, maxT]` | Ray `p + d * t`; returns the body, 0 = nothing hit |
+| `BOX2D_HIT(what)` | Last ray hit: `0`/`1` point, `2` t, `3`/`4` normal |
+
+```gbx
+target = BOX2D_RAY(MOUSE_AXIS(0), MOUSE_AXIS(1), 0, 1, 2000)
+IF target > 0 THEN PRINT "hit " + STR$(BOX2D_HIT(0)) + " / " + STR$(BOX2D_HIT(1)), 10, 10
+```
+
+## DebugDraw
+
+`BOX2D_DEBUG_DRAW` draws the physics state with the normal GBX drawing
+commands, so you can compare what you see with what the engine believes.
+Call it after `BOX2D_STEP`, before `SCREEN_SHOW`.
+
+| Command | Meaning |
+| --- | --- |
+| `BOX2D_DEBUG_DRAW()` | Draws everything enabled by the flags |
+| `BOX2D_DEBUG_FLAGS flags` | Bit 1 shapes, 2 centres, 4 velocities, 8 contacts, 16 normals, 32 joints, 64 bounds |
+| `BOX2D_DEBUG_COLORS shape, static[, contact[, joint]]` | Colours of the overlay |
+
+The defaults draw shapes, centres, contacts, normals and joints. Shapes are
+the rotated boxes, contacts are dots where the solver works, normals point
+out of the contact, joints show both anchors, bounds are the axis-aligned
+boxes of the broad phase.
+
+## Limits
+
+- Boxes only: Box2D-Lite has a single box shape, no circles or polygons.
+- One point-to-point joint type, no revolute or distance joints.
+- No continuous collision detection; very fast bodies can tunnel.
+- The contact list is rebuilt by `BOX2D_STEP` and is empty before the first
+ step.
+- `BOX2D_DEBUG_DRAW` needs an INLINE step internally; it is a normal
+ `FUNCTION`, so call it like any other command. A C++ compiler must be
+ configured in GBX Studio, and the first run compiles the module.
+
+---
+
+Generated from `@help` blocks in the module's GBX sources.

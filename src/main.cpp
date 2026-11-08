@@ -93,6 +93,34 @@ std::string readFile(const std::string& path) {
     return ss.str();
 }
 
+/**
+ * Zentraler Ordner fuer Module. Der Interpreter findet ihn neben der EXE,
+ * eine Ebene darueber (build/gbx.exe -> modules) oder ueber GBX_MODULES.
+ * Die IDE setzt GBX_MODULES auf ihren Modules-Ordner.
+ */
+std::string findModuleDir(const std::string& projectDir) {
+    std::vector<fs::path> candidates;
+    if (const char* env = std::getenv("GBX_MODULES")) {
+        if (*env) candidates.emplace_back(env);
+    }
+    const fs::path exe = gbxpackage::executablePath();
+    if (!exe.empty()) {
+        const fs::path dir = exe.parent_path();
+        candidates.push_back(dir / "modules");
+        candidates.push_back(dir / ".." / "modules");
+        candidates.push_back(dir / ".." / ".." / "modules");
+    }
+    candidates.push_back(fs::current_path() / "modules");
+    if (!projectDir.empty()) candidates.push_back(fs::path(projectDir) / "modules");
+
+    std::error_code ec;
+    for (const auto& candidate : candidates) {
+        if (!fs::is_directory(candidate, ec)) continue;
+        return fs::absolute(candidate, ec).lexically_normal().string();
+    }
+    return "";
+}
+
 // Quelle fuer die Live-Pruefung der IDE: sie schickt den ungespeicherten
 // Editorinhalt ueber die Standardeingabe, damit nichts auf der Platte landet.
 std::string readStdin() {
@@ -293,6 +321,7 @@ int main(int argc, char** argv) {
     Program prog;
     prog.mainFile = entryPath;
     prog.baseDir = cfg.projectDir;
+    prog.moduleDir = findModuleDir(cfg.projectDir);
     prog.includedFiles.push_back(entryPath);
 
     try {

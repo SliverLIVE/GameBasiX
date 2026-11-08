@@ -1,0 +1,226 @@
+' ============================================================
+' JSON - value model
+'
+' A JSON value uses the types GameBasiX already has:
+'
+'   number  -> number
+'   string  -> text
+'   object  -> DICT with the marker "$" = 10
+'   array   -> DICT with the marker "$" = 11 and the keys "0", "1", ...
+'   true    -> DICT with the marker "$" = 12
+'   false   -> DICT with the marker "$" = 13
+'   null    -> DICT with the marker "$" = 14
+'
+' Object keys that start with "$" are stored with one extra "$" in front,
+' so the marker key can never collide with real data (see jsonKeyEncode$).
+' Reads never need the marker: JSON_KIND looks at it for containers.
+' ============================================================
+
+CONSTANT JSON_TYPE_NULL = 0
+CONSTANT JSON_TYPE_BOOL = 1
+CONSTANT JSON_TYPE_NUMBER = 2
+CONSTANT JSON_TYPE_STRING = 3
+CONSTANT JSON_TYPE_OBJECT = 4
+CONSTANT JSON_TYPE_ARRAY = 5
+
+CONSTANT JSON_MARK_OBJECT = 10
+CONSTANT JSON_MARK_ARRAY = 11
+CONSTANT JSON_MARK_TRUE = 12
+CONSTANT JSON_MARK_FALSE = 13
+CONSTANT JSON_MARK_NULL = 14
+
+' ------------------------------------------------------------- markers
+
+FUNCTION jsonMark: v
+  LOCAL m
+  IF ISA(v, "DICT") = 0 THEN RETURN -1
+  IF DICT_HAS(v, "$") = 0 THEN RETURN JSON_MARK_OBJECT
+  RETURN DICT_GET(v, "$", 0)
+ENDFUNCTION
+
+FUNCTION JSON_KIND: v
+  LOCAL m
+  IF ISA(v, "DICT") THEN
+    m = jsonMark(v)
+    IF m = JSON_MARK_ARRAY THEN RETURN JSON_TYPE_ARRAY
+    IF m = JSON_MARK_TRUE OR m = JSON_MARK_FALSE THEN RETURN JSON_TYPE_BOOL
+    IF m = JSON_MARK_NULL THEN RETURN JSON_TYPE_NULL
+    RETURN JSON_TYPE_OBJECT
+  ENDIF
+  IF ISA(v, "STRING") THEN RETURN JSON_TYPE_STRING
+  IF ISA(v, "ARRAY") THEN RETURN JSON_TYPE_ARRAY
+  RETURN JSON_TYPE_NUMBER
+ENDFUNCTION
+
+FUNCTION JSON_TYPE_NAME$: v
+  LOCAL k
+  k = JSON_KIND(v)
+  IF k = JSON_TYPE_NULL THEN RETURN "null"
+  IF k = JSON_TYPE_BOOL THEN RETURN "boolean"
+  IF k = JSON_TYPE_NUMBER THEN RETURN "number"
+  IF k = JSON_TYPE_STRING THEN RETURN "string"
+  IF k = JSON_TYPE_OBJECT THEN RETURN "object"
+  RETURN "array"
+ENDFUNCTION
+
+' ------------------------------------------------------------- inspect
+
+FUNCTION JSON_IS_NULL: v
+  IF JSON_KIND(v) = JSON_TYPE_NULL THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION JSON_IS_BOOL: v
+  IF JSON_KIND(v) = JSON_TYPE_BOOL THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION JSON_IS_NUMBER: v
+  IF JSON_KIND(v) = JSON_TYPE_NUMBER THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION JSON_IS_STRING: v
+  IF JSON_KIND(v) = JSON_TYPE_STRING THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION JSON_IS_OBJECT: v
+  IF JSON_KIND(v) = JSON_TYPE_OBJECT THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION JSON_IS_ARRAY: v
+  IF JSON_KIND(v) = JSON_TYPE_ARRAY THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+' true -> 1, false -> 0, everything else 0.
+FUNCTION JSON_BOOL: v
+  LOCAL m
+  m = jsonMark(v)
+  IF m = JSON_MARK_TRUE THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+' Number value, 0 for everything that is not a number.
+FUNCTION JSON_NUM: v
+  IF JSON_KIND(v) = JSON_TYPE_NUMBER THEN RETURN v
+  RETURN 0
+ENDFUNCTION
+
+' Text value, "" for everything that is not a string.
+FUNCTION JSON_TEXT$: v
+  IF JSON_KIND(v) = JSON_TYPE_STRING THEN RETURN v
+  RETURN ""
+ENDFUNCTION
+
+' ------------------------------------------------------------- create
+
+FUNCTION JSON_OBJECT:
+  LOCAL d
+  d = DICT_NEW()
+  DICT_SET(d, "$", JSON_MARK_OBJECT)
+  RETURN d
+ENDFUNCTION
+
+FUNCTION JSON_ARRAY:
+  LOCAL d
+  d = DICT_NEW()
+  DICT_SET(d, "$", JSON_MARK_ARRAY)
+  RETURN d
+ENDFUNCTION
+
+FUNCTION JSON_MAKE_NULL:
+  LOCAL d
+  d = DICT_NEW()
+  DICT_SET(d, "$", JSON_MARK_NULL)
+  RETURN d
+ENDFUNCTION
+
+FUNCTION JSON_MAKE_TRUE:
+  LOCAL d
+  d = DICT_NEW()
+  DICT_SET(d, "$", JSON_MARK_TRUE)
+  RETURN d
+ENDFUNCTION
+
+FUNCTION JSON_MAKE_FALSE:
+  LOCAL d
+  d = DICT_NEW()
+  DICT_SET(d, "$", JSON_MARK_FALSE)
+  RETURN d
+ENDFUNCTION
+
+FUNCTION JSON_MAKE_BOOL: flag
+  IF flag = 0 THEN RETURN JSON_MAKE_FALSE()
+  RETURN JSON_MAKE_TRUE()
+ENDFUNCTION
+
+' Deep copy of a value, so the copy can be changed without touching the original.
+FUNCTION JSON_CLONE: v
+  LOCAL k, out, i
+  LOCAL key$
+  k = JSON_KIND(v)
+  IF k = JSON_TYPE_OBJECT THEN
+    out = JSON_OBJECT()
+    DICT_SET(out, "$", JSON_MARK_OBJECT)
+    FOR i = 0 TO DICT_COUNT(v) - 1
+      key$ = DICT_KEY$(v, i)
+      IF key$ <> "$" THEN DICT_SET(out, key$, JSON_CLONE(DICT_VALUE(v, i)))
+    NEXT
+    RETURN out
+  ENDIF
+  IF k = JSON_TYPE_ARRAY AND ISA(v, "DICT") THEN
+    out = JSON_ARRAY()
+    FOR i = 0 TO DICT_COUNT(v) - 2
+      DICT_SET(out, STR$(i), JSON_CLONE(DICT_GET(v, STR$(i), 0)))
+    NEXT
+    RETURN out
+  ENDIF
+  RETURN v
+ENDFUNCTION
+
+' ------------------------------------------------------- keys and arrays
+
+' "$name" is stored as "$$name"; the marker key "$" stays reserved.
+FUNCTION jsonKeyEncode$: k$
+  IF LEN(k$) > 0 AND LEFT$(k$, 1) = "$" THEN RETURN "$" + k$
+  RETURN k$
+ENDFUNCTION
+
+FUNCTION jsonKeyDecode$: k$
+  IF LEN(k$) > 1 AND LEFT$(k$, 1) = "$" THEN RETURN MID$(k$, 1)
+  RETURN k$
+ENDFUNCTION
+
+FUNCTION jsonArrayCount: arr
+  IF ISA(arr, "DICT") = 0 THEN
+    IF ISA(arr, "ARRAY") THEN RETURN LEN(arr)
+    RETURN 0
+  ENDIF
+  RETURN DICT_COUNT(arr) - 1
+ENDFUNCTION
+
+' Numbers of an array live under the keys "0", "1", ... in insertion order.
+FUNCTION jsonArrayAppend: arr, v
+  LOCAL idx
+  IF ISA(arr, "DICT") = 0 THEN RETURN -1
+  IF JSON_KIND(arr) <> JSON_TYPE_ARRAY THEN RETURN -1
+  idx = jsonArrayCount(arr)
+  DICT_SET(arr, STR$(idx), v)
+  RETURN idx
+ENDFUNCTION
+
+' Fills the gap with nulls so an array never has holes.
+FUNCTION jsonEnsureIndex: arr, idx
+  LOCAL n
+  IF ISA(arr, "DICT") = 0 THEN RETURN 0
+  IF JSON_KIND(arr) <> JSON_TYPE_ARRAY THEN RETURN 0
+  n = jsonArrayCount(arr)
+  WHILE n <= idx
+    DICT_SET(arr, STR$(n), JSON_MAKE_NULL())
+    n = n + 1
+  WEND
+  RETURN 1
+ENDFUNCTION

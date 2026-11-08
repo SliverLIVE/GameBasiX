@@ -1,0 +1,166 @@
+' ============================================================
+' JSON - writer
+'
+' Compact output for network and storage, indented output for files and
+' debugging. Numbers keep the shortest form that reads back unchanged.
+' ============================================================
+
+FUNCTION jsonPad$: level, indent
+  LOCAL i
+  LOCAL out$
+  out$ = ""
+  FOR i = 0 TO level * indent - 1
+    out$ = out$ + " "
+  NEXT
+  RETURN out$
+ENDFUNCTION
+
+' JSON text for one string, quotes included.
+FUNCTION JSON_ESCAPE$: text$
+  LOCAL i, c
+  LOCAL out$
+  out$ = ""
+  FOR i = 0 TO LEN(text$) - 1
+    c = ASC(MID$(text$, i, 1))
+    IF c = 34 THEN
+      out$ = out$ + CHR$(92) + CHR$(34)
+    ELSEIF c = 92 THEN
+      out$ = out$ + CHR$(92) + CHR$(92)
+    ELSEIF c = 8 THEN
+      out$ = out$ + CHR$(92) + "b"
+    ELSEIF c = 12 THEN
+      out$ = out$ + CHR$(92) + "f"
+    ELSEIF c = 10 THEN
+      out$ = out$ + CHR$(92) + "n"
+    ELSEIF c = 13 THEN
+      out$ = out$ + CHR$(92) + "r"
+    ELSEIF c = 9 THEN
+      out$ = out$ + CHR$(92) + "t"
+    ELSEIF c < 32 THEN
+      out$ = out$ + CHR$(92) + "u00" + jsonHex2$(c)
+    ELSE
+      out$ = out$ + CHR$(c)
+    ENDIF
+  NEXT
+  RETURN out$
+ENDFUNCTION
+
+FUNCTION jsonHex2$: n
+  LOCAL h$
+  h$ = HEX$(n)
+  IF LEN(h$) < 2 THEN h$ = "0" + h$
+  IF LEN(h$) > 2 THEN h$ = RIGHT$(h$, 2)
+  RETURN LCASE$(h$)
+ENDFUNCTION
+
+FUNCTION jsonNumber$: v
+  LOCAL out$
+  out$ = STR$(v)
+  IF out$ = "NAN" OR out$ = "INF" OR out$ = "-INF" THEN RETURN "null"
+  RETURN out$
+ENDFUNCTION
+
+FUNCTION jsonArrayWrite$: v, level, indent
+  LOCAL n, i
+  LOCAL out$
+  n = 0
+  IF ISA(v, "DICT") THEN
+    n = jsonArrayCount(v)
+  ELSE
+    n = LEN(v)
+  ENDIF
+  IF n = 0 THEN RETURN "[]"
+  IF indent < 0 THEN
+    out$ = "["
+    FOR i = 0 TO n - 1
+      IF i > 0 THEN out$ = out$ + ","
+      out$ = out$ + jsonWriteRec$(jsonArrayRead(v, i), level + 1, indent)
+    NEXT
+    RETURN out$ + "]"
+  ENDIF
+  out$ = "[" + CHR$(10)
+  FOR i = 0 TO n - 1
+    out$ = out$ + jsonPad$(level + 1, indent) + jsonWriteRec$(jsonArrayRead(v, i), level + 1, indent)
+    IF i < n - 1 THEN out$ = out$ + ","
+    out$ = out$ + CHR$(10)
+  NEXT
+  RETURN out$ + jsonPad$(level, indent) + "]"
+ENDFUNCTION
+
+FUNCTION jsonObjectWrite$: v, level, indent
+  LOCAL n, first, i
+  LOCAL out$, k$
+  n = DICT_COUNT(v) - 1
+  IF n = 0 THEN RETURN "{}"
+  IF indent < 0 THEN
+    out$ = "{"
+    first = 1
+    FOR i = 0 TO DICT_COUNT(v) - 1
+      k$ = DICT_KEY$(v, i)
+      IF k$ <> "$" THEN
+        IF first = 0 THEN out$ = out$ + ","
+        first = 0
+        out$ = out$ + CHR$(34) + JSON_ESCAPE$(jsonKeyDecode$(k$)) + CHR$(34) + ":"
+        out$ = out$ + jsonWriteRec$(DICT_VALUE(v, i), level + 1, indent)
+      ENDIF
+    NEXT
+    RETURN out$ + "}"
+  ENDIF
+  out$ = "{" + CHR$(10)
+  first = 1
+  FOR i = 0 TO DICT_COUNT(v) - 1
+    k$ = DICT_KEY$(v, i)
+    IF k$ <> "$" THEN
+      IF first = 0 THEN out$ = out$ + "," + CHR$(10)
+      first = 0
+      out$ = out$ + jsonPad$(level + 1, indent)
+      out$ = out$ + CHR$(34) + JSON_ESCAPE$(jsonKeyDecode$(k$)) + CHR$(34) + ": "
+      out$ = out$ + jsonWriteRec$(DICT_VALUE(v, i), level + 1, indent)
+    ENDIF
+  NEXT
+  RETURN out$ + CHR$(10) + jsonPad$(level, indent) + "}"
+ENDFUNCTION
+
+' Reads element i from a JSON array (DICT) or from a native GBX array.
+FUNCTION jsonArrayRead: v, i
+  IF ISA(v, "DICT") THEN RETURN DICT_GET(v, STR$(i), 0)
+  RETURN v[i]
+ENDFUNCTION
+
+FUNCTION jsonWriteRec$: v, level, indent
+  LOCAL k
+  k = JSON_KIND(v)
+  IF k = JSON_TYPE_NULL THEN RETURN "null"
+  IF k = JSON_TYPE_BOOL THEN
+    IF JSON_BOOL(v) = 1 THEN RETURN "true"
+    RETURN "false"
+  ENDIF
+  IF k = JSON_TYPE_STRING THEN RETURN CHR$(34) + JSON_ESCAPE$(v) + CHR$(34)
+  IF k = JSON_TYPE_NUMBER THEN RETURN jsonNumber$(v)
+  IF k = JSON_TYPE_ARRAY THEN RETURN jsonArrayWrite$(v, level, indent)
+  IF k = JSON_TYPE_OBJECT THEN RETURN jsonObjectWrite$(v, level, indent)
+  RETURN "null"
+ENDFUNCTION
+
+' One line, no spaces: for network messages and cache files.
+FUNCTION JSON_WRITE$: v
+  RETURN jsonWriteRec$(v, 0, -1)
+ENDFUNCTION
+
+' Indented with two spaces per level: for files, configs and the screen.
+FUNCTION JSON_WRITE_PRETTY$: v
+  RETURN jsonWriteRec$(v, 0, 2)
+ENDFUNCTION
+
+FUNCTION JSON_WRITE_INDENTED$: v, indent
+  IF indent < 0 THEN indent = 0
+  RETURN jsonWriteRec$(v, 0, indent)
+ENDFUNCTION
+
+' Writes the document as indented UTF-8 text and returns 1 on success.
+FUNCTION JSON_SAVE: v, path$
+  IF FILE_OPEN(1, path$, 0) = 0 THEN RETURN 0
+  FILE_WRITE_STR 1, JSON_WRITE_PRETTY$(v) + CHR$(10)
+  FILE_CLOSE 1
+  RETURN 1
+ENDFUNCTION

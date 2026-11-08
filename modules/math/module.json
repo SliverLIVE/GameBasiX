@@ -1,0 +1,35 @@
+{
+  "format": "gbx-module",
+  "id": "MATH",
+  "name": "Math",
+  "version": "1.0.0",
+  "summary": "Game math in pure GBX: scalars, angles, vectors, rectangles, collision, random, noise and curves.",
+  "description": "Everyday game math without C++ or archives. It provides clamping, interpolation and remapping, frame-rate independent damping, degree-based angle helpers with shortest-path turns, a VEC2 type with in-place methods, an axis-aligned RECT2 type, point/circle/rect/segment collision tests with per-axis penetration for platformers, random ranges and chances, deterministic value noise and fBm, Bezier and Catmull-Rom curves and spring steps. Everything runs unchanged in the interpreter, a built EXE and the HTML5 player.",
+  "folder": "math",
+  "entry": "MATH.gbx",
+  "include": {
+    "entry": "modules/math/MATH.gbx"
+  },
+  "files": [
+    "MATH.gbx",
+    "scalars.gbx",
+    "angles.gbx",
+    "vectors.gbx",
+    "collision.gbx",
+    "random.gbx",
+    "noise.gbx",
+    "curves.gbx"
+  ],
+  "tags": [
+    "math",
+    "gameplay",
+    "vectors",
+    "collision",
+    "interpolation",
+    "noise",
+    "random",
+    "angles",
+    "pure-gbx"
+  ],
+  "author": "GameBasiX"
+}

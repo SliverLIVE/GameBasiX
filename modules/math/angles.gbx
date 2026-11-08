@@ -1,0 +1,56 @@
+' Angles are in degrees, like SIN, COS and ATAN. Screen y points down, so a
+' positive angle turns clockwise on screen.
+
+FUNCTION MATH_RAD: degrees
+  RETURN degrees * MATH_DEG2RAD
+ENDFUNCTION
+
+FUNCTION MATH_DEG: radians
+  RETURN radians * MATH_RAD2DEG
+ENDFUNCTION
+
+' Normalize an angle to -180..180.
+FUNCTION MATH_ANGLE_WRAP: degrees
+  LOCAL angle = FMOD(degrees, 360)
+  IF angle < -180 THEN angle = angle + 360
+  IF angle >= 180 THEN angle = angle - 360
+  RETURN angle
+ENDFUNCTION
+
+' Shortest signed turn from `from` to `to`: -180..180.
+FUNCTION MATH_ANGLE_DIFF: from, to
+  RETURN MATH_ANGLE_WRAP(to - from)
+ENDFUNCTION
+
+' Interpolate the short way round. t outside 0..1 keeps turning.
+FUNCTION MATH_ANGLE_LERP: from, to, t
+  RETURN MATH_ANGLE_WRAP(from + MATH_ANGLE_DIFF(from, to) * t)
+ENDFUNCTION
+
+FUNCTION MATH_ANGLE_LERP_CLAMPED: from, to, t
+  RETURN MATH_ANGLE_LERP(from, to, MATH_CLAMP01(t))
+ENDFUNCTION
+
+' Turn at most maxDelta degrees towards target.
+FUNCTION MATH_ANGLE_APPROACH: current, target, maxDelta
+  LOCAL delta = MATH_ANGLE_DIFF(current, target)
+  IF ABS(delta) <= ABS(maxDelta) THEN RETURN MATH_ANGLE_WRAP(target)
+  IF delta > 0 THEN
+    RETURN MATH_ANGLE_WRAP(current + ABS(maxDelta))
+  ENDIF
+  RETURN MATH_ANGLE_WRAP(current - ABS(maxDelta))
+ENDFUNCTION
+
+' Direction from the first point to the second.
+FUNCTION MATH_ANGLE_BETWEEN: x1, y1, x2, y2
+  RETURN ATAN(y2 - y1, x2 - x1)
+ENDFUNCTION
+
+' Unit direction for an angle.
+FUNCTION MATH_DIR_X: degrees
+  RETURN COS(degrees)
+ENDFUNCTION
+
+FUNCTION MATH_DIR_Y: degrees
+  RETURN SIN(degrees)
+ENDFUNCTION

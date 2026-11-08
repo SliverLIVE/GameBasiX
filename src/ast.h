@@ -181,6 +181,9 @@ struct Program {
     std::unordered_map<std::string, std::vector<std::vector<ExprP>>> typeArrayDims;
     std::string mainFile;
     std::string baseDir;
+    // Zentraler Modules-Ordner. INCLUDE "modules/..." sucht dort, wenn die
+    // Datei nicht relativ zur einbindenden Quelle existiert.
+    std::string moduleDir;
     std::vector<std::string> includedFiles;  // bereits eingebundene Dateien
     std::vector<std::string> includeStack;   // gerade in Arbeit (Zyklen)
 };

@@ -8,18 +8,21 @@
  * Zonen, übernimmt Ziehen am Panel-Kopf, das Andock-Menü und das Speichern.
  */
 
-export const DOCK_PANEL_IDS = ['files', 'outline', 'reference', 'problems', 'output', 'console', 'debug'];
-export const DOCK_ZONES = ['left', 'right', 'bottom'];
+export const DOCK_PANEL_IDS = ['files', 'outline', 'modules', 'reference', 'problems', 'output', 'console', 'debug'];
+export const DOCK_ZONES = ['left', 'left2', 'right', 'right2', 'bottom'];
 
 export const DEFAULT_DOCK = {
   zones: {
-    left: ['files', 'outline'],
+    left: ['files', 'outline', 'modules'],
+    left2: [],
     right: ['reference'],
+    right2: [],
     bottom: ['problems', 'output', 'console', 'debug']
   },
   heights: {
     files: 280,
     outline: 240,
+    modules: 280,
     reference: 340,
     problems: 220,
     output: 220,
@@ -47,7 +50,7 @@ function clampHeight(value, fallback) {
 export function normalizeDock(input) {
   const saved = input && typeof input === 'object' ? input : {};
   const stored = saved.zones && typeof saved.zones === 'object' ? saved.zones : {};
-  const zones = { left: [], right: [], bottom: [] };
+  const zones = { left: [], left2: [], right: [], right2: [], bottom: [] };
   const seen = new Set();
   for (const zone of DOCK_ZONES) {
     const list = Array.isArray(stored[zone]) ? stored[zone] : [];
@@ -66,17 +69,17 @@ export function normalizeDock(input) {
   }
   const collapsed = {};
   const heights = {};
+  const hidden = {};
   for (const id of DOCK_PANEL_IDS) {
     collapsed[id] = !!saved.collapsed?.[id];
     heights[id] = clampHeight(saved.heights?.[id], DEFAULT_DOCK.heights[id]);
+    // Ausgeblendete Panels bleiben in ihrer Zone, werden aber nicht gezeichnet.
+    hidden[id] = !!saved.hidden?.[id];
   }
-  const open = {
-    left: saved.open?.left !== false,
-    right: saved.open?.right !== false,
-    bottom: saved.open?.bottom !== false
-  };
+  const open = {};
+  for (const zone of DOCK_ZONES) open[zone] = saved.open?.[zone] !== false;
   const active = zones.bottom.includes(saved.active) ? saved.active : zones.bottom[0] || '';
-  return { zones, collapsed, heights, open, active };
+  return { zones, collapsed, heights, hidden, open, active };
 }
 
 export function dockZoneOf(layout, id) {
@@ -101,6 +104,7 @@ export function dockMove(layout, id, zone, index = -1) {
   target.splice(at, 0, id);
   // Ein verschobenes Panel ist sichtbar – man hat es ja gerade angefasst.
   next.collapsed[id] = false;
+  next.hidden[id] = false;
   next.open[zone] = true;
   if (zone === 'bottom') next.active = id;
   if (!next.zones.bottom.includes(next.active)) next.active = next.zones.bottom[0] || '';
@@ -133,6 +137,7 @@ export function dockActivate(layout, id) {
   const zone = dockZoneOf(next, id);
   if (!zone) return next;
   next.collapsed[id] = false;
+  next.hidden[id] = false;
   next.open[zone] = true;
   if (zone === 'bottom') next.active = id;
   return next;
@@ -140,9 +145,24 @@ export function dockActivate(layout, id) {
 
 /** Eine Seitenzone ohne sichtbares Panel braucht keinen Platz. */
 export function dockZoneVisible(layout, zone) {
-  if (zone === 'bottom') return !!layout.zones.bottom.length;
-  if (!layout.open[zone]) return false;
-  return layout.zones[zone].some((id) => !layout.collapsed[id]);
+  if (!layout.open?.[zone]) return false;
+  const list = layout.zones[zone] || [];
+  if (zone === 'bottom') return list.some((id) => !layout.hidden?.[id]);
+  return list.some((id) => !layout.collapsed[id] && !layout.hidden?.[id]);
+}
+
+/** Panel ganz ausblenden (`true`) oder wieder einblenden (`false`). */
+export function dockSetHidden(layout, id, hidden) {
+  const next = normalizeDock(layout);
+  if (!isDockPanel(id)) return next;
+  next.hidden[id] = hidden === undefined ? !next.hidden[id] : !!hidden;
+  if (!next.hidden[id]) {
+    // Wieder sichtbar heisst: aufgeklappt in seiner Zone.
+    next.collapsed[id] = false;
+    const zone = dockZoneOf(next, id);
+    if (zone) next.open[zone] = true;
+  }
+  return next;
 }
 
 /* ------------------------------------------------------------------ */
@@ -218,7 +238,7 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
     name.textContent = title(id);
     el.append(name);
     // Zähler für Outline, Probleme und Referenz stehen im Kopf bzw. Tab.
-    if (['outline', 'problems', 'reference', 'debug'].includes(id)) {
+    if (['outline', 'modules', 'problems', 'reference', 'debug'].includes(id)) {
       const count = document.createElement('span');
       count.className = 'count';
       count.dataset.meta = id;
@@ -307,11 +327,18 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
     };
     menu.append(heading(t('Andocken an')));
     for (const target of DOCK_ZONES) {
-      const label = { left: t('Links'), right: t('Rechts'), bottom: t('Unten') }[target];
+      const label = {
+        left: t('Links'),
+        left2: t('Links außen'),
+        right: t('Rechts'),
+        right2: t('Rechts außen'),
+        bottom: t('Unten')
+      }[target];
       item(label, () => move(id, target), zone === target);
     }
     menu.append(heading(t('Panel')));
     item(layout.collapsed[id] ? t('Ausklappen') : t('Einklappen'), () => toggle(id));
+    item(t('Panel ausblenden'), () => setHidden(id, true));
     item(t('Zonen zurücksetzen'), () => reset());
     document.body.append(menu);
     const box = anchor.getBoundingClientRect();
@@ -458,7 +485,7 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
     if (!host) return;
     host.replaceChildren();
     bindZone(host);
-    const list = layout.zones[zone];
+    const list = layout.zones[zone].filter((id) => !layout.hidden[id]);
     if (!list.length) return;
     const fillIndex = Math.max(0, list.findIndex((id) => !layout.collapsed[id]));
     list.forEach((id, index) => {
@@ -480,7 +507,7 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
     if (!tabs || !bottom) return;
     bindZone(bottom);
     tabs.replaceChildren();
-    const list = layout.zones.bottom;
+    const list = layout.zones.bottom.filter((id) => !layout.hidden[id]);
     if (!list.length) {
       body?.replaceChildren();
       bottom.hidden = true;
@@ -507,11 +534,15 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
     if (!workspace) return;
     workspace.classList.toggle('sidebar-collapsed', !dockZoneVisible(layout, 'left'));
     workspace.classList.toggle('ref-collapsed', !dockZoneVisible(layout, 'right'));
+    workspace.classList.toggle('has-left2', dockZoneVisible(layout, 'left2'));
+    workspace.classList.toggle('has-right2', dockZoneVisible(layout, 'right2'));
     const bottomVisible = dockZoneVisible(layout, 'bottom') && layout.open.bottom;
     hosts.bottom?.classList.toggle('collapsed', !layout.open.bottom);
     if (hosts.bottomSplitter) hosts.bottomSplitter.hidden = !bottomVisible;
     hosts.left?.classList.toggle('zone-empty', !layout.zones.left.length);
+    hosts.left2?.classList.toggle('zone-empty', !layout.zones.left2.length);
     hosts.right?.classList.toggle('zone-empty', !layout.zones.right.length);
+    hosts.right2?.classList.toggle('zone-empty', !layout.zones.right2.length);
   }
 
   /** Alle Inhalte zurück in den Vorrat – sonst hängt ein ersetztes Panel
@@ -527,7 +558,9 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
   function render() {
     collectSources();
     renderSide(hosts.left, 'left');
+    renderSide(hosts.left2, 'left2');
     renderSide(hosts.right, 'right');
+    renderSide(hosts.right2, 'right2');
     renderBottom();
     applyZones();
   }
@@ -545,6 +578,11 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
 
   function toggle(id, force) {
     layout = dockToggleCollapsed(layout, id, force);
+    changed();
+  }
+
+  function setHidden(id, hidden) {
+    layout = dockSetHidden(layout, id, hidden);
     changed();
   }
 
@@ -590,6 +628,10 @@ export function createDock({ t, hosts, sources, title, action, onChange }) {
     move,
     activate,
     toggle,
+    setHidden,
+    isHidden(id) {
+      return !!layout.hidden[id];
+    },
     toggleZone,
     setZoneOpen,
     setMeta,

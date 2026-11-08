@@ -565,63 +565,6 @@
     "STDOUT text#$",
     "STDOUT text#$\n\nSTDERR text#$\n\ntext$ = STDIN$()"
   ],
-  "STEAM_APP_ID": [
-    "appid% = STEAM_APP_ID()"
-  ],
-  "STEAM_ERROR$": [
-    "text$ = STEAM_ERROR$()"
-  ],
-  "STEAM_FRIEND_ID$": [
-    "id$ = STEAM_FRIEND_ID$(index%)"
-  ],
-  "STEAM_FRIEND_NAME$": [
-    "name$ = STEAM_FRIEND_NAME$(index%)"
-  ],
-  "STEAM_FRIENDS": [
-    "count% = STEAM_FRIENDS()"
-  ],
-  "STEAM_FRIEND_STATE": [
-    "state% = STEAM_FRIEND_STATE(index%)"
-  ],
-  "STEAM_ID$": [
-    "id$ = STEAM_ID$()"
-  ],
-  "STEAM_INIT": [
-    "ok% = STEAM_INIT([appid%])"
-  ],
-  "STEAM_NAME$": [
-    "name$ = STEAM_NAME$()"
-  ],
-  "STEAM_P2P_ACCEPT": [
-    "ok% = STEAM_P2P_ACCEPT(id$)"
-  ],
-  "STEAM_P2P_AVAILABLE": [
-    "bytes% = STEAM_P2P_AVAILABLE([channel%])"
-  ],
-  "STEAM_P2P_CLOSE": [
-    "ok% = STEAM_P2P_CLOSE(id$)"
-  ],
-  "STEAM_P2P_FROM$": [
-    "id$ = STEAM_P2P_FROM$()"
-  ],
-  "STEAM_P2P_RECV$": [
-    "text$ = STEAM_P2P_RECV$([channel%])"
-  ],
-  "STEAM_P2P_SEND": [
-    "bytes% = STEAM_P2P_SEND(id$, text$ [, channel% [, reliable%]])"
-  ],
-  "STEAM_P2P_STATE": [
-    "state% = STEAM_P2P_STATE(id$)"
-  ],
-  "STEAM_READY": [
-    "ok% = STEAM_READY()"
-  ],
-  "STEAM_RUN": [
-    "ok% = STEAM_RUN()"
-  ],
-  "STEAM_SHUTDOWN": [
-    "STEAM_SHUTDOWN"
-  ],
   "MUSIC_STOP": [
     "MUSIC_STOP"
   ],

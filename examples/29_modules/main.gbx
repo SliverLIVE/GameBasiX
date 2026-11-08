@@ -1,0 +1,124 @@
+' ============================================================
+' Central modules - UI from the Modules folder
+' Run: gbx examples/29_modules/modules.gbxproj
+'
+' This project contains no UI source files. The only link is:
+'   INCLUDE "modules/ui/UI.gbx"
+'
+' The UI module is the folder <repo>/modules/ui; UI.gbx is its entry file.
+' The interpreter finds the module through GBX_MODULES, its own modules
+' folder, or the repository layout; nothing is copied into this project.
+' ============================================================
+
+INCLUDE "modules/ui/UI.gbx"
+
+SET_SYSTEM_POINTER TRUE
+SCREEN_SET 960, 640, 0
+WINDOW_TITLE "GameBasiX - central UI module"
+LIMIT_FPS 60
+ALLOW_ESCAPE FALSE
+
+GLOBAL app AS UI
+app.init()
+
+GLOBAL theme = 0
+GLOBAL message$ = "Ready - drag the window, change a value or press a button."
+
+' ---------------------------------------------------------- top bar
+GLOBAL lblTitle = app.heading("Central UI module", 32, 24, 600)
+GLOBAL lblSub = app.label("The module is the folder modules/ui. This project only contains the INCLUDE line.", 32, 52, 880)
+GLOBAL btnTheme = app.button("Theme: Dark", 748, 22, 180, 34)
+
+' ---------------------------------------------------------- demo window
+GLOBAL winDemo = app.window("Widgets from modules/ui/UI.gbx", 32, 96, 460, 420)
+app.heading("Settings", 20, 12, 380)
+GLOBAL sVolume = app.slider("Volume", 20, 44, 330, 0, 100, 1, 65)
+GLOBAL tMute = app.toggle("Mute", 20, 96)
+GLOBAL dQuality = app.dropdown("Quality", 20, 126, 250, "Low|Normal|High", 1)
+GLOBAL fPlayer = app.field("Player", 20, 188, 330, "Ada")
+GLOBAL pWork = app.progress("Progress", 20, 246, 330, 0.4)
+GLOBAL btnApply = app.button("Apply", 20, 300, 120, 38, 1)
+GLOBAL btnReset = app.button("Reset", 156, 300, 120, 38)
+app.endWindow()
+
+' ---------------------------------------------------------- state window
+GLOBAL winInfo = app.window("What the module reports", 520, 96, 408, 250)
+GLOBAL lblVolume = app.label("", 20, 10, 350)
+GLOBAL lblQuality = app.label("", 20, 36, 350)
+GLOBAL lblPlayer = app.label("", 20, 62, 350)
+GLOBAL lblMute = app.label("", 20, 88, 350)
+GLOBAL lblClicks = app.label("", 20, 114, 350)
+GLOBAL lblHint = app.label("Drag this window by its title bar.", 20, 166, 350)
+app.endWindow()
+
+app.separator(32, 532, 896)
+GLOBAL lblMessage = app.label("", 32, 548, 896)
+GLOBAL lblPath = app.label("Project files: main.gbx and modules.gbxproj only - no UI sources.", 32, 574, 896)
+
+GLOBAL clicks = 0
+
+FUNCTION themeName$:
+  IF theme = 1 THEN RETURN "Light"
+  RETURN "Dark"
+ENDFUNCTION
+
+FUNCTION setTheme:
+  IF theme = 0 THEN
+    app.theme("light")
+    theme = 1
+  ELSE
+    app.theme("dark")
+    theme = 0
+  ENDIF
+  app.setText(btnTheme, "Theme: " + themeName$())
+ENDFUNCTION
+
+FUNCTION show: text$
+  message$ = text$
+ENDFUNCTION
+
+WHILE TRUE
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  ' The animation is a normal widget value; it also proves that setValue
+  ' reaches the module's own UI state.
+  app.setValue(pWork, 0.4 + 0.4 * SIN(ELAPSED_TIME() / 24))
+
+  ' The module does not draw the page background; the example owns it.
+  SCREEN_CLEAR app.bg
+  DRAW_RECT 0, 0, SCREEN_WIDTH(), 76, app.surface
+  DRAW_RECT 0, 76, SCREEN_WIDTH(), 1, app.line
+  DRAW_RECT 0, 0, SCREEN_WIDTH(), 2, app.accent
+
+  app.run()
+
+  IF app.clicked(btnTheme) THEN
+    setTheme()
+    show("Theme switched to " + themeName$())
+  ENDIF
+  IF app.clicked(btnApply) THEN
+    clicks = clicks + 1
+    show("Applied: " + app.text$(fPlayer) + ", " + app.text$(dQuality) + " quality, " + STR$(app.value(sVolume)) + "% volume")
+  ENDIF
+  IF app.clicked(btnReset) THEN
+    app.setValue(sVolume, 65)
+    app.setValue(tMute, 0)
+    app.setValue(dQuality, 1)
+    app.setText(fPlayer, "Ada")
+    show("Values reset")
+  ENDIF
+
+  IF app.changed(sVolume) THEN show("Volume changed to " + STR$(app.value(sVolume)) + "%")
+  IF app.changed(tMute) THEN show("Mute: " + STR$(app.value(tMute)))
+  IF app.changed(dQuality) THEN show("Quality: " + app.text$(dQuality))
+  IF app.changed(fPlayer) THEN show("Player: " + app.text$(fPlayer))
+
+  app.setText(lblMessage, message$)
+  app.setText(lblVolume, "Volume: " + STR$(app.value(sVolume)) + "%")
+  app.setText(lblQuality, "Quality: " + app.text$(dQuality))
+  app.setText(lblPlayer, "Player: " + app.text$(fPlayer))
+  app.setText(lblMute, "Mute: " + STR$(app.value(tMute)))
+  app.setText(lblClicks, "Apply clicks: " + STR$(clicks))
+
+  SCREEN_SHOW
+WEND

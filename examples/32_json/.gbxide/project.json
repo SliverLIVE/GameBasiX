@@ -1,0 +1,94 @@
+{
+  "name": "json",
+  "appName": "JSON",
+  "title": "GameBasiX - JSON",
+  "entry": "main.gbx",
+  "width": 960,
+  "height": 640,
+  "fullscreen": false,
+  "resizable": true,
+  "icon": "",
+  "frameRate": 60,
+  "vsync": true,
+  "audio": false,
+  "volume": 1,
+  "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeSources": [],
+  "nativeFlags": "",
+  "sources": [
+    "main.gbx"
+  ],
+  "openFiles": [
+    "main.gbx"
+  ],
+  "createdAt": "2026-11-08T11:29:48.407Z",
+  "layout": {
+    "sidebar": 357,
+    "reference": 464,
+    "bottom": 267,
+    "refList": 201,
+    "moduleList": 0,
+    "sidebar2": 236,
+    "reference2": 367
+  },
+  "dock": {
+    "zones": {
+      "left": [
+        "files",
+        "outline"
+      ],
+      "left2": [],
+      "right": [
+        "modules",
+        "reference"
+      ],
+      "right2": [],
+      "bottom": [
+        "problems",
+        "output",
+        "console",
+        "debug"
+      ]
+    },
+    "collapsed": {
+      "files": false,
+      "outline": false,
+      "modules": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "heights": {
+      "files": 614,
+      "outline": 823,
+      "modules": 744,
+      "reference": 482,
+      "problems": 220,
+      "output": 220,
+      "console": 220,
+      "debug": 260
+    },
+    "hidden": {
+      "files": false,
+      "outline": false,
+      "modules": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "open": {
+      "left": true,
+      "left2": true,
+      "right": true,
+      "right2": true,
+      "bottom": true
+    },
+    "active": "output"
+  }
+}

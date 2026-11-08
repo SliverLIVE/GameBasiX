@@ -1,0 +1,30 @@
+{
+  "format": "gbx-module",
+  "id": "JSON",
+  "name": "JSON",
+  "version": "1.0.0",
+  "summary": "JSON parser, writer and path access for DICTs and arrays, in pure GBX.",
+  "description": "Parses JSON text into dictionaries and arrays, reads and writes values through string paths like player.inventory[2].name, builds documents from code and serializes them back to compact or pretty JSON. Objects become DICTs, arrays become index-keyed DICTs, so the whole document can also be walked with DICT_COUNT/DICT_KEY$/DICT_VALUE. Pure GBX: runs in the interpreter, in a built EXE and in the HTML5 player.",
+  "folder": "json",
+  "entry": "JSON.gbx",
+  "include": {
+    "entry": "modules/json/JSON.gbx"
+  },
+  "files": [
+    "JSON.gbx",
+    "value.gbx",
+    "path.gbx",
+    "parse.gbx",
+    "write.gbx"
+  ],
+  "tags": [
+    "json",
+    "data",
+    "serialization",
+    "config",
+    "savegame",
+    "parser",
+    "dict"
+  ],
+  "author": "GameBasiX"
+}

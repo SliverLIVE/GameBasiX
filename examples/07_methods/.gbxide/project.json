@@ -7,6 +7,7 @@
   "height": 480,
   "fullscreen": false,
   "resizable": true,
+  "icon": "",
   "frameRate": 60,
   "vsync": true,
   "audio": false,
@@ -24,17 +25,24 @@
   "layout": {
     "sidebar": 425,
     "reference": 352,
-    "bottom": 208
+    "bottom": 208,
+    "refList": 201,
+    "moduleList": 188,
+    "sidebar2": 236,
+    "reference2": 367
   },
   "dock": {
     "zones": {
       "left": [
-        "reference"
+        "reference",
+        "modules"
       ],
+      "left2": [],
       "right": [
         "files",
         "outline"
       ],
+      "right2": [],
       "bottom": [
         "problems",
         "output",
@@ -45,6 +53,7 @@
     "collapsed": {
       "files": false,
       "outline": false,
+      "modules": false,
       "reference": false,
       "problems": false,
       "output": false,
@@ -54,15 +63,28 @@
     "heights": {
       "files": 850,
       "outline": 815,
+      "modules": 280,
       "reference": 340,
       "problems": 220,
       "output": 220,
       "console": 220,
       "debug": 260
     },
+    "hidden": {
+      "files": false,
+      "outline": false,
+      "modules": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
     "open": {
       "left": true,
+      "left2": true,
       "right": true,
+      "right2": true,
       "bottom": true
     },
     "active": "console"

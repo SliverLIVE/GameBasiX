@@ -1,0 +1,77 @@
+{
+  "name": "modules",
+  "appName": "modules",
+  "title": "modules",
+  "entry": "ui/UI.gbx",
+  "width": 640,
+  "height": 480,
+  "fullscreen": false,
+  "resizable": true,
+  "icon": "",
+  "frameRate": 60,
+  "vsync": true,
+  "audio": true,
+  "volume": 1,
+  "assetDir": "assets",
+  "nativeLibs": [],
+  "nativeLibDirs": [],
+  "nativeSources": [],
+  "nativeFlags": "",
+  "sources": [
+    "ui/helpers.gbx",
+    "ui/UI.gbx",
+    "ui/widgets.gbx"
+  ],
+  "openFiles": [],
+  "createdAt": "2026-11-07T11:17:05.297Z",
+  "layout": {
+    "sidebar": 356,
+    "reference": 352,
+    "bottom": 337,
+    "refList": 160
+  },
+  "dock": {
+    "zones": {
+      "left": [
+        "reference",
+        "outline"
+      ],
+      "right": [
+        "files",
+        "modules"
+      ],
+      "bottom": [
+        "problems",
+        "output",
+        "console",
+        "debug"
+      ]
+    },
+    "collapsed": {
+      "files": false,
+      "outline": false,
+      "modules": false,
+      "reference": false,
+      "problems": false,
+      "output": false,
+      "console": false,
+      "debug": false
+    },
+    "heights": {
+      "files": 280,
+      "outline": 572,
+      "modules": 458,
+      "reference": 340,
+      "problems": 220,
+      "output": 220,
+      "console": 220,
+      "debug": 260
+    },
+    "open": {
+      "left": true,
+      "right": true,
+      "bottom": true
+    },
+    "active": "console"
+  }
+}

@@ -13,10 +13,10 @@ library matters, and keep both languages in the same source file. GBX Studio
 puts the editor, live checks, debugger and both export targets around it.
 
 <p align="center">
-  <img src="docs/screenshots/ide.png" alt="GBX Studio 1.2.33 with the 2D camera example, file tree, outline, command reference and live status" width="100%">
+  <img src="docs/screenshots/ide.png" alt="GBX Studio with the 2D camera example, file tree, outline, command reference and live status" width="100%">
 </p>
 
-<p align="center"><sub><b>GBX Studio 1.2.33</b> — the camera example, project files and outline on the left, the C++/BASIC editor in the middle, and the searchable command reference on the right.</sub></p>
+<p align="center"><sub><b>GBX Studio</b> — the camera example, project files and outline on the left, the C++/BASIC editor in the middle, and the searchable command reference on the right.</sub></p>
 
 ## BASIC for the game. C++ where it matters.
 
@@ -129,15 +129,21 @@ the project, the interpreter and the C++ blocks:
 | | |
 |:--:|:--:|
 | <img src="docs/screenshots/ui.png" width="430" alt="UI toolkit demo with windows and widgets"> | <img src="docs/screenshots/box2d.png" width="430" alt="Box2D-Lite physics demo"> |
-| **UI toolkit** — windows, widgets and themes in pure BASIC (`examples/09_ui`) | **Physics** — Box2D-Lite through `INLINE` (`examples/08_box2d`) |
+| **UI toolkit** — windows, widgets and themes in pure BASIC (`examples/09_ui`) | **Physics** — boxes, joints and DebugDraw with the `BOX2D` module (`examples/08_box2d`) |
 | <img src="docs/screenshots/platformer.png" width="430" alt="Platformer with coins, pipes and enemies"> | <img src="docs/screenshots/breakout.png" width="430" alt="Breakout game"> |
 | **Pip and the Golden Coins** — tiles, enemies and sound (`examples/13_platformer`) | **Breakout** — a complete game (`examples/02_breakout`) |
 | <img src="docs/screenshots/sparks.png" width="430" alt="Sparks demo"> | <img src="docs/screenshots/steam.png" width="430" alt="Steam P2P chat"> |
 | **900 sparks** — C++ steps moving a `TYPE` array (`examples/06_sparks`) | **Steam link** — friends and P2P packets (`examples/12_steam`) |
 
-The two newest examples are [`examples/27_tasks`](examples/27_tasks) (tasks,
-worker jobs and async files) and [`examples/28_camera`](examples/28_camera)
-(pan, zoom, rotation and screen/world conversion).
+The newest examples are [`examples/27_tasks`](examples/27_tasks) (tasks,
+worker jobs and async files), [`examples/28_camera`](examples/28_camera)
+(pan, zoom, rotation and screen/world conversion),
+[`examples/29_modules`](examples/29_modules) (the central UI module, with no
+module files inside the project), [`examples/30_opengl3d`](examples/30_opengl3d)
+(a 3D scene through the central OpenGL module) and
+[`examples/31_easing`](examples/31_easing) (animation curves from a module that
+ships a prebuilt C++ archive) and [`examples/32_json`](examples/32_json) (JSON
+config and save data with path-based reads and writes).
 
 ## Quick start
 
@@ -170,10 +176,11 @@ static-runtime packaging, project format and export notes follow below.
 - [Tasks, jobs and async files](#tasks-jobs-and-async-files) — fibers and worker jobs
 - [GBX Studio](ide/README.md) — editor, debugger, HTML5 export and IDE tests
 - [CHEATSHEET.html](CHEATSHEET.html) / [CHEATSHEET.png](CHEATSHEET.png) — the one-page command sheet
+- [Module cheat sheet](modules/CHEATSHEET.html) — the seven central modules at a glance
 
 ## Status
 
-Version **1.2.33** is the current release. The C++ suite passes **17 of 17**
+Version **1.4.0** is the current release. The C++ suite passes **17 of 17**
 CTest targets, including language, INLINE, UI, files, networking, rendering,
 commands, export, native libraries, Steam, lint, debugger and hot reload. The
 IDE suite passes with the rebuilt command dataset. The project is deliberately
@@ -672,11 +679,6 @@ A one-page summary of every command, grouped by command type, is in
 [`python tools/make_cheatsheet.py`](tools/make_cheatsheet.py) from the IDE's
 command dataset.
 
-Version 1.2 renamed the built-in library so the names follow one scheme –
-resource first (`SPRITE_DRAW`), no `GET` for value readers (`SCREEN_WIDTH`),
-states as properties (`FILE_EXISTS`). [docs/commands-rename.md](docs/commands-rename.md)
-lists every old name next to its new one for projects written with 1.0.
-
 Commands marked with `*` are additions that go beyond the basic language.
 
 **Window and screen**
@@ -790,30 +792,12 @@ reported by name instead of playing silence.
 `UDP_SEND handle,host,port,text` · `UDP_RECV$(handle)` · `UDP_FROM$(handle)` ·
 `UDP_PORT(handle)` · `UDP_CLOSE handle`
 
-**Steam**
-`STEAM_INIT [appid]` · `STEAM_SHUTDOWN` · `STEAM_RUN` · `STEAM_READY()` ·
-`STEAM_NAME$()` · `STEAM_ID$()` · `STEAM_APP_ID()` · `STEAM_FRIENDS()` ·
-`STEAM_FRIEND_ID$(i)` · `STEAM_FRIEND_NAME$(i)` · `STEAM_FRIEND_STATE(i)` ·
-`STEAM_P2P_SEND id,text[,channel[,reliable]]` · `STEAM_P2P_AVAILABLE([channel])` ·
-`STEAM_P2P_RECV$([channel])` · `STEAM_P2P_FROM$()` · `STEAM_P2P_ACCEPT id` ·
-`STEAM_P2P_CLOSE id` · `STEAM_P2P_STATE(id)` · `STEAM_ERROR$()` ·
-`STEAM_ACHIEVEMENT name$` · `STEAM_ACHIEVED(name$)` · `STEAM_ACHIEVEMENTS()` ·
-`STEAM_ACHIEVEMENT_NAME$(index)` · `STEAM_STAT(name$)` · `STEAM_STAT_F(name$)` ·
-`STEAM_STAT_SET name$, value` · `STEAM_STAT_SETF name$, value` · `STEAM_STORE` ·
-`STEAM_BOARD name$[, ascending]` · `STEAM_BOARD_SCORE points[, keepbest]` ·
-`STEAM_BOARD_RANK()` · `STEAM_BOARD_TOP([count[, kind]])` · `STEAM_BOARD_COUNT()` ·
-`STEAM_BOARD_NAME$(index)` · `STEAM_BOARD_ID$(index)` ·
-`STEAM_BOARD_POINTS(index)` · `STEAM_BOARD_PLACE(index)` ·
-`STEAM_CLOUD_WRITE file$, text$` · `STEAM_CLOUD_READ$(file$)` ·
-`STEAM_CLOUD_EXISTS(file$)` · `STEAM_CLOUD_DELETE file$` · `STEAM_CLOUD_FILES()` ·
-`STEAM_CLOUD_NAME$(index)` · `STEAM_CLOUD_SIZE(file$)` ·
-`STEAM_LOBBY_CREATE [slots[, kind]]` · `STEAM_LOBBY_JOIN id$` · `STEAM_LOBBY_JOINED()` ·
-`STEAM_LOBBY_ID$()` · `STEAM_LOBBY_LEAVE` · `STEAM_LOBBY_OWNER$()` ·
-`STEAM_LOBBY_MEMBERS()` · `STEAM_LOBBY_MEMBER_ID$(index)` ·
-`STEAM_LOBBY_MEMBER_NAME$(index)` · `STEAM_LOBBY_SET key$, value$` ·
-`STEAM_LOBBY_GET$(key$)` · `STEAM_PRESENCE key$, value$` · `STEAM_PRESENCE$(key$)` ·
-`STEAM_PRESENCE_CLEAR key$` · `STEAM_OVERLAY [page$]` · `STEAM_OVERLAY_ON()` ·
-`STEAM_TICKET$()` · `STEAM_TICKET_CANCEL` · `STEAM_DLC_COUNT()` · `STEAM_DLC(appid)`
+**Steam** (module)
+Steam is the module `modules/steam` and no longer part of the
+interpreter: add `INCLUDE "modules/steam/STEAM.gbx"` once and put the
+Steamworks library (`steam_api64.dll`) next to the EXE.
+`modules/steam/HELP.md` has the complete `STEAM_*` reference and the
+download link for the SDK.
 
 **Tasks and jobs**
 `TASK_START("name")` → id · `TASK_STOP(id)` · `TASK_RUNNING(id)` · `TASK_COUNT()` ·
@@ -1014,8 +998,9 @@ commands report an error.
 
 ### Steamworks
 
-The `STEAM*` commands use the stable Steamworks flat API, which GameBasiX
-loads at runtime – the project builds without the SDK. Copy `steam_api64.dll`
+The `STEAM*` commands live in the module `modules/steam` and use the stable
+Steamworks flat API, which the module loads at runtime – the project builds
+without the SDK. Add `INCLUDE "modules/steam/STEAM.gbx"` to the program. Copy `steam_api64.dll`
 (Windows) or `libsteam_api.so` (Linux) next to the EXE, place `steam_appid.txt`
 with the app id beside it (or pass the id to `STEAM_INIT`), and start the game
 through Steam. `GBX_STEAM_LIB` points at a library in another folder, which is
@@ -1445,7 +1430,7 @@ complete.
 | `examples/05_inline` | `INLINE` anywhere: definitions from `curve.h` and steps in `FUNCTION`/loops with direct variables |
 | `examples/06_sparks` | fireworks: C++ steps move a `TYPE` array with 900 sparks, `GLOWCOLOR` comes from the definition block |
 | `examples/07_methods` | `METHOD` with `INLINE`: call `PRINT` and `DRAW_CIRCLE_FILLED` straight from C++ |
-| `examples/08_box2d` | pulling in a foreign library (Box2D-Lite) via `INLINE`: wrapper header, calls from `FUNCTION` and `METHOD`, registered `PHYSICS_*` commands, textured polygons with `POLY_BEGIN`/`POLY_POINT` |
+| `examples/08_box2d` | physics with the `BOX2D` module: bodies, impulses, a joint chain, contact queries, rotated corners for textured `POLY_BEGIN`/`POLY_POINT` drawing and `BOX2D_DEBUG_DRAW` to check the simulation |
 | `examples/09_ui` | a complete interface in pure BASIC: `UI.gbx` with windows, buttons, toggles, sliders, text fields, dropdowns and lists, plus a sample project with themes |
 | `examples/10_fileio` | a save slot in binary, a text log, backup, rotate and delete: every file command in one small demo |
 | `examples/11_net` | two windows on one board: host or join, chat over TCP and the dot position over UDP |
@@ -1618,6 +1603,13 @@ third_party/        stb_image, stb_image_write, font8x8, minimp3 (public domain/
 ## Changelog
 
 **November 2026**
+
+* **1.4.0 - central modules and four new examples**: the `modules/` folder now
+  ships UI, Math, JSON, Box2D, OpenGL 3D, Easing and Steam as drop-in modules,
+  with a Modules dock, generated `HELP.md` files and a printable module cheat
+  sheet. `29_modules`, `30_opengl3d`, `31_easing` and `32_json` show the
+  single-`INCLUDE` workflow; Steam moved out of the interpreter into
+  `modules/steam`. Version 1.4.0.
 
 * **2D camera, tasks and asynchronous work**: `CAMERA_BEGIN x,y[,zoom[,angle]]`
   and `CAMERA_END` draw a world with pan, zoom and rotation, while

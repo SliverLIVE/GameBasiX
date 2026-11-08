@@ -17,8 +17,9 @@ libsteam_api.so
 libsteam_api.dylib
 steam_appid.txt
 
-# Spielstaende des FileIO-Beispiels
+# Spielstaende der Beispiele, die sie zur Laufzeit schreiben
 examples/10_fileio/saves/
+examples/32_json/saves/
 
 # C++-Compiler fuer INLINE-Bloecke (GCC/MinGW, mehrere hundert MB): gehoert
 # nicht ins Repo, laesst sich in den Einstellungen nachladen.
@@ -37,6 +38,8 @@ node_modules/
 
 # Werkzeuge und Editor
 .freebuff/
+# Importierte Chat-Anhaenge (keine Projektquellen)
+.cloud-attachments/
 .vscode/
 # Einmalige Skripte fuer Build, Paket und Release
 .scratch/

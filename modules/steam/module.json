@@ -1,0 +1,30 @@
+{
+  "format": "gbx-module",
+  "id": "STEAM",
+  "name": "Steam",
+  "version": "1.0.0",
+  "summary": "Steamworks as a module: friends, P2P, achievements, stats, leaderboards, cloud, lobbies, presence, overlay, tickets and DLC.",
+  "description": "The complete STEAM_* command set, moved out of the interpreter into an INLINE module with identical names. The wrapper calls the Steamworks flat API and loads steam_api64.dll (Windows), libsteam_api.so (Linux) or libsteam_api.dylib (macOS) at runtime, so nothing is linked: download the Steamworks SDK from https://partner.steamgames.com/downloads/list and put sdk/redistributable_bin/win64/steam_api64.dll next to gbx.exe or the built EXE (or point GBX_STEAM_LIB at it). Without the library every command keeps its neutral value and STEAM_ERROR$() explains what is missing; the HTML5 player stays neutral.",
+  "folder": "steam",
+  "entry": "STEAM.gbx",
+  "include": {
+    "entry": "modules/steam/STEAM.gbx"
+  },
+  "files": [
+    "STEAM.gbx",
+    "steam.h",
+    "steam/commands.h",
+    "tests/steam_tests.gbx"
+  ],
+  "tags": [
+    "steam",
+    "steamworks",
+    "achievements",
+    "leaderboard",
+    "p2p",
+    "cloud",
+    "lobby",
+    "dlc"
+  ],
+  "author": "GameBasiX"
+}

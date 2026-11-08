@@ -30,7 +30,7 @@
 #ifndef GBX_INLINE_H
 #define GBX_INLINE_H
 
-#define GBX_INLINE_VERSION 3
+#define GBX_INLINE_VERSION 5
 
 /* Entry points of a library built from INLINE blocks. The interpreter writes
  * GBX_INLINE_EXPORT in front of them, so the same text compiles both as a
@@ -113,6 +113,29 @@ typedef struct GbxHost {
      * bleibt das Bild einfach weg. */
     void (*blit_screen)(struct GbxHost* host, const void* rgba, int width, int height,
                         int stride);
+
+    /* Ab Version 4: Pixel einer geladenen Grafik (SPRITE_LOAD, SPRITE_GRAB,
+     * ANIM_LOAD) fuer eigene Renderer. rgba zeigt auf w*h RGBA8-Zeilen von
+     * oben nach unten und gilt, bis die Grafik neu geladen oder gelöscht
+     * wird. Rückgabe 1 = ok, 0 = kein Bild unter dieser Nummer. */
+    int (*sprite_pixels)(struct GbxHost* host, int id, const void** rgba, int* width, int* height);
+
+    /* Ab Version 5: das GBX-Fenster, damit Module eigene Renderer (OpenGL,
+     * Vulkan, Direct3D) anbinden koennen.
+     *
+     * window_handle liefert das native Handle: Windows HWND, macOS NSWindow*,
+     * X11 Window (als Zahl), Wayland wl_surface*, im Browser nullptr.
+     * nullptr auch bei --headless oder wenn noch kein Fenster existiert.
+     *
+     * window_size fuellt Breite und Hoehe des Fensters in Pixeln.
+     *
+     * gl_context ist ein OpenGL-Kontext, den GBX selbst angelegt hat. GBX
+     * benutzt keinen, deshalb ist der Zeiger normalerweise nullptr; ein Modul
+     * kann auf dem Fenster-Handle selbst einen Kontext anlegen (Windows:
+     * GetDC + wglCreateContext, Linux: glX/X11, macOS: NSOpenGL). */
+    void* (*window_handle)(struct GbxHost* host);
+    void (*window_size)(struct GbxHost* host, int* width, int* height);
+    void* (*gl_context)(struct GbxHost* host);
 } GbxHost;
 
 #ifdef __cplusplus
@@ -204,6 +227,40 @@ inline void blitScreen(const void* rgba, int width, int height, int stride = 0) 
     if (host && host->blit_screen && rgba && width > 0 && height > 0) {
         host->blit_screen(host, rgba, width, height, stride > 0 ? stride : width * 4);
     }
+}
+
+/** Pixels of a loaded sprite for custom renderers (RGBA8, top-down, stride
+ *  width*4). The pointer stays valid until the sprite is reloaded or
+ *  deleted. Returns false if the host is older or the id has no image. */
+inline bool spritePixels(int id, const void** rgba, int* width, int* height) {
+    GbxHost* host = hostPointer();
+    if (!host || !host->sprite_pixels) return false;
+    return host->sprite_pixels(host, id, rgba, width, height) != 0;
+}
+
+/** Natives Fenster-Handle fuer eigene Renderer: Windows HWND, macOS
+ *  NSWindow*, X11 Window (als Zahl), Wayland wl_surface*. nullptr bei
+ *  --headless, im Browser und solange kein Fenster existiert. */
+inline void* windowHandle() {
+    GbxHost* host = hostPointer();
+    return (host && host->window_handle) ? host->window_handle(host) : nullptr;
+}
+
+/** Fenstergroesse in Pixeln. false, wenn kein Fenster da ist. */
+inline bool windowSize(int& width, int& height) {
+    width = 0;
+    height = 0;
+    GbxHost* host = hostPointer();
+    if (!host || !host->window_size) return false;
+    host->window_size(host, &width, &height);
+    return width > 0 && height > 0;
+}
+
+/** OpenGL-Kontext von GBX. GBX legt keinen an, deshalb meist nullptr; ein
+ *  Modul kann mit windowHandle() selbst einen Kontext erzeugen. */
+inline void* glContext() {
+    GbxHost* host = hostPointer();
+    return (host && host->gl_context) ? host->gl_context(host) : nullptr;
 }
 
 /** Writes a line to the IDE console or to stdout. */

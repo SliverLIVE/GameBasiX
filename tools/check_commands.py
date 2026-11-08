@@ -20,7 +20,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GBX = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build", "gbx.exe")
 BUILTINS = os.path.join(ROOT, "src", "builtins.cpp")
 SCRIPT = os.path.join(ROOT, "tests", "command_tests.gbx")
-STEAM_SCRIPT = os.path.join(ROOT, "tests", "steam_tests.gbx")
 OUTPUTS = [
     os.path.join(ROOT, "tests", "out_commands.bmp"),
     os.path.join(ROOT, "tests", "out_commands.png"),
@@ -66,7 +65,7 @@ def builtin_names():
 def used_names():
     source = "\n".join(
         strip_comments(open(path, encoding="utf-8").read())
-        for path in (SCRIPT, STEAM_SCRIPT)
+        for path in (SCRIPT,)
     )
     return {token.upper() for token in re.findall(r"[A-Za-z][A-Za-z0-9_]*\$?", source)}
 

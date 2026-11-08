@@ -12,6 +12,7 @@ import { downloadGoogleFont, fetchGoogleFontFile, listGoogleFonts } from './goog
 import { inspectEmsdk, defaultEmsdkPath, emsdkRoot, installEmsdk } from './emsdk.mjs';
 import { buildPlayer, exportHtml5, inspectHtml5 } from './html5.mjs';
 import { buildLibrary, findInlineInclude, libraryFileName, listLibrarySources } from './library.mjs';
+import { addModuleToProject, listModuleInlineCommands, listModules, modulesRoot, removeModuleFromProject } from './modules.mjs';
 import { setLanguage, tr } from './locale.mjs';
 import {
   addNativeLibrary,
@@ -81,6 +82,7 @@ const RENDERER_DIR = path.join(ROOT, 'src', 'renderer');
 const MONACO_DIR = path.join(ROOT, 'node_modules', 'monaco-editor', 'min');
 const DATA_DIR = path.join(ROOT, 'data');
 const ASSETS_DIR = path.join(ROOT, 'assets');
+const MODULES_ROOT = modulesRoot(ROOT);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -377,6 +379,12 @@ async function routeApi(req, res, url) {
 
   if (pathname === '/api/health') {
     const info = await runtimeInfo();
+    let moduleCount = 0;
+    try {
+      moduleCount = (await listModules(MODULES_ROOT)).length;
+    } catch {
+      moduleCount = 0;
+    }
     return json(res, 200, {
       ok: true,
       app: 'GBX Studio',
@@ -385,6 +393,7 @@ async function routeApi(req, res, url) {
       cxx: info.cxx,
       emsdk: info.emsdk,
       html5: info.html5,
+      modules: { root: MODULES_ROOT, count: moduleCount },
       defaultProjectParent: path.join(os.homedir(), 'Documents', 'GBX')
     });
   }
@@ -675,6 +684,64 @@ async function routeApi(req, res, url) {
     }
   }
 
+  // Module liegen zentral. Das Projekt bekommt nur eine INCLUDE-Zeile.
+  if (pathname === '/api/modules' && method === 'GET') {
+    const dir = String(url.searchParams.get('dir') || '').trim();
+    try {
+      const modules = await listModules(MODULES_ROOT, dir);
+      return json(res, 200, { ok: true, root: MODULES_ROOT, modules });
+    } catch (error) {
+      return fail(res, error);
+    }
+  }
+
+  // Quelldatei eines zentralen Moduls für Definition/Peek laden.
+  if (pathname === '/api/modules/file' && method === 'GET') {
+    const file = String(url.searchParams.get('file') || '').replace(/\\/g, '/').replace(/^\.?\//, '');
+    const target = path.resolve(MODULES_ROOT, file);
+    const moduleSource = /\.(gbx|h|hh|hpp|hxx|inl|ipp|c|cc|cpp|cxx)$/i;
+    if (!file || !isInside(MODULES_ROOT, target) || !moduleSource.test(target)) {
+      return fail(res, new Error('Datei nicht gefunden.'), 404);
+    }
+    try {
+      const content = await fsp.readFile(target, 'utf8');
+      return json(res, 200, { ok: true, file, content });
+    } catch {
+      return fail(res, new Error('Datei nicht gefunden.'), 404);
+    }
+  }
+
+  if (pathname === '/api/modules/add' && method === 'POST') {
+    const body = await readBody(req);
+    try {
+      const result = await addModuleToProject({
+        root: MODULES_ROOT,
+        projectDir: body.projectDir,
+        id: body.id,
+        targetFile: body.targetFile
+      });
+      return json(res, 200, result);
+    } catch (error) {
+      return fail(res, error);
+    }
+  }
+
+  // Modul wieder loesen: INCLUDE-Zeilen, [native]-Eintraege und die ins
+  // Projekt kopierten Archive verschwinden; der zentrale Modulordner bleibt.
+  if (pathname === '/api/modules/remove' && method === 'POST') {
+    const body = await readBody(req);
+    try {
+      const result = await removeModuleFromProject({
+        root: MODULES_ROOT,
+        projectDir: body.projectDir,
+        id: body.id
+      });
+      return json(res, 200, result);
+    } catch (error) {
+      return fail(res, error);
+    }
+  }
+
   // Namen aus GBX_INLINE_FN(...): Der Editor faerbt sie wie eingebaute
   // Befehle und schlaegt sie vor. Ein Projekt ist klein, deshalb darf der
   // Scan nach jedem Speichern laufen.
@@ -682,7 +749,14 @@ async function routeApi(req, res, url) {
     const dir = url.searchParams.get('dir') || '';
     if (!dir) return fail(res, new Error('Projektordner fehlt.'));
     try {
-      return json(res, 200, { ok: true, commands: await scanInlineCommands(dir) });
+      // Projekt eigene Bloecke zuerst, danach die Befehle aktiver Module.
+      const projectCommands = await scanInlineCommands(dir);
+      const moduleCommands = await listModuleInlineCommands(MODULES_ROOT, dir);
+      const merged = new Map();
+      for (const command of [...projectCommands, ...moduleCommands]) {
+        if (!merged.has(command.name)) merged.set(command.name, command);
+      }
+      return json(res, 200, { ok: true, commands: [...merged.values()] });
     } catch (error) {
       return fail(res, error);
     }
@@ -1155,6 +1229,8 @@ async function routeApi(req, res, url) {
 }
 
 export async function startServer({ port = 3417, host = '127.0.0.1' } = {}) {
+  // Compiler und IDE benutzen denselben zentralen Modules-Ordner.
+  process.env.GBX_MODULES = process.env.GBX_MODULES || MODULES_ROOT;
   const config = await loadConfig();
   // Ohne Eintrag gelten die Standardpfade relativ zur Editor-EXE
   // (..\build\gbx.exe und ..\compiler\bin\g++.exe); gespeichert wird nichts,

@@ -1,13 +1,15 @@
 ' ============================================================
-' GameBasiX - Tests fuer die STEAM_*-Befehle
+' GameBasiX - Tests fuer das STEAM-Modul
 '
-'   GBX_STEAM_LIB=<mock> gbx --headless --tests tests/steam_tests.gbx
+'   GBX_STEAM_LIB=<mock> gbx --headless --tests modules/steam/tests/steam_tests.gbx
 '
 ' Laeuft gegen tools/mock_steam_api.cpp, das die Flat-API mit
 ' einer festen Kennung, einem Freund und einem P2P-Paket nachbildet
 ' (tools/check_steam.py baut und startet beides). Ohne Steam kann
 ' damit der komplette Weg vom Laden bis zum Paket geprueft werden.
 ' ============================================================
+
+INCLUDE "modules/steam/STEAM.gbx"
 
 ASSERT STEAM_READY() = 0, "vor STEAM_INIT ist Steam nicht bereit"
 ASSERT STEAM_NAME$() = "", "ohne Steam gibt es keinen Namen"

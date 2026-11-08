@@ -1,0 +1,91 @@
+' Deterministic value noise. The same coordinate always returns the same
+' value, independent of the frame. Results lie in 0..1.
+
+' A small integer hash. MATH_HASH(seed) is a stable pseudo random number
+' from the seed, not a call to the engine RNG.
+FUNCTION MATH_HASH: seed
+  LOCAL n% = BAND(INTEGER(seed), 2147483647)
+  IF n% = 0 THEN n% = 1
+  n% = BAND(n% * 48271, 2147483647)
+  n% = BAND(n% * 48271, 2147483647)
+  IF n% = 0 THEN n% = 1
+  RETURN n% / 2147483647.0
+ENDFUNCTION
+
+' Hash of an integer lattice coordinate.
+FUNCTION MATH_HASH1: ix, seed = 0
+  RETURN MATH_HASH(INTEGER(ix) * 73856093 + INTEGER(seed) * 19349663)
+ENDFUNCTION
+
+' Hash of a 2D integer lattice coordinate.
+FUNCTION MATH_HASH2: ix, iy, seed = 0
+  RETURN MATH_HASH(INTEGER(ix) * 73856093 + INTEGER(iy) * 19349663 + INTEGER(seed) * 83492791)
+ENDFUNCTION
+
+' Smooth 1D value noise between the integer lattice points.
+FUNCTION MATH_NOISE: x, seed = 0
+  LOCAL cell = FLOOR(x)
+  LOCAL f = x - cell
+  LOCAL a = MATH_HASH1(cell, seed)
+  LOCAL b = MATH_HASH1(cell + 1, seed)
+  LOCAL t = f * f * (3 - 2 * f)
+  RETURN a + (b - a) * t
+ENDFUNCTION
+
+' Smooth 2D value noise, bilinear between four lattice points.
+FUNCTION MATH_NOISE2: x, y, seed = 0
+  LOCAL cellX = FLOOR(x)
+  LOCAL cellY = FLOOR(y)
+  LOCAL fx = x - cellX
+  LOCAL fy = y - cellY
+  LOCAL a = MATH_HASH2(cellX, cellY, seed)
+  LOCAL b = MATH_HASH2(cellX + 1, cellY, seed)
+  LOCAL c = MATH_HASH2(cellX, cellY + 1, seed)
+  LOCAL d = MATH_HASH2(cellX + 1, cellY + 1, seed)
+  LOCAL u = fx * fx * (3 - 2 * fx)
+  LOCAL v = fy * fy * (3 - 2 * fy)
+  LOCAL top = a + (b - a) * u
+  LOCAL bottom = c + (d - c) * u
+  RETURN top + (bottom - top) * v
+ENDFUNCTION
+
+' Layered 1D noise (fractional Brownian motion). Each octave doubles the
+' frequency and halves the amplitude, so the result stays in 0..1.
+FUNCTION MATH_FBM: x, octaves = 4, seed = 0
+  LOCAL count% = INTEGER(octaves)
+  IF count% < 1 THEN count% = 1
+  LOCAL total = 0
+  LOCAL amplitude = 1
+  LOCAL frequency = 1
+  LOCAL weight = 0
+  FOR i = 1 TO count%
+    total = total + MATH_NOISE(x * frequency, seed + i * 101) * amplitude
+    weight = weight + amplitude
+    amplitude = amplitude * 0.5
+    frequency = frequency * 2
+  NEXT
+  IF weight <= 0 THEN RETURN 0
+  RETURN total / weight
+ENDFUNCTION
+
+' Layered 2D noise. lacunarity multiplies the frequency per octave, gain
+' multiplies the amplitude.
+FUNCTION MATH_FBM2: x, y, octaves = 4, lacunarity = 2, gain = 0.5, seed = 0
+  LOCAL count% = INTEGER(octaves)
+  IF count% < 1 THEN count% = 1
+  LOCAL total = 0
+  LOCAL amplitude = 1
+  LOCAL frequency = 1
+  LOCAL weight = 0
+  LOCAL spacing = ABS(lacunarity)
+  LOCAL falloff = ABS(gain)
+  IF spacing <= 0 THEN spacing = 2
+  FOR i = 1 TO count%
+    total = total + MATH_NOISE2(x * frequency, y * frequency, seed + i * 101) * amplitude
+    weight = weight + amplitude
+    amplitude = amplitude * falloff
+    frequency = frequency * spacing
+  NEXT
+  IF weight <= 0 THEN RETURN 0
+  RETURN total / weight
+ENDFUNCTION

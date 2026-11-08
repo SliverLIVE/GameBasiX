@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameBasiX Modules cheat sheet</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #141a22;
+    --panel2: #10161e;
+    --line: #222b36;
+    --text: #e6ebf2;
+    --muted: #8b99a8;
+    --dim: #667382;
+    --accent: #7ed184;
+    --command: #8fd6ff;
+    --function: #b8f0a8;
+    --constant: #ffd68a;
+    --warn: #ffb86b;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--text);
+    background:
+      radial-gradient(900px 520px at 12% -8%, #1b2a22 0%, transparent 62%),
+      radial-gradient(760px 420px at 96% 0%, #1a2431 0%, transparent 58%),
+      var(--bg);
+    font: 14px/1.55 ui-sans-serif, "Segoe UI", system-ui, -apple-system, sans-serif;
+    padding-bottom: 50px;
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 26px; }
+
+  header.hero { padding: 38px 0 22px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    margin: 0 0 6px;
+    color: var(--accent);
+    font: 11px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+  }
+  h1 { margin: 0; font-size: 38px; line-height: 1.1; letter-spacing: -0.8px; }
+  h1 span { color: var(--accent); font-weight: 600; }
+  .lead { max-width: 830px; margin: 10px 0 0; color: #b6c2ce; font-size: 15px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+  .meta span {
+    padding: 2px 9px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #121821;
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  nav.toc a {
+    padding: 4px 11px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: #cbd5e1;
+    background: #121821;
+    text-decoration: none;
+    font-size: 12px;
+  }
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  main { padding-top: 8px; }
+  section { margin-top: 34px; scroll-margin-top: 12px; }
+  h2 { margin: 0; font-size: 26px; line-height: 1.2; letter-spacing: -0.3px; }
+  h3 {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font: 11px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+
+  .pick { margin-top: 26px; }
+  .pick h2 { margin-bottom: 10px; }
+  .table-box { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 7px 11px;
+    border-bottom: 1px solid var(--line);
+    background: #1a212b;
+    color: var(--muted);
+    font: 10.5px/1.4 ui-monospace, Consolas, monospace;
+    letter-spacing: 0.9px;
+    text-align: left;
+    text-transform: uppercase;
+  }
+  td { padding: 6px 11px; border-bottom: 1px solid #1c2530; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: #19212b; }
+  td:first-child { width: 15%; }
+  .pick td:first-child { width: 12%; }
+  .pick td:nth-child(2) { width: 42%; }
+
+  .module {
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  .module-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .kicker {
+    margin: 0 0 3px;
+    color: var(--dim);
+    font: 10.5px/1.4 ui-monospace, Consolas, monospace;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+  }
+  .include {
+    display: inline-block;
+    padding: 7px 11px;
+    border: 1px solid #2a3a31;
+    border-radius: 7px;
+    background: #101a14;
+    color: var(--function);
+    font: 12.5px/1.3 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    white-space: nowrap;
+  }
+  .purpose { max-width: 900px; margin: 8px 0 14px; color: #b6c2ce; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 12px 13px 10px;
+    break-inside: avoid;
+  }
+  .card.wide { grid-column: 1 / -1; }
+  .card table { margin-top: 2px; }
+  .card td { padding: 4px 7px; }
+  .card td:first-child { width: 54%; }
+  .card tbody tr:hover { background: #1a212b; }
+
+  code {
+    font: 12px/1.35 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color: var(--command);
+    word-break: break-word;
+  }
+  td code { color: #a9dcff; }
+  .desc { color: #b9c5d1; font-size: 12px; line-height: 1.4; }
+  .desc code { color: var(--constant); font-size: 11.5px; }
+
+  pre {
+    margin: 8px 0 4px;
+    padding: 11px 12px;
+    border: 1px solid #1e2a35;
+    border-radius: 8px;
+    background: var(--panel2);
+    color: #d7e2ec;
+    font: 12px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    overflow-x: auto;
+  }
+  pre .c { color: #6b7a89; }
+  pre .k { color: var(--function); }
+
+  .note {
+    margin: 13px 0 0;
+    padding: 9px 12px;
+    border-left: 3px solid var(--accent);
+    background: #101a14;
+    color: #b9c9bd;
+    font-size: 12.5px;
+    border-radius: 0 7px 7px 0;
+  }
+  .note b { color: #d9ecdd; }
+  .warn { border-left-color: var(--warn); background: #1c1710; color: #d6c5b0; }
+  .warn b { color: #f0d8ba; }
+
+  footer {
+    margin-top: 38px;
+    padding-top: 13px;
+    border-top: 1px solid var(--line);
+    color: var(--dim);
+    font-size: 12px;
+  }
+
+  @media (max-width: 940px) {
+    .grid { grid-template-columns: 1fr; }
+    .card td:first-child { width: 48%; }
+    h1 { font-size: 30px; }
+    .module-head { align-items: flex-start; }
+    .include { white-space: normal; }
+  }
+  @media print {
+    body { background: #fff; color: #111; padding: 0; font-size: 10.5px; }
+    .wrap { max-width: none; padding: 0 10mm; }
+    header.hero { padding-top: 0; border-color: #bbb; }
+    .eyebrow, h1 span, .kicker { color: #1f6b33; }
+    h1 { font-size: 26px; }
+    .lead, .purpose, .desc { color: #333; }
+    .meta span, nav.toc a { background: #fff; border-color: #ccc; color: #333; }
+    nav.toc { display: none; }
+    .table-box, .card { border-color: #bbb; background: #fff; }
+    th { background: #eee; color: #333; border-color: #bbb; }
+    td { border-color: #ddd; }
+    tbody tr:hover { background: transparent; }
+    code, td code, .include { color: #0b3d91; }
+    .include { background: #fff; border-color: #bbb; }
+    pre { background: #f5f5f5; border-color: #ccc; color: #111; }
+    pre .c { color: #666; }
+    .note { background: #f2f8f3; border-left-color: #1f6b33; color: #222; }
+    .warn { background: #fdf6ec; border-left-color: #a05a00; color: #222; }
+    footer { color: #555; border-color: #bbb; }
+    section, .card, tr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">GameBasiX &middot; central modules</p>
+    <h1>Modules <span>cheat sheet</span></h1>
+    <p class="lead">Seven drop-in modules for UI, game math, JSON, 2D physics, 3D rendering,
+    animation curves and Steamworks. Add one through the <b>Modules</b> dock or copy its
+    single <code>INCLUDE</code> line. Every command below is documented in full in the
+    module's <code>HELP.md</code>.</p>
+    <div class="meta">
+      <span>7 modules</span>
+      <span>1 INCLUDE each</span>
+      <span>pure GBX where possible</span>
+      <span>full API in HELP.md</span>
+    </div>
+    <nav class="toc" aria-label="Jump to">
+      <a href="#pick">Which module?</a>
+      <a href="#ui">UI</a>
+      <a href="#math">Math</a>
+      <a href="#json">JSON</a>
+      <a href="#box2d">Box2D</a>
+      <a href="#opengl3d">OpenGL 3D</a>
+      <a href="#easing">Easing</a>
+      <a href="#steam">Steam</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="pick" class="pick">
+    <h2>Which module, when?</h2>
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr><th>Module</th><th>Reach for it when you need&hellip;</th><th>Runtime</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>UI</code></td>
+            <td>Windows, labels, buttons, toggles, sliders, text fields, dropdowns, listboxes, keyboard focus and light/dark themes.</td>
+            <td class="desc">Pure GBX &middot; interpreter, EXE, HTML5</td>
+          </tr>
+          <tr>
+            <td><code>MATH</code></td>
+            <td>Clamp/lerp/remap, angles, <code>VEC2</code>, <code>RECT2</code>, collision tests, random ranges, noise and curves.</td>
+            <td class="desc">Pure GBX &middot; interpreter, EXE, HTML5</td>
+          </tr>
+          <tr>
+            <td><code>JSON</code></td>
+            <td>Config files, savegames, level data: parse, read by path, edit, write back.</td>
+            <td class="desc">Pure GBX &middot; interpreter, EXE, HTML5</td>
+          </tr>
+          <tr>
+            <td><code>BOX2D</code></td>
+            <td>2D rigid bodies: stacked boxes, joints, contacts, forces, point/ray queries.</td>
+            <td class="desc">INLINE C++ &middot; compiler on first run; HTML5 included</td>
+          </tr>
+          <tr>
+            <td><code>OPENGL3D</code></td>
+            <td>3D scenes, meshes and textures rendered into the normal GBX screen.</td>
+            <td class="desc">INLINE C++ &middot; OpenGL 1.1 on Windows, software in HTML5</td>
+          </tr>
+          <tr>
+            <td><code>EASING</code></td>
+            <td>One-line animation curves between two values.</td>
+            <td class="desc">Native archive; IDE copies it &middot; HTML5 fallback</td>
+          </tr>
+          <tr>
+            <td><code>STEAM</code></td>
+            <td>Friends, P2P packets, achievements, stats, leaderboards, cloud files, lobbies, rich presence, overlay, auth tickets and DLC.</td>
+            <td class="desc">INLINE C++ &middot; Steamworks flat API loaded at runtime; HTML5 stays neutral</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>Adding a module:</b> open the <b>Modules</b> dock and press <b>Add</b>.
+    The IDE writes the <code>INCLUDE</code> line, and for native modules copies the archive
+    and registers it under <code>[native] libs</code>. Removing the module reverses that.</p>
+  </section>
+
+  <!-- ============================================================ UI -->
+  <section id="ui" class="module">
+    <div class="module-head">
+      <div>
+        <p class="kicker">Pure GBX &middot; all targets</p>
+        <h2>UI</h2>
+      </div>
+      <code class="include">INCLUDE "modules/ui/UI.gbx"</code>
+    </div>
+    <p class="purpose">A flat widget toolkit that draws itself with normal GBX commands. One
+    widget store per program; widgets belong to the window that was opened last.</p>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Set up</h3>
+        <pre>GLOBAL app AS UI
+app.init()
+
+GLOBAL win = app.window("Settings", 40, 40, 420, 360)
+GLOBAL nameF = app.field("Player", 20, 56, 260, "Player one")
+GLOBAL vol = app.slider("Volume", 20, 116, 260, 0, 100, 1, 70)
+GLOBAL start = app.button("Start", 20, 300, 120, 36, 1)
+app.endWindow()
+
+WHILE TRUE
+  SCREEN_CLEAR app.bg
+  app.run()
+  IF app.clicked(start) THEN <span class="c">' &hellip;</span>
+  SCREEN_SHOW
+WEND</pre>
+      </article>
+
+      <article class="card">
+        <h3>Widgets</h3>
+        <table>
+          <tbody>
+            <tr><td><code>window(title$, x, y, w, h)</code></td><td class="desc">Draggable window with close button; starts the client area</td></tr>
+            <tr><td><code>panel(title$, x, y, w, h)</code></td><td class="desc">Flat group box</td></tr>
+            <tr><td><code>label(text$, x, y, w = 0)</code></td><td class="desc">Single line label; <code>w = 0</code> fits the text</td></tr>
+            <tr><td><code>heading(text$, x, y, w = 0)</code></td><td class="desc">Accent heading with underline</td></tr>
+            <tr><td><code>separator(x, y, w)</code></td><td class="desc">One pixel divider</td></tr>
+            <tr><td><code>button(text$, x, y, w, h, primary = 0)</code></td><td class="desc">Flat button; primary uses the accent</td></tr>
+            <tr><td><code>toggle(text$, x, y, checked = 0)</code></td><td class="desc">Checkbox-style toggle</td></tr>
+            <tr><td><code>slider(title$, x, y, w, lo, hi, step, value)</code></td><td class="desc">Numeric slider with value label</td></tr>
+            <tr><td><code>progress(title$, x, y, w, value)</code></td><td class="desc">0&hellip;1 progress bar</td></tr>
+            <tr><td><code>field(title$, x, y, w, text$ = "")</code></td><td class="desc">Editable single-line text field</td></tr>
+            <tr><td><code>dropdown(title$, x, y, w, options$, index = 0)</code></td><td class="desc">Popup selection; options are <code>a|b|c</code></td></tr>
+            <tr><td><code>listbox(title$, x, y, w, h, options$, index = 0)</code></td><td class="desc">Scrollable list</td></tr>
+            <tr><td><code>endWindow()</code></td><td class="desc">Close the client area; later widgets go to the next window</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Read and change state</h3>
+        <table>
+          <tbody>
+            <tr><td><code>app.value(id)</code></td><td class="desc">Number of a slider/progress</td></tr>
+            <tr><td><code>app.text$(id)</code></td><td class="desc">Text of a field/label or selected option</td></tr>
+            <tr><td><code>app.clicked(id)</code></td><td class="desc">1 on the frame a button/toggle was activated</td></tr>
+            <tr><td><code>app.changed(id)</code></td><td class="desc">1 when a field/dropdown/list changed</td></tr>
+            <tr><td><code>app.setValue(id, v)</code></td><td class="desc">Set a slider/progress value</td></tr>
+            <tr><td><code>app.setText(id, s$)</code></td><td class="desc">Set a label/field text</td></tr>
+            <tr><td><code>app.setOptions(id, s$)</code></td><td class="desc">Replace dropdown/list options</td></tr>
+            <tr><td><code>app.enable(id, flag)</code></td><td class="desc">Enable or grey out a widget</td></tr>
+            <tr><td><code>app.openWin(id)</code> / <code>closeWin(id)</code></td><td class="desc">Show or hide a window</td></tr>
+            <tr><td><code>app.focusOn(id)</code></td><td class="desc">Move keyboard focus</td></tr>
+            <tr><td><code>app.clear()</code></td><td class="desc">Remove every widget and start a new screen</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Input, theme and rules</h3>
+        <table>
+          <tbody>
+            <tr><td><code>app.vmouse(x, y, down)</code></td><td class="desc">Feed virtual mouse input (demos, headless tests)</td></tr>
+            <tr><td><code>app.vkey(code)</code> / <code>app.vtext(s$)</code></td><td class="desc">Feed a key or typed text</td></tr>
+            <tr><td><code>app.vm% = 0</code></td><td class="desc">Back to real input</td></tr>
+            <tr><td><code>app.theme("dark"|"light")</code></td><td class="desc">Switch the built-in palette</td></tr>
+            <tr><td><code>app.bg</code>, <code>app.surface</code>, <code>app.accent</code>, <code>app.accentInk</code></td><td class="desc">Custom palette fields; also <code>surface2</code>, <code>titleBar</code>, <code>line</code>, <code>ink</code>, <code>inkDim</code>, <code>danger</code>, <code>field</code></td></tr>
+            <tr><td><code>app.titleH</code>, <code>app.pad</code>, <code>app.rowH</code></td><td class="desc">Geometry metrics</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </div>
+    <p class="note"><b>Remember:</b> create widgets once, before the frame loop. Call
+    <code>app.run()</code> once per frame after drawing your background. Coordinates are
+    relative to the window's client area; <code>ESC</code> is deliberately left to the game.</p>
+  </section>
+
+  <!-- ============================================================ MATH -->
+  <section id="math" class="module">
+    <div class="module-head">
+      <div>
+        <p class="kicker">Pure GBX &middot; all targets</p>
+        <h2>Math</h2>
+      </div>
+      <code class="include">INCLUDE "modules/math/MATH.gbx"</code>
+    </div>
+    <p class="purpose">Everyday gameplay math without a C++ block. Angles are degrees, like
+    <code>SIN</code>/<code>COS</code>/<code>ATAN</code>; positive turns clockwise on screen.</p>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Scalars &amp; interpolation</h3>
+        <table>
+          <tbody>
+            <tr><td><code>MATH_CLAMP(v, lo, hi)</code></td><td class="desc">Keep inside a range; bounds may be swapped</td></tr>
+            <tr><td><code>MATH_CLAMP01(v)</code></td><td class="desc">Keep inside 0&hellip;1</td></tr>
+            <tr><td><code>MATH_LERP(a, b, t)</code></td><td class="desc"><code>a + (b-a)*t</code>, not clamped</td></tr>
+            <tr><td><code>MATH_LERP_CLAMPED(a, b, t)</code></td><td class="desc">Same, with <code>t</code> clamped</td></tr>
+            <tr><td><code>MATH_INV_LERP(a, b, v)</code></td><td class="desc">Where <code>v</code> lies between <code>a</code> and <code>b</code></td></tr>
+            <tr><td><code>MATH_REMAP(v, inLo, inHi, outLo, outHi)</code></td><td class="desc">Move a value between ranges</td></tr>
+            <tr><td><code>MATH_REMAP_CLAMPED(&hellip;)</code></td><td class="desc">Same, clamped to the output range</td></tr>
+            <tr><td><code>MATH_SMOOTHSTEP(e0, e1, v)</code></td><td class="desc">Hermite 0&hellip;1 with soft ends</td></tr>
+            <tr><td><code>MATH_MOVE_TOWARD(cur, target, step)</code></td><td class="desc">Step at most <code>step</code> towards target</td></tr>
+            <tr><td><code>MATH_WRAP(v, lo, hi)</code></td><td class="desc">Wrap into <code>[lo, hi)</code></td></tr>
+            <tr><td><code>MATH_PINGPONG(v, len)</code></td><td class="desc">Bounce between 0 and <code>len</code></td></tr>
+            <tr><td><code>MATH_SNAP(v, step)</code></td><td class="desc">Round to a multiple of <code>step</code></td></tr>
+            <tr><td><code>MATH_DEADZONE(v, dead)</code></td><td class="desc">Rescale a -1&hellip;1 stick around a centre dead zone</td></tr>
+            <tr><td><code>MATH_DAMP(cur, target, lambda, dt)</code></td><td class="desc">Frame-rate independent smoothing</td></tr>
+            <tr><td><code>MATH_DAMP_ANGLE(&hellip;)</code></td><td class="desc">Same for an angle, the short way round</td></tr>
+            <tr><td><code>MATH_NEAR(a, b[, eps])</code></td><td class="desc">1 when close; default epsilon <code>MATH_EPS</code></td></tr>
+            <tr><td><code>MATH_SAFE_DIV(a, b[, fallback])</code></td><td class="desc"><code>a/b</code>, or fallback when <code>b</code> is near zero</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Angles</h3>
+        <table>
+          <tbody>
+            <tr><td><code>MATH_RAD(deg)</code> / <code>MATH_DEG(rad)</code></td><td class="desc">Convert between degrees and radians</td></tr>
+            <tr><td><code>MATH_ANGLE_WRAP(deg)</code></td><td class="desc">Normalize to -180&hellip;180</td></tr>
+            <tr><td><code>MATH_ANGLE_DIFF(from, to)</code></td><td class="desc">Shortest signed turn</td></tr>
+            <tr><td><code>MATH_ANGLE_LERP(from, to, t)</code></td><td class="desc">Interpolate the short way round</td></tr>
+            <tr><td><code>MATH_ANGLE_LERP_CLAMPED(&hellip;)</code></td><td class="desc">Same, with <code>t</code> clamped</td></tr>
+            <tr><td><code>MATH_ANGLE_APPROACH(cur, target, step)</code></td><td class="desc">Turn at most <code>step</code> degrees</td></tr>
+            <tr><td><code>MATH_ANGLE_BETWEEN(x1, y1, x2, y2)</code></td><td class="desc">Direction from the first point to the second</td></tr>
+            <tr><td><code>MATH_DIR_X(deg)</code> / <code>MATH_DIR_Y(deg)</code></td><td class="desc">Unit direction as <code>COS</code>/<code>SIN</code></td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>VEC2</h3>
+        <table>
+          <tbody>
+            <tr><td><code>v.set(x, y)</code> / <code>v.copyFrom(x, y)</code></td><td class="desc">Assign or copy components</td></tr>
+            <tr><td><code>v.add(x, y)</code> / <code>v.sub(x, y)</code></td><td class="desc">Add or subtract</td></tr>
+            <tr><td><code>v.scale(f)</code> / <code>v.addScaled(x, y, f)</code></td><td class="desc">Scale, or add another vector times a factor</td></tr>
+            <tr><td><code>v.length()</code> / <code>v.lengthSq()</code></td><td class="desc">Length and squared length</td></tr>
+            <tr><td><code>v.distance(x, y)</code></td><td class="desc">Distance to a point</td></tr>
+            <tr><td><code>v.dot(x, y)</code> / <code>v.cross(x, y)</code></td><td class="desc">Dot and 2D cross product</td></tr>
+            <tr><td><code>v.angle()</code> / <code>v.angleTo(x, y)</code></td><td class="desc">Direction of the vector or to a point</td></tr>
+            <tr><td><code>v.normalize()</code></td><td class="desc">Length 1; a zero vector stays zero</td></tr>
+            <tr><td><code>v.limit(maxLen)</code></td><td class="desc">Shrink when longer, never grow</td></tr>
+            <tr><td><code>v.rotate(deg)</code> / <code>v.lerpTo(x, y, t)</code></td><td class="desc">Rotate around the origin, or interpolate</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Rectangles &amp; collision</h3>
+        <table>
+          <tbody>
+            <tr><td><code>r.set(x, y, w, h)</code></td><td class="desc"><code>RECT2</code>, top-left origin</td></tr>
+            <tr><td><code>r.right()</code> / <code>r.bottom()</code> / <code>r.area()</code></td><td class="desc">Edges and area</td></tr>
+            <tr><td><code>r.centerX()</code> / <code>r.centerY()</code></td><td class="desc">Centre point</td></tr>
+            <tr><td><code>r.contains(x, y)</code></td><td class="desc">Point test; right/bottom exclusive</td></tr>
+            <tr><td><code>r.overlaps(x, y, w, h)</code></td><td class="desc">Touching edges do not count</td></tr>
+            <tr><td><code>r.inflate(amount)</code></td><td class="desc">Grow or shrink on all sides</td></tr>
+            <tr><td><code>MATH_POINT_IN_RECT / CIRCLE</code></td><td class="desc">Point tests</td></tr>
+            <tr><td><code>MATH_RECT_OVERLAP / CIRCLE_OVERLAP</code></td><td class="desc">Shape overlap; circles touch-count</td></tr>
+            <tr><td><code>MATH_CIRCLE_RECT_OVERLAP</code></td><td class="desc">Circle against rectangle</td></tr>
+            <tr><td><code>MATH_RECT_OVERLAP_X / _Y</code></td><td class="desc">Penetration along one axis; 0 if apart</td></tr>
+            <tr><td><code>MATH_SEGMENT_INTERSECT</code></td><td class="desc">Two line segments</td></tr>
+            <tr><td><code>MATH_POINT_ON_SEGMENT</code></td><td class="desc">Point on a segment</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Random &amp; noise</h3>
+        <table>
+          <tbody>
+            <tr><td><code>MATH_RAND()</code> / <code>MATH_RAND_RANGE(lo, hi)</code></td><td class="desc">Decimal 0&hellip;1, or inside a range</td></tr>
+            <tr><td><code>MATH_RAND_INT(lo, hi)</code></td><td class="desc">Whole number, both limits included</td></tr>
+            <tr><td><code>MATH_RAND_CHANCE(p)</code> / <code>MATH_RAND_SIGN()</code></td><td class="desc">1 with probability <code>p</code>; -1 or 1</td></tr>
+            <tr><td><code>MATH_RAND_INDEX(n)</code></td><td class="desc">0&hellip;n-1, or -1 for an empty array</td></tr>
+            <tr><td><code>MATH_RAND_ANGLE()</code> / <code>UNIT()</code> / <code>SPREAD(a)</code></td><td class="desc">-180&hellip;180, -1&hellip;1, -a&hellip;a</td></tr>
+            <tr><td><code>MATH_HASH(seed)</code></td><td class="desc">Deterministic pseudo random value</td></tr>
+            <tr><td><code>MATH_HASH1(ix[, seed])</code> / <code>HASH2(ix, iy[, seed])</code></td><td class="desc">Hash of a lattice coordinate</td></tr>
+            <tr><td><code>MATH_NOISE(x[, seed])</code> / <code>NOISE2(x, y[, seed])</code></td><td class="desc">Smooth value noise, 0&hellip;1</td></tr>
+            <tr><td><code>MATH_FBM(x[, oct[, seed]])</code></td><td class="desc">Layered 1D noise, 4 octaves by default</td></tr>
+            <tr><td><code>MATH_FBM2(x, y[, oct[, lac[, gain[, seed]]]])</code></td><td class="desc">Layered 2D noise</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Curves &amp; springs</h3>
+        <table>
+          <tbody>
+            <tr><td><code>MATH_BEZIER2(a, b, c, t)</code></td><td class="desc">Quadratic Bezier between numbers</td></tr>
+            <tr><td><code>MATH_BEZIER3(a, b, c, d, t)</code></td><td class="desc">Cubic Bezier between numbers</td></tr>
+            <tr><td><code>MATH_CATMULL_ROM(a, b, c, d, t)</code></td><td class="desc">Smooth spline through <code>b</code> and <code>c</code></td></tr>
+            <tr><td><code>MATH_SPRING(BYREF v, BYREF vel, target[, k[, d[, dt]]])</code></td><td class="desc">Spring step, updates value and velocity</td></tr>
+            <tr><td><code>MATH_SPRING_ANGLE(&hellip;)</code></td><td class="desc">Same for an angle, short way round</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </div>
+
+    <p class="note"><b>Constants:</b> <code>MATH_PI</code>, <code>MATH_TAU</code>,
+    <code>MATH_E</code>, <code>MATH_DEG2RAD</code>, <code>MATH_RAD2DEG</code>,
+    <code>MATH_EPS</code>. <b>References:</b> <code>VEC2</code> and <code>RECT2</code>
+    are reference values - <code>b = a</code> aliases the same object. Use
+    <code>b.copyFrom(a.x, a.y)</code> or a fresh <code>LOCAL b AS VEC2</code> for a copy.
+    <b>Springs:</b> pass <code>DELTA_TIME() / 1000.0</code> as <code>dt</code>.</p>
+  </section>
+
+  <!-- ============================================================ JSON -->
+  <section id="json" class="module">
+    <div class="module-head">
+      <div>
+        <p class="kicker">Pure GBX &middot; all targets</p>
+        <h2>JSON</h2>
+      </div>
+      <code class="include">INCLUDE "modules/json/JSON.gbx"</code>
+    </div>
+    <p class="purpose">Parse, read, edit and write JSON without a C++ block. Objects become
+    <code>DICT</code>s, arrays become index-keyed <code>DICT</code>s, so a document can also
+    be walked with the normal dictionary commands.</p>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Parse, read and write</h3>
+        <table>
+          <tbody>
+            <tr><td><code>JSON_PARSE(text$)</code></td><td class="desc">Parse a value; null on error</td></tr>
+            <tr><td><code>JSON_VALID(text$)</code></td><td class="desc">1 when the text is valid JSON</td></tr>
+            <tr><td><code>JSON_ERROR$()</code> / <code>JSON_ERROR_POS()</code></td><td class="desc">Last parse error and position</td></tr>
+            <tr><td><code>JSON_READ(path$)</code> / <code>JSON_SAVE(v, path$)</code></td><td class="desc">Read a UTF-8 file, or write pretty JSON</td></tr>
+            <tr><td><code>JSON_WRITE$(v)</code></td><td class="desc">Compact one-line JSON</td></tr>
+            <tr><td><code>JSON_WRITE_PRETTY$(v)</code></td><td class="desc">Indented with two spaces</td></tr>
+            <tr><td><code>JSON_WRITE_INDENTED$(v, n)</code></td><td class="desc">Indented with <code>n</code> spaces</td></tr>
+            <tr><td><code>JSON_ESCAPE$(text$)</code></td><td class="desc">Escape a string without the quotes</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Read by path</h3>
+        <table>
+          <tbody>
+            <tr><td><code>JSON_GET(doc, path$)</code></td><td class="desc">Raw value, 0 when missing</td></tr>
+            <tr><td><code>JSON_HAS(doc, path$)</code></td><td class="desc">1 when the path exists, also for null</td></tr>
+            <tr><td><code>JSON_GET_TYPE(doc, path$)</code></td><td class="desc"><code>JSON_TYPE_*</code>, -1 when missing</td></tr>
+            <tr><td><code>JSON_GET_NUM(doc, path$, fallback)</code></td><td class="desc">Number; booleans become 0/1</td></tr>
+            <tr><td><code>JSON_GET_TEXT$(doc, path$, fallback$)</code></td><td class="desc">Text or fallback</td></tr>
+            <tr><td><code>JSON_GET_BOOL(doc, path$, fallback)</code></td><td class="desc">Boolean; numbers become 1/0</td></tr>
+            <tr><td><code>JSON_COUNT(doc, path$)</code></td><td class="desc">Array length, object keys or text length</td></tr>
+            <tr><td><code>JSON_KEY$(doc, path$, i)</code> / <code>JSON_AT(doc, path$, i)</code></td><td class="desc">Key or value by position</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Build and edit</h3>
+        <table>
+          <tbody>
+            <tr><td><code>JSON_OBJECT()</code> / <code>JSON_ARRAY()</code></td><td class="desc">New empty containers</td></tr>
+            <tr><td><code>JSON_SET(doc, path$, v)</code></td><td class="desc">Store, creating missing containers</td></tr>
+            <tr><td><code>JSON_SET_NULL / BOOL / NUM / TEXT</code></td><td class="desc">Typed variants</td></tr>
+            <tr><td><code>JSON_APPEND(doc, path$, v)</code></td><td class="desc">Append to an array; returns the index or -1</td></tr>
+            <tr><td><code>JSON_APPEND_NULL / BOOL / NUM / TEXT</code></td><td class="desc">Typed variants</td></tr>
+            <tr><td><code>JSON_REMOVE(doc, path$)</code></td><td class="desc">Remove a key/element; arrays close the gap</td></tr>
+            <tr><td><code>JSON_CLEAR(doc, path$)</code> / <code>JSON_CLONE(v)</code></td><td class="desc">Empty a container; deep copy a value</td></tr>
+            <tr><td><code>JSON_MAKE_NULL / TRUE / FALSE / BOOL(f)</code></td><td class="desc">Marked scalar values</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Inspect a value</h3>
+        <table>
+          <tbody>
+            <tr><td><code>JSON_KIND(v)</code> / <code>JSON_TYPE_NAME$(v)</code></td><td class="desc">Type number or name</td></tr>
+            <tr><td><code>JSON_IS_NULL / BOOL / NUMBER / STRING / OBJECT / ARRAY</code></td><td class="desc">Type tests</td></tr>
+            <tr><td><code>JSON_BOOL(v)</code> / <code>JSON_NUM(v)</code> / <code>JSON_TEXT$(v)</code></td><td class="desc">Coerce to a scalar</td></tr>
+            <tr><td><code>JSON_TYPE_NULL &hellip; ARRAY</code></td><td class="desc">Constants 0&hellip;5</td></tr>
+          </tbody>
+        </table>
+        <pre>doc = JSON_PARSE("{""player"":{""hp"":100}}")
+PRINT JSON_GET_NUM(doc, "player.hp", 0)
+JSON_SET_NUM doc, "player.hp", 90
+PRINT JSON_WRITE$(doc)</pre>
+      </article>
+    </div>
+    <p class="note"><b>Paths:</b> <code>player.name</code>, <code>inventory[2].count</code>,
+    <code>[0].id</code>; <code>'</code> is the document itself. <b>Arrays:</b> parsed
+    documents use a <code>DICT</code> with the marker key <code>"$"</code>; skip it when
+    walking with <code>DICT_KEY$</code>. Parse errors never stop the program - test
+    <code>JSON_VALID</code> or read <code>JSON_ERROR$()</code>.</p>
+  </section>
+
+  <!-- ============================================================ BOX2D -->
+  <section id="box2d" class="module">
+    <div class="module-head">
+      <div>
+        <p class="kicker">INLINE C++ &middot; Box2D-Lite</p>
+        <h2>Box2D</h2>
+      </div>
+      <code class="include">INCLUDE "modules/box2d/BOX2D.gbx"</code>
+    </div>
+    <p class="purpose">Boxes with gravity, friction, stacking, point-to-point joints, contacts
+    and ray queries. All physics runs in C++; BASIC creates bodies and reads their state.
+    Units are free - the examples use pixels.</p>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Set up</h3>
+        <pre>BOX2D_WORLD 0, 900, 12       <span class="c">' gravity x/y, iterations</span>
+floor = BOX2D_BOX(480, 660, 960, 60, 0, 1)
+crate = BOX2D_BOX(480, 80, 60, 60, 0, 0)
+
+WHILE TRUE
+  BOX2D_STEP 1.0 / 60.0
+  <span class="c">' draw with BOX2D_CORNER_X/Y or BOX2D_DEBUG_DRAW()</span>
+  SCREEN_SHOW
+WEND</pre>
+      </article>
+
+      <article class="card">
+        <h3>World</h3>
+        <table>
+          <tbody>
+            <tr><td><code>BOX2D_WORLD [gx, gy[, iter]]</code></td><td class="desc">New world, defaults 0, 900, 12</td></tr>
+            <tr><td><code>BOX2D_CLEAR</code></td><td class="desc">Remove all bodies and joints, keep gravity</td></tr>
+            <tr><td><code>BOX2D_GRAVITY gx[, gy]</code></td><td class="desc">Change gravity</td></tr>
+            <tr><td><code>BOX2D_ITERATIONS n</code></td><td class="desc">Solver iterations per step</td></tr>
+            <tr><td><code>BOX2D_SOLVER [warm, posCorr, accum]</code></td><td class="desc">Solver switches, all on by default</td></tr>
+            <tr><td><code>BOX2D_STEP [dt]</code></td><td class="desc">Advance; <code>dt</code> clamped to 1/240&hellip;1/30</td></tr>
+            <tr><td><code>BOX2D_COUNT()</code></td><td class="desc">Live bodies</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Bodies</h3>
+        <table>
+          <tbody>
+            <tr><td><code>BOX2D_BOX x, y, w, h, angle, isStatic[, friction[, mass]]</code></td><td class="desc">Create a box; returns its ID</td></tr>
+            <tr><td><code>BOX2D_REMOVE id</code> / <code>BOX2D_ALIVE(id)</code></td><td class="desc">Remove a body and its joints; test an ID</td></tr>
+            <tr><td><code>BOX2D_X(id)</code> / <code>BOX2D_Y(id)</code> / <code>BOX2D_ANGLE(id)</code></td><td class="desc">Centre and rotation (radians)</td></tr>
+            <tr><td><code>BOX2D_DEGREES(id)</code></td><td class="desc">Rotation in degrees</td></tr>
+            <tr><td><code>BOX2D_VX / VY / SPEED / SPIN</code></td><td class="desc">Velocity and angular velocity</td></tr>
+            <tr><td><code>BOX2D_WIDTH / HEIGHT / HALF_WIDTH / HALF_HEIGHT</code></td><td class="desc">Size</td></tr>
+            <tr><td><code>BOX2D_MASS / FRICTION / IS_STATIC</code></td><td class="desc">Mass (0 static), friction, static flag</td></tr>
+            <tr><td><code>BOX2D_CORNER_X(id, i)</code> / <code>CORNER_Y(id, i)</code></td><td class="desc">Rotated corner: 0 TL, 1 TR, 2 BR, 3 BL</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Change a body</h3>
+        <table>
+          <tbody>
+            <tr><td><code>BOX2D_PLACE id, x, y[, angle]</code></td><td class="desc">Move and optionally turn at once</td></tr>
+            <tr><td><code>BOX2D_TURN id, rad</code> / <code>SET_SPIN id, rad</code></td><td class="desc">Set rotation or angular velocity</td></tr>
+            <tr><td><code>BOX2D_SET_VELOCITY id, vx[, vy]</code></td><td class="desc">Set velocity</td></tr>
+            <tr><td><code>BOX2D_SET_MASS id, m</code> / <code>SET_FRICTION id, f</code></td><td class="desc">Change mass/inertia or friction; mass 0 = static</td></tr>
+            <tr><td><code>BOX2D_FORCE id, fx[, fy]</code> / <code>TORQUE id, t</code></td><td class="desc">Force/torque for the next step</td></tr>
+            <tr><td><code>BOX2D_IMPULSE id, ix[, iy]</code></td><td class="desc">Immediate velocity change</td></tr>
+            <tr><td><code>BOX2D_IMPULSE_AT id, ix, iy, x, y</code></td><td class="desc">Impulse at a world point, also spins</td></tr>
+            <tr><td><code>BOX2D_ANGULAR_IMPULSE id, v</code></td><td class="desc">Immediate spin change</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Joints</h3>
+        <table>
+          <tbody>
+            <tr><td><code>BOX2D_JOINT idA, idB, x, y</code></td><td class="desc">Point-to-point joint; returns a joint ID</td></tr>
+            <tr><td><code>BOX2D_JOINT_COUNT()</code> / <code>JOINT_REMOVE id</code></td><td class="desc">Count or remove joints</td></tr>
+            <tr><td><code>BOX2D_JOINT_AX / AY / BX / BY</code></td><td class="desc">World anchors on both bodies</td></tr>
+            <tr><td><code>BOX2D_JOINT_SOFTNESS id, v</code> / <code>BIAS id, v</code></td><td class="desc">Constraint softness and position correction</td></tr>
+            <tr><td><code>BOX2D_JOINT_IMPULSE(id, axis)</code></td><td class="desc">Accumulated impulse; 0 = x, 1 = y</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Contacts, queries, debug</h3>
+        <table>
+          <tbody>
+            <tr><td><code>BOX2D_CONTACT_COUNT()</code></td><td class="desc">Contact points from the last step</td></tr>
+            <tr><td><code>BOX2D_CONTACT_BODY(i, which)</code></td><td class="desc">Body ID; <code>which</code> 0 or 1</td></tr>
+            <tr><td><code>BOX2D_CONTACT_VALUE(i, what)</code></td><td class="desc">0/1 position, 2/3 normal, 4 depth, 5 impulse</td></tr>
+            <tr><td><code>BOX2D_TOUCHING(a, b)</code></td><td class="desc">Contact points between two bodies</td></tr>
+            <tr><td><code>BOX2D_AT x, y[, static]</code></td><td class="desc">Body under a point, 0 = none</td></tr>
+            <tr><td><code>BOX2D_RAY x, y, dx, dy[, maxT]</code></td><td class="desc">Ray query; returns the body</td></tr>
+            <tr><td><code>BOX2D_HIT(what)</code></td><td class="desc">0/1 point, 2 t, 3/4 normal of the last ray</td></tr>
+            <tr><td><code>BOX2D_DEBUG_DRAW()</code></td><td class="desc">Draw the physics state with normal GBX commands</td></tr>
+            <tr><td><code>BOX2D_DEBUG_FLAGS flags</code> / <code>DEBUG_COLORS</code></td><td class="desc">Choose layers and colours</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </div>
+    <p class="note"><b>Remember:</b> boxes only; one point-to-point joint type; no continuous
+    collision detection, so very fast bodies can tunnel. Body IDs stay valid after removals.
+    <code>x/y</code> is the centre, <code>angle</code> is in radians. <b>First run</b> compiles
+    the INLINE block, so a C++ compiler must be configured in GBX Studio.</p>
+  </section>
+
+  <!-- ============================================================ OPENGL 3D -->
+  <section id="opengl3d" class="module">
+    <div class="module-head">
+      <div>
+        <p class="kicker">INLINE C++ &middot; OpenGL 1.1 / software</p>
+        <h2>OpenGL 3D</h2>
+      </div>
+      <code class="include">INCLUDE "modules/opengl3d/OPENGL3D.gbx"</code>
+    </div>
+    <p class="purpose">Renders offscreen and copies the finished frame into the normal GBX
+    screen, so <code>SCREEN_SHOW</code>, input and 2D drawing keep working. Windows uses
+    OpenGL 1.1; HTML5 uses a software rasterizer with the same commands.</p>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Frame</h3>
+        <pre>GL3D_INIT 960, 640
+
+GL3D_BEGIN RGB(12, 16, 24)
+GL3D_PERSPECTIVE 55, 1.5, 0.1, 100
+GL3D_CAMERA 0, 5, 12, 0, 0, 0
+GL3D_GRID 20, 1, RGB(40, 50, 62)
+GL3D_CUBE 0, 1, 0, 1.2, RGB(163, 230, 53), 20, 35, 10
+GL3D_END
+
+SCREEN_SHOW</pre>
+      </article>
+
+      <article class="card">
+        <h3>Camera &amp; projection</h3>
+        <table>
+          <tbody>
+            <tr><td><code>GL3D_PERSPECTIVE [fov, aspect, near, far]</code></td><td class="desc">Defaults 60&deg;, screen aspect, 0.1&hellip;100</td></tr>
+            <tr><td><code>GL3D_ORTHO [l, r, b, t, near, far]</code></td><td class="desc">Screen pixels, y down; resets the camera</td></tr>
+            <tr><td><code>GL3D_CAMERA ex, ey, ez, tx, ty, tz</code></td><td class="desc">View matrix; up is +Y</td></tr>
+            <tr><td><code>GL3D_INIT [w, h]</code> / <code>GL3D_SHUTDOWN</code></td><td class="desc">Create or release the renderer</td></tr>
+            <tr><td><code>GL3D_BEGIN [color]</code> / <code>GL3D_END</code></td><td class="desc">Start a frame; finish and blit it</td></tr>
+            <tr><td><code>GL3D_WIDTH()</code> / <code>HEIGHT()</code> / <code>INFO$()</code></td><td class="desc">Resolution and active backend</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Transform &amp; render state</h3>
+        <table>
+          <tbody>
+            <tr><td><code>GL3D_IDENTITY</code></td><td class="desc">Reset the model transform</td></tr>
+            <tr><td><code>GL3D_PUSH</code> / <code>GL3D_POP</code></td><td class="desc">Save/restore, up to 64 levels</td></tr>
+            <tr><td><code>GL3D_TRANSLATE x, y, z</code></td><td class="desc">Move the origin</td></tr>
+            <tr><td><code>GL3D_ROTATE deg[, ax, ay, az]</code></td><td class="desc">Rotate; default axis +Y</td></tr>
+            <tr><td><code>GL3D_SCALE sx[, sy[, sz]]</code></td><td class="desc">Scale; one argument is even</td></tr>
+            <tr><td><code>GL3D_DEPTH</code> / <code>CULL</code> / <code>BLEND</code></td><td class="desc">Toggle depth test, culling, blending</td></tr>
+            <tr><td><code>GL3D_ALPHA a</code></td><td class="desc">Alpha for following primitives, 0&hellip;1</td></tr>
+            <tr><td><code>GL3D_LINE_WIDTH w</code> / <code>POINT_SIZE s</code></td><td class="desc">Line and point size</td></tr>
+            <tr><td><code>GL3D_LIGHT x, y, z</code> / <code>AMBIENT v</code></td><td class="desc">Directional light and ambient brightness</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Primitives</h3>
+        <table>
+          <tbody>
+            <tr><td><code>GL3D_CUBE x, y, z, size, color[, rx, ry, rz]</code></td><td class="desc">Cube; <code>size</code> is the half extent</td></tr>
+            <tr><td><code>GL3D_BOX x, y, z, w, h, d, color[, rx, ry, rz]</code></td><td class="desc">Box with full extents</td></tr>
+            <tr><td><code>GL3D_SPHERE x, y, z, r, color[, seg]</code></td><td class="desc">Smooth-shaded sphere</td></tr>
+            <tr><td><code>GL3D_CYLINDER x, y, z, r, h, color[, seg[, topR]]</code></td><td class="desc">Cylinder on the point; <code>topR 0</code> = cone</td></tr>
+            <tr><td><code>GL3D_QUAD x1, y1, z1, &hellip;, x4, y4, z4, color</code></td><td class="desc">Flat unlit quad</td></tr>
+            <tr><td><code>GL3D_TRIANGLE &hellip;, color</code></td><td class="desc">Flat unlit triangle</td></tr>
+            <tr><td><code>GL3D_GRID size, step, color</code></td><td class="desc">Grid on the X/Z plane</td></tr>
+            <tr><td><code>GL3D_LINE &hellip;, color</code> / <code>GL3D_POINT</code> / <code>GL3D_AXIS</code></td><td class="desc">Line, dot and RGB axes</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card wide">
+        <h3>Textures</h3>
+        <table>
+          <tbody>
+            <tr><td><code>GL3D_TEXTURE sprite[, smooth]</code></td><td class="desc">Bind an image loaded with <code>SPRITE_LOAD</code>, <code>SPRITE_GRAB</code> or <code>ANIM_LOAD</code>; <code>0</code> clears, <code>smooth 1</code> filters</td></tr>
+            <tr><td><code>GL3D_QUAD_TEX &hellip;, color</code></td><td class="desc">Textured unlit quad</td></tr>
+            <tr><td><code>GL3D_CUBE_TEX x, y, z, size, color[, rx, ry, rz]</code></td><td class="desc">Textured cube, lit per face</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </div>
+    <p class="note"><b>Remember:</b> <code>GL3D_ORTHO</code> is for HUD and 2D overlays and
+    resets the camera - restore <code>PERSPECTIVE</code>/<code>CAMERA</code> for the next 3D
+    frame. Geometry crossing the near plane is dropped, so keep it a little away from the
+    camera. Textures keep their binding until changed or cleared. <b>First run</b> compiles
+    the INLINE block.</p>
+  </section>
+
+  <!-- ============================================================ EASING -->
+  <section id="easing" class="module">
+    <div class="module-head">
+      <div>
+        <p class="kicker">Native archive &middot; HTML5 fallback</p>
+        <h2>Easing</h2>
+      </div>
+      <code class="include">INCLUDE "modules/easing/EASING.gbx"</code>
+    </div>
+    <p class="purpose">The smallest animation tool: interpolate two numbers with one of four
+    curves. The IDE copies <code>libeasing.a</code> into the project and registers it; the
+    HTML5 player compiles the same curves directly.</p>
+
+    <div class="grid">
+      <article class="card">
+        <h3>One command</h3>
+        <table>
+          <tbody>
+            <tr><td><code>EASE_VALUE start, end, t</code></td><td class="desc">Linear interpolation at <code>t</code>, clamped 0&hellip;1</td></tr>
+            <tr><td><code>EASE_VALUE start, end, t, mode</code></td><td class="desc">Same with a curve</td></tr>
+          </tbody>
+        </table>
+        <p class="desc" style="margin:8px 0 0">Modes: <code>0</code> linear &middot;
+        <code>1</code> smoothstep &middot; <code>2</code> cubic in/out &middot;
+        <code>3</code> back out.</p>
+        <pre>x = EASE_VALUE(0, 320, t, 1)   <span class="c">' smoothstep</span>
+y = EASE_VALUE(80, 400, t, 3)  <span class="c">' back out</span></pre>
+      </article>
+
+      <article class="card">
+        <h3>When to use Math instead</h3>
+        <p class="desc">For gameplay math (vectors, collision, springs, noise) use the
+        <code>MATH</code> module. For full animation curves with custom control points use
+        <code>MATH_BEZIER2/3</code> or <code>MATH_CATMULL_ROM</code>. <code>EASING</code> is
+        the one-call option for menus, camera slides and UI pops.</p>
+        <p class="desc"><b>Removing</b> the module deletes the copied archive and its
+        <code>[native]</code> entry again. The archive in <code>modules/easing/lib</code> is
+        never touched.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================ STEAM -->
+  <section id="steam" class="module">
+    <div class="module-head">
+      <div>
+        <p class="kicker">INLINE C++ &middot; Steamworks</p>
+        <h2>Steam</h2>
+      </div>
+      <code class="include">INCLUDE "modules/steam/STEAM.gbx"</code>
+    </div>
+    <p class="purpose">The complete <code>STEAM_*</code> set: friends, P2P packets,
+    achievements, statistics, leaderboards, cloud files, lobbies, rich presence,
+    overlay, auth tickets and DLC. The wrapper loads the Steamworks flat API at
+    runtime, so the project builds without the SDK; without the library every
+    command returns a neutral value and <code>STEAM_ERROR$()</code> says why.</p>
+
+    <div class="grid">
+      <article class="card">
+        <h3>Set up</h3>
+        <pre>INCLUDE "modules/steam/STEAM.gbx"
+
+IF STEAM_INIT() = 1 THEN
+  WHILE TRUE
+    STEAM_RUN              <span class="c">' pump callbacks every frame</span>
+    <span class="c">' ...</span>
+  WEND
+ENDIF</pre>
+        <p class="desc" style="margin:8px 0 0">Put <code>steam_api64.dll</code>
+        (or the platform library) next to the program and a
+        <code>steam_appid.txt</code> or app id beside it. <code>GBX_STEAM_LIB</code>
+        points at a library elsewhere. The HTML5 player has no Steam and stays neutral.</p>
+      </article>
+
+      <article class="card">
+        <h3>Identity &amp; friends</h3>
+        <table>
+          <tbody>
+            <tr><td><code>STEAM_INIT [appid]</code> / <code>STEAM_SHUTDOWN</code></td><td class="desc">Load and initialise, or shut down</td></tr>
+            <tr><td><code>STEAM_RUN</code> / <code>STEAM_READY()</code></td><td class="desc">Pump callbacks; 1 while ready</td></tr>
+            <tr><td><code>STEAM_NAME$()</code> / <code>STEAM_ID$()</code> / <code>STEAM_APP_ID()</code></td><td class="desc">Own persona, SteamID as text, app id</td></tr>
+            <tr><td><code>STEAM_FRIENDS()</code> / <code>STEAM_FRIEND_NAME$(i)</code> / <code>STEAM_FRIEND_ID$(i)</code> / <code>STEAM_FRIEND_STATE(i)</code></td><td class="desc">Friend list</td></tr>
+            <tr><td><code>STEAM_ERROR$()</code></td><td class="desc">Last error text</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Peer-to-peer</h3>
+        <table>
+          <tbody>
+            <tr><td><code>STEAM_P2P_SEND id$, text$[, channel[, reliable]]</code></td><td class="desc">Send a packet; returns bytes sent</td></tr>
+            <tr><td><code>STEAM_P2P_AVAILABLE([channel])</code> / <code>STEAM_P2P_RECV$([channel])</code></td><td class="desc">Pending bytes; read one packet</td></tr>
+            <tr><td><code>STEAM_P2P_FROM$()</code></td><td class="desc">Sender of the last packet</td></tr>
+            <tr><td><code>STEAM_P2P_ACCEPT id$</code> / <code>STEAM_P2P_CLOSE id$</code></td><td class="desc">Accept or close a session</td></tr>
+            <tr><td><code>STEAM_P2P_STATE(id$)</code></td><td class="desc">0 none, 1 connecting, 2 connected, 3 relayed</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <h3>Progress &amp; platform</h3>
+        <table>
+          <tbody>
+            <tr><td><code>STEAM_ACHIEVEMENT name$</code> / <code>STEAM_ACHIEVED(name$)</code></td><td class="desc">Unlock; test</td></tr>
+            <tr><td><code>STEAM_STAT(name$)</code> / <code>STEAM_STAT_F(name$)</code></td><td class="desc">Integer or float statistic</td></tr>
+            <tr><td><code>STEAM_STAT_SET name$, value</code> / <code>STEAM_STAT_SETF name$, value</code> / <code>STEAM_STORE</code></td><td class="desc">Set and store stats</td></tr>
+            <tr><td><code>STEAM_BOARD name$[, ascending]</code> / <code>STEAM_BOARD_SCORE points[, keepbest]</code></td><td class="desc">Open a board; upload a score</td></tr>
+            <tr><td><code>STEAM_BOARD_TOP([count[, kind]])</code> / <code>STEAM_BOARD_COUNT()</code> / <code>STEAM_BOARD_PLACE(i)</code></td><td class="desc">Download and read entries</td></tr>
+            <tr><td><code>STEAM_CLOUD_WRITE file$, text$</code> / <code>STEAM_CLOUD_READ$(file$)</code> / <code>STEAM_CLOUD_EXISTS(file$)</code> / <code>STEAM_CLOUD_DELETE file$</code></td><td class="desc">Steam Cloud files</td></tr>
+            <tr><td><code>STEAM_LOBBY_CREATE [slots[, kind]]</code> / <code>STEAM_LOBBY_JOIN id$</code> / <code>STEAM_LOBBY_LEAVE</code></td><td class="desc">Lobby lifecycle</td></tr>
+            <tr><td><code>STEAM_LOBBY_SET key$, value$</code> / <code>STEAM_LOBBY_GET$(key$)</code></td><td class="desc">Lobby data</td></tr>
+            <tr><td><code>STEAM_PRESENCE key$, value$</code> / <code>STEAM_PRESENCE$(key$)</code> / <code>STEAM_PRESENCE_CLEAR key$</code></td><td class="desc">Rich presence</td></tr>
+            <tr><td><code>STEAM_OVERLAY [page$]</code> / <code>STEAM_OVERLAY_ON()</code></td><td class="desc">Steam overlay</td></tr>
+            <tr><td><code>STEAM_TICKET$()</code> / <code>STEAM_TICKET_CANCEL</code></td><td class="desc">Auth session ticket</td></tr>
+            <tr><td><code>STEAM_DLC_COUNT()</code> / <code>STEAM_DLC(appid)</code></td><td class="desc">DLC checks</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </div>
+    <p class="note"><b>Keep <code>STEAM_RUN</code> in the main loop</b> - achievements,
+    lobbies and asynchronous results only arrive through its callbacks. SteamIDs are
+    text in BASIC and numbers internally; invalid ids set <code>STEAM_ERROR$()</code>.
+    The module compiles into the program and needs only the runtime library beside it.</p>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  Full command lists and examples: <code>modules/&lt;name&gt;/HELP.md</code> &middot;
+  regenerate module docs with <code>node ide/scripts/build-modules.mjs</code> &middot;
+  add or remove modules through the <b>Modules</b> dock.
+</footer>
+</body>
+</html>

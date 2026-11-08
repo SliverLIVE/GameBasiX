@@ -1,0 +1,257 @@
+' ============================================================
+' MATH - game math in pure GBX
+'
+'@help
+'# Math
+'
+'Everyday game math in pure GBX: clamping and interpolation, angles,
+'2D vectors, axis-aligned rectangles, collision tests, random helpers,
+'value noise and curves. No C++ block, no archive, no extra files - the
+'module works in the interpreter, in a built EXE and in HTML5.
+'
+'The module is the folder `modules/math`; `MATH.gbx` is its entry file.
+'Add it with the Modules dock or write:
+'
+'```gbx
+'INCLUDE "modules/math/MATH.gbx"
+'```
+'
+'## Quick start
+'
+'```gbx
+'INCLUDE "modules/math/MATH.gbx"
+'
+'GLOBAL pos AS VEC2
+'pos.set(120, 80)
+'pos.add(20, -5)
+'
+'GLOBAL hit AS RECT2
+'hit.set(100, 60, 48, 64)
+'
+'IF MATH_POINT_IN_RECT(pos.x, pos.y, 100, 60, 48, 64) THEN
+'  PRINT "inside", 0, 0
+'ENDIF
+'
+'x = MATH_LERP(0, 320, 0.5)          ' 160
+'a = MATH_ANGLE_LERP(350, 10, 0.5)   ' 0, the short way round
+'n = MATH_NOISE2(pos.x / 64, pos.y / 64)
+'```
+'
+'## Constants
+'
+'| Constant | Value |
+'| --- | --- |
+'| `MATH_PI` | 3.14159265… |
+'| `MATH_TAU` | 2 * PI |
+'| `MATH_E` | 2.71828182… |
+'| `MATH_DEG2RAD` | PI / 180 |
+'| `MATH_RAD2DEG` | 180 / PI |
+'| `MATH_EPS` | 0.000001, the usual "close enough" value |
+'
+'## Scalars
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `MATH_CLAMP(v, low, high)` | Keep `v` inside the range (the bounds may be swapped) |
+'| `MATH_CLAMP01(v)` | Keep `v` inside 0…1 |
+'| `MATH_LERP(a, b, t)` | `a + (b - a) * t`, `t` not clamped |
+'| `MATH_LERP_CLAMPED(a, b, t)` | Same, with `t` clamped to 0…1 |
+'| `MATH_INV_LERP(a, b, v)` | Where `v` lies between `a` and `b`; 0 when `a = b` |
+'| `MATH_REMAP(v, inLo, inHi, outLo, outHi)` | Move a value from one range into another |
+'| `MATH_REMAP_CLAMPED(...)` | Same, clamped to the output range |
+'| `MATH_SMOOTHSTEP(edge0, edge1, v)` | Hermite curve from 0 to 1 with a soft start and end |
+'| `MATH_SMOOTHERSTEP(edge0, edge1, v)` | Fifth-order curve, even softer |
+'| `MATH_MOVE_TOWARD(current, target, maxDelta)` | Step at most `maxDelta` towards `target` |
+'| `MATH_WRAP(v, low, high)` | Wrap into `[low, high)` |
+'| `MATH_PINGPONG(v, length)` | Bounce back and forth between 0 and `length` |
+'| `MATH_SNAP(v, step)` | Round to the nearest multiple of `step` |
+'| `MATH_DEADZONE(v, dead)` | Rescale a -1…1 stick so a small centre dead zone reads 0 |
+'| `MATH_DAMP(current, target, lambda, dt)` | Frame-rate independent smoothing towards `target` |
+'| `MATH_DAMP_ANGLE(current, target, lambda, dt)` | Same for an angle, the short way round |
+'| `MATH_NEAR(a, b [, epsilon])` | `1` when both numbers are close, `epsilon` defaults to `MATH_EPS` |
+'| `MATH_SAFE_DIV(a, b [, fallback])` | `a / b`, or `fallback` (default 0) when `b` is near zero |
+'| `MATH_EXP(x)` | `e` to the power of `x` (the language has `LOGN` but no `EXP`) |
+'
+'## Angles
+'
+'All angles are in degrees, like `SIN`, `COS` and `ATAN`. Because screen
+'`y` points down, a positive angle turns clockwise on screen.
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `MATH_RAD(degrees)` · `MATH_DEG(radians)` | Convert between degrees and radians |
+'| `MATH_ANGLE_WRAP(degrees)` | Normalize to -180…180 |
+'| `MATH_ANGLE_DIFF(from, to)` | Shortest signed turn from `from` to `to` |
+'| `MATH_ANGLE_LERP(from, to, t)` | Interpolate the short way round, `t` not clamped |
+'| `MATH_ANGLE_LERP_CLAMPED(from, to, t)` | Same, with `t` clamped to 0…1 |
+'| `MATH_ANGLE_APPROACH(current, target, maxDelta)` | Turn at most `maxDelta` degrees towards `target` |
+'| `MATH_ANGLE_BETWEEN(x1, y1, x2, y2)` | Direction from the first point to the second |
+'| `MATH_DIR_X(degrees)` · `MATH_DIR_Y(degrees)` | Unit direction as `COS` / `SIN` |
+'
+'## Vectors
+'
+'`VEC2` holds `x` and `y`. The methods change the vector in place and are
+'called with `v.set(...)`, `v.add(...)` and so on.
+'
+'| Method | Meaning |
+'| --- | --- |
+'| `v.set(x, y)` | Assign both components |
+'| `v.copyFrom(x, y)` | Copy components from another vector or plain numbers |
+'| `v.add(x, y)` · `v.sub(x, y)` | Add or subtract |
+'| `v.scale(factor)` | Multiply both components |
+'| `v.addScaled(x, y, factor)` | Add another vector times a factor |
+'| `v.length()` · `v.lengthSq()` | Length and squared length (the square is cheaper) |
+'| `v.distance(x, y)` | Distance to a point |
+'| `v.dot(x, y)` · `v.cross(x, y)` | Dot and 2D cross product |
+'| `v.angle()` · `v.angleTo(x, y)` | Direction of the vector, and direction to a point |
+'| `v.normalize()` | Make the length 1; a zero vector stays zero |
+'| `v.limit(maxLength)` | Shrink to `maxLength` when longer, never grow |
+'| `v.rotate(degrees)` | Rotate around the origin |
+'| `v.lerpTo(x, y, t)` | Interpolate towards a point |
+'
+'Every `TYPE` value is a reference: `b = a` makes both names point at the
+'same vector. Use `b.copyFrom(a.x, a.y)` or a fresh `LOCAL b AS VEC2` for
+'an independent copy.
+'
+'Without an object, the same operations are available as functions:
+'`MATH_LENGTH(x, y)`, `MATH_LENGTH_SQ(x, y)`,
+'`MATH_DISTANCE(x1, y1, x2, y2)`, `MATH_DISTANCE_SQ(...)`,
+'`MATH_DOT(x1, y1, x2, y2)`, `MATH_CROSS(x1, y1, x2, y2)`,
+'`MATH_NORMAL_X(x, y)`, `MATH_NORMAL_Y(x, y)`,
+'`MATH_ROTATE_X(x, y, degrees)`, `MATH_ROTATE_Y(x, y, degrees)` and
+'`MATH_VEC_ANGLE(x, y)`.
+'
+'## Rectangles
+'
+'`RECT2` holds `x`, `y`, `w`, `h`; `x,y` is the top-left corner.
+'
+'| Method | Meaning |
+'| --- | --- |
+'| `r.set(x, y, w, h)` | Assign position and size |
+'| `r.right()` · `r.bottom()` | Right and bottom edge |
+'| `r.centerX()` · `r.centerY()` | Centre |
+'| `r.area()` | `w * h` |
+'| `r.contains(x, y)` | Point test, right and bottom edge exclusive |
+'| `r.overlaps(x, y, w, h)` | Rectangle overlap test, touching edges are not an overlap |
+'| `r.inflate(amount)` | Grow on all four sides; a negative value shrinks it |
+'
+'## Collision
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `MATH_POINT_IN_RECT(px, py, x, y, w, h)` | Point in a rectangle |
+'| `MATH_POINT_IN_CIRCLE(px, py, cx, cy, r)` | Point in a circle |
+'| `MATH_RECT_OVERLAP(x1, y1, w1, h1, x2, y2, w2, h2)` | Two axis-aligned rectangles |
+'| `MATH_CIRCLE_OVERLAP(x1, y1, r1, x2, y2, r2)` | Two circles; touching counts |
+'| `MATH_CIRCLE_RECT_OVERLAP(cx, cy, r, x, y, w, h)` | Circle and rectangle |
+'| `MATH_RECT_OVERLAP_X(...)` | Penetration along x for two overlapping rectangles |
+'| `MATH_RECT_OVERLAP_Y(...)` | Penetration along y |
+'| `MATH_SEGMENT_INTERSECT(ax, ay, bx, by, cx, cy, dx, dy)` | Two line segments |
+'| `MATH_POINT_ON_SEGMENT(px, py, x1, y1, x2, y2 [, epsilon])` | Point on a segment |
+'
+'`MATH_RECT_OVERLAP_X` returns `0` when the rectangles do not overlap.
+'Otherwise a positive result means the first rectangle has to move right
+'to separate, a negative one means left. `MATH_RECT_OVERLAP_Y` works the
+'same way with positive meaning down. This is the usual way to resolve a
+'platformer collision along one axis at a time:
+'
+'```gbx
+'push = MATH_RECT_OVERLAP_X(px, py, pw, ph, tx, ty, tw, th)
+'IF push <> 0 THEN px = px + push
+'```
+'
+'## Random
+'
+'These helpers use the engine's generator, so `RND_SEED` makes a sequence
+'reproducible.
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `MATH_RAND()` | Decimal number from 0 to 1 |
+'| `MATH_RAND_RANGE(low, high)` | Decimal number in the range |
+'| `MATH_RAND_INT(low, high)` | Whole number, both limits included |
+'| `MATH_RAND_CHANCE(p)` | `1` with probability `p` (0…1) |
+'| `MATH_RAND_SIGN()` | `-1` or `1` |
+'| `MATH_RAND_INDEX(count)` | Random array index `0…count-1`, or `-1` for an empty array |
+'| `MATH_RAND_ANGLE()` | Random angle from -180 to 180 |
+'| `MATH_RAND_UNIT()` | Random number from -1 to 1 |
+'| `MATH_RAND_SPREAD(amount)` | Random number from `-amount` to `amount` |
+'
+'## Noise
+'
+'Value noise is deterministic: a coordinate always returns the same value,
+'so terrain, clouds and screenshake stay stable between frames. Results
+'lie in 0…1.
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `MATH_HASH(seed)` | Deterministic pseudo random number from a seed |
+'| `MATH_HASH1(ix [, seed])` | Hash of an integer lattice coordinate |
+'| `MATH_HASH2(ix, iy [, seed])` | Hash of a 2D integer lattice coordinate |
+'| `MATH_NOISE(x [, seed])` | Smooth 1D value noise |
+'| `MATH_NOISE2(x, y [, seed])` | Smooth 2D value noise |
+'| `MATH_FBM(x [, octaves [, seed]])` | Layered 1D noise, 4 octaves by default |
+'| `MATH_FBM2(x, y [, octaves [, lacunarity [, gain [, seed]]]])` | Layered 2D noise |
+'
+'```gbx
+'height = MATH_FBM2(wx / 96, 3.5) * 180
+'shake = MATH_RAND_SPREAD(6)
+'```
+'
+'## Curves
+'
+'| Function | Meaning |
+'| --- | --- |
+'| `MATH_BEZIER2(a, b, c, t)` | Quadratic Bezier between numbers |
+'| `MATH_BEZIER3(a, b, c, d, t)` | Cubic Bezier between numbers |
+'| `MATH_CATMULL_ROM(a, b, c, d, t)` | Smooth spline through `b` and `c` |
+'| `MATH_SPRING(BYREF value, BYREF velocity, target [, stiffness [, damping [, dt]]])` | Spring step, updates value and velocity |
+'| `MATH_SPRING_ANGLE(BYREF value, BYREF velocity, target [...] )` | Spring step for an angle |
+'
+'Evaluate a Bezier once per axis to move a point along a curve. The spring
+'uses semi-implicit Euler and is frame-rate independent when `dt` is
+'`DELTA_TIME() / 1000.0`:
+'
+'```gbx
+'GLOBAL ballY = 0
+'GLOBAL ballV = 0
+'
+'WHILE TRUE
+'  MATH_SPRING(ballY, ballV, targetY, 120, 14, DELTA_TIME() / 1000.0)
+'  DRAW_CIRCLE_FILLED 320, ballY, 12, RGB(56, 189, 248)
+'  SCREEN_SHOW
+'WEND
+'```
+'
+'For general easing curves (smoothstep, cubic in/out, back out) the
+'`EASING` module is the smaller tool; this module covers the geometry and
+'gameplay side.
+'
+'## Notes
+'
+'- Everything here is pure GBX: the same file runs in the interpreter, a
+'  built EXE and the HTML5 player.
+'- Angles are degrees; there are no radians unless you ask with `MATH_RAD`.
+'- `MATH_RECT_OVERLAP` treats touching edges as separate, while
+'  `MATH_CIRCLE_OVERLAP` treats touching circles as a hit. Both choices are
+'  deliberate and documented per function.
+'- The noise helpers are small and fast, not a full Perlin/Simplex
+'  implementation; they are meant for wobble, terrain silhouettes and
+'  effects.
+'@endhelp
+'
+'@tooltip VEC2
+'A 2D vector with x and y fields. Methods: set, copyFrom, add, sub, scale, addScaled, length, lengthSq, distance, dot, cross, angle, angleTo, normalize, limit, rotate and lerpTo.
+'@end
+'
+'@tooltip RECT2
+'An axis-aligned rectangle with x, y, w, h. Methods: set, right, bottom, centerX, centerY, area, contains, overlaps and inflate.
+'@end
+
+INCLUDE "scalars.gbx"
+INCLUDE "angles.gbx"
+INCLUDE "vectors.gbx"
+INCLUDE "collision.gbx"
+INCLUDE "random.gbx"
+INCLUDE "noise.gbx"
+INCLUDE "curves.gbx"

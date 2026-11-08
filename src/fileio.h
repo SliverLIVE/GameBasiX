@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-// Offene Dateien, getrennt nach Kanal (wie in GLBasic: positive Ganzzahl).
+// Offene Dateien, getrennt nach Kanal (positive Ganzzahl).
 // Modus 1 liest, 0 schreibt neu, -1 haengt an. Die Pfade loest der Aufrufer
 // auf, damit Lesen und Schreiben dieselben Regeln wie die uebrigen Befehle
 // benutzen.

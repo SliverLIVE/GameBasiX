@@ -108,8 +108,10 @@ bool Gfx::init(int w, int h, const std::string& title, bool fullscreen, bool res
     vsync_ = true;
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
     SDL_StartTextInput(window_);
-    SDL_HideCursor();
-    cursorVisible_ = false;
+    // Der Systemzeiger ist standardmaessig sichtbar. Ein Programm, das ihn
+    // nicht will, ruft SET_SYSTEM_POINTER FALSE auf.
+    SDL_ShowCursor();
+    cursorVisible_ = true;
 
     keys_ = SDL_GetKeyboardState(nullptr);
     keyDown_.assign(SDL_SCANCODE_COUNT, false);
@@ -848,6 +850,15 @@ bool Gfx::loadImagePixels(const std::string& file, std::vector<uint8_t>& out, in
     }
     out.assign(data, data + static_cast<size_t>(w) * h * 4);
     stbi_image_free(data);
+    return true;
+}
+
+bool Gfx::spritePixelData(int id, const void** rgba, int& w, int& h) const {
+    const Sprite* sprite = findSprite(id);
+    if (!sprite || !sprite->hasPixels || sprite->pixels.empty()) return false;
+    if (rgba) *rgba = sprite->pixels.data();
+    w = sprite->w;
+    h = sprite->h;
     return true;
 }
 
@@ -2001,4 +2012,39 @@ void Gfx::waitKey() {
         }
         SDL_Delay(10);
     }
+}
+
+// ------------------------------------------------- Fenster fuer Module
+// host->window_handle / host->window_size / host->gl_context (gbx_inline.h).
+// Damit koennen Module eigene Renderer auf dem GBX-Fenster aufsetzen.
+
+void Gfx::windowSize(int& width, int& height) const {
+    width = width_;
+    height = height_;
+    if (window_) {
+        int w = width_;
+        int h = height_;
+        if (SDL_GetWindowSizeInPixels(window_, &w, &h)) {
+            width = w;
+            height = h;
+        }
+    }
+}
+
+void* Gfx::nativeWindowHandle() const {
+    if (!window_) return nullptr;
+    SDL_PropertiesID props = SDL_GetWindowProperties(window_);
+    if (!props) return nullptr;
+#if defined(_WIN32)
+    return SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+#elif defined(__APPLE__)
+    return SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+#elif defined(__EMSCRIPTEN__)
+    return nullptr;
+#else
+    void* surface = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
+    if (surface) return surface;
+    const Sint64 x11 = SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
+    return x11 ? reinterpret_cast<void*>(static_cast<uintptr_t>(x11)) : nullptr;
+#endif
 }

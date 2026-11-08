@@ -1,0 +1,188 @@
+' ============================================================
+' OpenGL 3D - a full 3D renderer for GameBasiX
+'
+'@help
+'# OpenGL 3D
+'
+'A complete 3D wrapper. On Windows it uses a hidden **OpenGL 1.1** context; in
+'the HTML5 player the same commands run through a built-in software
+'rasterizer, so one project works in the editor, the EXE and the browser.
+'After each frame the pixels are copied into the normal GameBasiX screen, so
+'the existing `SCREEN_SHOW`, input and 2D drawing keep working.
+'
+'The module is the folder `modules/opengl3d`; `OPENGL3D.gbx` is its entry
+'file. Add it with the Modules dock or write:
+'
+'```gbx
+'INCLUDE "modules/opengl3d/OPENGL3D.gbx"
+'```
+'
+'## Quick start
+'
+'```gbx
+'INCLUDE "modules/opengl3d/OPENGL3D.gbx"
+'
+'SCREEN_SET 960, 640, 0
+'WINDOW_TITLE "OpenGL 3D"
+'ALLOW_ESCAPE FALSE
+'GL3D_INIT 960, 640
+'
+'WHILE TRUE
+'  IF KEY_PRESSED(KEY_ESC) THEN END
+'
+'  GL3D_BEGIN RGB(12, 16, 24)
+'  GL3D_PERSPECTIVE 55, 1.5, 0.1, 100
+'  GL3D_CAMERA 0, 5, 12, 0, 0, 0
+'  GL3D_GRID 20, 1, RGB(40, 50, 62)
+'  GL3D_CUBE 0, 1, 0, 1.2, RGB(163, 230, 53), 20, 35, 10
+'  GL3D_END
+'
+'  SCREEN_SHOW
+'WEND
+'```
+'
+'## Projections
+'
+'| Command | Meaning |
+'| --- | --- |
+'| `GL3D_PERSPECTIVE [fov[, aspect[, near[, far]]]]` | Perspective projection (default 60°, screen aspect, 0.1…100) |
+'| `GL3D_ORTHO [left, right, bottom, top[, near[, far]]]]` | Orthographic projection; without arguments the whole screen with y down |
+'| `GL3D_CAMERA eyeX, eyeY, eyeZ, targetX, targetY, targetZ` | View matrix, up is +Y |
+'
+'`GL3D_ORTHO` is meant for HUD panels and 2D overlays inside the 3D frame. It
+'resets the camera and draws in screen pixels, so call `GL3D_PERSPECTIVE` and
+'`GL3D_CAMERA` again when you want the 3D view back — for example at the start
+'of the next frame, because each frame keeps the projection that was used
+'last.
+'
+'## Transform stack
+'
+'Every primitive is placed by the current model transform. `GL3D_BEGIN` resets
+'it at the start of a frame.
+'
+'| Command | Meaning |
+'| --- | --- |
+'| `GL3D_IDENTITY` | Resets the model transform |
+'| `GL3D_PUSH` / `GL3D_POP` | Saves and restores it (up to 64 levels) |
+'| `GL3D_TRANSLATE x, y, z` | Moves the origin |
+'| `GL3D_ROTATE degrees[, axisX, axisY, axisZ]` | Rotates around an axis, default +Y |
+'| `GL3D_SCALE sx[, sy[, sz]]` | Scales; one argument scales evenly |
+'
+'```gbx
+'GL3D_PUSH
+'  GL3D_TRANSLATE 0, 1.4, 0
+'  GL3D_ROTATE ELAPSED_TIME() / 12
+'  GL3D_CUBE 0, 0, 0, 0.9, RGB(163, 230, 53)
+'GL3D_POP
+'```
+'
+'## Render state
+'
+'| Command | Meaning |
+'| --- | --- |
+'| `GL3D_DEPTH [enabled]` | Depth test, default on |
+'| `GL3D_CULL [enabled]` | Drops back faces; boxes, spheres and cylinders are wound for it |
+'| `GL3D_BLEND [enabled]` | Alpha blending, default on |
+'| `GL3D_ALPHA alpha` | Alpha for following primitives, 0…1, default 1 |
+'| `GL3D_LINE_WIDTH width` | Line and grid width in pixels, 1…32 |
+'| `GL3D_POINT_SIZE size` | Dot size for `GL3D_POINT`, 1…64 |
+'
+'## Lighting
+'
+'Boxes, cubes, spheres and cylinders are lit by one directional light; lines,
+'triangles and quads keep the exact colour you pass.
+'
+'| Command | Meaning |
+'| --- | --- |
+'| `GL3D_LIGHT x, y, z` | Direction towards the light (default above, front, right) |
+'| `GL3D_AMBIENT value` | Brightness of the unlit side, 0…1, default 0.35 |
+'
+'Spheres shade smoothly (Gouraud), boxes and cylinders per face.
+'
+'## Primitives
+'
+'| Command | Meaning |
+'| --- | --- |
+'| `GL3D_CUBE x, y, z, size, color[, rotX[, rotY[, rotZ]]]` | Cube; `size` is the half extent |
+'| `GL3D_BOX x, y, z, width, height, depth, color[, rotX[, rotY[, rotZ]]]` | Box with full extents |
+'| `GL3D_SPHERE x, y, z, radius, color[, segments]` | Sphere with smooth shading |
+'| `GL3D_CYLINDER x, y, z, radius, height, color[, segments[, topRadius]]` | Cylinder standing on the point; `topRadius 0` gives a cone |
+'| `GL3D_QUAD x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, color` | Flat quad in one colour, unlit |
+'| `GL3D_GRID size, step, color` | Grid on the X/Z plane |
+'| `GL3D_LINE x1, y1, z1, x2, y2, z2, color` | Single line |
+'| `GL3D_TRIANGLE x1, y1, z1, x2, y2, z2, x3, y3, z3, color` | Single filled triangle |
+'| `GL3D_POINT x, y, z, color` | Dot, size from `GL3D_POINT_SIZE` |
+'| `GL3D_AXIS [length]` | X/Y/Z axes in red, green and blue |
+'
+'Colours use the normal `RGB()` value; `GL3D_ALPHA` applies on top of it.
+'Cube `size` is the half extent, box sizes are full extents.
+'
+'## Textures
+'
+'Images that you load with the normal GameBasiX commands (`SPRITE_LOAD`,
+'`SPRITE_GRAB`, `ANIM_LOAD`) can be used directly as textures; the renderer
+'reads their pixels through the INLINE bridge, so no second loader and no
+'extra file format is needed. The HTML5 player works the same way, because
+'the sprite is already in memory.
+'
+'| Command | Meaning |
+'| --- | --- |
+'| `GL3D_TEXTURE sprite[, smooth]` | Uses a loaded image as texture; `0` clears it, `smooth 1` enables bilinear filtering, returns 1 on success |
+'| `GL3D_QUAD_TEX x1, y1, z1, …, x4, y4, z4, color` | Textured quad, unlit |
+'| `GL3D_CUBE_TEX x, y, z, size, color[, rotX[, rotY[, rotZ]]]` | Textured cube, lit per face |
+'
+'```gbx
+'GLOBAL crate = 7                       ' sprite numbers are plain integers
+'SPRITE_LOAD "assets/crate.png", crate
+'GL3D_TEXTURE crate, 1
+'GL3D_CUBE_TEX 0, 1, 0, 1.2, RGB(255, 255, 255), 20, 35, 10
+'GL3D_TEXTURE 0
+'```
+'
+'The texture stays bound until you change or clear it, so bind it once per
+'frame before the textured primitives. `color` works as a tint (multiplied
+'with the image), and `GL3D_ALPHA` applies on top. Textured quads and cubes
+'only; spheres, cylinders and the line primitives stay untextured. Transparent
+'pixels of the image blend when `GL3D_BLEND` is on.
+'
+'## Frame and queries
+'
+'| Command | Meaning |
+'| --- | --- |
+'| `GL3D_INIT [width[, height]]` | Creates the renderer; returns 1 on success |
+'| `GL3D_BEGIN [color]` | Starts a frame, clears colour and depth, resets transforms |
+'| `GL3D_END` | Finishes the frame and copies it into the GBX screen |
+'| `GL3D_INFO$()` | Active backend, for example `OpenGL 1.1` or the software renderer |
+'| `GL3D_WIDTH()` / `GL3D_HEIGHT()` | Render resolution |
+'| `GL3D_SHUTDOWN` | Releases the OpenGL context |
+'
+'## Limits
+'
+'- Windows renders with OpenGL 1.1 immediate mode; no shaders, extensions or
+'  extra libraries are needed.
+'- The HTML5 player has no OpenGL context, so the module uses a software
+'  rasterizer with z-buffer, Gouraud colours, alpha blending and culling.
+'- Both paths drop triangles that cross the near plane; keep geometry a little
+'  away from the camera.
+'- Textures come from images that GameBasiX already loaded; the module has no
+'  loader of its own and does not shade them with the directional light
+'  (quads) or only per face (cubes).
+'- The bridge that hands image pixels to the module needs GameBasiX 1.4 or
+'  newer (`GBX_INLINE_VERSION 4`); older builds report a failed
+'  `GL3D_TEXTURE`.
+'- The INLINE block is compiled on first run and cached like every GBX INLINE
+'  block. A C++ compiler must be configured in GBX Studio.
+'- The module renders offscreen and copies the result into the current GBX
+'  screen; it does not take over the SDL window.
+'@endhelp
+'
+'@tooltip OPENGL3D
+'Full 3D wrapper with a perspective or orthographic camera, a transform stack,
+'lighting, boxes, spheres, cylinders, grids, lines, triangles, quads and
+'points, plus textures from sprites that GameBasiX already loaded. OpenGL on
+'Windows, built-in software rasterizer in HTML5.
+'@endtooltip
+
+INLINE
+#include "opengl3d.h"
+ENDINLINE

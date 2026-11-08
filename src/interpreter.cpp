@@ -32,12 +32,12 @@ double taskSeconds() {
 }
 
 // Ein Worker-Job darf nur rechnen. Alles, was Fenster, Eingabe, Dateien,
-// Netzwerk, Steam oder den Interpreter selbst anfasst, bleibt draussen.
+// Netzwerk oder den Interpreter selbst anfasst, bleibt draussen.
 bool blockedInWorker(const std::string& upper) {
     static const char* const prefixes[] = {
         "SCREEN", "CAMERA", "WINDOW", "DRAW_", "POLY_", "PIXEL_", "SPRITE_", "ANIM_",
         "SOUND_", "MUSIC_", "FONT_", "TEXT_", "KEY_", "MOUSE_", "JOY_",
-        "NET_", "UDP_", "STEAM_", "FILE_", "DIR_", "TASK_", "JOB_", "SET_",
+        "NET_", "UDP_", "FILE_", "DIR_", "TASK_", "JOB_", "SET_",
         "HOT_RELOAD", "ASSET_RELOAD", "WAIT_", "CLIPBOARD", "PRINT", "DEBUG",
         "STDOUT", "STDERR", "STDIN$", "SLEEP", "SPAWN", "DELTA_TIME",
         "ELAPSED_TIME", "LIMIT_FPS", "ALLOW_ESCAPE", "INPUT", "INKEY$"

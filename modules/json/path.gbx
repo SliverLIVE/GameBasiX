@@ -1,0 +1,380 @@
+' ============================================================
+' JSON - paths
+'
+' A path is text: names select object keys, [n] selects an array element.
+'
+'   player.name            object key "name" inside "player"
+'   inventory[2].count     third element of the array "inventory"
+'   [0].id                 first element of a document that is an array
+'   ""                     the document itself
+'
+' Paths used with JSON_SET create missing objects and arrays on the way,
+' and fill array gaps with null so an array never has holes.
+' ============================================================
+
+FUNCTION jsonIsDigit: c$
+  LOCAL code
+  IF LEN(c$) = 0 THEN RETURN 0
+  code = ASC(c$)
+  IF code >= 48 AND code <= 57 THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION jsonAllDigits: s$
+  LOCAL ok, i
+  IF LEN(s$) = 0 THEN RETURN 0
+  ok = 1
+  FOR i = 0 TO LEN(s$) - 1
+    IF jsonIsDigit(MID$(s$, i, 1)) = 0 THEN ok = 0
+  NEXT
+  RETURN ok
+ENDFUNCTION
+
+' Splits "a.b[2]" into tokens: "kNAME" for a key, "iINDEX" for an element.
+' A malformed path gets the key "!" so every caller can reject it at once.
+FUNCTION jsonPathTokens: p$
+  LOCAL tokens, n, i, total, close, j, done
+  LOCAL ch$, inner$, name$, c2$
+  tokens = DICT_NEW()
+  n = 0
+  i = 0
+  total = LEN(p$)
+  WHILE i < total
+    ch$ = MID$(p$, i, 1)
+    IF ch$ = "." THEN
+      i = i + 1
+    ELSEIF ch$ = "[" THEN
+      close = INSTR(p$, "]", i)
+      IF close < 0 THEN
+        DICT_SET(tokens, "!", 1)
+        i = total
+      ELSE
+        inner$ = MID$(p$, i + 1, close - i - 1)
+        IF jsonAllDigits(inner$) = 0 THEN
+          DICT_SET(tokens, "!", 1)
+        ELSE
+          DICT_SET(tokens, STR$(n), "i" + STR$(VAL(inner$)))
+          n = n + 1
+        ENDIF
+        i = close + 1
+      ENDIF
+    ELSE
+      j = i
+      done = 0
+      name$ = ""
+      WHILE j < total AND done = 0
+        c2$ = MID$(p$, j, 1)
+        IF c2$ = "." OR c2$ = "[" THEN
+          done = 1
+        ELSE
+          name$ = name$ + c2$
+          j = j + 1
+        ENDIF
+      WEND
+      IF LEN(name$) = 0 THEN
+        DICT_SET(tokens, "!", 1)
+      ELSE
+        DICT_SET(tokens, STR$(n), "k" + name$)
+        n = n + 1
+      ENDIF
+      i = j
+    ENDIF
+  WEND
+  RETURN tokens
+ENDFUNCTION
+
+FUNCTION jsonTokenIsIndex: tok$
+  IF LEFT$(tok$, 1) = "i" THEN RETURN 1
+  RETURN 0
+ENDFUNCTION
+
+' The DICT key a token addresses: array indices stay numbers, object keys are
+' escaped so they can never look like the marker.
+FUNCTION jsonTokenKey$: tok$
+  IF LEFT$(tok$, 1) = "i" THEN RETURN MID$(tok$, 1)
+  RETURN jsonKeyEncode$(MID$(tok$, 1))
+ENDFUNCTION
+
+FUNCTION JSON_GET: doc, p$
+  LOCAL tokens, cur, n, t
+  LOCAL tok$, key$
+  tokens = jsonPathTokens(p$)
+  IF DICT_HAS(tokens, "!") THEN RETURN 0
+  cur = doc
+  n = DICT_COUNT(tokens)
+  FOR t = 0 TO n - 1
+    IF ISA(cur, "DICT") = 0 THEN RETURN 0
+    tok$ = DICT_GET(tokens, STR$(t), "")
+    key$ = jsonTokenKey$(tok$)
+    IF DICT_HAS(cur, key$) = 0 THEN RETURN 0
+    cur = DICT_GET(cur, key$)
+  NEXT
+  RETURN cur
+ENDFUNCTION
+
+FUNCTION JSON_HAS: doc, p$
+  LOCAL tokens, cur, n, t
+  LOCAL tok$, key$
+  tokens = jsonPathTokens(p$)
+  IF DICT_HAS(tokens, "!") THEN RETURN 0
+  cur = doc
+  n = DICT_COUNT(tokens)
+  FOR t = 0 TO n - 1
+    IF ISA(cur, "DICT") = 0 THEN RETURN 0
+    tok$ = DICT_GET(tokens, STR$(t), "")
+    key$ = jsonTokenKey$(tok$)
+    IF DICT_HAS(cur, key$) = 0 THEN RETURN 0
+    cur = DICT_GET(cur, key$)
+  NEXT
+  RETURN 1
+ENDFUNCTION
+
+' JSON_TYPE_* constant, or -1 when the path does not exist.
+FUNCTION JSON_GET_TYPE: doc, p$
+  IF JSON_HAS(doc, p$) = 0 THEN RETURN -1
+  RETURN JSON_KIND(JSON_GET(doc, p$))
+ENDFUNCTION
+
+' Array length, number of object keys or text length. 0 when missing.
+FUNCTION JSON_COUNT: doc, p$
+  LOCAL v, k
+  IF JSON_HAS(doc, p$) = 0 THEN RETURN 0
+  v = JSON_GET(doc, p$)
+  IF ISA(v, "ARRAY") THEN RETURN LEN(v)
+  k = JSON_KIND(v)
+  IF k = JSON_TYPE_ARRAY THEN RETURN DICT_COUNT(v) - 1
+  IF k = JSON_TYPE_OBJECT THEN RETURN DICT_COUNT(v) - 1
+  IF k = JSON_TYPE_STRING THEN RETURN LEN(v)
+  RETURN 0
+ENDFUNCTION
+
+' Object key by position (insertion order), "" when out of range.
+FUNCTION JSON_KEY$: doc, p$, index
+  LOCAL v, n, i
+  LOCAL k$
+  v = JSON_GET(doc, p$)
+  IF ISA(v, "DICT") = 0 THEN RETURN ""
+  IF JSON_KIND(v) <> JSON_TYPE_OBJECT THEN RETURN ""
+  n = 0
+  FOR i = 0 TO DICT_COUNT(v) - 1
+    k$ = DICT_KEY$(v, i)
+    IF k$ <> "$" THEN
+      IF n = index THEN RETURN jsonKeyDecode$(k$)
+      n = n + 1
+    ENDIF
+  NEXT
+  RETURN ""
+ENDFUNCTION
+
+' Array element or object value by position. 0 when out of range.
+FUNCTION JSON_AT: doc, p$, index
+  LOCAL v
+  LOCAL k$
+  v = JSON_GET(doc, p$)
+  IF ISA(v, "ARRAY") THEN
+    IF index >= 0 AND index < LEN(v) THEN RETURN v[index]
+    RETURN 0
+  ENDIF
+  IF ISA(v, "DICT") = 0 THEN RETURN 0
+  IF JSON_KIND(v) = JSON_TYPE_ARRAY THEN RETURN DICT_GET(v, STR$(index), 0)
+  IF JSON_KIND(v) = JSON_TYPE_OBJECT THEN
+    k$ = JSON_KEY$(doc, p$, index)
+    IF LEN(k$) = 0 THEN RETURN 0
+    RETURN DICT_GET(v, jsonKeyEncode$(k$), 0)
+  ENDIF
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION JSON_GET_NUM: doc, p$, fallback
+  LOCAL v, k
+  IF JSON_HAS(doc, p$) = 0 THEN RETURN fallback
+  v = JSON_GET(doc, p$)
+  k = JSON_KIND(v)
+  IF k = JSON_TYPE_NUMBER THEN RETURN v
+  IF k = JSON_TYPE_BOOL THEN RETURN JSON_BOOL(v)
+  RETURN fallback
+ENDFUNCTION
+
+FUNCTION JSON_GET_TEXT$: doc, p$, fallback$
+  LOCAL v
+  IF JSON_HAS(doc, p$) = 0 THEN RETURN fallback$
+  v = JSON_GET(doc, p$)
+  IF JSON_KIND(v) = JSON_TYPE_STRING THEN RETURN v
+  RETURN fallback$
+ENDFUNCTION
+
+FUNCTION JSON_GET_BOOL: doc, p$, fallback
+  LOCAL v
+  IF JSON_HAS(doc, p$) = 0 THEN RETURN fallback
+  v = JSON_GET(doc, p$)
+  IF JSON_KIND(v) = JSON_TYPE_BOOL THEN RETURN JSON_BOOL(v)
+  IF JSON_KIND(v) = JSON_TYPE_NUMBER THEN
+    IF JSON_NUM(v) <> 0 THEN RETURN 1
+    RETURN 0
+  ENDIF
+  RETURN fallback
+ENDFUNCTION
+
+' -------------------------------------------------------------- writing
+
+FUNCTION jsonContainer: wantArray
+  IF wantArray = 1 THEN RETURN JSON_ARRAY()
+  RETURN JSON_OBJECT()
+ENDFUNCTION
+
+' Stores v at the path and returns 1, or 0 for a malformed path. Missing
+' objects and arrays on the way are created, array gaps are filled with null.
+FUNCTION JSON_SET: doc, p$, v
+  LOCAL tokens, n, cur, t, last, wantArray, child, x
+  LOCAL tok$, key$, nextTok$
+  tokens = jsonPathTokens(p$)
+  IF DICT_HAS(tokens, "!") THEN RETURN 0
+  n = DICT_COUNT(tokens)
+  IF n = 0 THEN RETURN 0
+  IF ISA(doc, "DICT") = 0 THEN RETURN 0
+  cur = doc
+  FOR t = 0 TO n - 1
+    tok$ = DICT_GET(tokens, STR$(t), "")
+    key$ = jsonTokenKey$(tok$)
+    last = 0
+    IF t = n - 1 THEN last = 1
+    IF ISA(cur, "DICT") = 0 THEN RETURN 0
+    IF last = 1 THEN
+      IF JSON_KIND(cur) = JSON_TYPE_ARRAY THEN
+        IF jsonTokenIsIndex(tok$) = 0 THEN RETURN 0
+        x = jsonEnsureIndex(cur, VAL(key$))
+      ENDIF
+      DICT_SET(cur, key$, v)
+      RETURN 1
+    ENDIF
+    nextTok$ = DICT_GET(tokens, STR$(t + 1), "")
+    wantArray = jsonTokenIsIndex(nextTok$)
+    IF JSON_KIND(cur) = JSON_TYPE_ARRAY THEN
+      IF jsonTokenIsIndex(tok$) = 0 THEN RETURN 0
+      x = jsonEnsureIndex(cur, VAL(key$))
+    ENDIF
+    IF DICT_HAS(cur, key$) = 0 THEN
+      DICT_SET(cur, key$, jsonContainer(wantArray))
+    ENDIF
+    child = DICT_GET(cur, key$)
+    IF ISA(child, "DICT") = 0 THEN
+      child = jsonContainer(wantArray)
+      DICT_SET(cur, key$, child)
+    ELSEIF wantArray = 1 AND JSON_KIND(child) <> JSON_TYPE_ARRAY THEN
+      child = jsonContainer(wantArray)
+      DICT_SET(cur, key$, child)
+    ELSEIF wantArray = 0 AND JSON_KIND(child) = JSON_TYPE_ARRAY THEN
+      child = jsonContainer(wantArray)
+      DICT_SET(cur, key$, child)
+    ENDIF
+    cur = child
+  NEXT
+  RETURN 0
+ENDFUNCTION
+
+FUNCTION JSON_SET_NULL: doc, p$
+  RETURN JSON_SET(doc, p$, JSON_MAKE_NULL())
+ENDFUNCTION
+
+FUNCTION JSON_SET_BOOL: doc, p$, flag
+  RETURN JSON_SET(doc, p$, JSON_MAKE_BOOL(flag))
+ENDFUNCTION
+
+FUNCTION JSON_SET_NUM: doc, p$, number
+  RETURN JSON_SET(doc, p$, number)
+ENDFUNCTION
+
+FUNCTION JSON_SET_TEXT: doc, p$, text$
+  RETURN JSON_SET(doc, p$, text$)
+ENDFUNCTION
+
+' Appends to an array and returns the new index, or -1 when the path is not
+' an array.
+FUNCTION JSON_APPEND: doc, p$, v
+  LOCAL x, arr, idx
+  IF JSON_HAS(doc, p$) = 0 THEN
+    x = JSON_SET(doc, p$, JSON_ARRAY())
+    IF x = 0 THEN RETURN -1
+  ENDIF
+  arr = JSON_GET(doc, p$)
+  IF ISA(arr, "DICT") = 0 THEN RETURN -1
+  IF JSON_KIND(arr) <> JSON_TYPE_ARRAY THEN RETURN -1
+  idx = jsonArrayCount(arr)
+  DICT_SET(arr, STR$(idx), v)
+  RETURN idx
+ENDFUNCTION
+
+FUNCTION JSON_APPEND_NULL: doc, p$
+  RETURN JSON_APPEND(doc, p$, JSON_MAKE_NULL())
+ENDFUNCTION
+
+FUNCTION JSON_APPEND_BOOL: doc, p$, flag
+  RETURN JSON_APPEND(doc, p$, JSON_MAKE_BOOL(flag))
+ENDFUNCTION
+
+FUNCTION JSON_APPEND_NUM: doc, p$, number
+  RETURN JSON_APPEND(doc, p$, number)
+ENDFUNCTION
+
+FUNCTION JSON_APPEND_TEXT: doc, p$, text$
+  RETURN JSON_APPEND(doc, p$, text$)
+ENDFUNCTION
+
+' Removes a key or an element. Array elements after it move up one place.
+FUNCTION JSON_REMOVE: doc, p$
+  LOCAL tokens, n, cur, t, idx, total, j
+  LOCAL tok$, key$, lastTok$
+  tokens = jsonPathTokens(p$)
+  IF DICT_HAS(tokens, "!") THEN RETURN 0
+  n = DICT_COUNT(tokens)
+  IF n = 0 THEN RETURN 0
+  cur = doc
+  FOR t = 0 TO n - 2
+    IF ISA(cur, "DICT") = 0 THEN RETURN 0
+    tok$ = DICT_GET(tokens, STR$(t), "")
+    key$ = jsonTokenKey$(tok$)
+    IF DICT_HAS(cur, key$) = 0 THEN RETURN 0
+    cur = DICT_GET(cur, key$)
+  NEXT
+  IF ISA(cur, "DICT") = 0 THEN RETURN 0
+  lastTok$ = DICT_GET(tokens, STR$(n - 1), "")
+  key$ = jsonTokenKey$(lastTok$)
+  IF DICT_HAS(cur, key$) = 0 THEN RETURN 0
+  IF JSON_KIND(cur) = JSON_TYPE_ARRAY AND jsonTokenIsIndex(lastTok$) = 1 THEN
+    idx = VAL(key$)
+    total = jsonArrayCount(cur)
+    j = idx
+    WHILE j < total - 1
+      DICT_SET(cur, STR$(j), DICT_GET(cur, STR$(j + 1), 0))
+      j = j + 1
+    WEND
+    DICT_DELETE(cur, STR$(total - 1))
+    RETURN 1
+  ENDIF
+  DICT_DELETE(cur, key$)
+  RETURN 1
+ENDFUNCTION
+
+' Empties an object or an array in place; the path itself stays.
+FUNCTION JSON_CLEAR: doc, p$
+  LOCAL v, n, i
+  LOCAL ks$, k$
+  v = JSON_GET(doc, p$)
+  IF ISA(v, "DICT") = 0 THEN RETURN 0
+  IF JSON_KIND(v) = JSON_TYPE_ARRAY THEN
+    n = jsonArrayCount(v)
+    FOR i = 0 TO n - 1
+      DICT_DELETE(v, STR$(i))
+    NEXT
+    RETURN 1
+  ENDIF
+  IF JSON_KIND(v) = JSON_TYPE_OBJECT THEN
+    ks$ = DICT_KEYS(v)
+    FOR i = 0 TO LEN(ks$) - 1
+      k$ = ks$[i]
+      IF k$ <> "$" THEN DICT_DELETE(v, k$)
+    NEXT
+    RETURN 1
+  ENDIF
+  RETURN 0
+ENDFUNCTION

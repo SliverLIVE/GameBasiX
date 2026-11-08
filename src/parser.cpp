@@ -603,11 +603,27 @@ void Parser::parseInclude() {
     advance();
 
     fs::path base = fs::path(path_).parent_path();
-    fs::path target = fs::path(rel);
+    const fs::path requested(rel);
+    fs::path target = requested;
     if (target.is_relative()) target = base / target;
-    std::string full = target.lexically_normal().string();
+    fs::path fullPath = target.lexically_normal();
 
     std::error_code ec;
+    if (!fs::exists(fullPath, ec) && requested.is_relative() && !prog_.moduleDir.empty()) {
+        // Module bleiben zentral: "modules/ui/UI.gbx" wird im Modules-Ordner
+        // gesucht, ohne die Datei ins Projekt zu kopieren. Der Prefix wird
+        // dabei entfernt, weil moduleDir bereits auf .../modules zeigt.
+        std::string moduleRel = rel;
+        std::replace(moduleRel.begin(), moduleRel.end(), '\\', '/');
+        if (moduleRel.size() > 8) {
+            std::string head = moduleRel.substr(0, 8);
+            for (char& ch : head) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+            if (head == "modules/") moduleRel = moduleRel.substr(8);
+        }
+        const fs::path moduleTarget = (fs::path(prog_.moduleDir) / moduleRel).lexically_normal();
+        if (fs::exists(moduleTarget, ec)) fullPath = moduleTarget;
+    }
+    std::string full = fullPath.string();
     // Zyklus: die Zieldatei wird gerade selbst geparst (a.gbx -> main.gbx).
     for (const auto& active : prog_.includeStack) {
         const bool same = active == full ||

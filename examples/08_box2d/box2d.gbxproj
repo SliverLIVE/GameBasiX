@@ -2,11 +2,11 @@
 ; Written by the IDE, but you can also edit it by hand.
 
 [project]
-name = Box2D-Lite
+name = Box2D
 main = main.gbx
 
 [window]
-title = GameBasiX - Box2D-Lite
+title = GameBasiX - Box2D
 width = 960
 height = 640
 fullscreen = 0

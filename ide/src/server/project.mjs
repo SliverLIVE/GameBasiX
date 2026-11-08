@@ -351,6 +351,66 @@ export async function addNativeLibrary(projectDir, relativePath) {
   return { file: name, libs: all, changed: true };
 }
 
+/**
+ * Eine Bibliothek wieder aus [native] entfernen. Die Projektdatei bleibt sonst
+ * unveraendert; ist die Liste danach leer, verschwindet nur die libs-Zeile.
+ */
+export async function removeNativeLibrary(projectDir, relativePath) {
+  const dir = path.resolve(projectDir);
+  let entries = [];
+  try {
+    entries = await fsp.readdir(dir);
+  } catch {
+    throw new Error(`Pfad nicht gefunden: ${dir}`);
+  }
+  const name = entries.find((entry) => new RegExp(`\\.${PROJECT_EXT}$`, 'i').test(entry));
+  if (!name) throw new Error('Keine .gbxproj im Projekt gefunden.');
+  const file = path.join(dir, name);
+
+  const text = (await fsp.readFile(file, 'utf8')).replace(/\r\n?/g, '\n');
+  const entry = String(relativePath || '').replace(/\\/g, '/').trim();
+  const before = parseProjectFile(text).nativeLibs;
+  const libs = Array.isArray(before) ? [...before] : splitWords(before);
+  const remaining = libs.filter((item) => String(item).replace(/\\/g, '/') !== entry);
+  if (!entry || remaining.length === libs.length) {
+    return { file: name, libs, changed: false };
+  }
+
+  const lines = text.split('\n');
+  const start = lines.findIndex((row) => /^\s*\[native]\s*$/i.test(row));
+  if (start >= 0) {
+    let end = lines.findIndex((row, index) => index > start && /^\s*\[/.test(row));
+    if (end < 0) end = lines.length;
+    const key = lines.findIndex(
+      (row, index) => index > start && index < end && /^\s*(libs|lib|libraries)\s*=/i.test(row)
+    );
+    if (key >= 0) {
+      if (remaining.length) lines[key] = `libs = ${iniValue(remaining.join(' '))}`;
+      else lines.splice(key, 1);
+    }
+  }
+  // Eine [native]-Sektion ohne Einstellungen bleibt nicht als leerer Block
+  // stehen: sonst sieht das Projekt nach dem Entfernen unaufgeraeumt aus.
+  if (!remaining.length) {
+    const nativeStart = lines.findIndex((row) => /^\s*\[native]\s*$/i.test(row));
+    if (nativeStart >= 0) {
+      let nativeEnd = lines.findIndex((row, index) => index > nativeStart && /^\s*\[/.test(row));
+      if (nativeEnd < 0) nativeEnd = lines.length;
+      const hasSetting = lines
+        .slice(nativeStart + 1, nativeEnd)
+        .some((row) => /^\s*[\w-]+\s*=/.test(row));
+      if (!hasSetting) {
+        let cutStart = nativeStart;
+        if (cutStart > 0 && !lines[cutStart - 1].trim()) cutStart -= 1;
+        lines.splice(cutStart, nativeEnd - cutStart);
+        while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+      }
+    }
+  }
+  await fsp.writeFile(file, lines.join('\r\n'), 'utf8');
+  return { file: name, libs: remaining, changed: true };
+}
+
 const ICON_EXTENSIONS = new Set(['.png', '.bmp', '.ico', '.jpg', '.jpeg']);
 
 /**

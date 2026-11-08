@@ -1,0 +1,114 @@
+' ============================================================
+' OpenGL 3D from the central modules folder
+' Run: gbx examples/30_opengl3d/opengl3d.gbxproj
+'
+' The whole 3D renderer lives in <repo>/modules/opengl3d; this project only
+' links it with one INCLUDE line. Windows renders with OpenGL, the HTML5
+' player with the module's built-in software rasterizer. Both copy the frame
+' into the normal GBX screen, so PRINT, input and 2D drawing keep working.
+' ============================================================
+
+INCLUDE "modules/opengl3d/OPENGL3D.gbx"
+
+SCREEN_SET 960, 640, 0
+WINDOW_TITLE "GameBasiX - OpenGL 3D module"
+LIMIT_FPS 60
+ALLOW_ESCAPE FALSE
+
+GLOBAL ready = GL3D_INIT(SCREEN_WIDTH(), SCREEN_HEIGHT())
+
+' image texture: GameBasiX loads the sprite, the module reads its pixels
+GLOBAL crateId = 7
+SPRITE_LOAD "assets/crate.png", crateId
+
+IF ready = 0 THEN
+  SCREEN_CLEAR RGB(12, 16, 24)
+  TEXT_COLOR RGB(230, 237, 243)
+  PRINT "The 3D renderer could not start.", 24, 24
+  PRINT GL3D_INFO$(), 24, 48
+  SCREEN_SHOW
+  KEY_WAIT
+  END
+ENDIF
+
+' ------------------------------------------------------------- scene
+GLOBAL cubeColor = RGB(163, 230, 53)
+GLOBAL accentColor = RGB(56, 189, 248)
+GLOBAL steelColor = RGB(148, 163, 184)
+GLOBAL lampColor = RGB(250, 204, 21)
+GLOBAL groundColor = RGB(42, 51, 64)
+GLOBAL bgColor = RGB(12, 16, 24)
+GLOBAL orbit = 0
+
+FUNCTION cameraX:
+  RETURN 9 * SIN(orbit)
+ENDFUNCTION
+
+FUNCTION cameraZ:
+  RETURN 9 * COS(orbit)
+ENDFUNCTION
+
+WHILE TRUE
+  IF KEY_PRESSED(KEY_ESC) THEN END
+
+  orbit = ELAPSED_TIME() / 2400
+
+  GL3D_BEGIN bgColor
+  GL3D_PERSPECTIVE 55, SCREEN_WIDTH() / SCREEN_HEIGHT(), 0.1, 120
+  GL3D_CAMERA cameraX(), 5.5, cameraZ(), 0, 1.2, 0
+
+  ' ground grid and a dark platform box
+  GL3D_GRID 14, 1, groundColor
+  GL3D_BOX 0, -0.15, 0, 10, 0.3, 10, RGB(31, 41, 55)
+
+  ' world axes, drawn a little thicker
+  GL3D_LINE_WIDTH 2
+  GL3D_AXIS 2.5
+  GL3D_LINE_WIDTH 1
+
+  ' the cube turns around its own Y axis inside a pushed transform;
+  ' GL3D_TEXTURE binds the sprite once and keeps it for the next primitives
+  GL3D_TEXTURE crateId, 1
+  GL3D_PUSH
+    GL3D_TRANSLATE 0, 1.4, 0
+    GL3D_ROTATE ELAPSED_TIME() / 12
+    GL3D_CUBE_TEX 0, 0, 0, 0.9, RGB(255, 255, 255)
+  GL3D_POP
+  GL3D_TEXTURE 0
+
+  ' sphere bobbing above the platform
+  GL3D_SPHERE 2.7, 1.2 + 0.25 * SIN(ELAPSED_TIME() / 500), -1.4, 0.7, accentColor, 28
+
+  ' pillar with a cone on top
+  GL3D_CYLINDER -2.7, 0, 1.3, 0.55, 2.4, steelColor, 24
+  GL3D_CYLINDER -2.7, 2.4, 1.3, 0.55, 1.0, lampColor, 24, 0
+
+  ' translucent glass wall behind the scene
+  GL3D_ALPHA 0.3
+  GL3D_QUAD -4, 0, 4, 4, 0, 4, 4, 3.4, 4, -4, 3.4, 4, accentColor
+  GL3D_ALPHA 1
+
+  ' a ring of dots as a marker circle
+  GL3D_POINT_SIZE 4
+  FOR i = 0 TO 23
+    GL3D_POINT 3.4 * COS(i * 15), 0.05, 3.4 * SIN(i * 15), lampColor
+  NEXT
+
+  ' HUD panel in pixel coordinates on top of the 3D frame
+  GL3D_ORTHO
+  GL3D_ALPHA 0.55
+  GL3D_QUAD 16, 8, 0, 470, 8, 0, 470, 70, 0, 16, 70, 0, RGB(15, 23, 42)
+  GL3D_ALPHA 1
+  GL3D_LINE_WIDTH 2
+  GL3D_LINE 16, 70, 0, 470, 70, 0, accentColor
+  GL3D_LINE_WIDTH 1
+  GL3D_END
+
+  ' 2D HUD on top of the 3D frame
+  TEXT_COLOR RGB(230, 237, 243)
+  PRINT "OpenGL 3D module - " + GL3D_INFO$(), 26, 18
+  PRINT "transform stack, lighting, textured cubes, spheres and cylinders", 26, 40
+  PRINT GL3D_WIDTH() + " x " + GL3D_HEIGHT() + " - ESC quits", 26, 56
+
+  SCREEN_SHOW
+WEND

@@ -1,0 +1,26 @@
+{
+  "format": "gbx-module",
+  "id": "UI",
+  "name": "UI",
+  "version": "1.0.0",
+  "summary": "Modern flat windows, widgets, keyboard navigation and themes in pure GBX.",
+  "description": "A complete widget toolkit with draggable windows, labels, buttons, toggles, sliders, progress bars, text fields, dropdowns, listboxes, focus handling, virtual input and light/dark palettes. The module is the folder Modules/ui and UI.gbx is its entry file.",
+  "folder": "ui",
+  "entry": "UI.gbx",
+  "include": {
+    "entry": "modules/ui/UI.gbx"
+  },
+  "files": [
+    "UI.gbx",
+    "widgets.gbx",
+    "helpers.gbx"
+  ],
+  "tags": [
+    "ui",
+    "widgets",
+    "flat",
+    "theme",
+    "keyboard"
+  ],
+  "author": "GameBasiX"
+}

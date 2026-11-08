@@ -1,0 +1,159 @@
+' ---------------------------------------------------- VEC2
+' A 2D vector. The methods change the vector in place; every TYPE value is a
+' reference, so use copyFrom() (or a fresh LOCAL) for an independent copy.
+TYPE VEC2
+  x = 0
+  y = 0
+
+  METHOD set: px, py
+    x = px
+    y = py
+  ENDMETHOD
+
+  METHOD copyFrom: px, py
+    x = px
+    y = py
+  ENDMETHOD
+
+  METHOD add: px, py
+    x = x + px
+    y = y + py
+  ENDMETHOD
+
+  METHOD sub: px, py
+    x = x - px
+    y = y - py
+  ENDMETHOD
+
+  METHOD scale: factor
+    x = x * factor
+    y = y * factor
+  ENDMETHOD
+
+  METHOD addScaled: px, py, factor
+    x = x + px * factor
+    y = y + py * factor
+  ENDMETHOD
+
+  METHOD length:
+    RETURN SQR(x * x + y * y)
+  ENDMETHOD
+
+  METHOD lengthSq:
+    RETURN x * x + y * y
+  ENDMETHOD
+
+  METHOD distance: px, py
+    LOCAL dx = px - x
+    LOCAL dy = py - y
+    RETURN SQR(dx * dx + dy * dy)
+  ENDMETHOD
+
+  METHOD dot: px, py
+    RETURN x * px + y * py
+  ENDMETHOD
+
+  METHOD cross: px, py
+    RETURN x * py - y * px
+  ENDMETHOD
+
+  METHOD angle:
+    RETURN ATAN(y, x)
+  ENDMETHOD
+
+  METHOD angleTo: px, py
+    RETURN ATAN(py - y, px - x)
+  ENDMETHOD
+
+  ' Makes the length 1. A zero vector is left at 0,0.
+  METHOD normalize:
+    LOCAL len = SQR(x * x + y * y)
+    IF len <= MATH_EPS THEN
+      x = 0
+      y = 0
+      RETURN 0
+    ENDIF
+    x = x / len
+    y = y / len
+    RETURN 1
+  ENDMETHOD
+
+  ' Shrinks to maxLength when longer, never grows. Returns the new length.
+  METHOD limit: maxLength
+    LOCAL maxLen = ABS(maxLength)
+    LOCAL len = SQR(x * x + y * y)
+    IF len > maxLen AND len > MATH_EPS THEN
+      x = x / len * maxLen
+      y = y / len * maxLen
+      RETURN maxLen
+    ENDIF
+    RETURN len
+  ENDMETHOD
+
+  METHOD rotate: degrees
+    LOCAL c = COS(degrees)
+    LOCAL s = SIN(degrees)
+    LOCAL nx = x * c - y * s
+    LOCAL ny = x * s + y * c
+    x = nx
+    y = ny
+  ENDMETHOD
+
+  METHOD lerpTo: px, py, t
+    x = MATH_LERP(x, px, t)
+    y = MATH_LERP(y, py, t)
+  ENDMETHOD
+ENDTYPE
+
+' ---------------------------------------------------- component helpers
+FUNCTION MATH_LENGTH: x, y
+  RETURN SQR(x * x + y * y)
+ENDFUNCTION
+
+FUNCTION MATH_LENGTH_SQ: x, y
+  RETURN x * x + y * y
+ENDFUNCTION
+
+FUNCTION MATH_DISTANCE: x1, y1, x2, y2
+  LOCAL dx = x2 - x1
+  LOCAL dy = y2 - y1
+  RETURN SQR(dx * dx + dy * dy)
+ENDFUNCTION
+
+FUNCTION MATH_DISTANCE_SQ: x1, y1, x2, y2
+  LOCAL dx = x2 - x1
+  LOCAL dy = y2 - y1
+  RETURN dx * dx + dy * dy
+ENDFUNCTION
+
+FUNCTION MATH_DOT: x1, y1, x2, y2
+  RETURN x1 * x2 + y1 * y2
+ENDFUNCTION
+
+FUNCTION MATH_CROSS: x1, y1, x2, y2
+  RETURN x1 * y2 - y1 * x2
+ENDFUNCTION
+
+FUNCTION MATH_NORMAL_X: x, y
+  LOCAL len = SQR(x * x + y * y)
+  IF len <= MATH_EPS THEN RETURN 0
+  RETURN x / len
+ENDFUNCTION
+
+FUNCTION MATH_NORMAL_Y: x, y
+  LOCAL len = SQR(x * x + y * y)
+  IF len <= MATH_EPS THEN RETURN 0
+  RETURN y / len
+ENDFUNCTION
+
+FUNCTION MATH_ROTATE_X: x, y, degrees
+  RETURN x * COS(degrees) - y * SIN(degrees)
+ENDFUNCTION
+
+FUNCTION MATH_ROTATE_Y: x, y, degrees
+  RETURN x * SIN(degrees) + y * COS(degrees)
+ENDFUNCTION
+
+FUNCTION MATH_VEC_ANGLE: x, y
+  RETURN ATAN(y, x)
+ENDFUNCTION

@@ -15,7 +15,8 @@ import {
   EDITOR_THEME_FIELDS,
   EDITOR_THEME_PRESETS,
   EDITOR_THEME_PRESET_LABELS,
-  setDebugHover
+  setDebugHover,
+  setModuleDocs
 } from './gbx-lang.js';
 import { applyAppearance, normalizeAppearance, buildAppPalette, DEFAULT_APPEARANCE } from './theme.js';
 import { t, getLanguage, setLanguage, initI18n, onLanguageChange, availableLanguages } from './i18n.js';
@@ -28,6 +29,7 @@ import { createDock, DOCK_PANEL_IDS } from './dock.js';
 
 const $ = (id) => document.getElementById(id);
 const desktop = window.gbxStudioDesktop || null;
+const MODULE_DRAG_TYPE = 'application/x-gbxstudio-module';
 
 const state = {
   health: null,
@@ -39,6 +41,11 @@ const state = {
   project: null,
   projectDir: '',
   tree: [],
+  modules: [],
+  moduleRoot: '',
+  moduleQuery: '',
+  moduleId: '',
+  moduleBusy: false,
   tabs: [],
   activePath: '',
   diagnostics: [],
@@ -111,7 +118,13 @@ async function boot() {
   if (health.config?.language) setLanguage(health.config.language, { persist: true, notify: false });
   state.ref.lang = getLanguage();
 
-  lang = registerGbx(monaco, dataset, { getSymbols, getAnalysis: analysisFor });
+  lang = registerGbx(monaco, dataset, {
+    getSymbols,
+    getAnalysis: analysisFor,
+    // Bildvorschau im Hover braucht den Projektordner aus dem aktuellen Zustand.
+    getProjectDir: () => state.projectDir,
+    getAssetDir: () => state.project?.assetDir || 'assets'
+  });
   applyAppearance(monaco, state.appearance);
   createEditor();
   registerGoToDefinition();
@@ -120,6 +133,7 @@ async function boot() {
   setDebugHover(debugHoverValue);
   bindUi();
   initDock();
+  await loadModules();
   readOutlinePrefs();
   initSplitters();
   // Schmale Fenster starten ohne rechte Zone – die Panels bleiben erreichbar
@@ -194,6 +208,8 @@ function createEditor() {
     cursorBlinking: 'smooth',
     cursorSmoothCaretAnimation: 'on',
     renderWhitespace: 'selection',
+    // Die Einrückungsführungen erzeugen bei Include-Zeilen eine gepunktete Linie.
+    guides: { indentation: false },
     tabSize: 4,
     insertSpaces: true,
     wordBasedSuggestions: 'off',
@@ -795,7 +811,7 @@ function bindUi() {
       }
     ]);
   });
-  $('btn-toggle-ref').addEventListener('click', () => toggleReference());
+  $('btn-panels').addEventListener('click', () => openPanelsMenu($('btn-panels')));
   $('btn-refresh').addEventListener('click', refreshTree);
   $('btn-open-folder').addEventListener('click', () => {
     if (!state.projectDir) return toast(t('Bitte zuerst ein Projekt öffnen.'), 'warn');
@@ -804,6 +820,11 @@ function bindUi() {
   // Ohne Wrapper landete das Klick-Event als Ordnername im Dialog.
   $('btn-new-file').addEventListener('click', () => newFileDialog());
   $('btn-new-folder').addEventListener('click', () => newFolderDialog());
+  $('module-search').addEventListener('input', (event) => {
+    state.moduleQuery = event.target.value;
+    renderModules();
+  });
+  $('btn-module-refresh').addEventListener('click', () => loadModules());
   const fileTree = $('file-tree');
   // Rechtsklick auf die freie Fläche des Dateibaums legt neue Einträge an.
   fileTree.addEventListener('contextmenu', (event) => {
@@ -813,6 +834,7 @@ function bindUi() {
   });
   // Ablegen auf der freien Fläche verschiebt in den Projektordner.
   fileTree.addEventListener('dragover', (event) => {
+    if (handleModuleDragOver(event)) return;
     if (event.target.closest('.tree-row') || !canDropIntoFolder('')) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
@@ -824,6 +846,7 @@ function bindUi() {
   });
   fileTree.addEventListener('drop', (event) => {
     fileTree.classList.remove('drop-root');
+    if (handleModuleDrop(event)) return;
     if (event.target.closest('.tree-row') || !canDropIntoFolder('')) return;
     event.preventDefault();
     const from = treeDragPath;
@@ -867,6 +890,11 @@ function bindUi() {
   document.addEventListener('dragover', (event) => {
     const types = event.dataTransfer?.types;
     if (!types) return;
+    if (types.includes(MODULE_DRAG_TYPE) && event.target.closest?.('.monaco-editor, #file-tree')) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      return;
+    }
     if (types.includes('Files')) {
       event.preventDefault();
       return;
@@ -878,6 +906,13 @@ function bindUi() {
   document.addEventListener('drop', (event) => {
     const types = event.dataTransfer?.types;
     if (!types) return;
+    if (types.includes(MODULE_DRAG_TYPE) && event.target.closest?.('.monaco-editor')) {
+      event.preventDefault();
+      event.stopPropagation();
+      const include = event.dataTransfer.getData('text/plain');
+      if (include) insertIncludeAtCursor(include);
+      return;
+    }
     if (types.includes('Files')) {
       event.preventDefault();
       return;
@@ -904,6 +939,7 @@ function bindUi() {
     revalidateLineErrors();
     refreshLineCheck();
     renderOutline();
+    renderModules();
     renderDebugScope();
     renderBreakpoints();
     updateDebugUi();
@@ -1015,7 +1051,7 @@ async function requestWindowClose() {
 function updateButtons() {
   const hasProject = !!state.project;
   const current = activeTab();
-  $('btn-save').disabled = !current || !current.model;
+  $('btn-save').disabled = !current || !current.model || !!current.moduleFile;
   $('btn-build').disabled = !hasProject || state.building;
   $('btn-run').disabled = !hasProject || state.building || state.debug.active;
   $('btn-debug').disabled = !hasProject || state.building || state.debug.active;
@@ -1102,7 +1138,9 @@ function initDock() {
     t,
     hosts: {
       left: $('sidebar'),
+      left2: $('sidebar2'),
       right: $('reference'),
+      right2: $('reference2'),
       bottom: $('bottom-panel'),
       tabs: $('panel-tabs'),
       body: $('panel-body'),
@@ -1111,6 +1149,7 @@ function initDock() {
     sources,
     title: dockTitle,
     onChange: () => {
+      syncOuterZones();
       editor?.layout();
       // Die Ablage der Panels gehört zum Projekt (siehe rememberLayoutInProject).
       if (!restoringLayout) rememberLayoutInProject();
@@ -1125,6 +1164,8 @@ function dockTitle(id) {
       return t('Dateien');
     case 'outline':
       return t('Outline');
+    case 'modules':
+      return t('Module');
     case 'reference':
       return t('Referenz');
     case 'problems':
@@ -1140,6 +1181,24 @@ function dockTitle(id) {
   }
 }
 
+/** Panels, die das Menü ein- und ausblenden kann. */
+const PANEL_MENU_IDS = ['files', 'outline', 'modules', 'reference', 'problems', 'output', 'console', 'debug'];
+
+/** Menü „Panels“: Häkchen zeigt, was sichtbar ist; ein Klick blendet um. */
+function openPanelsMenu(anchor) {
+  if (!dock) return;
+  const rect = anchor.getBoundingClientRect();
+  showContextMenu(
+    rect.left,
+    rect.bottom + 6,
+    PANEL_MENU_IDS.map((id) => ({
+      label: dockTitle(id),
+      checked: !dock.isHidden(id),
+      action: () => dock.setHidden(id, !dock.isHidden(id))
+    }))
+  );
+}
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -1151,14 +1210,40 @@ function readLayout() {
       sidebar: Number.isFinite(parsed.sidebar) ? parsed.sidebar : null,
       reference: Number.isFinite(parsed.reference) ? parsed.reference : null,
       bottom: Number.isFinite(parsed.bottom) ? parsed.bottom : null,
-      refList: Number.isFinite(parsed.refList) ? parsed.refList : null
+      refList: Number.isFinite(parsed.refList) ? parsed.refList : null,
+      moduleList: Number.isFinite(parsed.moduleList) ? parsed.moduleList : null,
+      sidebar2: Number.isFinite(parsed.sidebar2) ? parsed.sidebar2 : null,
+      reference2: Number.isFinite(parsed.reference2) ? parsed.reference2 : null
     };
   } catch {
-    return { sidebar: null, reference: null, bottom: null, refList: null };
+    return { sidebar: null, reference: null, bottom: null, refList: null, moduleList: null, sidebar2: null, reference2: null };
   }
 }
 
 /** Die Breiten der Spalten, wie sie gerade auf dem Schirm stehen. */
+const OUTER_LEFT_WIDTH = 236;
+const OUTER_RIGHT_WIDTH = 320;
+
+/** Breite einer Spalte aus der CSS-Variablen (0, solange sie nie gesetzt wurde). */
+function layoutPx(name) {
+  return Math.round(parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0);
+}
+
+/**
+ * Eine Außenzone, in die gerade ein Panel gezogen wurde, startet mit einer
+ * brauchbaren Breite; die zuletzt gezogene Breite gilt beim nächsten Mal.
+ */
+function syncOuterZones() {
+  const workspace = $('workspace');
+  if (!workspace) return;
+  if (workspace.classList.contains('has-left2') && !layoutPx('--sidebar2')) {
+    setLayoutVar('--sidebar2', OUTER_LEFT_WIDTH);
+  }
+  if (workspace.classList.contains('has-right2') && !layoutPx('--reference2')) {
+    setLayoutVar('--reference2', OUTER_RIGHT_WIDTH);
+  }
+}
+
 function currentLayout() {
   return {
     sidebar: Math.round($('sidebar').getBoundingClientRect().width),
@@ -1167,7 +1252,12 @@ function currentLayout() {
     // 0 heisst: Liste und Beschreibung teilen sich den Platz wie bisher.
     refList: $('ref-list')?.classList.contains('sized')
       ? Math.round($('ref-list').getBoundingClientRect().height)
-      : 0
+      : 0,
+    moduleList: $('module-list')?.classList.contains('sized')
+      ? Math.round($('module-list').getBoundingClientRect().height)
+      : 0,
+    sidebar2: layoutPx('--sidebar2'),
+    reference2: layoutPx('--reference2')
   };
 }
 
@@ -1205,6 +1295,12 @@ function applyProjectLayout(project) {
       }
       if (Number.isFinite(saved.reference)) {
         setLayoutVar('--reference', clamp(saved.reference, 230, Math.min(720, window.innerWidth * 0.6)));
+      }
+      if (Number.isFinite(saved.sidebar2) && saved.sidebar2 > 0) {
+        setLayoutVar('--sidebar2', clamp(saved.sidebar2, 160, Math.min(560, window.innerWidth * 0.5)));
+      }
+      if (Number.isFinite(saved.reference2) && saved.reference2 > 0) {
+        setLayoutVar('--reference2', clamp(saved.reference2, 230, Math.min(720, window.innerWidth * 0.6)));
       }
       if (Number.isFinite(saved.bottom) && saved.bottom >= 90) {
         const max = Math.max(160, (document.querySelector('.main-area')?.clientHeight || 0) - 140);
@@ -1247,12 +1343,33 @@ function setRefListHeight(value) {
   list.classList.add('sized');
 }
 
+/**
+ * Hoehe der Modul-Liste im Module-Panel. Ohne Wert gilt die feste
+ * Maximalhoehe; nach dem Ziehen am Teiler behaelt die Liste ihre Hoehe und
+ * der Detailbereich nimmt den Rest.
+ */
+function setModuleListHeight(value) {
+  const list = $('module-list');
+  if (!list || !value) {
+    document.documentElement.style.removeProperty('--module-list');
+    list?.classList.remove('sized');
+    return;
+  }
+  const panel = list.closest('.modules-panel');
+  const max = panel && panel.clientHeight > 0 ? Math.max(120, panel.clientHeight - 160) : value;
+  setLayoutVar('--module-list', clamp(value, 72, max));
+  list.classList.add('sized');
+}
+
 function initSplitters() {
   const saved = readLayout();
   if (saved.sidebar) setLayoutVar('--sidebar', clamp(saved.sidebar, 160, Math.min(560, window.innerWidth * 0.5)));
   if (saved.reference) setLayoutVar('--reference', clamp(saved.reference, 230, Math.min(720, window.innerWidth * 0.6)));
+  if (saved.sidebar2) setLayoutVar('--sidebar2', clamp(saved.sidebar2, 160, Math.min(560, window.innerWidth * 0.5)));
+  if (saved.reference2) setLayoutVar('--reference2', clamp(saved.reference2, 230, Math.min(720, window.innerWidth * 0.6)));
   if (saved.bottom) setLayoutVar('--bottom-panel', saved.bottom);
   if (saved.refList) setRefListHeight(saved.refList);
+  if (saved.moduleList) setModuleListHeight(saved.moduleList);
 
   bindSplitter($('split-left'), {
     axis: 'x',
@@ -1265,11 +1382,29 @@ function initSplitters() {
     start: () => $('reference').getBoundingClientRect().width,
     apply: (size) => setLayoutVar('--reference', clamp(size, 230, Math.min(720, window.innerWidth * 0.6)))
   });
+  // Äußere Spalten: erst breit, wenn ein Panel darin liegt.
+  bindSplitter($('split-left2'), {
+    axis: 'x',
+    start: () => layoutPx('--sidebar2') || OUTER_LEFT_WIDTH,
+    apply: (size) => setLayoutVar('--sidebar2', clamp(size, 160, Math.min(560, window.innerWidth * 0.5)))
+  });
+  bindSplitter($('split-right2'), {
+    axis: 'x',
+    invert: true,
+    start: () => layoutPx('--reference2') || OUTER_RIGHT_WIDTH,
+    apply: (size) => setLayoutVar('--reference2', clamp(size, 230, Math.min(720, window.innerWidth * 0.6)))
+  });
   // Teiler zwischen Befehlsliste und Beschreibung im Referenz-Panel.
   bindSplitter($('split-ref'), {
     axis: 'y',
     start: () => $('ref-list')?.getBoundingClientRect().height || 0,
     apply: (size) => setRefListHeight(size)
+  });
+  // Derselbe Teiler zwischen Modul-Liste und Modul-Details.
+  bindSplitter($('split-modules'), {
+    axis: 'y',
+    start: () => $('module-list')?.getBoundingClientRect().height || 0,
+    apply: (size) => setModuleListHeight(size)
   });
   bindSplitter($('split-bottom'), {
     axis: 'y',
@@ -1330,8 +1465,11 @@ function bindSplitter(el, { axis, invert = false, start, apply }) {
   });
   el.addEventListener('dblclick', () => {
     if (axis === 'x' && el.id === 'split-left') setLayoutVar('--sidebar', DEFAULT_LAYOUT.sidebar);
+    else if (axis === 'x' && el.id === 'split-left2') setLayoutVar('--sidebar2', OUTER_LEFT_WIDTH);
+    else if (axis === 'x' && el.id === 'split-right2') setLayoutVar('--reference2', OUTER_RIGHT_WIDTH);
     else if (axis === 'x') setLayoutVar('--reference', DEFAULT_LAYOUT.reference);
     else if (el.id === 'split-ref') setRefListHeight(0);
+    else if (el.id === 'split-modules') setModuleListHeight(0);
     else setLayoutVar('--bottom-panel', DEFAULT_LAYOUT.bottom);
     editor?.layout();
     persistLayout();
@@ -1573,6 +1711,7 @@ async function adoptProject(result) {
   indexProjectSymbols();
   // Befehle aus GBX_INLINE_FN(...) kennenlernen, sobald das Projekt steht.
   refreshInlineCommands();
+  await loadModules();
   renderRecent();
 }
 
@@ -1605,6 +1744,300 @@ function closeAllTabs() {
   if (editor) editor.setModel(null);
   setPreviewView(null);
   renderTabs();
+}
+
+function renderModuleDetail() {
+  const host = $('module-detail');
+  if (!host) return;
+  const module = state.modules.find((item) => item.id === state.moduleId);
+  if (!module) {
+    host.innerHTML = `<div class="empty-hint">${escapeHtml(
+      t('Wähle ein Modul. Die Dateien bleiben im zentralen Modules-Ordner.')
+    )}</div>`;
+    return;
+  }
+  const noProject = !state.projectDir;
+  const installed = module.installed
+    ? `<div class="module-installed">${escapeHtml(t('Bereits eingebunden in:'))} ${escapeHtml(
+        (module.installedIn || []).join(', ')
+      )}</div>`
+    : '';
+  const moduleDir = String(module.include?.entry || '')
+    .replace(/^modules\//i, '')
+    .split('/')[0];
+  const fileList = (module.files || []).length
+    ? `<div class="module-files"><span>${escapeHtml(t('Dateien'))}</span>${module.files
+        .map(
+          (file) =>
+            `<button type="button" class="module-file" data-file="${escapeAttr(
+              `${moduleDir}/${file}`
+            )}">${escapeHtml(file)}</button>`
+        )
+        .join('')}</div>`
+    : '';
+  host.innerHTML = `
+    <div class="module-detail-head">
+      <div><h3>${escapeHtml(module.name)}</h3><span>v${escapeHtml(module.version)} · ${escapeHtml(module.id)}</span></div>
+      <button class="icon-btn" id="module-close-detail" title="${escapeAttr(t('Hilfe schließen'))}">×</button>
+    </div>
+    <p class="module-description">${escapeHtml(module.description || module.summary || '')}</p>
+    ${installed}
+    <div class="module-includes">
+      <div><span>${escapeHtml(t('Modul'))}</span><code>INCLUDE &quot;${escapeHtml(module.include.entry)}&quot;</code></div>
+    </div>
+    ${fileList}
+    <div class="module-actions">
+      ${
+        module.installed
+          ? `<button type="button" class="module-remove">${escapeHtml(t('Modul entfernen'))}</button>`
+          : `<button type="button" class="module-add" ${noProject ? 'disabled' : ''}>${escapeHtml(
+              t('Modul einbinden')
+            )}</button>`
+      }
+    </div>
+    <div class="module-drag-hint">${escapeHtml(
+      noProject
+        ? t('Öffne ein Projekt, um das Modul einzubinden.')
+        : t('Ziehe das Modul in den Dateibaum oder in den Editor. Die Dateien werden nicht kopiert.')
+    )}</div>
+    <div class="module-help">${renderModuleMarkdown(module.help || t('Keine Hilfe im Modul.'))}</div>`;
+  host.querySelector('#module-close-detail')?.addEventListener('click', () => {
+    state.moduleId = '';
+    renderModules();
+  });
+  for (const button of host.querySelectorAll('.module-file')) {
+    button.addEventListener('click', () => {
+      openModuleFile(button.dataset.file).catch((error) => toast(error.message, 'error'));
+    });
+  }
+  host.querySelector('.module-add')?.addEventListener('click', () => addModule(module.id));
+  host.querySelector('.module-remove')?.addEventListener('click', () => removeModule(module.id));
+}
+
+function renderModuleMarkdown(markdown) {
+  const source = escapeHtml(markdown);
+  return source
+    .split(/(```[\s\S]*?```)/g)
+    .map((part) => {
+      if (part.startsWith('```')) {
+        const code = part.replace(/^```[^\n]*\n?/, '').replace(/```$/, '');
+        return `<pre class="module-code">${code}</pre>`;
+      }
+      return part
+        .replace(/^### (.*)$/gm, '<h5>$1</h5>')
+        .replace(/^## (.*)$/gm, '<h4>$1</h4>')
+        .replace(/^# (.*)$/gm, '<h3>$1</h3>')
+        .replace(/^\s*[-*] (.*)$/gm, '<div class="module-li">• $1</div>')
+        .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\n{2,}/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+    })
+    .join('');
+}
+
+async function addModule(id) {
+  if (!state.projectDir) return toast(t('Bitte zuerst ein Projekt öffnen.'), 'warn');
+  if (state.moduleBusy) return;
+  state.moduleBusy = true;
+  renderModuleDetail();
+  try {
+    const result = await post('/api/modules/add', {
+      projectDir: state.projectDir,
+      id
+    });
+    if (state.project && Array.isArray(result.nativeLibs)) state.project.nativeLibs = result.nativeLibs;
+    await refreshTree();
+    await loadModules();
+    await refreshInlineCommands();
+    if (result.file) {
+      const reloaded = await reloadFileFromDisk(result.file);
+      if (!reloaded) {
+        toast(t('Die Datei ist im Editor geändert – bitte schließen und neu öffnen.'), 'warn');
+      }
+      await openFile(result.file, { focus: false });
+    }
+    const libs = result.libs?.length ? ` ${t('Bibliothek: {name}', { name: result.libs.join(', ') })}` : '';
+    toast(
+      (result.added
+        ? t('Modul eingebunden. Die Dateien bleiben im Modules-Ordner.')
+        : t('Dieses Modul ist bereits eingebunden.')) + libs,
+      'ok'
+    );
+  } catch (error) {
+    toast(error.message, 'error');
+  } finally {
+    state.moduleBusy = false;
+    renderModuleDetail();
+  }
+}
+
+async function removeModule(id) {
+  if (!state.projectDir) return toast(t('Bitte zuerst ein Projekt öffnen.'), 'warn');
+  if (state.moduleBusy) return;
+  const proceed = await confirmDialog(
+    t('Modul entfernen'),
+    t('Der INCLUDE-Eintrag, der [native]-Eintrag und die kopierte Bibliothek werden entfernt.'),
+    t('Entfernen'),
+    true
+  );
+  if (!proceed) return;
+  state.moduleBusy = true;
+  renderModuleDetail();
+  try {
+    const result = await post('/api/modules/remove', { projectDir: state.projectDir, id });
+    if (state.project && Array.isArray(result.nativeLibs)) state.project.nativeLibs = result.nativeLibs;
+    for (const file of result.files || []) {
+      const reloaded = await reloadFileFromDisk(file);
+      if (!reloaded) {
+        toast(t('Die Datei ist im Editor geändert – bitte schließen und neu öffnen.'), 'warn');
+      }
+    }
+    await refreshTree();
+    await loadModules();
+    await refreshInlineCommands();
+    toast(
+      result.libs?.length
+        ? t('Modul entfernt. Kopierte Bibliotheken gelöscht: {name}', { name: result.libs.join(', ') })
+        : t('Modul entfernt.'),
+      'ok'
+    );
+  } catch (error) {
+    toast(error.message, 'error');
+  } finally {
+    state.moduleBusy = false;
+    renderModuleDetail();
+  }
+}
+
+/** Liest eine bereits offene Datei neu ein, damit Include-Zeilen nicht veralten. */
+async function reloadFileFromDisk(rel) {
+  const tab = state.tabs.find((item) => item.path === rel && item.kind === 'text' && item.model);
+  if (!tab) return true;
+  if (tab.dirty) return false;
+  const result = await get(
+    `/api/file?dir=${encodeURIComponent(state.projectDir)}&file=${encodeURIComponent(rel)}`
+  );
+  if (tab.model.getValue() !== result.content) {
+    tab.model.setValue(result.content);
+    tab.dirty = false;
+    renderTabs();
+  }
+  return true;
+}
+
+function handleModuleDragOver(event) {
+  const types = event.dataTransfer?.types;
+  if (!types?.includes(MODULE_DRAG_TYPE)) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  return true;
+}
+
+function handleModuleDrop(event) {
+  const types = event.dataTransfer?.types;
+  if (!types?.includes(MODULE_DRAG_TYPE)) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  const id = event.dataTransfer.getData(MODULE_DRAG_TYPE);
+  if (id) addModule(id).catch((error) => toast(error.message, 'error'));
+  return true;
+}
+
+function insertIncludeAtCursor(include) {
+  if (!editor) return;
+  const model = editor.getModel();
+  const position = editor.getPosition();
+  if (!model || !position) return;
+  const text = `INCLUDE "${String(include).replace(/\\/g, '/')}"`;
+  editor.pushUndoStop();
+  editor.executeEdits('module-drop', [
+    {
+      range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+      text,
+      forceMoveMarkers: true
+    }
+  ]);
+  editor.pushUndoStop();
+  editor.setPosition({ lineNumber: position.lineNumber, column: position.column + text.length });
+  editor.revealPositionInCenterIfOutsideViewport();
+  editor.focus();
+}
+
+/* ------------------------------------------------------------------ */
+/* Zentrale Module                                                     */
+/* ------------------------------------------------------------------ */
+
+async function loadModules() {
+  try {
+    const query = state.projectDir ? `?dir=${encodeURIComponent(state.projectDir)}` : '';
+    const result = await get(`/api/modules${query}`);
+    state.modules = Array.isArray(result.modules) ? result.modules : [];
+    state.moduleRoot = result.root || '';
+    // Die Modulhilfe erscheint erst nach einem Klick auf eine Karte.
+    if (state.moduleId && !state.modules.some((module) => module.id === state.moduleId)) {
+      state.moduleId = '';
+    }
+    setModuleDocs(state.modules);
+    dock?.setMeta('modules', String(state.modules.length));
+    renderModules();
+  } catch (error) {
+    state.modules = [];
+    setModuleDocs([]);
+    renderModules();
+    console.warn('Module konnten nicht geladen werden:', error);
+  }
+}
+
+function renderModules() {
+  const host = $('module-list');
+  if (!host) return;
+  const query = state.moduleQuery.trim().toLowerCase();
+  const modules = state.modules.filter((module) => {
+    if (!query) return true;
+    return [module.id, module.name, module.summary, module.description, ...(module.tags || [])]
+      .join(' ')
+      .toLowerCase()
+      .includes(query);
+  });
+  if (!modules.length) {
+    host.innerHTML = `<div class="empty-hint">${escapeHtml(
+      state.modules.length ? t('Kein Modul passt zur Suche.') : t('Keine Module im zentralen Modules-Ordner.')
+    )}</div>`;
+  } else {
+    host.innerHTML = modules
+      .map((module) => {
+        const active = module.id === state.moduleId ? ' active' : '';
+        const installed = module.installed ? `<span class="module-badge ok">${escapeHtml(t('Im Projekt'))}</span>` : '';
+        return `<button type="button" class="module-card${active}" data-id="${escapeAttr(module.id)}" draggable="true">
+          <span class="module-card-head"><b>${escapeHtml(module.name)}</b><span class="module-version">v${escapeHtml(module.version)}</span></span>
+          <span class="module-summary">${escapeHtml(module.summary || '')}</span>
+          <span class="module-card-foot"><span>${module.files.length} ${escapeHtml(t('Datei(en)'))}</span>${installed}</span>
+        </button>`;
+      })
+      .join('');
+    for (const card of host.querySelectorAll('.module-card')) {
+      const module = state.modules.find((item) => item.id === card.dataset.id);
+      card.addEventListener('click', () => {
+        state.moduleId = state.moduleId === card.dataset.id ? '' : card.dataset.id;
+        renderModules();
+      });
+      card.addEventListener('dragstart', (event) => {
+        if (!module || !event.dataTransfer) return;
+        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.setData(MODULE_DRAG_TYPE, module.id);
+        event.dataTransfer.setData('text/plain', module.include.entry);
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    }
+  }
+  renderModuleDetail();
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 }
 
 async function refreshTree() {
@@ -1683,6 +2116,7 @@ function canDropIntoFolder(folder) {
 
 function attachFolderDrop(row, folder) {
   row.addEventListener('dragover', (event) => {
+    if (handleModuleDragOver(event)) return;
     if (!canDropIntoFolder(folder)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -1695,6 +2129,7 @@ function attachFolderDrop(row, folder) {
   });
   row.addEventListener('drop', (event) => {
     row.classList.remove('drop-target');
+    if (handleModuleDrop(event)) return;
     if (!canDropIntoFolder(folder)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -1705,6 +2140,7 @@ function attachFolderDrop(row, folder) {
 }
 
 function renderTree() {
+  hideTreePreview();
   const host = $('file-tree');
   host.innerHTML = '';
   if (!state.project) {
@@ -1772,14 +2208,69 @@ function treeFolderRow(dir, depth) {
   return row;
 }
 
+/* ------------------------------------------------- Bildvorschau im Baum */
+
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'bmp', 'gif', 'webp']);
+let treePreview = null;
+let treePreviewTimer = 0;
+
+function treePreviewElement() {
+  if (treePreview) return treePreview;
+  const tip = document.createElement('div');
+  tip.className = 'tree-preview';
+  tip.hidden = true;
+  const img = document.createElement('img');
+  img.alt = '';
+  img.draggable = false;
+  const path = document.createElement('span');
+  path.className = 'tree-preview-path';
+  tip.append(img, path);
+  document.body.append(tip);
+  // Beim Scrollen wandert die Zeile weg – dann verschwindet auch die Vorschau.
+  window.addEventListener('scroll', hideTreePreview, true);
+  treePreview = tip;
+  return tip;
+}
+
+function hideTreePreview() {
+  clearTimeout(treePreviewTimer);
+  if (!treePreview) return;
+  treePreview.hidden = true;
+  treePreview.querySelector('img').removeAttribute('src');
+}
+
+/** Bild einer Datei im Baum als Vorschau neben der Zeile zeigen. */
+function showTreePreview(row, file) {
+  if (!state.projectDir || !file) return;
+  const tip = treePreviewElement();
+  const img = tip.querySelector('img');
+  const url = `${location.origin}/api/file/raw?dir=${encodeURIComponent(state.projectDir)}&file=${encodeURIComponent(file)}`;
+  img.src = url;
+  tip.querySelector('.tree-preview-path').textContent = file;
+  tip.hidden = false;
+
+  // Rechts neben der Zeile; ohne Platz links davon, immer im Fenster.
+  const box = row.getBoundingClientRect();
+  const width = tip.offsetWidth || 220;
+  const height = tip.offsetHeight || 180;
+  let left = box.right + 10;
+  if (left + width > window.innerWidth - 8) left = Math.max(8, box.left - width - 10);
+  let top = box.top;
+  if (top + height > window.innerHeight - 8) top = Math.max(8, window.innerHeight - height - 8);
+  tip.style.left = `${left}px`;
+  tip.style.top = `${top}px`;
+}
+
 function treeFileRow(item, label, depth = 0) {
   const row = document.createElement('div');
   row.className = 'tree-row' + (item.path === state.activePath ? ' active' : '');
   row.dataset.path = item.path;
-  row.title = item.path;
   row.style.paddingLeft = `${25 + depth * 14}px`;
   row.draggable = true;
   const ext = (item.ext || item.name.split('.').pop() || '').replace('.', '').toLowerCase();
+  const image = IMAGE_EXTENSIONS.has(ext);
+  // Bei Bildern übernimmt die Vorschau den Hover; der native Titel bleibt weg.
+  if (!image) row.title = item.path;
   const icon = document.createElement('span');
   icon.className = 'fi ' + ext;
   icon.textContent = ext === 'gbas'
@@ -1809,6 +2300,15 @@ function treeFileRow(item, label, depth = 0) {
   // dort landet der relative Pfad an der Cursorposition, z. B. „Media/image.png“.
   row.addEventListener('dragstart', (event) => treeDragStart(event, item.path));
   row.addEventListener('dragend', clearTreeDrag);
+  if (image) {
+    row.addEventListener('mouseenter', () => {
+      clearTimeout(treePreviewTimer);
+      treePreviewTimer = setTimeout(() => showTreePreview(row, item.path), 320);
+    });
+    row.addEventListener('mouseleave', hideTreePreview);
+    row.addEventListener('click', hideTreePreview);
+    row.addEventListener('dragstart', hideTreePreview);
+  }
   return row;
 }
 
@@ -2074,7 +2574,13 @@ function showContextMenu(x, y, items) {
     button.type = 'button';
     button.className = 'context-item';
     button.setAttribute('role', 'menuitem');
-    button.textContent = entry.label;
+    if (entry.checked !== undefined) {
+      const check = document.createElement('span');
+      check.className = 'check';
+      check.textContent = entry.checked ? '✓' : '';
+      button.append(check);
+    }
+    button.append(entry.label);
     button.addEventListener('click', () => {
       closeContextMenu();
       Promise.resolve(entry.action()).catch((error) => toast(error.message, 'error'));
@@ -2146,6 +2652,29 @@ function languageFor(file) {
 
 function absPath(rel) {
   return `${state.projectDir.replace(/\\/g, '/').replace(/\/$/, '')}/${rel}`;
+}
+
+function moduleRootPath() {
+  return String(state.moduleRoot || '').replace(/\\/g, '/').replace(/\/+$/, '');
+}
+
+function moduleAbsPath(rel) {
+  return `${moduleRootPath()}/${String(rel || '').replace(/\\/g, '/').replace(/^\/+/, '')}`;
+}
+
+/** Sprache einer Moduldatei: GBX-Quellen, C++-Header und reiner Text. */
+function moduleLanguage(rel) {
+  if (/\.gbx$/i.test(rel)) return 'gbx';
+  if (/\.(h|hh|hpp|hxx|c|cc|cpp|cxx)$/i.test(rel)) return 'cpp';
+  return 'plaintext';
+}
+
+/** Macht aus einer Monaco-URI einen Pfad relativ zum zentralen Modules-Ordner. */
+function moduleFileFromUri(uri) {
+  const root = moduleRootPath();
+  const full = String(uri?.fsPath || '').replace(/\\/g, '/');
+  if (!root || !full.toLowerCase().startsWith(root.toLowerCase() + '/')) return '';
+  return full.slice(root.length + 1);
 }
 
 function activeTab() {
@@ -2240,7 +2769,96 @@ function nameAtCursor(model, position) {
   return word;
 }
 
+/** Loest ein INCLUDE relativ zur aktuellen Moduldatei auf. */
+function moduleIncludePath(currentModule, target) {
+  const raw = String(target || '').replace(/\\/g, '/').replace(/^\.\//, '').trim();
+  if (!raw || raw.startsWith('/') || /^[A-Za-z]:/.test(raw)) return '';
+  if (/^modules\//i.test(raw)) return raw.replace(/^modules\//i, '');
+  const parts = [...String(currentModule || '').split('/').slice(0, -1), ...raw.split('/')];
+  const out = [];
+  for (const part of parts) {
+    if (!part || part === '.') continue;
+    if (part === '..') {
+      if (!out.length) return '';
+      out.pop();
+      continue;
+    }
+    out.push(part);
+  }
+  return out.join('/');
+}
+
 /** Macht aus einer Monaco-URI wieder einen Pfad im geoeffneten Projekt. */
+function includeTargetAt(model, position) {
+  const line = model.getLineContent(position.lineNumber);
+  const currentModule = moduleFileFromUri(model.uri);
+  // INLINE-Module binden ihre Header per C++-Include ein. Ctrl+Klick/F12
+  // oeffnet die Datei relativ zum Modulordner, auch wenn sie nicht im Projekt
+  // liegt: opengl3d/OPENGL3D.gbx + "opengl3d.h" -> opengl3d/opengl3d.h.
+  const cppInclude = /^\s*#\s*include\s+"([^"]+)"/.exec(line);
+  if (cppInclude && currentModule) {
+    const moduleRel = moduleIncludePath(currentModule, cppInclude[1]);
+    if (moduleRel) return { moduleRel, line: 1 };
+    return null;
+  }
+  const hit = /^\s*INCLUDE\s+"([^"]+)"/i.exec(line);
+  if (!hit) return null;
+  const target = hit[1].replace(/\\/g, '/').replace(/^\.\//, '').trim();
+  if (!target) return null;
+  // In einer Moduldatei ist ein relativer Include relativ zu ihrer eigenen
+  // Datei gemeint: ui/UI.gbx + "widgets.gbx" -> ui/widgets.gbx.
+  if (currentModule) {
+    const moduleRel = moduleIncludePath(currentModule, target);
+    if (moduleRel && /\.gbx$/i.test(moduleRel)) return { moduleRel, line: 1 };
+    return null;
+  }
+  if (
+    state.tree.some(
+      (item) =>
+        item.type === 'file' && String(item.path).replace(/\\/g, '/').toLowerCase() === target.toLowerCase()
+    )
+  ) {
+    return { file: target, line: 1 };
+  }
+  const moduleRel = target.replace(/^modules\//i, '');
+  if (/^modules\//i.test(target) && moduleRel && /\.gbx$/i.test(moduleRel)) {
+    return { moduleRel, line: 1 };
+  }
+  return { file: target, line: 1 };
+}
+
+/** Definition eines Modulsymbols, z. B. `app.window` -> UI.WINDOW. */
+function moduleDefinitionAt(model, position) {
+  if (!state.modules.length) return null;
+  const info = wordAtCursorInfo(model, position);
+  const wanted = bareName(info.word);
+  if (!wanted || info.index < 0) return null;
+  const line = model.getLineContent(position.lineNumber);
+  const owner = /([A-Za-z_]\w*)\s*\.\s*$/.exec(line.slice(0, info.index))?.[1] || '';
+  let ownerType = '';
+  if (owner) {
+    if (state.modules.some((module) => module.id.toUpperCase() === owner.toUpperCase())) {
+      ownerType = owner.toUpperCase();
+    } else {
+      const variables = [...(getSymbols().variables || []), ...(analysisFor(model).variables || [])];
+      const variable = variables.find(
+        (entry) => bareName(memberBaseName(entry.name)).toUpperCase() === owner.toUpperCase()
+      );
+      if (variable) ownerType = bareName(variable.type || '').toUpperCase();
+    }
+  }
+  const keys = [];
+  if (ownerType) keys.push(`${ownerType}.${wanted.toUpperCase()}`);
+  keys.push(wanted.toUpperCase());
+  for (const module of state.modules) {
+    for (const key of keys) {
+      const definition = module.definitions?.[key];
+      if (definition) return { ...definition, kind: 'module', scope: null };
+    }
+  }
+  return null;
+}
+
 function projectPathOf(uri) {
   const key = uri.toString();
   const open = state.tabs.find((tab) => tab.model && tab.model.uri.toString() === key);
@@ -2255,10 +2873,31 @@ function registerGoToDefinition() {
   // F12 und Rechtsklick -> Gehe zu Definition. Der Provider liefert Ziel und
   // Zeile, der Editor-Opener oeffnet die Datei als Tab an dieser Stelle.
   monaco.languages.registerDefinitionProvider('gbx', {
-    provideDefinition(model, position) {
+    async provideDefinition(model, position) {
       if (model.getLanguageId() !== 'gbx') return null;
+      // INCLUDE ist keine normale Variable: Ctrl+Klick/F12 öffnet die
+      // eingebundene Datei, auch wenn sie im zentralen Modules-Ordner liegt.
+      const include = includeTargetAt(model, position);
+      if (include) {
+        if (include.moduleRel) {
+          const found = await ensureModuleModel(include.moduleRel).catch(() => null);
+          if (!found) return null;
+          return [{ uri: found.uri, range: new monaco.Range(1, 1, 1, 1) }];
+        }
+        return [
+          {
+            uri: monaco.Uri.file(absPath(include.file)),
+            range: new monaco.Range(include.line || 1, 1, include.line || 1, 1)
+          }
+        ];
+      }
       const target = resolveSymbolAt(model, position);
       if (!target) return null;
+      if ((target.kind === 'module' || target.module) && target.file) {
+        const found = await ensureModuleModel(target.file).catch(() => null);
+        if (!found) return null;
+        return [{ uri: found.uri, range: new monaco.Range(target.line, 1, target.line, 1) }];
+      }
       return [
         {
           uri: monaco.Uri.file(absPath(target.file)),
@@ -2278,10 +2917,15 @@ function registerGoToDefinition() {
 
   monaco.editor.registerEditorOpener({
     openCodeEditor(source, resource, selectionOrPosition) {
-      const file = projectPathOf(resource);
-      if (!file) return false;
       const line =
         (selectionOrPosition && (selectionOrPosition.lineNumber || selectionOrPosition.startLineNumber)) || 0;
+      const moduleRel = moduleFileFromUri(resource);
+      if (moduleRel) {
+        openModuleFile(moduleRel, { line }).catch((error) => toast(error.message, 'error'));
+        return true;
+      }
+      const file = projectPathOf(resource);
+      if (!file) return false;
       openFile(file, { line });
       return true;
     }
@@ -2495,6 +3139,8 @@ function resolveSymbolAt(model, position) {
   // die Sprache exakt; die Stelle im Code entscheidet zwischen Typ und Wert.
   const word = wordAtCursorInfo(model, position);
   const typeUse = isTypePosition(codePartOfLine(lines[position.lineNumber - 1] || ''), word.index);
+  const moduleTarget = moduleDefinitionAt(model, position);
+  if (moduleTarget) return moduleTarget;
   const project = definitionFor(name);
   if (project && typeUse) return { ...project, kind: 'project', scope: null };
   // Lokale Namen (auch Parameter) verdecken ein gleichnamiges Feld.
@@ -2547,7 +3193,8 @@ function resolveSymbolAt(model, position) {
   if (project) return { ...project, kind: 'project', scope: null };
   // Befehle aus GBX_INLINE_FN(...) stehen im Header bzw. in der CPP-Datei.
   const inline = inlineCommandFor(name);
-  if (inline?.file) return { file: inline.file, line: inline.line || 1, kind: 'inline', scope: null };
+  if (inline?.file)
+    return { file: inline.file, line: inline.line || 1, kind: 'inline', module: Boolean(inline.module), scope: null };
   return null;
 }
 
@@ -2697,6 +3344,10 @@ async function renameSymbol() {
   const resolved = resolveSymbolAt(model, position);
   if (!resolved) {
     toast(t('Nur eigene Namen lassen sich umbenennen.'), 'warn');
+    return;
+  }
+  if (resolved.kind === 'module') {
+    toast(t('Modulsymbole lassen sich nicht umbenennen.'), 'warn');
     return;
   }
   if (resolved.kind === 'inline') {
@@ -2878,6 +3529,50 @@ async function openFile(rel, { focus = true, line = 0 } = {}) {
   if (focus) editor.focus();
   if (line) revealLine(line);
   schedulePersist();
+}
+
+/** Lädt eine Modulquelle bei Bedarf in ein Monaco-Modell. */
+async function ensureModuleModel(moduleRel) {
+  const rel = String(moduleRel || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!rel || !state.moduleRoot || !monaco) return null;
+  const uri = monaco.Uri.file(moduleAbsPath(rel));
+  let model = monaco.editor.getModel(uri);
+  if (!model) {
+    const result = await get(`/api/modules/file?file=${encodeURIComponent(rel)}`);
+    model = monaco.editor.createModel(result.content || '', moduleLanguage(rel), uri);
+  }
+  return { uri, model, moduleRel: rel };
+}
+
+/** Öffnet eine Datei aus dem zentralen Modules-Ordner als schreibgeschützten Tab. */
+async function openModuleFile(moduleRel, { focus = true, line = 0 } = {}) {
+  const rel = String(moduleRel || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!rel) return;
+  const tabPath = `modules/${rel}`;
+  const existing = state.tabs.find((tab) => tab.moduleFile === rel);
+  if (existing) {
+    activateTab(existing.path);
+    if (line) revealLine(line);
+    return;
+  }
+  const found = await ensureModuleModel(rel);
+  if (!found) throw new Error(t('Moduldatei konnte nicht geöffnet werden.'));
+  const tab = {
+    path: tabPath,
+    model: found.model,
+    dirty: false,
+    kind: 'text',
+    language: moduleLanguage(rel),
+    moduleFile: rel,
+    readOnly: true
+  };
+  bindTabModel(tab, found.model);
+  state.tabs.push(tab);
+  activateTab(tabPath);
+  paintBreakpoints();
+  paintDebugLine();
+  if (focus) editor.focus();
+  if (line) revealLine(line);
 }
 
 /**
@@ -3115,6 +3810,10 @@ function revealLine(line) {
 
 async function saveTab(tab) {
   if (!tab || !tab.model) return false;
+  if (tab.moduleFile) {
+    toast(t('Moduldateien bleiben im Modules-Ordner.'), 'warn');
+    return false;
+  }
   try {
     await post('/api/file', { dir: state.projectDir, file: tab.path, content: tab.model.getValue() });
     tab.dirty = false;
@@ -3169,7 +3868,7 @@ function scheduleIndex() {
 
 async function persistProjectNow() {
   if (!state.project || !state.projectDir) return;
-  state.project.openFiles = state.tabs.map((t) => t.path);
+  state.project.openFiles = state.tabs.filter((t) => !t.moduleFile).map((t) => t.path);
   if (!restoringLayout) {
     state.project.layout = currentLayout();
     if (dock) state.project.dock = dock.layout;

@@ -24,6 +24,7 @@ export function setCompilerPath(value) {
 function gbxEnv() {
   const env = { ...process.env, GBX_LANG: language() };
   if (compilerPath) env.GBX_CXX = compilerPath;
+  if (process.env.GBX_MODULES) env.GBX_MODULES = process.env.GBX_MODULES;
   return env;
 }
 
